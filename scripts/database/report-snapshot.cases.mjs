@@ -23,6 +23,7 @@ import { aggregateWorkerCases } from './aggregate-worker.cases.mjs';
 import { jobRecoveryCases } from './job-recovery.cases.mjs';
 import { reportJobMonitorCases } from './report-job-monitor.cases.mjs';
 import { analysisCases } from './analysis.cases.mjs';
+import { deviceDistributionCases } from './device-distribution.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -216,4 +217,5 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   await reportJobMonitorCases(t,{db,adapterPool,access,scope,up,period,putTemplate,single,intercept});
   await reportGenerationRecoveryCases(t,{db,adapterPool,access,scope,up,period,putTemplate,single,intercept});
   await reportHistoryCases(t,{db,adapterPool,access,scope,api,up,period,write,publish,putTemplate,single,intercept});
+  await deviceDistributionCases(t,{db,adapterPool,access,period,putTemplate,intercept});
 }

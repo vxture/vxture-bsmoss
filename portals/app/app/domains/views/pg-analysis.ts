@@ -71,7 +71,8 @@ export class PgAnalysisStore implements AnalysisStore {
       const c = normalizeRollupConfig(row.config).config, def = FIRST_METRICS.get(panel.metricRef)!;
       if (refKey(c.metric) !== refKey(panel.metricRef)) throw Error("invalid_analysis_binding");
       required = reportScope({ ...required, sourceIds: c.members.map(m => m.sourceId), stationIds: c.atoms.map(a => a.stationId),
-        serviceIds: c.atoms.flatMap(a => a.serviceId ? [a.serviceId] : []), metricKeys: analysisMetricKeys(panel), allowSiteParameters: def.attribution === "physical_object" });
+        serviceIds: c.atoms.flatMap(a => a.serviceId ? [a.serviceId] : []), deviceIds: c.atoms.flatMap(a => a.deviceId ? [a.deviceId] : []),
+        metricKeys: analysisMetricKeys(panel), allowSiteParameters: def.object === "station_meter" });
       assertReportScope(this.scope, required);
       for (const member of c.members) {
         const mapped = await this.locator(client, panel, { panelId: panel.id, kind: "aggregate", sourceId: member.sourceId, mappingId: member.mappingId });

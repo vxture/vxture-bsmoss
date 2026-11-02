@@ -69,8 +69,8 @@ async function observe(pool: Pool, client: PoolClient, scope: MeasurementScope, 
       if (!result) throw Error("report_rollup_unavailable");
       observation = { panelId: panel.id, data: { kind: "rollup", query, result }, dailyDependencies: [], requiredScope: reportScope({ workspaceId: scope.workspaceId,
         sourceIds: result.members.map(m => m.sourceId), stationIds: result.attribution.map(a => a.stationId),
-        serviceIds: result.attribution.flatMap(a => a.serviceId === null ? [] : [a.serviceId]), deviceIds: [], metricKeys: result.requiredMetricKeys,
-        allowSiteParameters: FIRST_METRICS.get(result.metric)!.attribution === "physical_object" }) };
+        serviceIds: result.attribution.flatMap(a => a.serviceId === null ? [] : [a.serviceId]), deviceIds: result.attribution.flatMap(a => a.deviceId ? [a.deviceId] : []), metricKeys: result.requiredMetricKeys,
+        allowSiteParameters: FIRST_METRICS.get(result.metric)!.object === "station_meter" }) };
     }
     if (template.grain !== "day" && binding.kind !== "not_connected") {
       const daily = [];

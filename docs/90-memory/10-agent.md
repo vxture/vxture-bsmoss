@@ -1,5 +1,21 @@
 # 后续代理入口
 
+## 受审设备状态与均温分布（2026-11-03，最新入口）
+
+接续d29ae0c，恢复时clean。原五项active goal及bs-moss heartbeat复用，本turn有实质progress，不标blocked／complete、不新建自动化、不spawn。设计223／实施590。I08新增device-distribution纯规则并由object-rollup按设备语义分派；沿原object_rollup_revision只读受审配置，无DDL／Prisma／依赖变化，仍59表空库，无旧库迁移。
+
+设备atom显式deviceId、真实station、service/network=null，单成员单设备，跨来源重复覆盖／同设备伪装第二站址拒绝。预期总体256／成员64上界沿用，未知保留总体。状态六态期末count及deviceMilliseconds／expectedDeviceMilliseconds精确守恒，不推断站址停机。温度basis固定device_mean_bins/ref/mode/scale/递增thresholds（1–12），逐设备原均值分数BigInt比边界，不跨设备求和／均值；计算分数独立64位字符串上界。PG连无发布都校验真实gauge策略。权威／发布stale或不可用、未发布／未覆盖均unknown；部分可信子集仍partial/preliminary。scalar value/knownValue=null，独立distribution及每成员deviceValue／原发布证据；旧interval结构／指纹未加字段。
+
+PG同RR配置／真实归属／成员快照，设备范围独立于allowSiteParameters；整个预期总体含未选来源设备必须授权。reports requiredScope和analysis locator补真实deviceIds，站级flag只用于station_meter，正式报告／发布／执行和下载原末次授权链保持。正式分析分布列表＋总体／有效数据覆盖、无伪单值趋势，原始依据／周月逐日pin／旧报告不变／修订后stale下载拒绝。共享display支持分布，既有支持输入HTML不变，新输入此前不支持，renderer仍v1。
+
+最终512单测（新增7）、334实际PG（新增8场景）、双层types／生产build／20HTTP通过。PG验证守恒／温度边界、重复人口／映射、未覆盖设备授权及站级flag无替代、完整生成→发布→导出→下载、隐藏不读时序、周月每日、写后设备撤权全回滚／SQL故障、同RR并发修订、旧字节／stale下载、能力恢复不复活审阅及新配置恢复。新夹具初期事件periodEnd全日而validUntil半日被正确拒；修窗口后，card的device_count仍被state_view_unit_mismatch拒，改合法state单位。未放宽产品规则。
+
+CUA隐藏tab13＋独立63334合成实际React，桌面实际client/scroll1265、390×844手机client/scroll390，无warn/error；11行分布、未知、总体覆盖可读。发现继承全局dl>div margin-top20px，局部分布归零并固定12px行字体；截图artifacts/device-distribution-qa/{desktop.png,mobile.png,state.json}，viewport已reset、tab已关闭。没有操作用户主地图。临时PG58874 aggregate-data只随机合同库，最终334后应stop；63334收尾应核验stop；63333为build已核验停本仓Next PID2940，收尾恢复新SHA。最终cleanup／扫描／运行SHA见工具和reviewed-device-distributions检查点。
+
+日志tmp/device-distribution-{unit,db,types,build,http,guards,ascii,staged-scan,preflight}.log，最终119篇文档／59表／交付／SCA守卫与staged密钥以工具收尾为准。只读release-preflight仍prerequisites_missing／productionLaunch=false，自动检查缺app.env／stack.env、remote_commits及build/beta/prod环境，人工出口授权来源字段／样例／单位口径签认、C1/C2/C3 live登记、真实机器provider权威契约／生产宿主、11万3倍突发／安全恢复／UAT和生产批准仍缺。没有push／PR／远端CI／真实接入／外部部署或上线。
+
+I08设备分布子项已完，分层规模汇总及容量验证待；I11受审管理员模板发布／角色层级配置也待。下一包可先推进模板发布（已有template_version／selection，现仅owner seed／测试写入，需独立权限、审计／不可变发布、选择回滚及末次完整scope，不能拿个人配置权限当管理员），或分层规模。机器provider不能借aud=vxture通道token冒充产品测量C1。五项1–3本地完成、4–5active；陕西演示／费用预留／退服P2不变。
+
 ## 正式分析工作台与账户显示配置（2026-11-03，最新入口）
 
 接续dd1f9b1及上轮未完成的222草稿／4个analysis源文件，本turn继续实质progress，复用active goal和bs-moss heartbeat，不重建、不spawn。设计222／实施580。完成views analysis纯规则／PgAnalysisStore／正式授权门面／RP组合根、/analysis和/api/analysis；正式根入口改为分析，preview仍陕西地图，首页不默认选站和地图布局均未改。

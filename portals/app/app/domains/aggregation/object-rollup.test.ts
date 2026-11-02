@@ -62,8 +62,8 @@ test("object rollup adds ratio parts instead of percentages and retains zero den
   assert.equal(zero.value, null); assert.equal(zero.completeness, "complete"); assert.deepEqual(zero.ratioParts, { numerator: "0", denominator: "0" });
   assert.throws(() => normalizeRollupConfig({ ...c, metric: { code: "status.radio.prb_utilization", version: 1 } }), /basis_required/);
 });
-test("object rollup refuses physical energy attribution and non-additive temperature or device states", () => {
-  for (const code of ["runtime.environment.temperature_c", "runtime.device.state"]) assert.throws(() => normalizeRollupConfig({ ...config(), metric: { code, version: 1 } }), /unsupported_rollup_metric/);
+test("object rollup requires explicit physical device coverage and refuses service-attributed energy", () => {
+  for (const code of ["runtime.environment.temperature_c", "runtime.device.state"]) assert.throws(() => normalizeRollupConfig({ ...config(), metric: { code, version: 1 } }));
   assert.throws(() => normalizeRollupConfig({ ...config(), metric: { code: "runtime.energy.site_wh", version: 1 } }), /physical_attribution/);
 });
 test("object rollup rejects unknown fields, missing observations, mixed periods and unsupported selectors", () => {

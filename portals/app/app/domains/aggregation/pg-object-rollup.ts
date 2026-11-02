@@ -13,13 +13,13 @@ import { aggregateObjectRollup, atomKey, normalizeRollupConfig, normalizeRollupQ
 // corruption, permission failures and bounds violations must fail the read.
 const unavailable = new Set(["aggregate_capability_unavailable_or_ambiguous", "aggregate_capability_boundary", "aggregate_policy_required",
   "aggregate_mapping_unavailable", "aggregate_mapping_gap", "aggregate_subject_mapping_ambiguous", "unaligned_mapping_boundary", "unaligned_service_boundary",
-  "aggregate_dependency_policy_required", "mixed_native_grain", "unsupported_native_grain"]);
+  "aggregate_dependency_policy_required", "mixed_native_grain", "unsupported_native_grain", "state_policy_required", "gauge_policy_required", "gauge_duration_required"]);
 
 async function topology(client: PoolClient, scope: MeasurementScope, c: RollupConfig, query: RollupQuery) {
   const def = FIRST_METRICS.get(c.metric)!, period = bucketFor(query.at, query.grain);
   if (!scope.metricKeys.includes(refKey(c.metric)) || c.members.some(m => !scope.sourceIds.includes(m.sourceId)) ||
-      c.atoms.some(a => !scope.stationIds.includes(a.stationId) || a.serviceId !== null && !scope.serviceIds.includes(a.serviceId)) ||
-      def.attribution === "physical_object" && !scope.allowSiteParameters) throw Error("rollup_scope_denied");
+      c.atoms.some(a => !scope.stationIds.includes(a.stationId) || a.serviceId !== null && !scope.serviceIds.includes(a.serviceId) || a.deviceId !== undefined && !scope.deviceIds.includes(a.deviceId)) ||
+      def.object === "station_meter" && !scope.allowSiteParameters) throw Error("rollup_scope_denied");
   const attribution: ObjectRollupResult["attribution"][number][] = [];
   for (const atom of c.atoms) {
     const row = (await client.query(`SELECT st.id,s.operator_entity_id,s.valid_from,s.valid_to,n.kind FROM bsmoss_resource.station st
@@ -27,6 +27,8 @@ async function topology(client: PoolClient, scope: MeasurementScope, c: RollupCo
       LEFT JOIN bsmoss_resource.network_object n ON n.workspace_id=st.workspace_id AND n.station_id=st.id AND n.service_id=s.id AND n.id=$4
       WHERE st.workspace_id=$1 AND st.id=$2`, [scope.workspaceId, atom.stationId, atom.serviceId, atom.networkObjectId])).rows[0];
     if (!row || atom.serviceId !== null && (!row.operator_entity_id || row.kind !== "cell")) throw Error("rollup_atom_unavailable");
+    if (atom.deviceId !== undefined && !(await client.query(`SELECT id FROM bsmoss_resource.device WHERE workspace_id=$1 AND id=$2 AND station_id=$3`,
+      [scope.workspaceId, atom.deviceId, atom.stationId])).rows.length) throw Error("rollup_atom_unavailable");
     attribution.push({ ...atom, key: atomKey(atom), operatorEntityId: row.operator_entity_id ?? null,
       serviceApplicable: atom.serviceId === null ? null : row.valid_from < new Date(period.end) && row.valid_to > new Date(period.start) });
   }
@@ -42,6 +44,10 @@ async function topology(client: PoolClient, scope: MeasurementScope, c: RollupCo
     if (!scope.stationIds.includes(m.station_id) || m.service_id && !scope.serviceIds.includes(m.service_id) ||
         m.device_id && !scope.deviceIds.includes(m.device_id)) throw Error("rollup_scope_denied");
     const atoms = c.atoms.filter(a => member.atomKeys.includes(atomKey(a)));
+    if (def.object === "device") {
+      if (m.service_id || m.network_object_id || !m.device_id || atoms.some(a => a.stationId !== m.station_id || a.deviceId !== m.device_id)) throw Error("rollup_mapping_coverage_mismatch");
+      continue;
+    }
     if (m.device_id || atoms.some(a => a.stationId !== m.station_id || a.serviceId !== m.service_id) ||
         def.object === "station_meter" && m.network_object_id || def.attribution === "service_required" &&
         (!m.network_object_id || !["cell", "base_station", "statistic_point"].includes(m.kind) ||
@@ -70,9 +76,10 @@ export async function readObjectRollupInTransaction(pool: Pool, scope: Measureme
     try {
       const { snapshot, publication } = await readAggregateQueryInTransaction(pool, scope, {
         sourceId: member.sourceId, mappingId: member.mappingId, metric: config.metric, grain: query.grain, at: query.at }, client);
-      if (snapshot.kind !== "interval") throw Error("unsupported_rollup_metric");
-      if (snapshot.plan.inputMode === "dependencies") metric.dependencies.forEach(m => requiredMetrics.add(refKey(m)));
-      if (config.basis) {
+      if (metric.object === "device" ? snapshot.kind !== metric.semantic : snapshot.kind !== "interval") throw Error("unsupported_rollup_metric");
+      if (snapshot.kind === "gauge" && (config.basis?.kind !== "device_mean_bins" || snapshot.plan.policy.mode !== config.basis.mode || snapshot.plan.policy.scale !== config.basis.scale)) throw Error("rollup_gauge_basis_mismatch");
+      if (snapshot.kind === "interval" && snapshot.plan.inputMode === "dependencies") metric.dependencies.forEach(m => requiredMetrics.add(refKey(m)));
+      if (config.basis && config.basis.kind !== "device_mean_bins") {
         const capability = (await client.query(`SELECT rules FROM bsmoss_integration.source_capability
           WHERE workspace_id=$1 AND source_id=$2 AND metric_code=$3 AND metric_version=$4 AND status='active'
           AND valid_from<=$5 AND valid_to>=$6`, [workspaceId, member.sourceId, config.metric.code, config.metric.version, snapshot.plan.period.start, snapshot.plan.period.end])).rows;

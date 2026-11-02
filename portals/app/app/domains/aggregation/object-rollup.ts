@@ -6,14 +6,15 @@ import { jobIdentity } from "./refresh-jobs.ts";
 import { bounds, bucketFor, type Period } from "./periods.ts";
 import type { AggregateQueryResult } from "./query.ts";
 import type { IntervalAggregate } from "./store.ts";
+import { aggregateDeviceDistribution, normalizeDeviceBasis, type DeviceMeanBasis } from "./device-distribution.ts";
 
-export interface RollupAtom { stationId: string; serviceId: string | null; networkObjectId: string | null }
+export interface RollupAtom { stationId: string; serviceId: string | null; networkObjectId: string | null; deviceId?: string }
 export interface RollupMember {
   id: string; sourceId: string; mappingId: string; authorityVersion: string; atomKeys: readonly string[]; coverageRef: string;
 }
 export interface RollupConfig {
   status: "active" | "paused"; metric: MetricRef; validPeriod: Period;
-  basis: { kind: "voice_attempts" | "prb_capacity_time"; ref: string } | null;
+  basis: { kind: "voice_attempts" | "prb_capacity_time"; ref: string } | DeviceMeanBasis | null;
   atoms: readonly RollupAtom[]; members: readonly RollupMember[];
 }
 export interface RollupQuery { rollupId: string; grain: Grain; at: string }
@@ -24,14 +25,16 @@ export interface RollupObservation {
 function fields(value: unknown, allowed: readonly string[]) {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).some(k => !allowed.includes(k))) throw Error("invalid_rollup_config");
 }
-export function atomKey(atom: RollupAtom) { return JSON.stringify([atom.stationId, atom.serviceId, atom.networkObjectId]); }
+export function atomKey(atom: RollupAtom) { return JSON.stringify([atom.stationId, atom.serviceId, atom.networkObjectId, ...(atom.deviceId === undefined ? [] : [atom.deviceId])]); }
 export function normalizeRollupConfig(raw: RollupConfig) {
   const c = structuredClone(raw);
   fields(c, ["status", "metric", "validPeriod", "basis", "atoms", "members"]);
   fields(c.metric, ["code", "version"]); fields(c.validPeriod, ["start", "end"]);
   const def = FIRST_METRICS.get(c.metric);
   if (!Number.isSafeInteger(c.metric.version) || !def || def.lifecycle === "retired" ||
-      !["disjoint_sum", "ratio_parts"].includes(def.objectAggregation) || !["active", "paused"].includes(c.status)) throw Error("unsupported_rollup_metric");
+      !["disjoint_sum", "ratio_parts", "state_counts", "not_additive"].includes(def.objectAggregation) || !["active", "paused"].includes(c.status)) throw Error("unsupported_rollup_metric");
+  const device = def.object === "device" && ["state", "gauge"].includes(def.semantic);
+  if (["state_counts", "not_additive"].includes(def.objectAggregation) && !device) throw Error("unsupported_rollup_metric");
   const [start, end] = bounds(c.validPeriod);
   c.validPeriod = { start: new Date(start).toISOString(), end: new Date(end).toISOString() };
   if (def.objectAggregation === "ratio_parts") {
@@ -39,11 +42,17 @@ export function normalizeRollupConfig(raw: RollupConfig) {
     const kind = c.metric.code === "status.voice.connection_rate" ? "voice_attempts" : "prb_capacity_time";
     if (!c.basis || c.basis.kind !== kind) throw Error("rollup_ratio_basis_required");
     jobIdentity(c.basis.ref);
-  } else if (c.basis !== null) throw Error("unexpected_rollup_basis");
+  } else if (device) normalizeDeviceBasis(def.semantic, c.basis);
+  else if (c.basis !== null) throw Error("unexpected_rollup_basis");
   if (!Array.isArray(c.atoms) || !c.atoms.length || c.atoms.length > 256 || !Array.isArray(c.members) || c.members.length > 64) throw Error("rollup_bound_exceeded");
+  const devices = new Set<string>();
   for (const atom of c.atoms) {
-    fields(atom, ["stationId", "serviceId", "networkObjectId"]); jobIdentity(atom.stationId);
-    if (def.attribution === "service_required") { jobIdentity(atom.serviceId!); jobIdentity(atom.networkObjectId!); }
+    fields(atom, device ? ["stationId", "serviceId", "networkObjectId", "deviceId"] : ["stationId", "serviceId", "networkObjectId"]); jobIdentity(atom.stationId);
+    if (device) {
+      jobIdentity(atom.deviceId!);
+      if (atom.serviceId !== null || atom.networkObjectId !== null || devices.has(atom.deviceId!)) throw Error("invalid_rollup_device_atom");
+      devices.add(atom.deviceId!);
+    } else if (def.attribution === "service_required") { jobIdentity(atom.serviceId!); jobIdentity(atom.networkObjectId!); }
     else if (atom.serviceId !== null || atom.networkObjectId !== null || def.object !== "station_meter") throw Error("rollup_physical_attribution_mismatch");
   }
   const atoms = new Set(c.atoms.map(atomKey));
@@ -56,7 +65,7 @@ export function normalizeRollupConfig(raw: RollupConfig) {
     const mapping = JSON.stringify([m.sourceId, m.mappingId]);
     if (ids.has(m.id) || mappings.has(mapping)) throw Error("duplicate_rollup_member");
     ids.add(m.id); mappings.add(mapping);
-    if (!Array.isArray(m.atomKeys) || !m.atomKeys.length || m.atomKeys.length > 256) throw Error("invalid_rollup_coverage");
+    if (!Array.isArray(m.atomKeys) || !m.atomKeys.length || m.atomKeys.length > 256 || device && m.atomKeys.length !== 1) throw Error("invalid_rollup_coverage");
     for (const key of m.atomKeys) {
       if (!atoms.has(key) || used.has(key)) throw Error("overlapping_or_unknown_rollup_coverage");
       used.add(key);
@@ -86,6 +95,7 @@ export function aggregateObjectRollup(raw: RollupConfig, grain: Grain, at: strin
   const { config: c } = normalizeRollupConfig(raw), period = bucketFor(at, grain), def = FIRST_METRICS.get(c.metric)!;
   if (c.status !== "active") throw Error("rollup_paused");
   if (!def.grains.includes(grain) || period.start < c.validPeriod.start || period.end > c.validPeriod.end) throw Error("rollup_period_boundary");
+  if (def.object === "device") return aggregateDeviceDistribution(c, grain, period, observations);
   const byId = new Map(observations.map(o => [o.memberId, o]));
   if (byId.size !== observations.length || byId.size !== c.members.length || c.members.some(m => !byId.has(m.id))) throw Error("rollup_observation_mismatch");
   let total = 0n, numerator = 0n, denominator = 0n, known = 0, complete = 0, preliminary = 0, inactive = 0;

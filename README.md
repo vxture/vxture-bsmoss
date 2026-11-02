@@ -60,6 +60,10 @@ Formal /analysis, /reports and /operations workspaces use real RP authorization;
 the authenticated evidence API is /api/measurements. Live source adapters and
 production acceptance remain pending. Formal analysis defaults to a server-selected
 page template; personal preferences never change scope, bindings or report templates.
+Reviewed physical-device populations support exact state counts/device-time and
+per-device temperature-mean bins in formal analysis and reports. Missing or stale
+devices remain unknown; temperatures are never summed or averaged across sensors.
+See docs/40-implementation/590-reviewed-device-distributions.md.
 
 ## Local sample portal (I10)
 
