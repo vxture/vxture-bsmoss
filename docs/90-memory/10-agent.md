@@ -519,3 +519,17 @@ input_refresh_receipt及input_dispatch_event增成对可空partition_id／revisi
 428单测（新增3）、178项实际PG报告测试（177子项＋父项，新增11）通过；强化登记载荷不能空指针及精确FK断言后再全PG，仍178全通过。覆盖独立分区／修订／无登记、暂停所有入口、完整范围及末次撤权、回执／失败写后回滚、5次隔离恢复历史、并发fence、成功／失败配置锁、取锁前RR竞态、晚提交完成、质量／权威路径、租户指针及旧新对象范围。最终类型／构建／Prisma／20HTTP、87篇文档／41表镜像／交付／SCA配置守卫、ASCII／密钥／本地提交及运行SHA以工具收尾和registered-input-consumption.json为准。日志tmp/registered-input-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log，PG仅随机合同库，收尾停止。无依赖／地图变更，不重复六场景UI。
 
 下一出口全省自动分区／时间分片、真实机器身份provider和常驻scheduler／worker；I08跨对象权威去重、I11正式面板、I12持久报告／异步导出。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、UAT与生产批准仍缺；未push／PR／远端CI／真实接入／外部部署／上线。既有五项目标active，1–3本地完成、4–5未完成，heartbeat bs-moss复用；费用预留／退服P2／陕西演示不变。
+
+## I08受审跨对象区间汇总（2026-11-03，覆盖区间汇总待办）
+
+继续既有五项active目标，当前turn为实质progress，不标blocked、不重复真实资料追问或创建自动化。前包f0e2c6c登记输入消费已clean并有检查点。本批设计208／实施440，新增object_rollup_revision，共42表空库／Prisma，无旧库迁移；运行角色只读，DB触发连续追加修订、并发串行、JSONB SHA／actor／时间留痕，禁止改删截断，不伪称业务签名。
+
+object-rollup纯规则、pg-object-rollup及生产组合根／GET /api/aggregates/rollups实际接通。请求仅rollupId／grain／at，RP／权益／metering.view／完整scope与返回前再验权，演示无正式授权或样例回退。抽取pg-query共享事务内核心，配置／真实拓扑／可信快照／全部发布在一个RR READ ONLY事务，输出精确配置修订和摘要、成员发布证据／authorityRevisions；fingerprint覆盖除自身外的整个响应，calculationFingerprint另留计算摘要。并发新配置／事实／发布下一次可见，不承诺返回后不变。
+
+最多256业务cell或物理站原子、64选定成员，审阅总体明确、不从事实倒推。总分／跨来源同原子互斥；同稳定对象的新旧mapping别名即使分配不同原子也拒绝，防相同series重复算。总表只覆盖同站同服务，实际小区／归属验证；physicalStationCount去重，serviceCount总体与applicableServiceCount周期适用独立。站级电耗映射必须无service／network／device，不按运营商分摊。PRB分母仅prb_capacity_time、接通率voice_attempts，来源intervalAggregation.objectBasis必须与配置basis一致；按分子分母合并，0/0留证据不生成0%。温度和状态不在此求和接口。
+
+authority generation变更和改回旧值不复活旧审阅；需新配置修订。未发布／缺覆盖／来源不可用／旧发布分别显示；旧发布和失效权威不参与可信小计，数据库故障不吞成missing。只有完整已确认总体提供value，其余knownValue独立；not_applicable不拖低有效成员水位。权威不可用时不宣称已证实未发布。
+
+437单测（新增9）／193实际PG报告测试（192子项＋父项，新增15）通过，随后补来源修订证据与可独立校验响应SHA断言再执行最终回归。验证配置权限／真实双连接并发串行／SHA、总分与跨来源去重、完整scope／归属、缺覆盖／未发布、完整确认与过期排除、generation恢复、比率与PRB依据、物理电耗、映射别名、服务不适用、SQL故障、同RR并发暂停和发布、读后撤权。初轮新夹具缺PRB字典FK，后续旧完成证明错误纳入新证明基准导致preliminary；补字典并删除旧证明后绑定基础快照，未放宽产品条件。最终类型／构建／Prisma／20HTTP、89篇编号／42表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA以工具收尾和reviewed-object-rollup.json为准。日志tmp/object-rollup-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，收尾停止，无业务库操作。无依赖或演示UI变化，不重复六场景。
+
+下一项I11正式面板／I12持久报告与异步导出；I08设备状态分布／温度分布、配置审阅工具、跨分区分层规模汇总仍待，保持in_progress。I09自动分区／真实机器身份和常驻scheduler／worker未完成。本查询只处理有限审阅分区，不称11万站全省原始扫描。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、业务UAT与生产批准仍缺。五项1–3本地完成、4–5未上线；没有push／PR／远端CI／真实接入／外部部署／上线，费用预留／退服P2／陕西演示不变，heartbeat bs-moss复用。

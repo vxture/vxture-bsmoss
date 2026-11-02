@@ -31,6 +31,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);
       const aggregate=await fetch(url+"/api/aggregates?workspaceId=forged");assert.equal(aggregate.status,401);
       assert.equal(aggregate.headers.get('cache-control'),'no-store');assert.equal(aggregate.headers.get('x-content-type-options'),'nosniff');
+      const rollup=await fetch(url+'/api/aggregates/rollups?workspaceId=forged');assert.equal(rollup.status,401);assert.equal(rollup.headers.get('cache-control'),'no-store');
       assert.equal((await fetch(url+"/api/webhooks/vxture",{method:"POST",body:"{}"})).status,503);
       assert.equal((await fetch(url+"/auth/login")).status,404);
       assert.equal((await fetch(url+"/auth/session")).status,200);
@@ -58,6 +59,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const response=await fetch(url+'/api/aggregates?sourceId=src&mappingId=map&metricCode=service.data.uplink_bytes&metricVersion=1&grain=day&at=2026-10-25T00%3A00%3A00Z');
       assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');assert.ok(response.headers.get('vary').split(',').map(s=>s.trim().toLowerCase()).includes('cookie'));
       const body=await response.json();assert.equal(body.code,'AUTH_REQUIRED');assert.ok(!JSON.stringify(body).includes('9007199254740993'));
+      const rollup=await fetch(url+'/api/aggregates/rollups?rollupId=fixture&grain=day&at=2026-10-25T00%3A00%3A00Z');assert.equal(rollup.status,401);assert.equal(rollup.headers.get('x-content-type-options'),'nosniff');assert.ok(rollup.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await rollup.json()).code,'AUTH_REQUIRED');
     });
     await t.test("sample page renders and the root redirects to it",async()=>{
       const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,307);

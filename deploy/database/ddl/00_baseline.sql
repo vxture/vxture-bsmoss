@@ -865,3 +865,41 @@ ALTER TABLE bsmoss_analysis.input_refresh_receipt ADD FOREIGN KEY(workspace_id,p
   REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision);
 ALTER TABLE bsmoss_analysis.input_dispatch_event ADD FOREIGN KEY(workspace_id,partition_id,partition_revision)
   REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision);
+
+-- Reviewed finite coverage, never runtime-authored source authority.
+CREATE TABLE bsmoss_integration.object_rollup_revision (
+  workspace_id text NOT NULL CHECK(length(trim(workspace_id))>0),
+  id text NOT NULL CHECK(length(trim(id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  config jsonb NOT NULL CHECK(jsonb_typeof(config)='object' AND
+    config ?& ARRAY['status','metric','validPeriod','basis','atoms','members'] AND
+    config-ARRAY['status','metric','validPeriod','basis','atoms','members']='{}'::jsonb AND
+    (config->>'status' IN ('active','paused') AND jsonb_typeof(config->'metric')='object' AND
+      jsonb_typeof(config->'validPeriod')='object' AND jsonb_typeof(config->'atoms')='array' AND
+      jsonb_array_length(config->'atoms') BETWEEN 1 AND 256 AND jsonb_typeof(config->'members')='array' AND
+      jsonb_array_length(config->'members')<=64) IS TRUE),
+  config_sha256 text NOT NULL DEFAULT '' CHECK(config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex')),
+  review_ref text NOT NULL CHECK(length(trim(review_ref))>0),
+  database_actor text NOT NULL DEFAULT session_user CHECK(length(trim(database_actor))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id,revision)
+);
+CREATE FUNCTION bsmoss_integration.capture_object_rollup_revision() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE prior numeric(30,0);
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_integration' OR TG_TABLE_NAME<>'object_rollup_revision' THEN RAISE EXCEPTION 'invalid_rollup_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'rollup_revision_append_only'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-object-rollup',NEW.workspace_id,NEW.id)::text,0));
+  SELECT max(revision) INTO prior FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=NEW.workspace_id AND id=NEW.id;
+  IF NEW.revision<>coalesce(prior,0)+1 THEN RAISE EXCEPTION 'rollup_revision_conflict'; END IF;
+  NEW.config_sha256=encode(sha256(convert_to(NEW.config::text,'UTF8')),'hex');
+  NEW.database_actor=session_user;
+  NEW.recorded_at=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.capture_object_rollup_revision() FROM PUBLIC;
+CREATE TRIGGER object_rollup_revision_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.object_rollup_revision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_object_rollup_revision();
+CREATE TRIGGER object_rollup_revision_no_truncate BEFORE TRUNCATE ON bsmoss_integration.object_rollup_revision
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_object_rollup_revision();

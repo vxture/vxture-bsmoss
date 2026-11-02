@@ -14,6 +14,8 @@ import type { AccessPorts, LocalGrant, VerifiedIdentity } from "./resolve";
 import { readPgGrant } from "./pg-grants";
 import { createAuthorizedAggregateQuery } from "./aggregate-query";
 import { PgAggregateQueryReader } from "../aggregation/pg-query";
+import { createAuthorizedObjectRollup } from "./object-rollup";
+import { PgObjectRollupReader } from "../aggregation/pg-object-rollup";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -55,6 +57,11 @@ export function measurementsForSession(rpsid: string) {
 export function aggregateQueryForSession(rpsid: string) {
   return createAuthorizedAggregateQuery(sessionAccessPorts(rpsid), {
     create: scope => new PgAggregateQueryReader(getPool(), scope),
+  }, "interactive");
+}
+export function objectRollupForSession(rpsid: string) {
+  return createAuthorizedObjectRollup(sessionAccessPorts(rpsid), {
+    create: scope => new PgObjectRollupReader(getPool(), scope),
   }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.

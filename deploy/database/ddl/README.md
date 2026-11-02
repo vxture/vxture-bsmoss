@@ -20,9 +20,13 @@ Reproducible checks: pnpm test:db (requires TEST_DATABASE_ADMIN_URL for a local
 test cluster), pnpm prisma:validate and pnpm lint:schema-mirror.
 See docs/40-implementation/20-database-contract.md for evidence and limits.
 
-The current baseline contains 33 tables: 15 original domain tables, 3 aggregate
-tables, 2 source completion ledgers, 2 refresh queue tables, 10 neutral platform tables
-(vx_provision/local_authz/local_usage), and explicit local_authz.data_scope.
+The current baseline contains 42 tables, including the original domain and
+neutral platform tables, typed aggregate revisions, completion ledgers, refresh
+queues, input/authority change evidence, dispatch receipts and registered partitions.
+object_rollup_revision adds reviewed finite coverage configuration. Runtime can
+only read it; its trigger enforces append-only contiguous revisions and captures
+the JSONB digest and database actor. Resource ownership, disjoint coverage and
+ratio bases are also validated by the scoped query service, not only SQL shape.
 DDL files intentionally do not commit independently; the initializer owns the
 transaction and refuses a database with existing product schemas.
 Runtime cannot edit member roles/scopes or use the reserved platform usage buffer.

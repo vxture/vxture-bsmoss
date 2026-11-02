@@ -599,3 +599,17 @@ model RefreshScanReceipt {
   @@map("refresh_scan_receipt")
   @@schema("bsmoss_analysis")
 }
+
+model ObjectRollupRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  config Json
+  config_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("object_rollup_revision")
+  @@schema("bsmoss_integration")
+}
