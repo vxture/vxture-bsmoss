@@ -16,6 +16,8 @@ import { createAuthorizedAggregates } from "../../portals/app/app/domains/access
 import { planRefreshJob } from "../../portals/app/app/domains/aggregation/refresh-jobs.ts";
 import { PgRefreshJobs } from "../../portals/app/app/domains/aggregation/pg-refresh-jobs.ts";
 import { executeRefreshLease } from "../../portals/app/app/domains/aggregation/refresh-execution.ts";
+import { enqueueAuthorizedRefresh, enqueuePeriodicRefresh, enqueueRevisionRefresh } from "../../portals/app/app/domains/aggregation/refresh-enqueue.ts";
+import { claimAuthorizedRefresh, runRefreshStep } from "../../portals/app/app/domains/aggregation/refresh-supervision.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -943,12 +945,12 @@ await test("empty-database PostgreSQL contract", async t => {
     await t.test('refresh expected-head conflict keeps its lease retryable and never overwrites a newer correction',async()=>{
       await store.append(draft('roll-0',{mappingId:'roll-old',revision:'5',previousRevision:'4',payloadSha256:'e'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'50'}}));
       await queue.enqueue(jobFor('fixture:execute:head-conflict'));const lease=await queue.claim();let changed=false;
-      const intercepted={connect(){return adapterPool.connect();},async query(sql,args){const result=await adapterPool.query(sql,args);
+      const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);
         if(!changed&&sql.includes('SELECT s.id,r.revision')){changed=true;
           await store.append(draft('roll-0',{mappingId:'roll-old',revision:'6',previousRevision:'5',payloadSha256:'f'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'60'}}));
           await snapshotApi.recompute({...rollTarget,expectedRevision:result.rows[0].revision});
-        }return result;}};
-      await assert.rejects(executeRefreshLease(intercepted,snapshotPorts,lease),/aggregate_revision_conflict/);assert.equal(changed,true);
+        }return result;},release(discard){client.release(discard);}};}};
+      await assert.rejects(executeRefreshLease(intercepted,snapshotPorts,lease),e=>e.code==='40001'||/aggregate_revision_conflict/.test(e.message));assert.equal(changed,true);
       assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
       const current=(await db.query('SELECT r.integer_value FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r ON (r.workspace_id,r.series_id,r.revision)=(s.workspace_id,s.id,s.current_revision) WHERE s.id=$1',[rollSeries])).rows[0];
       assert.equal(current.integer_value,'90');
@@ -966,6 +968,108 @@ await test("empty-database PostgreSQL contract", async t => {
         assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
         const retry=await queue.claim();await queue.succeed(retry,'fixture://after-wait');
       } finally {await holder.query('ROLLBACK');await holder.end();}
+    });
+    await t.test('refresh snapshot cannot adopt a newer head and overwrite its newer facts',async()=>{
+      await store.append(draft('roll-0',{mappingId:'roll-old',revision:'7',previousRevision:'6',payloadSha256:'a'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'70'}}));
+      await queue.enqueue(jobFor('fixture:execute:snapshot-before-head'));const lease=await queue.claim();let corrected=false;
+      const before=(await db.query('SELECT current_revision FROM bsmoss_analysis.aggregate_series WHERE id=$1',[rollSeries])).rows[0].current_revision;
+      const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);
+        if(!corrected&&sql.includes('SELECT m.*,r.payload_sha256')){corrected=true;
+          await store.append(draft('roll-0',{mappingId:'roll-old',revision:'8',previousRevision:'7',payloadSha256:'b'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'80'}}));
+          await snapshotApi.recompute({...rollTarget,expectedRevision:before});
+        }return result;},release(discard){client.release(discard);}};},query(...args){return adapterPool.query(...args);}};
+      let failure;try{await executeRefreshLease(intercepted,snapshotPorts,lease);}catch(error){failure=error;}
+      assert.equal(corrected,true);
+      const current=(await db.query('SELECT r.integer_value FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r ON (r.workspace_id,r.series_id,r.revision)=(s.workspace_id,s.id,s.current_revision) WHERE s.id=$1',[rollSeries])).rows[0];
+      assert.equal(current.integer_value,'110','the older snapshot must not become the current result');
+      assert.ok(failure,'the stale execution must leave its task unacknowledged');
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const retry=await executeRefreshLease(adapterPool,snapshotPorts,lease);assert.equal(retry.status,'duplicate');
+    });
+    await t.test('authorized enqueue resolves targets to stable subjects and replays a whole batch',async()=>{
+      const input={targets:[rollTarget,{...rollTarget,mappingId:'roll-new'}],triggerRef:'fixture:coordinator:aliases'};
+      const first=await enqueueAuthorizedRefresh(adapterPool,snapshotPorts,input);assert.equal(first.requestedTargets,2);assert.equal(first.jobs.length,1);assert.equal(first.jobs[0].status,'inserted');
+      const replay=await enqueueAuthorizedRefresh(adapterPool,snapshotPorts,{...input,targets:[...input.targets].reverse()});
+      assert.equal(replay.manifestSha256,first.manifestSha256);assert.equal(replay.jobs[0].id,first.jobs[0].id);assert.equal(replay.jobs[0].status,'duplicate');
+      const denied={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:{...scope,serviceIds:[]}};}};
+      await assert.rejects(enqueueAuthorizedRefresh(adapterPool,denied,{targets:[rollTarget],triggerRef:'fixture:coordinator:denied'}),/object_scope_denied/);
+      assert.equal((await db.query("SELECT 1 FROM bsmoss_analysis.refresh_job WHERE trigger_ref='fixture:coordinator:denied'")).rowCount,0);
+      const lease=await queue.claim();assert.equal(lease.id,first.jobs[0].id);await executeRefreshLease(adapterPool,snapshotPorts,lease);
+    });
+    await t.test('batch enqueue failure or access expiry leaves no partial queued jobs',async()=>{
+      const input={targets:[rollTarget,depTarget],triggerRef:'fixture:coordinator:atomic'};let inserted=0;
+      const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.refresh_job')&&++inserted===2)throw Error('fixture_queue_failure');return client.query(sql,args);},release(discard){client.release(discard);}};}};
+      await assert.rejects(enqueueAuthorizedRefresh(intercepted,snapshotPorts,input),/fixture_queue_failure/);assert.equal(inserted,2);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_job WHERE trigger_ref=$1',[input.triggerRef])).rowCount,0);
+      const completed=await enqueueAuthorizedRefresh(adapterPool,snapshotPorts,input);assert.equal(completed.jobs.length,2);assert.ok(completed.jobs.every(j=>j.status==='inserted'));
+      const allQueue=new PgRefreshJobs(adapterPool,{workspaceId:'w',series:[...refreshScope.series,{sourceId:'src',subjectKey:(await snapshotReader.load(depTarget)).plan.subjectKey,metricKey:depTarget.metric.code+'@1'}]});
+      for(let i=0;i<2;i++)await executeRefreshLease(adapterPool,snapshotPorts,await allQueue.claim());
+      let clock=Date.now();const timed={...snapshotPorts,now:()=>clock};
+      const delayed={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(sql.includes('SELECT m.*,r.payload_sha256'))clock+=120000;return result;},release(discard){client.release(discard);}};}};
+      await assert.rejects(enqueueAuthorizedRefresh(delayed,timed,{targets:[rollTarget],triggerRef:'fixture:coordinator:expired'}),/access_expired/);
+      assert.equal((await db.query("SELECT 1 FROM bsmoss_analysis.refresh_job WHERE trigger_ref='fixture:coordinator:expired'")).rowCount,0);
+    });
+    await t.test('periodic coordination enqueues closed windows with a replayable server-clock scan trigger',async()=>{
+      const clock=Date.parse('2026-02-03T10:05:00Z'),timed={...snapshotPorts,now:()=>clock};
+      const seeds=[{sourceId:'src',mappingId:'roll-old',metric:rollTarget.metric,notBefore:'2026-02-01T00:00:00Z',grains:['day']}];
+      const first=await enqueuePeriodicRefresh(adapterPool,timed,seeds);assert.equal(first.jobs.length,2);
+      const replay=await enqueuePeriodicRefresh(adapterPool,timed,seeds);assert.equal(replay.manifestSha256,first.manifestSha256);assert.ok(replay.jobs.every(j=>j.status==='duplicate'));
+      const saved=(await db.query('SELECT target FROM bsmoss_analysis.refresh_job WHERE id=ANY($1::text[])',[first.jobs.map(j=>j.id)])).rows;
+      assert.deepEqual(saved.map(j=>j.target.at).sort(),['2026-01-31T16:00:00.000Z','2026-02-01T16:00:00.000Z']);
+      assert.ok(saved.every(j=>j.target.grain==='day'));
+    });
+    await t.test('revision coordination queues old and new object windows beyond the periodic lookback',async()=>{
+      const impacts=[{sourceId:'src',mappingId:'roll-old',metric:rollTarget.metric,affected:[{start:'2026-07-31T15:45:00Z',end:'2026-07-31T16:00:00Z'}],grains:['day','month']},
+        {sourceId:'src',mappingId:'dependency-map',metric:rollTarget.metric,affected:[{start:'2026-10-20T00:00:00Z',end:'2026-10-20T00:15:00Z'}],grains:['day','month']}];
+      const first=await enqueueRevisionRefresh(adapterPool,snapshotPorts,impacts,'fixture:measurement-moved:2');assert.equal(first.jobs.length,4);
+      const replay=await enqueueRevisionRefresh(adapterPool,snapshotPorts,[...impacts].reverse(),'fixture:measurement-moved:2');assert.equal(replay.manifestSha256,first.manifestSha256);assert.ok(replay.jobs.every(j=>j.status==='duplicate'));
+      const rows=(await db.query('SELECT subject_key,target FROM bsmoss_analysis.refresh_job WHERE id=ANY($1::text[])',[first.jobs.map(j=>j.id)])).rows;
+      assert.equal(new Set(rows.map(r=>r.subject_key)).size,2);assert.ok(rows.some(r=>r.target.at==='2026-06-30T16:00:00.000Z'));assert.ok(rows.some(r=>r.target.at==='2026-09-30T16:00:00.000Z'));
+      const next=await enqueueRevisionRefresh(adapterPool,snapshotPorts,impacts,'fixture:measurement-moved:3');assert.equal(next.jobs.length,4);assert.ok(next.jobs.every(j=>j.status==='inserted'));
+    });
+    await db.query(`INSERT INTO bsmoss_resource.station_service VALUES ('w','supervise-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','supervise-cell','st','supervise-svc','cell');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,version,valid_from,valid_to)
+      VALUES ('w','supervise-map','src','cell','supervise-external','st','supervise-svc','supervise-cell',1,'2026-01-01Z','2027-01-01Z')`);
+    const superviseTarget={...rollTarget,mappingId:'supervise-map'};
+    let superviseGrant=true;
+    const supervisePorts={...snapshotPorts,async readLocalGrant(){return superviseGrant?{...await snapshotPorts.readLocalGrant(),scope:{...scope,serviceIds:['supervise-svc']}}:null;}};
+    await t.test('authorized supervisor claims only currently granted objects and atomically executes one queued job',async()=>{
+      const queued=await enqueueAuthorizedRefresh(adapterPool,supervisePorts,{targets:[superviseTarget],triggerRef:'fixture:supervise:success'});
+      const denied={...supervisePorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:{...scope,serviceIds:[],deviceIds:[],allowSiteParameters:false}};}};
+      assert.equal(await claimAuthorizedRefresh(adapterPool,denied),null);
+      const result=await runRefreshStep(adapterPool,supervisePorts);assert.equal(result.status,'succeeded');assert.equal(result.jobId,queued.jobs[0].id);
+      const stored=(await db.query('SELECT result_payload FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[result.result.seriesId])).rows[0].result_payload;
+      assert.equal(stored.completeness,'missing');assert.equal(stored.value,null);
+      assert.equal((await runRefreshStep(adapterPool,supervisePorts)).status,'idle');
+    });
+    await t.test('supervisor records bounded execution failures without raw error text and can recover',async()=>{
+      const queued=await enqueueAuthorizedRefresh(adapterPool,supervisePorts,{targets:[superviseTarget],triggerRef:'fixture:supervise:retry'});
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='planned' WHERE id='snapshot-cap'");
+      try {
+        const result=await runRefreshStep(adapterPool,supervisePorts);assert.equal(result.status,'failure_recorded');assert.equal(result.code,'execution_failed');assert.equal(result.jobId,queued.jobs[0].id);
+        const receipt=(await db.query('SELECT outcome,failure_code FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[result.jobId])).rows[0];
+        assert.deepEqual(receipt,{outcome:'retry',failure_code:'execution_failed'});assert.equal((await runRefreshStep(adapterPool,supervisePorts)).status,'idle');
+      } finally {await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id='snapshot-cap'");}
+      await forceReady(queued.jobs[0].id);assert.equal((await runRefreshStep(adapterPool,supervisePorts)).status,'succeeded');
+    });
+    await t.test('revoked supervisor grants cannot execute or fail a previously claimed lease',async()=>{
+      const queued=await enqueueAuthorizedRefresh(adapterPool,supervisePorts,{targets:[superviseTarget],triggerRef:'fixture:supervise:revoked'});
+      const lease=await claimAuthorizedRefresh(adapterPool,supervisePorts);assert.equal(lease.id,queued.jobs[0].id);superviseGrant=false;
+      try {await assert.rejects(executeRefreshLease(adapterPool,supervisePorts,lease),/permission_denied/);await assert.rejects(runRefreshStep(adapterPool,supervisePorts),/permission_denied/);}
+      finally {superviseGrant=true;}
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      await expire(lease.id);const recovered=await runRefreshStep(adapterPool,supervisePorts);assert.equal(recovered.status,'succeeded');assert.equal(recovered.jobId,lease.id);
+      assert.deepEqual((await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1 ORDER BY attempt',[lease.id])).rows,[{outcome:'expired'},{outcome:'succeeded'}]);
+    });
+    await t.test('supervisor cannot claim an unverified mapping anchor through another job sharing its tuple',async()=>{
+      const snapshot=await new PgAggregateSnapshotReader(adapterPool,{...scope,serviceIds:['supervise-svc']}).load(superviseTarget);
+      const trustedQueue=new PgRefreshJobs(adapterPool,{workspaceId:'w',series:[{sourceId:'src',subjectKey:snapshot.plan.subjectKey,metricKey:superviseTarget.metric.code+'@1'}]});
+      const malformed=await trustedQueue.enqueue(planRefreshJob(snapshot,{...superviseTarget,mappingId:'roll-old'},'fixture:supervise:wrong-anchor'));
+      const valid=await enqueueAuthorizedRefresh(adapterPool,supervisePorts,{targets:[superviseTarget],triggerRef:'fixture:supervise:verified-anchor'});
+      const result=await runRefreshStep(adapterPool,supervisePorts);assert.equal(result.status,'succeeded');assert.equal(result.jobId,valid.jobs[0].id);
+      assert.equal((await db.query('SELECT status FROM bsmoss_analysis.refresh_job WHERE id=$1',[malformed.id])).rows[0].status,'pending');
+      assert.equal((await runRefreshStep(adapterPool,supervisePorts)).status,'idle');
     });
   } finally {
     if (adapterPool) await adapterPool.end();

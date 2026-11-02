@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type MetricRef } from "../catalog/registry.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
@@ -8,6 +8,7 @@ import { planMappingWindows } from "./applicability.ts";
 import type { AggregateSnapshotReader, AggregateTarget } from "./snapshot.ts";
 import {resolveIntervalInputPolicy} from './input-policy.ts';
 import { bindSourceCompletion } from "./completion.ts";
+import { mappedSubject } from "./subjects.ts";
 
 function identity(value: unknown): asserts value is string {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_aggregate_identity");
@@ -25,7 +26,7 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
     if (typeof scope.allowSiteParameters !== "boolean") throw new Error("invalid_aggregate_scope");
     this.scope = scope;
   }
-  async load(input: AggregateTarget) {
+  async load(input: AggregateTarget, transaction?: PoolClient) {
     const target = structuredClone(input);
     identity(target.sourceId); identity(target.mappingId);
     if (!this.scope.sourceIds.includes(target.sourceId) || !this.scope.metricKeys.includes(refKey(target.metric))) throw new Error("aggregate_scope_denied");
@@ -35,10 +36,10 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         !["interval_delta", "derived", "ratio"].includes(metric.semantic) || !metric.grains.includes(target.grain)) throw new Error("unsupported_aggregate_metric");
     if(metric.semantic==='derived')resolveIntervalInputPolicy(target.metric,target.grain,'dependencies',this.scope.metricKeys);
     const period = bucketFor(target.at, target.grain);
-    const client = await this.pool.connect();
+    const client = transaction ?? await this.pool.connect();
     let discard = false;
     try {
-      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      if (!transaction) await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
       const mapping = (await client.query(`SELECT m.*,n.kind,s.valid_from AS service_from,s.valid_to AS service_to
         FROM bsmoss_integration.source_mapping m
         LEFT JOIN bsmoss_resource.network_object n ON (n.workspace_id,n.id)=(m.workspace_id,m.network_object_id)
@@ -105,7 +106,7 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         if(rows.length+batch.length>100000)throw Error("input_bound_exceeded");
         for(const row of batch)rows.push(row);
       }
-      const subjectKey = JSON.stringify(["mapped-object-v1", mapping.station_id, mapping.service_id, mapping.network_object_id, mapping.device_id]);
+      const subjectKey = mappedSubject(mapping.station_id, mapping.service_id, mapping.network_object_id, mapping.device_id);
       const inputs: IntervalInput[] = rows.map(row => {
         if (!row.quality_revision) throw new Error("quality_decision_required");
         if (row.value_kind !== "integer_delta" && row.value_kind !== "ratio_parts") throw new Error("metric_value_mismatch");
@@ -144,11 +145,11 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         inputFingerprint: completion.input_fingerprint, watermark: completion.watermark.toISOString(),
         evidenceRef: completion.evidence_ref, evidenceSha256: completion.evidence_sha256,
         ...(setCompletion ? { mappingSet: { version: 1 as const, sha256: setCompletion.mapping_manifest_sha256 } } : {}) } : undefined);
-      await client.query("COMMIT");
+      if (!transaction) await client.query("COMMIT");
       return { plan, inputs };
     } catch (error) {
-      try { await client.query("ROLLBACK"); } catch { discard = true; }
+      if (!transaction) try { await client.query("ROLLBACK"); } catch { discard = true; }
       throw error;
-    } finally { client.release(discard); }
+    } finally { if (!transaction) client.release(discard); }
   }
 }

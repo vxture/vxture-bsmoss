@@ -36,7 +36,7 @@ export class PgRefreshJobs {
   readonly workspaceId: string;
   private readonly series: AggregateScope["series"];
   private readonly allowed: Set<string>;
-  constructor(private readonly pool: Pool, scope: AggregateScope) {
+  constructor(private readonly pool: Pool, scope: AggregateScope, private readonly transaction?: PoolClient) {
     jobIdentity(scope.workspaceId); this.workspaceId = scope.workspaceId;
     if (!Array.isArray(scope.series) || scope.series.length > 10000) throw Error("invalid_refresh_scope");
     this.series = structuredClone(scope.series);
@@ -50,22 +50,38 @@ export class PgRefreshJobs {
   }
   async enqueue(raw: RefreshJob, attempts = 5) {
     const job = validateRefreshJob(raw); this.check(job); maxAttempts(attempts);
-    const client = await this.pool.connect(); let discard = false;
+    const client = this.transaction ?? await this.pool.connect(); let discard = false;
     try {
-      await client.query("BEGIN");
+      if (!this.transaction) await client.query("BEGIN");
       const inserted = (await client.query(`INSERT INTO bsmoss_analysis.refresh_job(workspace_id,id,dedupe_key,source_id,subject_key,metric_key,mapping_id,trigger_ref,target,max_attempts)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(workspace_id,dedupe_key) DO NOTHING RETURNING id`,
       [this.workspaceId, randomUUID(), job.dedupeKey, job.sourceId, job.subjectKey, job.metricKey, job.target.mappingId, job.triggerRef, job.target, attempts])).rows[0];
       const row = inserted ?? (await client.query("SELECT id,source_id,subject_key,metric_key,trigger_ref,max_attempts FROM bsmoss_analysis.refresh_job WHERE workspace_id=$1 AND dedupe_key=$2",
         [this.workspaceId, job.dedupeKey])).rows[0];
       if (!inserted && (!row || row.source_id !== job.sourceId || row.subject_key !== job.subjectKey || row.metric_key !== job.metricKey || row.trigger_ref !== job.triggerRef || Number(row.max_attempts) !== attempts)) throw Error("conflicting_refresh_replay");
-      await client.query("COMMIT");
+      if (!this.transaction) await client.query("COMMIT");
       return { id: row.id as string, status: inserted ? "inserted" as const : "duplicate" as const };
-    } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
-    finally { client.release(discard); }
+    } catch (error) { if (!this.transaction) try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
+    finally { if (!this.transaction) client.release(discard); }
   }
-  async claim(ttlSeconds = 60): Promise<RefreshLease | null> {
+  async enqueueBatch(raw: readonly RefreshJob[], attempts = 5) {
+    if (!Array.isArray(raw) || raw.length > 64) throw Error("refresh_batch_bound_exceeded");
+    const jobs = raw.map(validateRefreshJob); jobs.forEach(job => this.check(job)); maxAttempts(attempts);
+    const client = this.transaction ?? await this.pool.connect(); let discard = false;
+    try {
+      if (!this.transaction) await client.query("BEGIN");
+      const bound = new PgRefreshJobs(this.pool, { workspaceId: this.workspaceId, series: this.series }, client);
+      const results = [];
+      for (const job of jobs) results.push(await bound.enqueue(job, attempts));
+      if (!this.transaction) await client.query("COMMIT");
+      return results;
+    } catch (error) { if (!this.transaction) try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
+    finally { if (!this.transaction) client.release(discard); }
+  }
+  async claim(ttlSeconds = 60, candidateIds?: readonly string[]): Promise<RefreshLease | null> {
     leaseSeconds(ttlSeconds);
+    if (candidateIds !== undefined && (!Array.isArray(candidateIds) || candidateIds.length > 64)) throw Error("refresh_batch_bound_exceeded");
+    const ids = candidateIds === undefined ? null : [...candidateIds]; ids?.forEach(jobIdentity);
     if (!this.series.length) return null;
     const client = await this.pool.connect(); let discard = false;
     try {
@@ -73,8 +89,9 @@ export class PgRefreshJobs {
       const row = (await client.query(`SELECT j.* FROM bsmoss_analysis.refresh_job j WHERE j.workspace_id=$1
         AND EXISTS (SELECT 1 FROM jsonb_to_recordset($2::jsonb) AS s("sourceId" text,"subjectKey" text,"metricKey" text)
           WHERE (s."sourceId",s."subjectKey",s."metricKey")=(j.source_id,j.subject_key,j.metric_key))
+        AND ($3::text[] IS NULL OR j.id=ANY($3::text[]))
         AND ((j.status='pending' AND j.available_at<=clock_timestamp()) OR (j.status='leased' AND j.lease_until<=clock_timestamp()))
-        ORDER BY j.available_at,j.created_at,j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED`, [this.workspaceId, JSON.stringify(this.series)])).rows[0];
+        ORDER BY j.available_at,j.created_at,j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED`, [this.workspaceId, JSON.stringify(this.series), ids])).rows[0];
       if (!row) { await client.query("COMMIT"); return null; }
       const attempt = Number(row.attempt);
       if (row.status === "leased") {

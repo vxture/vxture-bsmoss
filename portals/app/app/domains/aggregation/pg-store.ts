@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { refKey } from "../catalog/registry.ts";
 import { timestamp } from "../measurements/rules.ts";
 import { aggregateIntervals, positiveRevision, type AggregationPlan, type IntervalInput } from "./intervals.ts";
@@ -17,7 +17,7 @@ export class PgAggregateStore implements AggregateStore {
   readonly workspaceId: string;
   private readonly allowed: ReadonlySet<string>;
   private readonly lease?: RefreshLease;
-  constructor(private readonly pool: Pool, scope: AggregateScope, lease?: RefreshLease) {
+  constructor(private readonly pool: Pool, scope: AggregateScope, lease?: RefreshLease, private readonly transaction?: PoolClient) {
     identity(scope.workspaceId); this.workspaceId = scope.workspaceId;
     if (!Array.isArray(scope.series) || scope.series.length > 10000) throw new Error("invalid_aggregate_scope");
     this.allowed = new Set(scope.series.map(row => {
@@ -56,9 +56,10 @@ export class PgAggregateStore implements AggregateStore {
     }
     const args = this.args(key);
     const manifest = { plan, inputs };
-    const client = await this.pool.connect();
+    const client = this.transaction ?? await this.pool.connect();
+    let discard = false;
     try {
-      await client.query("BEGIN");
+      if (!this.transaction) await client.query("BEGIN");
       if (this.lease) await lockRefreshLease(client, this.lease);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["bsmoss-aggregate", ...args])]);
       await client.query(`INSERT INTO bsmoss_analysis.aggregate_series(workspace_id,source_id,subject_key,metric_code,metric_version,grain,period_start,period_end,id)
@@ -70,7 +71,7 @@ export class PgAggregateStore implements AggregateStore {
       if (duplicate) {
         if (!duplicate.same) throw new Error("conflicting_aggregate_replay");
         if (this.lease) await completeRefreshLease(client, this.lease, JSON.stringify(["bsmoss-aggregate", head.id, duplicate.revision]));
-        await client.query("COMMIT");
+        if (!this.transaction) await client.query("COMMIT");
         return { status: "duplicate" as const, seriesId: head.id, revision: duplicate.revision as string, currentRevision: head.current_revision as string };
       }
       if (head.current_revision !== expectedRevision) throw new Error("aggregate_revision_conflict");
@@ -85,15 +86,15 @@ export class PgAggregateStore implements AggregateStore {
       await client.query("UPDATE bsmoss_analysis.aggregate_series SET current_revision=$3 WHERE workspace_id=$1 AND id=$2", [this.workspaceId, head.id, revision]);
       await client.query("INSERT INTO bsmoss_analysis.aggregate_outbox(workspace_id,id,series_id,revision,event_type) VALUES($1,$2,$3,$4,'aggregate.revised')", [this.workspaceId, randomUUID(), head.id, revision]);
       if (this.lease) await completeRefreshLease(client, this.lease, JSON.stringify(["bsmoss-aggregate", head.id, revision]));
-      await client.query("COMMIT");
+      if (!this.transaction) await client.query("COMMIT");
       return { status: "inserted" as const, seriesId: head.id, revision, currentRevision: revision };
-    } catch (error) { await client.query("ROLLBACK"); throw error; }
-    finally { client.release(); }
+    } catch (error) { if (!this.transaction) try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
+    finally { if (!this.transaction) client.release(discard); }
   }
   private async read(input: AggregateKey, revision?: string): Promise<StoredAggregate | null> {
     const key = this.normalizeKey(input);
     if (revision !== undefined) positiveRevision(revision);
-    const rows = await this.pool.query(`SELECT s.id,r.revision,r.published_by,r.created_at,r.result_payload
+    const rows = await (this.transaction ?? this.pool).query(`SELECT s.id,r.revision,r.published_by,r.created_at,r.result_payload
       FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r ON r.workspace_id=s.workspace_id AND r.series_id=s.id
       AND r.revision=${revision === undefined ? "s.current_revision" : "$9"}
       WHERE s.workspace_id=$1 AND s.source_id=$2 AND s.subject_key=$3 AND s.metric_code=$4 AND s.metric_version=$5 AND s.grain=$6 AND s.period_start=$7 AND s.period_end=$8`,

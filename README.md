@@ -139,6 +139,8 @@ These checks do not publish code, register environments or claim production laun
 See docs/50-deployment/40-live-prerequisites.md for remaining real-source and
 deployment inputs. The internal refresh-window planner and durable scoped queue
 support bounded leases/retries and a single authorized refresh step with atomic
-result/outbox/receipt commits. No production scheduler, background identity or
-source revision dispatcher is enabled. See
-docs/40-implementation/320-durable-refresh-queue.md.
+result/outbox/receipt commits. Authorized bounded batches connect calendar and
+trusted revision-impact planning to the queue; candidate IDs are scoped before
+claim and facts/head/publication share one repeatable-read transaction. No
+production scheduler, background identity or persisted source-change dispatcher
+is enabled. See docs/40-implementation/330-authorized-refresh-coordination.md.

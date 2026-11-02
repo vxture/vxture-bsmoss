@@ -370,3 +370,19 @@ SKIP LOCKED并发抢占，新token＋attempt，数据库clock_timestamp在锁后
 I09仍in_progress：没有生产机器身份、授权队列枚举入队服务、常驻循环／续租协调、日历扫描游标、输入事务outbox／消费确认、旧新作用域与依赖修订端到端传播。计划窗口与队列尚未由上述可信协调层连接；不能称正式scheduler完成。下一步可先补授权任务协调及持久修订传播，或回到I08瞬时／状态持久化；之后I11/I12。实际来源／平台注册／环境／容量安全恢复／UAT与生产批准继续缺少，用户未回复，不重复追问、不标blocked（仍有内部工作）。
 
 本包无UI变化，不重跑六场景；无依赖／旧库迁移／真实接入／远端push／部署。stage限定本批源码与编号文档，最终提交／ASCII／密钥扫描／检查点与63333生产预览句柄以工具及后续记录为准。小时heartbeat automationId=bs-moss继续使用，勿重复创建；目标仍active，只实际生产试点可用才通知上线。
+
+上一包收尾：614569c提交成功，10个文件ASCII与staged gitleaks扫描50.43KB无泄漏。检查点artifacts/formal-checkpoints/durable-refresh-jobs.json绑定Git树、BUILD_ID、日志摘要与health；当时63333为bsmoss-local-614569c，exec session72489，后续新构建以工具结果为准。
+
+## I09授权协调与快照一致性（2026-11-02）
+
+上一goal turn为progress（组合证明及持久队列实际交付并提交），本轮仍有内部实质进展，不标blocked。没有真实资料回复，未重复追问。只读preflight 2026-11-02T14:42:29Z仍prerequisites_missing：app_env／stack_env、remote_commits、build／beta／prod环境。实际来源／平台注册资料、真实部署／人工验收未到位，目标保持active。
+
+新增refresh-coordination纯批次规则、refresh-enqueue授权全批入队、refresh-supervision当前授权候选领取／单步失败分类、subjects稳定对象编码，见设计196／实施330。批次最多64目标，服务器可信时钟按小时产生可重放闭合自然周期扫描引用；内部可信旧／新impact保留历史窗口，不限72小时。所有目标先按当前data面平台／产品权限读取可信快照，单REPEATABLE READ事务入队，第二项写入失败／授权过期全批回滚；同对象不同anchor解析后合并，批次重放ID／摘要一致。尚无登记种子／分区枚举、持久scan消费进度或常驻进程。
+
+BUG-001 P1内部缺陷已实证修复：旧代码先读事实后单独读到新head，会将新结果110覆盖为旧100；新PG回归先失败，日志tmp/refresh-race-before.log保留。PgSnapshot和PgStore现支持外层绑定事务，execute的事实／能力／质量／完成证明／head／结果／outbox／回执在同一RR事务；并发更新head触发40001／冲突整体回滚，任务不确认，重试复用110。手工内部expected-head门面不因本次变化声称成为正式scheduler。
+
+领取、执行、失败登记分别重查当前权限。就绪候选SQL按workspace／source／metric／station／service／device限定，再比较实际映射主体，队列抢占同时限定这次核验的ID与三元组；防同tuple另一条任务借用未核验anchor。失败仅存受限分类代码，退避／dead沿已有队列；撤权后不写结果或失败回执，租约等待合法接管。没有伪造机器身份或新增来源完成签认。
+
+388单测（新增4项）、87项实际PG报告测试（86子项＋父项，新增9项）、19HTTP、双层类型／最终生产构建通过；67篇文档编号／33表静态镜像／交付／SCA配置守卫通过。PG适配器仍SET ROLE bsmoss_svc，随机bsmoss_contract库已删除，专用cluster已stop。日志tmp/coordinator-{unit,db,types,build,http,guards,preflight}.log。无DDL／依赖／UI变动，未重跑不变六场景浏览器／Prisma CLI／在线漏洞扫描。最终密钥／ASCII／Git提交及63333预览句柄以工具及后续记录为准。
+
+下一步：I09输入事务outbox、从持久证据解析旧／新对象与依赖影响及消费进度；或先补I08状态／瞬时结果持久化与跨对象权威汇总以支撑I11/I12。当前impact调用者输入仅内部可信契约，不等于自动修订传播完成。真实机器身份、常驻scheduler／worker和环境仍未启用。五项1—3本地完成，4仍缺真实来源／平台注册，5仍缺上述内部出口、正式查询发布、Beta、11万容量／3倍突发、安全恢复／UAT和生产批准。未push、没有PR／远端CI／Beta／生产上线，不重复创建自动化。
