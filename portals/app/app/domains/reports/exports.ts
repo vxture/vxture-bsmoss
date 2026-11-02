@@ -10,6 +10,7 @@ export const EXPORT_MAX_BYTES = 2 * 1024 * 1024;
 export const EXPORT_MAX_ATTEMPTS = 5;
 export interface ExportRequest { reportId: string; publicationRevision: string; commandId: string }
 export interface ExportQuery { jobId: string }
+export interface ExportPendingQuery { limit: number }
 export interface ExportJob {
   jobId: string; reportId: string; publicationRevision: string; reportRevision: string; manifestSha256: string;
   rendererVersion: string; commandId: string; requestedBy: string; requestedAt: string;
@@ -19,6 +20,7 @@ export interface ExportDownload { html: string; sha256: string; filename: string
 export type ExportRun = { status: "busy_or_unavailable" } | { status: "delayed" | "terminal" | "succeeded" | "retry" | "dead"; job: ExportJob };
 export interface ReportExportStore {
   readonly workspaceId: string;
+  pending(query: ExportPendingQuery, revalidate: RevalidateReport): Promise<{ jobIds: string[] }>;
   request(command: ExportRequest, actor: string, revalidate: RevalidateReport): Promise<{ status: "inserted" | "duplicate"; job: ExportJob }>;
   run(query: ExportQuery, actor: string, revalidate: RevalidateReport): Promise<ExportRun>;
   status(query: ExportQuery, revalidate: RevalidateReport): Promise<{ job: ExportJob; downloadable: boolean; blockingReason: string | null } | null>;
@@ -30,6 +32,11 @@ export function normalizeExportRequest(raw: ExportRequest): ExportRequest {
 }
 export function normalizeExportQuery(raw: ExportQuery): ExportQuery {
   fields(raw, ["jobId"]); jobIdentity(raw.jobId); return structuredClone(raw);
+}
+export function normalizeExportPendingQuery(raw: ExportPendingQuery): ExportPendingQuery {
+  fields(raw, ["limit"]);
+  if (!Number.isSafeInteger(raw.limit) || raw.limit < 1 || raw.limit > 25) throw Error("invalid_export_pending_limit");
+  return structuredClone(raw);
 }
 export function assertExportPublication(state: PublicationState | null): asserts state is PublicationState {
   if (!state || !state.isActive) throw Error("report_not_active"); assertPublishable(state.report);

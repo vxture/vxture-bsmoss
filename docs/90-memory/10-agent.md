@@ -627,3 +627,17 @@ pg-schedule内部scan／pending／run无HTTP／真实机器provider／常驻循�
 468单测／双层类型／Prisma／生产构建通过；254实际PG（253子项＋父项，新增15）全过。旧239回归最初只有50→55表计数断言需更新；新增owner TRUNCATE被FK先拦，改TRUNCATE CASCADE测试不可变触发器，未放宽runtime。并发暂停实测使用pg_blocking_pids确认真实阻塞，runtime无权读其他session语句的pg_stat_activity不能用于此断言。覆盖日周月／缺数／回补／不发布、全部阶段撤权／范围／租户／主体、模板漂移与新版隔离、旧report与current分离、损坏证据、worker／scanner并发、中断／回执双故障、5次dead、序列化权限不计次、共享锁及旧RR、精确成功FK。最终HTTP／守卫／ASCII／密钥／SHA／63333版本见工具收尾与registered-report-calendar.json。日志tmp/report-schedule-{unit,db,types,prisma,build,http,guards,ascii,staged-scan}.log。
 
 无UI改动，不重复稳定地图或报告视觉QA。为构建已核验并停止本仓63333 Next PID21480，收尾需恢复新SHA；PG专用58874 aggregate-data仍需收尾stop，只有随机合同库。下一项真实机器身份／常驻worker、监控与受审dead恢复、历史报告变化传播，或I11正式配置面板；I08对象分布／分层规模仍待。真实来源／平台注册／Beta、11万3倍突发、安全恢复／UAT与生产批准仍缺，未push／PR／远端CI／真实接入／外部部署或上线，五项1–3本地完成、4–5active，陕西／费用预留／退服P2不变。
+
+## 报告worker核心与授权导出发现（2026-11-03）
+
+上一goal turn为实质progress：3207974日历包已提交、clean，检查点registered-report-calendar绑定468单测／254PG／20HTTP、99篇／55表及63333真实SHA，PG已stop。当前turn同样实质progress，不标blocked／complete，不重建goal或heartbeat，不主动subagent。设计214／实施500。
+
+ReportExportStore与授权门面新增pending(limit1–25)，仅reports.export.execute。Pg同只读RR，精确历史报告requiredScope先SQL过滤租户、五维、独立站级参数开关，再available_at／id COLLATE C取limit；逐项jobOf及readStoredReport原manifest／SHA验证，末次scope并集再验。未来due／terminal不列，撤回或stale仍列供执行器保存dead，不让它们永久悬挂；只返回ID，故障／损坏不是空列表。无普通用户队列或run HTTP。
+
+新增domains/workers/rules／loop／report-worker。可信配置固定workspaceId／subject、最多64登记、可选导出、1–25步／轮、1–60秒间隔；不含token／scope。包装C1每次精确租户主体，仍真实C2／显式grant。每登记scan→pending1→run，导出pending1→run；公平轮转独立通道，异常5／10／20／40／60秒单调performance时间退避、成功重置进程连续失败，不改DB作业次数。固定通道索引／状态／分类／退避事件，不回显异常；snapshot是可重置进程内统计，不冒充持久监控。run才安装等待，重复run拒绝，run期间手工tickbusy，tick互斥；Abort停止下一通道及事务派发，空闲timer可中止，在途事务完成后run返回，宿主await后才能pool.end。observer抛错使run明确失败，不静默吞监控故障。没有Next定时器、真实机器provider或生产宿主／进程。
+
+最终475单测（新增7循环行为）、双层类型与260实际PG（259子项＋父项，新增6）通过。新PG覆盖完整授权先分页、scope维度和物理Wh独立开关、撤权／租户／固定主体、撤回终态、事务中断新实例恢复、暂停通道隔离、生成导出联动、扫描已提交后停机留下pending、HTML制品事务中停机等待精确成功且不执行第二个pending。纯单测实查真实60秒空闲timer中止、单调时钟倒退、独立退避、状态不泄密及重入／observer失败。第一轮损坏注入误匹配旧SQL文本，修为真实SELECT s.*,r.*后通过；新能耗夹具引入第二个合法同日报告使旧report-list[0]断言不成立，改为合法可见性some，独立全集合排序测试保持，不改产品行为。无DDL／Prisma／依赖／UI变化，沿用55表PrismaCLI，不重复稳定地图／报告视觉QA。
+
+日志tmp/report-worker-{unit,db,types,build,http,guards,ascii,staged-scan}.log。101篇编号／55表／交付／SCA守卫已过，最终构建／HTTP／扫描／提交及63333以工具收尾和report-worker-loop.json为准。为build已核验本仓63333 PID4540并停，需新SHA恢复；PG专用aggregate-data只随机合同库，260全过后已stop。
+
+下一项聚合周期／登记变化／结果队列的后台宿主链路（须继续保留当前真实grant核验），真实机器provider需平台权威契约，不能拿audience=vxture的channel-token冒充产品测量主体。现有executeRefreshLease只工作前resolve及事务内静态context，接生产worker前应审计提交末次撤权；仅可依据当前元组和实际依赖scope，不扩大权限。还可推进I11正式配置面板、任务监控／受审dead恢复、历史报告变化传播、I08对象分布／分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／真实接入／外部部署或上线。五项1–3本地完成，4–5active，bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。

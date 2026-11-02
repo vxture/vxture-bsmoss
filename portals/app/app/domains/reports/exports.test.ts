@@ -1,12 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeExportRequest, normalizeExportQuery, exportFailure, exportRetrySeconds, assertExportPublication } from "./exports.ts";
+import { normalizeExportRequest, normalizeExportQuery, normalizeExportPendingQuery, exportFailure, exportRetrySeconds, assertExportPublication } from "./exports.ts";
 import type { PublicationState } from "./publication.ts";
 const request = { reportId: "report", publicationRevision: "999999999999999999999999999999", commandId: "export-1" };
 test("export requests bind exact publication selectors and reject request-provided authority or output", () => {
   assert.deepEqual(normalizeExportRequest(request), request);
   for (const patch of [{ publicationRevision: 1 }, { publicationRevision: "0" }, { scope: {} }, { actor: "other" }, { html: "forged" }, { rendererVersion: "forged" }, { commandId: "*" }]) assert.throws(() => normalizeExportRequest({ ...request, ...patch } as typeof request));
   assert.deepEqual(normalizeExportQuery({ jobId: "id" }), { jobId: "id" }); assert.throws(() => normalizeExportQuery({ jobId: "id", workspaceId: "forged" } as { jobId: string }));
+  assert.deepEqual(normalizeExportPendingQuery({ limit: 25 }), { limit: 25 });
+  for (const limit of [0, 26, 1.5, NaN]) assert.throws(() => normalizeExportPendingQuery({ limit }));
+  assert.throws(() => normalizeExportPendingQuery({ limit: 1, workspaceId: "forged" } as { limit: number }));
 });
 test("export retry classification is finite and never consumes authorization or serialization failures", () => {
   assert.deepEqual([1, 2, 3, 4, 5].map(exportRetrySeconds), [5, 10, 20, 40, 0]); assert.throws(() => exportRetrySeconds(6));

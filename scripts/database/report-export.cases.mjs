@@ -7,6 +7,7 @@ import { readRefreshSnapshot } from '../../portals/app/app/domains/aggregation/r
 import { aggregateIntervals, mappingSetFingerprint } from '../../portals/app/app/domains/aggregation/intervals.ts';
 import { aggregateStatePeriod } from '../../portals/app/app/domains/aggregation/state-period.ts';
 import { aggregateGaugePeriod } from '../../portals/app/app/domains/aggregation/gauge-period.ts';
+import { reportWorkerCases } from './report-worker.cases.mjs';
 
 export async function reportExportCases(t,{db,adapterPool,scope,api,up,rate,state,gauge,period,target,write,publish,putTemplate,single,panel,command,intercept,publicationContext}) {
   const {pub,issue,publisher}=publicationContext;
@@ -123,4 +124,5 @@ export async function reportExportCases(t,{db,adapterPool,scope,api,up,rate,stat
     assert.equal(r.manifest.dataCompleteness,'complete');const p=(await pub.execute(issue(r))).event,job=(await exports.request({reportId:r.reportId,publicationRevision:p.eventRevision,commandId:randomUUID()})).job;
     assert.equal((await exports.run({jobId:job.jobId})).status,'succeeded');assert.ok((await exports.download({jobId:job.jobId})).html.includes('\u65e0\u6709\u6548\u5206\u6bcd'));
   });
+  await reportWorkerCases(t,{db,adapterPool,access,scope,api,rate,state,period,putTemplate,panel,target,intercept,pub,issue});
 }

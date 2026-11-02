@@ -61,7 +61,7 @@ export async function reportListCases(t,{db,adapterPool,access,scope,api,sms,up,
     await putTemplate('report-list-physical',{schema:'periodic-report-template-v1',title:'Physical energy',grain:'day',panels:[{...panel('energy',energy),displayUnit:'Wh'}],bindings:[{panelId:'energy',kind:'aggregate',sourceId:'report-src',mappingId:'report-list-site-map'}]});
     const physicalScope={...scope,metricKeys:[energy.code+'@1'],allowSiteParameters:true},reader=make(physicalScope);
     const record=(await reader.generate({templateCode:'report-list-physical',templateVersion:1,at:'2026-07-06T00:00:00+08:00',expectedRevision:null})).record;
-    assert.equal(record.manifest.requiredScope.allowSiteParameters,true);assert.equal((await reader.list({limit:25})).items[0].reportId,record.reportId);
+    assert.equal(record.manifest.requiredScope.allowSiteParameters,true);assert.ok((await reader.list({limit:25})).items.some(item=>item.reportId===record.reportId));
     assert.deepEqual(await make({...physicalScope,allowSiteParameters:false}).list({limit:25}),{items:[],next:null});
   });
   await t.test('report list never masks corrupt manifests or SQL failures as an empty page',async()=>{

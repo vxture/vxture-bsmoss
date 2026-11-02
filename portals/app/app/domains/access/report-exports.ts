@@ -1,6 +1,6 @@
 import { resolveMeasurementAccess, type AccessPorts, type AccessPlane, type MeasurementOperation } from "./resolve.ts";
 import { assertReportScope } from "../reports/rules.ts";
-import { normalizeExportRequest, normalizeExportQuery, type ExportRequest, type ExportQuery, type ReportExportStore } from "../reports/exports.ts";
+import { normalizeExportRequest, normalizeExportQuery, normalizeExportPendingQuery, type ExportRequest, type ExportQuery, type ExportPendingQuery, type ReportExportStore } from "../reports/exports.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
 
 export function createAuthorizedReportExports(ports: AccessPorts, stores: { create(scope: MeasurementScope): ReportExportStore }, plane: AccessPlane) {
@@ -18,6 +18,7 @@ export function createAuthorizedReportExports(ports: AccessPorts, stores: { crea
     return { store, access, revalidate };
   }
   return Object.freeze({
+    async pending(raw: ExportPendingQuery) { const query = normalizeExportPendingQuery(raw), { store, revalidate } = await open("report_export_execute"); return store.pending(query, revalidate); },
     async request(raw: ExportRequest) { const command = normalizeExportRequest(raw), { store, access, revalidate } = await open("report_export"); return store.request(command, access.context.sub, revalidate); },
     async run(raw: ExportQuery) { const query = normalizeExportQuery(raw), { store, access, revalidate } = await open("report_export_execute"); return store.run(query, access.context.sub, revalidate); },
     async status(raw: ExportQuery) { const query = normalizeExportQuery(raw), { store, revalidate } = await open("report_export"); return store.status(query, revalidate); },

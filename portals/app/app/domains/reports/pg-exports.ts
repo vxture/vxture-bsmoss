@@ -3,13 +3,13 @@ import type { Pool, PoolClient } from "pg";
 import type { MeasurementScope } from "../measurements/store.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { positiveRevision } from "../aggregation/intervals.ts";
-import { reportScope } from "./rules.ts";
+import { reportScope, unionReportScopes } from "./rules.ts";
 import { readStoredReportInTransaction } from "./pg-store.ts";
 import { readPublicationInTransaction } from "./pg-publication.ts";
 import { renderPublishedReport } from "./render-html.ts";
-import { assertExportPublication, normalizeExportRequest, normalizeExportQuery, exportFailure, exportRetrySeconds,
+import { assertExportPublication, normalizeExportRequest, normalizeExportQuery, normalizeExportPendingQuery, exportFailure, exportRetrySeconds,
   REPORT_RENDERER_VERSION, EXPORT_MAX_ATTEMPTS, EXPORT_MAX_BYTES, type ExportRequest, type ExportQuery, type ExportJob,
-  type ExportRun, type ReportExportStore } from "./exports.ts";
+  type ExportRun, type ExportPendingQuery, type ReportExportStore } from "./exports.ts";
 import type { RevalidateReport } from "./store.ts";
 
 function jobOf(row: Record<string, any>): ExportJob {
@@ -48,6 +48,30 @@ export class PgReportExportStore implements ReportExportStore {
   private async fence(client: PoolClient, reportId: string) {
     const head = await client.query("SELECT current_revision,current_publication_revision FROM bsmoss_analysis.report_series WHERE workspace_id=$1 AND id=$2 FOR UPDATE", [this.workspaceId, reportId]);
     if (!head.rowCount) throw Error("report_not_active");
+  }
+  async pending(raw: ExportPendingQuery, revalidate: RevalidateReport) {
+    const query = normalizeExportPendingQuery(raw);
+    return this.transaction(true, async client => {
+      // Historical scope is filtered before LIMIT. Withdrawn/stale jobs stay
+      // selectable so the executor can record their durable terminal outcome.
+      const rows = (await client.query(`SELECT j.* FROM bsmoss_analysis.report_export_job j
+        JOIN bsmoss_analysis.report_revision r ON (r.workspace_id,r.report_id,r.revision,r.manifest_sha256)=(j.workspace_id,j.report_id,j.report_revision,j.manifest_sha256)
+        WHERE j.workspace_id=$1 AND j.status='pending' AND j.available_at<=clock_timestamp()
+        AND r.manifest->'requiredScope'->>'workspaceId'=$1
+        AND r.manifest->'requiredScope'->'sourceIds' <@ $2::jsonb
+        AND r.manifest->'requiredScope'->'stationIds' <@ $3::jsonb
+        AND r.manifest->'requiredScope'->'serviceIds' <@ $4::jsonb
+        AND r.manifest->'requiredScope'->'deviceIds' <@ $5::jsonb
+        AND r.manifest->'requiredScope'->'metricKeys' <@ $6::jsonb
+        AND (r.manifest->'requiredScope'->'allowSiteParameters'='false'::jsonb OR $7::boolean)
+        ORDER BY j.available_at,j.id COLLATE "C" LIMIT $8`,
+      [this.workspaceId, ...[this.scope.sourceIds, this.scope.stationIds, this.scope.serviceIds, this.scope.deviceIds, this.scope.metricKeys].map(a => JSON.stringify(a)),
+        this.scope.allowSiteParameters, query.limit])).rows;
+      const jobs = rows.map(jobOf), scopes: MeasurementScope[] = [];
+      for (const job of jobs) scopes.push(await this.required(client, job));
+      await revalidate(unionReportScopes(this.workspaceId, scopes));
+      return { jobIds: jobs.map(job => job.jobId) };
+    });
   }
   async request(raw: ExportRequest, actor: string, revalidate: RevalidateReport) {
     const command = normalizeExportRequest(raw); jobIdentity(actor);
