@@ -29,6 +29,7 @@ import { createAuthorizedAggregateQuery } from "../../portals/app/app/domains/ac
 import { PgGaugeSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-gauge-snapshot.ts";
 import { PgGaugeAggregateStore } from "../../portals/app/app/domains/aggregation/pg-gauge-store.ts";
 import { aggregateGaugePeriod } from "../../portals/app/app/domains/aggregation/gauge-period.ts";
+import { registeredPeriodicCases } from "./registered-periodic.cases.mjs";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -55,7 +56,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,38);
+      assert.equal(tables.rows[0].n,41);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -2044,6 +2045,7 @@ await test("empty-database PostgreSQL contract", async t => {
       await assert.rejects(db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
         VALUES ('w','authority:source_mapping','authority-src','station','authority:source_mapping','st','flow-dev',1,'2026-01-01Z','2027-01-01Z')`),/authority_object_immutable/);
     });
+    await registeredPeriodicCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,gaugeMetric,period:flowPeriod,finishChangeJobs});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

@@ -193,3 +193,9 @@ and gauge publications, so reverting configuration cannot revive old completion
 proofs. Impact planning uses bounded existing facts/publications and does not
 enumerate empty province-wide periods. See
 docs/40-implementation/410-authority-impact-dispatch.md.
+Reviewed persistent periodic partitions now bind a principal, finite scope,
+output policy and up to 12 seeds. The internal ID-only scanner atomically
+queues closed periods and a replayable receipt, including missing-data seeds,
+and rechecks current grants before committing. Configuration remains read-only
+to runtime; no production machine identity or daemon is enabled. See
+docs/40-implementation/420-registered-periodic-partitions.md.

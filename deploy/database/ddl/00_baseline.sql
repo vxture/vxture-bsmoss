@@ -781,3 +781,71 @@ CREATE TRIGGER source_capability_no_truncate BEFORE TRUNCATE ON bsmoss_integrati
   FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
 CREATE TRIGGER station_service_no_truncate BEFORE TRUNCATE ON bsmoss_resource.station_service
   FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+
+-- Reviewed periodic partitions. Runtime reads configuration and only appends
+-- scan receipts. New revisions atomically advance a lockable head.
+CREATE TABLE bsmoss_integration.refresh_partition_revision (
+  workspace_id text NOT NULL CHECK(length(trim(workspace_id))>0),
+  id text NOT NULL CHECK(length(trim(id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  config jsonb NOT NULL CHECK(jsonb_typeof(config)='object' AND
+    config ?& ARRAY['subject','status','scope','policy','seeds'] AND
+    config-ARRAY['subject','status','scope','policy','seeds']='{}'::jsonb AND
+    (jsonb_typeof(config->'subject')='string' AND length(trim(config->>'subject'))>0 AND
+      config->>'status' IN ('active','paused') AND jsonb_typeof(config->'scope')='object' AND
+      jsonb_typeof(config->'policy')='object' AND jsonb_typeof(config->'seeds')='array' AND
+      jsonb_array_length(config->'seeds') BETWEEN 1 AND 12) IS TRUE),
+  config_sha256 text NOT NULL DEFAULT '' CHECK(config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex')),
+  review_ref text NOT NULL CHECK(length(trim(review_ref))>0),
+  database_actor text NOT NULL DEFAULT session_user CHECK(length(trim(database_actor))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id,revision)
+);
+CREATE TABLE bsmoss_integration.refresh_partition_head (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  revision numeric(30,0) NOT NULL,
+  PRIMARY KEY(workspace_id,id),
+  FOREIGN KEY(workspace_id,id,revision) REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision) DEFERRABLE INITIALLY DEFERRED
+);
+-- Row locking normally requires UPDATE privilege. Expose only the fixed read
+-- lock, never head mutation, to the runtime role.
+CREATE FUNCTION bsmoss_integration.lock_refresh_partition(text,text) RETURNS numeric
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+  SELECT revision FROM bsmoss_integration.refresh_partition_head WHERE workspace_id=$1 AND id=$2 FOR SHARE
+$$;
+REVOKE ALL ON FUNCTION bsmoss_integration.lock_refresh_partition(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_refresh_partition(text,text) TO bsmoss_svc;
+CREATE FUNCTION bsmoss_integration.advance_refresh_partition() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE current_revision numeric(30,0);
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_integration' OR TG_TABLE_NAME<>'refresh_partition_revision' THEN RAISE EXCEPTION 'invalid_partition_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'partition_revision_append_only'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-partition',NEW.workspace_id,NEW.id)::text,0));
+  SELECT revision INTO current_revision FROM bsmoss_integration.refresh_partition_head WHERE workspace_id=NEW.workspace_id AND id=NEW.id FOR UPDATE;
+  IF NEW.revision<>coalesce(current_revision,0)+1 THEN RAISE EXCEPTION 'partition_revision_conflict'; END IF;
+  NEW.config_sha256=encode(sha256(convert_to(NEW.config::text,'UTF8')),'hex');
+  NEW.database_actor=session_user;
+  INSERT INTO bsmoss_integration.refresh_partition_head(workspace_id,id,revision) VALUES(NEW.workspace_id,NEW.id,NEW.revision)
+    ON CONFLICT(workspace_id,id) DO UPDATE SET revision=excluded.revision;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.advance_refresh_partition() FROM PUBLIC;
+CREATE TRIGGER refresh_partition_revision_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.refresh_partition_revision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.advance_refresh_partition();
+CREATE TRIGGER refresh_partition_revision_no_truncate BEFORE TRUNCATE ON bsmoss_integration.refresh_partition_revision
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.advance_refresh_partition();
+CREATE TABLE bsmoss_analysis.refresh_scan_receipt (
+  workspace_id text NOT NULL,
+  partition_id text NOT NULL,
+  partition_revision numeric(30,0) NOT NULL,
+  scan_hour timestamptz NOT NULL CHECK(scan_hour=date_trunc('hour',scan_hour AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object' AND
+    (manifest->>'partitionId'=partition_id AND manifest->>'partitionRevision'=partition_revision::text) IS TRUE),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,partition_id,partition_revision,scan_hour),
+  FOREIGN KEY(workspace_id,partition_id,partition_revision) REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision)
+);

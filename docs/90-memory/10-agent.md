@@ -495,3 +495,14 @@ access/aggregate-query按view权限构造有限reader，读取后重查C1／C2�
 422单测（新增6）、160项实际PG报告测试（159子项＋父项，新增13）、双层类型／生产构建／Prisma通过。最终20HTTP、编号／38表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA以工具收尾和authority-impact-dispatch.json为准。日志tmp/authority-impact-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，无业务库操作，收尾停止。无依赖或地图UI改变，不重复六场景验收。
 
 有限scope内最多1000映射／事实窗口、64目标，超限进入异常控制不截断；无事实／发布时不制造空历史日历。下一步I09登记订阅／分区及种子、真实机器身份／常驻worker；I08跨对象权威去重、I11正式面板与I12持久报告／异步导出仍待。五项1–3本地完成，4缺真实来源／平台注册，5未到Beta／11万容量3倍突发／安全恢复／UAT和生产批准。未push／PR／远端CI／真实接入／外部部署／上线；费用预留／退服P2／陕西演示不变，heartbeat bs-moss复用。
+
+
+## I09登记周期分区与扫描回执（2026-11-03）
+
+本轮接续权威变更包e93ad32（422单测／160PG／20HTTP及全部守卫通过，63333健康版本bsmoss-local-e93ad32，检查点authority-impact-dispatch.json）。同一active目标继续实质推进，不标blocked、不重复外部追问或自动化。
+
+设计206／实施420：新增refresh_partition_revision／head受审配置和refresh_scan_receipt，共41表空库／Prisma，无旧库迁移。触发器严格修订链、同事务推进head并计算JSONB配置SHA；runtime只读配置。FOR SHARE需更新权限，首轮实际PG发现后改为仅开放固定只读锁函数，PUBLIC无执行，不授head UPDATE。配置绑定实际subject、有限scope／输出策略和最多12个种子；内部enqueueRegisteredPeriodic只接分区id，每批64目标，RR共享锁head、可信快照、全批任务和回执原子，成功／重放均重新验权。无事实设备可排队并产生missing；暂停不自动取消旧任务，执行仍验当前grant。登记不制造来源完成证明或机器身份。
+
+425单测（新增3）、167项实际PG报告测试（166子项＋父项，新增7）通过。覆盖配置修订／不可变权限／租户、同小时重放与新小时、新配置／暂停／主体／完整scope、无事实种子、任务回执故障／撤权全回滚、并发fence、配置共享锁和取锁前RR竞态。最终类型／构建／Prisma／20HTTP、85篇编号／41表镜像／交付／SCA配置守卫、ASCII／密钥／Git与运行SHA见收尾工具及registered-periodic-partitions.json。日志tmp/registered-periodic-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log，专用PG随机合同库收尾停止，无业务库操作。无依赖／地图变化，不重复六场景UI。
+
+下一出口：登记分区到输入消费的同事务接线，全省种子自动分区／机器身份provider／常驻调度；I08跨对象权威去重、I11正式面板与I12持久报告／异步导出。真实来源／平台注册／Beta环境、11万容量和3倍突发、安全恢复、UAT与生产批准仍缺；未push／PR／远端CI／真实接入／外部部署／上线。五项1–3本地完成，4–5继续active，heartbeat bs-moss复用，费用预留／退服P2／陕西演示不变。
