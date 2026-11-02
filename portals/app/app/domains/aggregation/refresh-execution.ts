@@ -10,6 +10,7 @@ import { validateRefreshJob } from "./refresh-jobs.ts";
 import { publishIntervalAggregate } from "./service.ts";
 import { PgGaugeAggregateStore } from "./pg-gauge-store.ts";
 import { publishGaugeAggregate } from "./gauge-service.ts";
+import { revalidateRefreshAccess } from "./refresh-access.ts";
 
 // One internal worker step. No timer, identity fabrication or retry loop here.
 // Composition must supply a verified machine identity and product data scope.
@@ -43,6 +44,7 @@ export async function executeRefreshLease(pool: Pool, ports: AccessPorts, raw: R
       if (access.expiresAt <= now()) throw Error("access_expired");
       result = await publishIntervalAggregate(access.context, store, snapshot.plan, snapshot.inputs, head?.revision ?? null);
     }
+    await revalidateRefreshAccess(ports, access, snapshot);
     await client.query("COMMIT");
     return result;
   } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }

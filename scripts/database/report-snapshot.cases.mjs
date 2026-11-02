@@ -17,6 +17,7 @@ import { reportPublicationCases } from './report-publication.cases.mjs';
 import { reportExportCases } from './report-export.cases.mjs';
 import { reportListCases } from './report-list.cases.mjs';
 import { reportScheduleCases } from './report-schedule.cases.mjs';
+import { aggregateWorkerCases } from './aggregate-worker.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -204,4 +205,5 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   await reportExportCases(t,{db,adapterPool,scope,api,up,rate,state,gauge,period,target,write,publish,putTemplate,single,panel,command,intercept,publicationContext});
   await reportListCases(t,{db,adapterPool,access,scope,api,sms,up,putTemplate,panel,intercept});
   await reportScheduleCases(t,{db,adapterPool,access,scope,api,up,sms,period,write,publish,putTemplate,single,panel,intercept});
+  await aggregateWorkerCases(t,{db,adapterPool,access,scope,up,rate,state,gauge,period,target,write,intercept});
 }

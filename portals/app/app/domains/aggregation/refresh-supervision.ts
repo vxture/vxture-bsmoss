@@ -34,7 +34,7 @@ function classified(error: unknown) {
   const e = error as { code?: string; message?: string };
   if (e?.code === "40001" || e?.code === "40P01" || e?.message === "aggregate_revision_conflict") return "serialization_conflict";
   if (["ECONNRESET", "ETIMEDOUT", "57P01", "53300"].includes(e?.code ?? "")) return "database_unavailable";
-  if (["identity_required", "permission_denied", "feature_denied", "access_expired"].includes(e?.message ?? "")) return "authorization_denied";
+  if (e?.code === "42501" || ["identity_required", "permission_denied", "feature_denied", "invalid_coverage", "access_expired", "workspace_mismatch", "aggregate_scope_denied", "aggregate_dependency_scope_denied", "object_scope_denied"].includes(e?.message ?? "")) return "authorization_denied";
   return "execution_failed";
 }
 async function recordFailure(pool: Pool, ports: AccessPorts, lease: RefreshLease, code: string) {
@@ -47,15 +47,20 @@ async function recordFailure(pool: Pool, ports: AccessPorts, lease: RefreshLease
 }
 // A bounded supervisor step, intended for a future verified worker composition.
 // Success is already acknowledged in executeRefreshLease's result transaction.
-export async function runRefreshStep(pool: Pool, ports: AccessPorts) {
+export async function runRefreshStep(pool: Pool, ports: AccessPorts, signal?: AbortSignal) {
+  if (signal?.aborted) return { status: "stopped" as const };
   const lease = await claimAuthorizedRefresh(pool, ports);
   if (!lease) return { status: "idle" as const };
+  // Claim is independently durable. A stop here leaves its fenced lease for
+  // expiry/recovery; it must not start another transaction during shutdown.
+  if (signal?.aborted) return { status: "stopped" as const };
   try {
     const result = await executeRefreshLease(pool, ports, lease);
     return { status: "succeeded" as const, jobId: lease.id, result };
   } catch (error) {
     if ((error as Error)?.message === "refresh_lease_lost") return { status: "lease_lost" as const, jobId: lease.id };
     const code = classified(error);
+    if (code === "authorization_denied") throw error;
     try { await recordFailure(pool, ports, lease, code); }
     catch (failure) { if ((failure as Error)?.message === "refresh_lease_lost") return { status: "lease_lost" as const, jobId: lease.id }; throw failure; }
     return { status: "failure_recorded" as const, jobId: lease.id, attempt: lease.attempt, code };

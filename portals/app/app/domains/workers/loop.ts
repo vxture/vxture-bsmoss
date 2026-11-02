@@ -1,6 +1,6 @@
 import { workerOptions, workerFailure, workerRetryMilliseconds, type WorkerOptions, type WorkerFailure } from "./rules.ts";
 
-export const WORKER_STEP_STATUSES = ["idle", "succeeded", "retry", "dead", "busy", "delayed", "terminal", "enqueued", "duplicate"] as const;
+export const WORKER_STEP_STATUSES = ["idle", "succeeded", "retry", "dead", "busy", "delayed", "terminal", "enqueued", "duplicate", "failure_recorded"] as const;
 export type WorkerStepStatus = typeof WORKER_STEP_STATUSES[number];
 export interface WorkerLane { step(signal?: AbortSignal): Promise<{ status: WorkerStepStatus }> }
 export interface WorkerEvent { lane: number; status: WorkerStepStatus | "failed"; failure: WorkerFailure | null; consecutiveFailures: number; retryAfterMilliseconds: number }

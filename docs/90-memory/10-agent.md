@@ -641,3 +641,15 @@ ReportExportStore与授权门面新增pending(limit1–25)，仅reports.export.e
 日志tmp/report-worker-{unit,db,types,build,http,guards,ascii,staged-scan}.log。101篇编号／55表／交付／SCA守卫已过，最终构建／HTTP／扫描／提交及63333以工具收尾和report-worker-loop.json为准。为build已核验本仓63333 PID4540并停，需新SHA恢复；PG专用aggregate-data只随机合同库，260全过后已stop。
 
 下一项聚合周期／登记变化／结果队列的后台宿主链路（须继续保留当前真实grant核验），真实机器provider需平台权威契约，不能拿audience=vxture的channel-token冒充产品测量主体。现有executeRefreshLease只工作前resolve及事务内静态context，接生产worker前应审计提交末次撤权；仅可依据当前元组和实际依赖scope，不扩大权限。还可推进I11正式配置面板、任务监控／受审dead恢复、历史报告变化传播、I08对象分布／分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／真实接入／外部部署或上线。五项1–3本地完成，4–5active，bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。
+
+## 聚合worker与提交权限复查（2026-11-03）
+
+接续ffa5801，恢复时clean，report-worker-loop绑定475单测／260PG／20HTTP与63333正确SHA。当前goal turn继续实质progress，不标blocked／complete，不重建goal或heartbeat、不spawn；原五项全部范围active，1–3本地完成、4–5继续。
+
+设计215／实施510。新增实际PG写后撤权回归，修复前准确Missing expected rejection，日志tmp/aggregate-worker-regression.log。executeRefreshLease于同RR结果／成功回执写后、COMMIT前重解真实C1／权益／aggregate显式权限，固定原subject／workspace、原和新有效期，核验规范mapped-object-v1元组实际source／station／service／device／物理站参数开关与目标指标；interval按实际inputMode要求真实依赖，direct比率不额外强求次数，状态／温度只自身。无关scope收缩可成功；撤权时aggregate revision/head/outbox、成功attempt/job状态全回滚，独立claim仍leased，不能声称租约也回滚。已识别授权失败supervisor不再记录普通失败，保留租约恢复。
+
+新增workers/aggregate-worker和严格配置：固定真实租户／主体、最多32唯一partitionIds、executeResults、1–25步／轮和1–60秒，禁止token/scope。每登记独立calendar／input通道＋可选result，共最多65；复用报告循环公平轮转／独立退避／互斥／可停止等待。周期沿head锁／receipt，变化沿同事务SAVEPOINT排队和失败control，结果沿grant先过滤／租约fence。暂停不是撤权，旧已排队结果仍按当前grant执行。输入quarantine/deferred明确映射dead/delayed，结果failure_recorded保留中性固定状态，不猜自定义maxAttempts。runRefreshStep前及claim后识别停止；独立claim已提交时保留leased待过期，不启动结果事务；在途实际提交／回滚结束后run才返回。
+
+最终476单测／266实际PG（新增6）／双层类型／生产构建／20HTTP通过，103篇编号／55表镜像／交付／SCA守卫通过。PG覆盖四种值语义各维度写后撤权／原有效期、无关收缩、直接比率／派生实际依赖、物理站独立开关、暂停隔离／周期变化结果闭环、新实例恢复、固定subject/workspace、scan及claim后停止、租约过期重领、run在途停机等待及授权失败无虚假失败回执。扩展首轮误用不存在能耗code、numeric字符串attempt误作number，修fixture显式转换；复用report-src能耗遇到旧两个合法capability歧义，改新独立source/map/cap，无产品放宽。类型提示完整输入联合含quarantined/deferred后明确映射。日志tmp/aggregate-worker-{unit,db,types,build,http,guards,ascii,staged-scan}.log；最终SHA/扫描/预览以aggregate-worker-loop检查点和工具收尾为准。
+
+无DDL／Prisma／依赖／UI变化，沿55表CLI，无迁移、不重复稳定视觉QA。为build已核验本仓63333 Next PID20616并停，收尾恢复新SHA；PG专用58874 aggregate-data仍需收尾stop，仅随机合同库。下一项失败回执自身事务末次授权审计、真实机器provider／生产托管、任务监控与受审恢复、历史报告变化传播，或I11正式配置面板／I08对象分布和分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／外部部署或上线，bs-moss heartbeat复用、陕西演示／费用预留／退服P2不变。

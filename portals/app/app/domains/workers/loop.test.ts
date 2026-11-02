@@ -1,8 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createWorkerLoop } from "./loop.ts";
-import { reportWorkerConfig, workerFailure, workerRetryMilliseconds } from "./rules.ts";
+import { aggregateWorkerConfig, reportWorkerConfig, workerFailure, workerRetryMilliseconds } from "./rules.ts";
 const options = { maxStepsPerTick: 1, pollMilliseconds: 1000 };
+
+test("aggregate worker bounds two independent lanes per partition and cannot mint identity or scope", () => {
+  const config = { ...options, workspaceId: "w", subject: "worker", partitionIds: ["one"], executeResults: true };
+  assert.deepEqual(aggregateWorkerConfig(config), config);
+  for (const patch of [{ scope: {} }, { token: "private" }, { partitionIds: ["one", "one"] }, { partitionIds: ["*"] },
+    { partitionIds: Array.from({ length: 33 }, (_, i) => String(i)) }, { partitionIds: [], executeResults: false }, { executeResults: "true" }, { maxStepsPerTick: 0 }]) assert.throws(() => aggregateWorkerConfig({ ...config, ...patch } as typeof config));
+  for (const message of ["registered_partition_subject_denied", "aggregate_dependency_scope_denied", "aggregate_scope_denied"]) assert.equal(workerFailure(Error(message)), "authorization_denied");
+  assert.equal(workerFailure(Error("registered_partition_paused")), "configuration_unavailable");
+});
 
 test("report worker configuration cannot inject scope tokens runtime identity or unbounded scheduling", () => {
   const config = { ...options, workspaceId: "w", subject: "worker", scheduleIds: ["one"], executeExports: true };
