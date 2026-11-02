@@ -613,3 +613,42 @@ model ObjectRollupRevision {
   @@map("object_rollup_revision")
   @@schema("bsmoss_integration")
 }
+
+model ReportSeries {
+  workspace_id String
+  id String
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  current_revision Decimal? @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("report_series")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportRevision {
+  workspace_id String
+  report_id String
+  revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  manifest Json
+  generated_by String
+  generated_at DateTime @db.Timestamptz()
+  @@id([workspace_id,report_id,revision])
+  @@map("report_revision")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportOutbox {
+  workspace_id String
+  id String
+  report_id String
+  revision Decimal @db.Decimal(30,0)
+  event_type String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("report_outbox")
+  @@schema("bsmoss_analysis")
+}

@@ -32,6 +32,7 @@ import { aggregateGaugePeriod } from "../../portals/app/app/domains/aggregation/
 import { registeredPeriodicCases } from "./registered-periodic.cases.mjs";
 import { registeredInputCases } from "./registered-input.cases.mjs";
 import { objectRollupCases } from "./object-rollup.cases.mjs";
+import { reportSnapshotCases } from "./report-snapshot.cases.mjs";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -58,7 +59,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,42);
+      assert.equal(tables.rows[0].n,45);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -2050,6 +2051,7 @@ await test("empty-database PostgreSQL contract", async t => {
     await registeredPeriodicCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,gaugeMetric,period:flowPeriod,finishChangeJobs});
     await registeredInputCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,writer:flowWriter,draft:flowDraft,finishChangeJobs});
     await objectRollupCases(t,{db,adapterPool,ports:flowPorts});
+    await reportSnapshotCases(t,{db,adapterPool,ports:flowPorts});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

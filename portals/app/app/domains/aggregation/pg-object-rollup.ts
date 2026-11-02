@@ -51,6 +51,50 @@ async function topology(client: PoolClient, scope: MeasurementScope, c: RollupCo
   return { attribution, absent };
 }
 
+// The report generator owns its write transaction; this core neither starts nor
+// commits a transaction and all member reads stay on that same snapshot.
+export async function readObjectRollupInTransaction(pool: Pool, scope: MeasurementScope, raw: RollupQuery, client: PoolClient): Promise<ObjectRollupResult | null> {
+  const query = normalizeRollupQuery(raw), workspaceId = scope.workspaceId;
+  const row = (await client.query(`SELECT *,config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex') AS valid
+    FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=$1 AND id=$2 ORDER BY revision DESC LIMIT 1`, [workspaceId, query.rollupId])).rows[0];
+  if (!row) return null;
+  if (!row.valid) throw Error("invalid_rollup_evidence");
+  const { config, sha256 } = normalizeRollupConfig(row.config);
+  if (config.status !== "active") throw Error("rollup_paused");
+  aggregateObjectRollup(config, query.grain, query.at, config.members.map(m => ({ memberId: m.id, currentAuthorityVersion: null, publication: null, unavailable: true })));
+  const { attribution, absent } = await topology(client, scope, config, query), observations: RollupObservation[] = [];
+  const requiredMetrics = new Set([refKey(config.metric)]), metric = FIRST_METRICS.get(config.metric)!;
+  if (metric.semantic === "derived") metric.dependencies.forEach(m => requiredMetrics.add(refKey(m)));
+  for (const member of config.members) {
+    if (absent.has(member.id)) { observations.push({ memberId: member.id, currentAuthorityVersion: null, publication: null, unavailable: true }); continue; }
+    try {
+      const { snapshot, publication } = await readAggregateQueryInTransaction(pool, scope, {
+        sourceId: member.sourceId, mappingId: member.mappingId, metric: config.metric, grain: query.grain, at: query.at }, client);
+      if (snapshot.kind !== "interval") throw Error("unsupported_rollup_metric");
+      if (snapshot.plan.inputMode === "dependencies") metric.dependencies.forEach(m => requiredMetrics.add(refKey(m)));
+      if (config.basis) {
+        const capability = (await client.query(`SELECT rules FROM bsmoss_integration.source_capability
+          WHERE workspace_id=$1 AND source_id=$2 AND metric_code=$3 AND metric_version=$4 AND status='active'
+          AND valid_from<=$5 AND valid_to>=$6`, [workspaceId, member.sourceId, config.metric.code, config.metric.version, snapshot.plan.period.start, snapshot.plan.period.end])).rows;
+        const basis = capability[0]?.rules?.intervalAggregation?.objectBasis;
+        if (capability.length !== 1 || !basis || basis.kind !== config.basis.kind || basis.ref !== config.basis.ref ||
+            Object.keys(basis).some(k => !["kind", "ref"].includes(k))) throw Error("rollup_ratio_basis_mismatch");
+      }
+      observations.push({ memberId: member.id, currentAuthorityVersion: snapshot.plan.authorityVersion, publication, unavailable: false });
+    } catch (error) {
+      if (!(error instanceof Error) || !unavailable.has(error.message)) throw error;
+      observations.push({ memberId: member.id, currentAuthorityVersion: null, publication: null, unavailable: true });
+    }
+  }
+  const result = aggregateObjectRollup(config, query.grain, query.at, observations);
+  const { fingerprint: calculationFingerprint, ...calculation } = result;
+  const response = { ...calculation, calculationFingerprint, workspaceId, rollupId: query.rollupId, configRevision: row.revision,
+    configSha256: row.config_sha256, semanticSha256: sha256, reviewRef: row.review_ref, attribution,
+    requiredMetricKeys: [...requiredMetrics].sort(),
+    applicableServiceCount: new Set(attribution.flatMap(a => a.serviceApplicable && a.serviceId !== null ? [a.serviceId] : [])).size };
+  return { ...response, fingerprint: fingerprintOf(response) };
+}
+
 export class PgObjectRollupReader implements ObjectRollupReader {
   readonly workspaceId: string;
   private readonly scope: MeasurementScope;
@@ -65,42 +109,9 @@ export class PgObjectRollupReader implements ObjectRollupReader {
     const query = normalizeRollupQuery(raw), client = await this.pool.connect(); let discard = false;
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
-      const row = (await client.query(`SELECT *,config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex') AS valid
-        FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=$1 AND id=$2 ORDER BY revision DESC LIMIT 1`, [this.workspaceId, query.rollupId])).rows[0];
-      if (!row) { await client.query("COMMIT"); return null; }
-      if (!row.valid) throw Error("invalid_rollup_evidence");
-      const { config, sha256 } = normalizeRollupConfig(row.config);
-      if (config.status !== "active") throw Error("rollup_paused");
-      // Validate the calendar before expensive reads; the kernel validates again.
-      aggregateObjectRollup(config, query.grain, query.at, config.members.map(m => ({ memberId: m.id, currentAuthorityVersion: null, publication: null, unavailable: true })));
-      const { attribution, absent } = await topology(client, this.scope, config, query), observations: RollupObservation[] = [];
-      for (const member of config.members) {
-        if (absent.has(member.id)) { observations.push({ memberId: member.id, currentAuthorityVersion: null, publication: null, unavailable: true }); continue; }
-        try {
-          const { snapshot, publication } = await readAggregateQueryInTransaction(this.pool, this.scope, {
-            sourceId: member.sourceId, mappingId: member.mappingId, metric: config.metric, grain: query.grain, at: query.at }, client);
-          if (snapshot.kind !== "interval") throw Error("unsupported_rollup_metric");
-          if (config.basis) {
-            const capability = (await client.query(`SELECT rules FROM bsmoss_integration.source_capability
-              WHERE workspace_id=$1 AND source_id=$2 AND metric_code=$3 AND metric_version=$4 AND status='active'
-              AND valid_from<=$5 AND valid_to>=$6`, [this.workspaceId, member.sourceId, config.metric.code, config.metric.version, snapshot.plan.period.start, snapshot.plan.period.end])).rows;
-            const basis = capability[0]?.rules?.intervalAggregation?.objectBasis;
-            if (capability.length !== 1 || !basis || basis.kind !== config.basis.kind || basis.ref !== config.basis.ref ||
-                Object.keys(basis).some(k => !["kind", "ref"].includes(k))) throw Error("rollup_ratio_basis_mismatch");
-          }
-          observations.push({ memberId: member.id, currentAuthorityVersion: snapshot.plan.authorityVersion, publication, unavailable: false });
-        } catch (error) {
-          if (!(error instanceof Error) || !unavailable.has(error.message)) throw error;
-          observations.push({ memberId: member.id, currentAuthorityVersion: null, publication: null, unavailable: true });
-        }
-      }
-      const result = aggregateObjectRollup(config, query.grain, query.at, observations);
+      const result = await readObjectRollupInTransaction(this.pool, this.scope, query, client);
       await client.query("COMMIT");
-      const { fingerprint: calculationFingerprint, ...calculation } = result;
-      const response = { ...calculation, calculationFingerprint, workspaceId: this.workspaceId, rollupId: query.rollupId, configRevision: row.revision,
-        configSha256: row.config_sha256, semanticSha256: sha256, reviewRef: row.review_ref, attribution,
-        applicableServiceCount: new Set(attribution.flatMap(a => a.serviceApplicable && a.serviceId !== null ? [a.serviceId] : [])).size };
-      return { ...response, fingerprint: fingerprintOf(response) };
+      return result;
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }

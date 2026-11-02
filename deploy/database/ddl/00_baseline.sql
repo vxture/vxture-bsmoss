@@ -376,7 +376,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
@@ -903,3 +903,46 @@ CREATE TRIGGER object_rollup_revision_capture BEFORE INSERT OR UPDATE OR DELETE 
   FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_object_rollup_revision();
 CREATE TRIGGER object_rollup_revision_no_truncate BEFORE TRUNCATE ON bsmoss_integration.object_rollup_revision
   FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_object_rollup_revision();
+
+CREATE TABLE bsmoss_analysis.report_series (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  template_code text NOT NULL,
+  template_version numeric(30,0) NOT NULL,
+  grain text NOT NULL CHECK(grain IN ('day','week','month')),
+  period_start timestamptz NOT NULL,
+  period_end timestamptz NOT NULL CHECK(period_end>period_start),
+  current_revision numeric(30,0) CHECK(current_revision>0),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,template_code,template_version,grain,period_start,period_end),
+  FOREIGN KEY(workspace_id,template_code,template_version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
+);
+CREATE TABLE bsmoss_analysis.report_revision (
+  workspace_id text NOT NULL,
+  report_id text NOT NULL,
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object' AND
+    (manifest->>'version'='bsmoss-report-snapshot-v1' AND manifest->>'status'='generated' AND
+      manifest->>'workspaceId'=workspace_id AND jsonb_typeof(manifest->'items')='array' AND
+      jsonb_array_length(manifest->'items') BETWEEN 1 AND 16 AND jsonb_typeof(manifest->'requiredScope')='object' AND
+      manifest->'requiredScope'->>'workspaceId'=workspace_id) IS TRUE),
+  generated_by text NOT NULL CHECK(length(trim(generated_by))>0),
+  generated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,report_id,revision),
+  UNIQUE(workspace_id,report_id,manifest_sha256),
+  FOREIGN KEY(workspace_id,report_id) REFERENCES bsmoss_analysis.report_series(workspace_id,id)
+);
+ALTER TABLE bsmoss_analysis.report_series ADD FOREIGN KEY(workspace_id,id,current_revision)
+  REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision) DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE bsmoss_analysis.report_outbox (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  report_id text NOT NULL,
+  revision numeric(30,0) NOT NULL,
+  event_type text NOT NULL CHECK(event_type='report.generated'),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,report_id,revision,event_type),
+  FOREIGN KEY(workspace_id,report_id,revision) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision)
+);

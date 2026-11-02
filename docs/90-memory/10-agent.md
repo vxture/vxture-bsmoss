@@ -533,3 +533,19 @@ authority generation变更和改回旧值不复活旧审阅；需新配置修订
 437单测（新增9）／193实际PG报告测试（192子项＋父项，新增15）通过，随后补来源修订证据与可独立校验响应SHA断言再执行最终回归。验证配置权限／真实双连接并发串行／SHA、总分与跨来源去重、完整scope／归属、缺覆盖／未发布、完整确认与过期排除、generation恢复、比率与PRB依据、物理电耗、映射别名、服务不适用、SQL故障、同RR并发暂停和发布、读后撤权。初轮新夹具缺PRB字典FK，后续旧完成证明错误纳入新证明基准导致preliminary；补字典并删除旧证明后绑定基础快照，未放宽产品条件。最终类型／构建／Prisma／20HTTP、89篇编号／42表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA以工具收尾和reviewed-object-rollup.json为准。日志tmp/object-rollup-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，收尾停止，无业务库操作。无依赖或演示UI变化，不重复六场景。
 
 下一项I11正式面板／I12持久报告与异步导出；I08设备状态分布／温度分布、配置审阅工具、跨分区分层规模汇总仍待，保持in_progress。I09自动分区／真实机器身份和常驻scheduler／worker未完成。本查询只处理有限审阅分区，不称11万站全省原始扫描。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、业务UAT与生产批准仍缺。五项1–3本地完成、4–5未上线；没有push／PR／远端CI／真实接入／外部部署／上线，费用预留／退服P2／陕西演示不变，heartbeat bs-moss复用。
+
+## I12正式周期报告持久快照（2026-11-03）
+
+上一goal turn为progress：受审跨对象区间汇总0ba7ab8提交、工作区clean，reviewed-object-rollup.json检查点含437单测／193PG／20HTTP和全部守卫；预览当时session33385、SHA正确。当前turn继续内部实质progress，不标blocked或重复外部追问／自动化。
+
+设计209／实施450。domains/reports规则／store／PgReportStore，复用现有bsmoss_views.template_version报告模板；严格schema、title／日周月／最多16面板与单对象／受审区域／未接入binding。三类保留各自语义；hidden已配置面板仍保存值与缺数，不因个人偏好变完整。周月保存周期结果＋每个自然日发布依赖，不能缺日还称complete；所有数据在同一RR事务，日独立修订也stale。pg-object-rollup抽取事务内核心；ObjectRollupResult.requiredMetricKeys输出实际依赖，直接比率不强加未使用次数权限。
+
+新增report_series／report_revision／report_outbox，共45表空库／Prisma，无旧库迁移。生成保存完整规范模板、原聚合结果及series／revision／输入／权威／完成证据、周期、必要scope和SHA；按租户模板版本周期唯一，CAS／RR防旧输入覆盖新head，旧指纹重放返回旧版但不回退head。revision＋head＋report.generated outbox及末次再验权原子。运行角色只追加修订和outbox、仅更新series.current_revision。generated不是published或exported，无外部outbox消费者。
+
+新增本地reports.generate，仍在已有metering能力下、仅入种子不自动赋权，owner无生成基线；读用metering.view。createAuthorizedReports与reportsForSession接生产组合根；公开仅GET /api/reports/{id}?revision，生成内部调用暂无命令HTTP／常驻worker。读写都使用同主体／租户／权益／权限／有效期／全部实际scope的末次检查；不相关父grant范围撤回不影响仍有权的历史报告。原记录不变，另返currentRevision／freshness／reasons。模板／输入／质量／完成撤销／权威generation／发布变化可见；区域先比配置修订，配置换版／暂停不读新越界成员。
+
+来源能力不可用而稳定mapping仍存在时，生成先验真实归属和完整scope，再存authority_unavailable（authorityVersion=null，无publication，不断言没有历史发布）；mapping已删则生成等待审阅修复，不猜历史归属。周月主周期不可用仍实际逐日读取，不能造整月同状态。主状态authority_unavailable／not_published不被逐日stale覆盖，但capturedFreshness仍保留逐日旧结果。SQL／授权错误不吞成missing或current。
+
+448单测（新增11）、209实际PG报告测试（208子项＋父项，新增16）全通过。覆盖真实三类完成／撤销、超安全整数、单RR区域＋单对象并发发布、生成与owner权限、历史完整scope和末次撤权、CAS／并发首建／旧RR竞态、旧重放不回退、outbox和写后身份权限范围全回滚、模板／区域配置／权威变更、逐日依赖、周期能力边界逐日实读、租户FK／typed generated／不可变列权限和SQL故障。首轮206PG全过、补完成证据和并发后208全过；增来源不可用／周期边界后主不可用被日stale覆盖导致一例失败，按上条保留主状态且仍标freshness后209全过。最终类型／构建／Prisma／20HTTP、91篇编号／45表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA见收尾工具与persistent-report-snapshots.json。日志tmp/report-snapshot-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，收尾停止；无依赖或演示UI变化，不重复六场景验收。
+
+下一项报告发布／撤回事件、异步HTML导出、正式报告页面及生成命令／登记调度；I12保持in_progress。I11面板、I08设备状态／温度对象分布和分层规模汇总、I09真实机器身份／常驻scheduler／worker未完成。有限报告查询不是11万站容量证明。真实来源／平台注册／Beta环境、11万3倍突发、安全恢复、UAT和生产批准仍缺；五项1–3本地完成、4–5未上线，无push／PR／远端CI／真实接入／外部部署。既有active目标与bs-moss heartbeat复用，费用预留／退服P2／陕西演示不变。

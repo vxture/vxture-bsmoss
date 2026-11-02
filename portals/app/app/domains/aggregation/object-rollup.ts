@@ -151,7 +151,7 @@ export function aggregateObjectRollup(raw: RollupConfig, grain: Grain, at: strin
 
 export type ObjectRollupResult = ReturnType<typeof aggregateObjectRollup> & {
   workspaceId: string; rollupId: string; configRevision: string; configSha256: string; semanticSha256: string; reviewRef: string;
-  applicableServiceCount: number; calculationFingerprint: string;
+  applicableServiceCount: number; calculationFingerprint: string; requiredMetricKeys: readonly string[];
   attribution: readonly (RollupAtom & { key: string; operatorEntityId: string | null; serviceApplicable: boolean | null })[];
 };
 export interface ObjectRollupReader { readonly workspaceId: string; read(query: RollupQuery): Promise<ObjectRollupResult | null> }

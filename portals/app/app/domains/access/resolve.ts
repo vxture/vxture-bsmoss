@@ -25,7 +25,7 @@ export interface LocalGrant {
   scope: MeasurementScope;
   expiresAt: number;
 }
-export type MeasurementOperation = "view" | "ingest" | "aggregate";
+export type MeasurementOperation = "view" | "ingest" | "aggregate" | "report_generate";
 export type AccessPlane = "interactive" | "data";
 export interface AccessPorts {
   // These closures are wired by the server composition root, never by a request.
@@ -56,6 +56,7 @@ const permissions = {
   view: "metering.view",
   ingest: "metering.ingest",
   aggregate: "metering.aggregate",
+  report_generate: "reports.generate",
 } as const;
 function required(value: unknown): value is string {
   return (
@@ -177,7 +178,7 @@ export async function resolveMeasurementAccess(
     !fresh(grant.expiresAt, now())
   )
     throw new Error("permission_denied");
-  // Workspace owner has a view/ingest baseline; aggregate requires an explicit
+  // Workspace owner has a view/ingest baseline; generation requires an explicit
   // local grant. Even the owner receives a finite data scope from the store.
   const permission = permissions[operation];
   const granted = readonlySet(grant.permissions);
@@ -186,7 +187,7 @@ export async function resolveMeasurementAccess(
     sub: identity.sub,
     features,
     permissions: readonlySet(
-      workspaceOwner && operation !== "aggregate"
+      workspaceOwner && (operation === "view" || operation === "ingest")
         ? [permission]
         : [...granted].filter((p) => p === permission),
     ),

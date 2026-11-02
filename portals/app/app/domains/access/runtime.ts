@@ -16,6 +16,8 @@ import { createAuthorizedAggregateQuery } from "./aggregate-query";
 import { PgAggregateQueryReader } from "../aggregation/pg-query";
 import { createAuthorizedObjectRollup } from "./object-rollup";
 import { PgObjectRollupReader } from "../aggregation/pg-object-rollup";
+import { createAuthorizedReports } from "./reports";
+import { PgReportStore } from "../reports/pg-store";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -63,6 +65,11 @@ export function objectRollupForSession(rpsid: string) {
   return createAuthorizedObjectRollup(sessionAccessPorts(rpsid), {
     create: scope => new PgObjectRollupReader(getPool(), scope),
   }, "interactive");
+}
+// Generation remains an internal session/worker call until its command and
+// publication workflow is wired. The public route below only reads snapshots.
+export function reportsForSession(rpsid: string) {
+  return createAuthorizedReports(sessionAccessPorts(rpsid), { create: scope => new PgReportStore(getPool(), scope) }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.
 export function aggregatesForSession(rpsid: string) {
