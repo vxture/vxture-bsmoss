@@ -125,6 +125,10 @@ whole-object completion and immutable PostgreSQL revisions. Scoped refresh and
 GET /api/aggregates support these values; no live source or synthetic map
 temperature is claimed. Cross-object authoritative aggregation remains pending.
 See docs/40-implementation/390-gauge-persistence.md.
+Reviewed mapping, capability and station-service mutations now append old/new
+authority evidence atomically, including deletion and exact revision chains.
+This journal does not yet dispatch affected refresh jobs or approve sources.
+See docs/40-implementation/400-authority-change-evidence.md.
 
 ## Cumulative source normalization (I07, in progress)
 

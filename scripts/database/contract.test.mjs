@@ -1,7 +1,7 @@
 // Creates and removes only a random bsmoss_contract_* database on a local test cluster.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { PgMeasurementStore } from "../../portals/app/app/domains/measurements/pg-store.ts";
@@ -55,7 +55,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,36);
+      assert.equal(tables.rows[0].n,37);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -1800,6 +1800,90 @@ await test("empty-database PostgreSQL contract", async t => {
       }
       await assert.rejects(adapterPool.query("UPDATE bsmoss_analysis.aggregate_revision SET gauge_value='{}' WHERE series_id=$1",[row.series_id]),e=>e.code==='42501');
       await assert.rejects(adapterPool.query('DELETE FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[row.series_id]),e=>e.code==='42501');
+    });
+    await db.query("INSERT INTO bsmoss_integration.source VALUES ('w','authority-src','AuthoritySource','file')");
+    const authorityHistory=async(kind,id)=>(await db.query('SELECT * FROM bsmoss_integration.authority_change WHERE workspace_id=$1 AND entity_kind=$2 AND entity_id=$3 ORDER BY revision',['w',kind,id])).rows;
+    async function insertAuthority(kind,id) {
+      if(kind==='source_mapping')return db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,version,valid_from,valid_to)
+        VALUES ('w',$1,'authority-src','station',$1,'st',900719925474099300000000000001,'2026-01-01Z','2027-01-01Z')`,[id]);
+      if(kind==='source_capability')return db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w',$1,'authority-src',$2,1,'day','active','fixture://authority-reviewed',$3,'2026-01-01Z','2027-01-01Z')`,[id,upMetric.code,capabilityPolicy]);
+      return db.query(`INSERT INTO bsmoss_resource.station_service VALUES ('w',$1,'st','op','2026-01-01Z','2027-01-01Z')`,[id]);
+    }
+    const authorityTable=kind=>(kind==='station_service'?'bsmoss_resource.':'bsmoss_integration.')+kind;
+    await t.test('authority changes retain exact old and new rows, no-op suppression, delete evidence and recreate revisions',async()=>{
+      for(const kind of ['source_mapping','source_capability','station_service']) {
+        const id='authority:'+kind,table=authorityTable(kind);await insertAuthority(kind,id);
+        let rows=await authorityHistory(kind,id);assert.equal(rows.length,1);assert.equal(rows[0].operation,'insert');assert.equal(rows[0].before_snapshot,null);
+        if(kind==='source_mapping')assert.equal(rows[0].after_snapshot.version,'900719925474099300000000000001');
+        if(kind==='source_capability')assert.equal(rows[0].after_snapshot.metric_version,'1');
+        await db.query('UPDATE '+table+' SET valid_to=valid_to WHERE id=$1',[id]);assert.equal((await authorityHistory(kind,id)).length,1);
+        await db.query('UPDATE '+table+" SET valid_to='2026-12-01Z' WHERE id=$1",[id]);rows=await authorityHistory(kind,id);assert.equal(rows.length,2);
+        assert.deepEqual(rows[1].before_snapshot,rows[0].after_snapshot);assert.ok(rows[1].after_snapshot.valid_to.endsWith('+00:00'));
+        await db.query('DELETE FROM '+table+' WHERE id=$1',[id]);rows=await authorityHistory(kind,id);assert.equal(rows[2].operation,'delete');assert.equal(rows[2].after_snapshot,null);assert.deepEqual(rows[2].before_snapshot,rows[1].after_snapshot);
+        await insertAuthority(kind,id);rows=await authorityHistory(kind,id);assert.deepEqual(rows.map(r=>r.revision),['1','2','3','4']);
+        const bytes=(await db.query("SELECT jsonb_build_object('before',before_snapshot,'after',after_snapshot)::text AS evidence FROM bsmoss_integration.authority_change WHERE id=$1",[rows[2].id])).rows[0].evidence;
+        assert.equal(createHash('sha256').update(bytes,'utf8').digest('hex'),rows[2].evidence_sha256);assert.equal(rows[0].database_actor,(await db.query('SELECT session_user AS actor')).rows[0].actor);
+      }
+    });
+    await t.test('authority journal captures capability rules and review references and preserves timezone-independent facts',async()=>{
+      const id='authority:source_capability',prior=(await authorityHistory('source_capability',id)).at(-1).after_snapshot;
+      await db.query("SET TIME ZONE 'Asia/Shanghai'");
+      try {await db.query("UPDATE bsmoss_integration.source_capability SET rules=$1,validation_ref='fixture://authority-revised',status='retired' WHERE id=$2",[{intervalAggregation:{version:1,inputMode:'direct',authorityRef:'fixture://policy-revised'}},id]);}
+      finally{await db.query("SET TIME ZONE 'UTC'");}
+      const change=(await authorityHistory('source_capability',id)).at(-1);assert.deepEqual(change.before_snapshot,prior);
+      assert.equal(change.after_snapshot.status,'retired');assert.equal(change.after_snapshot.validation_ref,'fixture://authority-revised');assert.equal(change.after_snapshot.rules.intervalAggregation.authorityRef,'fixture://policy-revised');
+      assert.equal(change.after_snapshot.valid_from,prior.valid_from);
+    });
+    await t.test('authority journal failures roll back original inserts updates deletes and the complete transaction',async()=>{
+      await db.query(`CREATE FUNCTION bsmoss_integration.reject_authority_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+        IF NEW.entity_id LIKE 'authority:%' THEN RAISE EXCEPTION 'fixture_authority_capture_failure'; END IF; RETURN NEW; END $$;
+        CREATE TRIGGER reject_authority_fixture BEFORE INSERT ON bsmoss_integration.authority_change FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.reject_authority_fixture()`);
+      try{
+        for(const kind of ['source_mapping','source_capability','station_service']){
+          const id='authority:'+kind,table=authorityTable(kind),before=await authorityHistory(kind,id);
+          await assert.rejects(insertAuthority(kind,'authority:failed:'+kind),/fixture_authority_capture_failure/);
+          assert.equal((await db.query('SELECT 1 FROM '+table+' WHERE id=$1',['authority:failed:'+kind])).rowCount,0);
+          await assert.rejects(db.query('UPDATE '+table+" SET valid_to='2026-11-01Z' WHERE id=$1",[id]),/fixture_authority_capture_failure/);
+          await assert.rejects(db.query('DELETE FROM '+table+' WHERE id=$1',[id]),/fixture_authority_capture_failure/);
+          assert.deepEqual(await authorityHistory(kind,id),before);assert.equal((await db.query('SELECT valid_to FROM '+table+' WHERE id=$1',[id])).rows[0].valid_to.toISOString(),'2027-01-01T00:00:00.000Z');
+        }
+        await db.query('BEGIN');try{await db.query("INSERT INTO bsmoss_resource.station VALUES ('w','authority-rolled-back','RolledBack','tower','610000','610100')");await assert.rejects(insertAuthority('source_mapping','authority:tx-failed'),/fixture_authority_capture_failure/);}finally{await db.query('ROLLBACK');}
+        assert.equal((await db.query("SELECT 1 FROM bsmoss_resource.station WHERE id='authority-rolled-back'")).rowCount,0);
+      }finally{await db.query('DROP TRIGGER reject_authority_fixture ON bsmoss_integration.authority_change; DROP FUNCTION bsmoss_integration.reject_authority_fixture()');}
+    });
+    await t.test('authority runtime cannot mutate master data, forge history, invoke the definer or truncate tracked tables',async()=>{
+      for(const kind of ['source_mapping','source_capability','station_service']){
+        const table=authorityTable(kind),id='authority:'+kind;
+        await assert.rejects(adapterPool.query('INSERT INTO '+table+' SELECT * FROM '+table+' WHERE id=$1',[id]),e=>e.code==='42501');
+        for(const sql of ['UPDATE '+table+' SET valid_to=valid_to WHERE id=$1','DELETE FROM '+table+' WHERE id=$1'])await assert.rejects(adapterPool.query(sql,[id]),e=>e.code==='42501');
+        await assert.rejects(adapterPool.query('TRUNCATE '+table+' CASCADE'),e=>e.code==='42501');
+        await assert.rejects(db.query('TRUNCATE '+table+' CASCADE'),/authority_truncate_forbidden/);
+      }
+      for(const sql of ["INSERT INTO bsmoss_integration.authority_change SELECT * FROM bsmoss_integration.authority_change LIMIT 1","UPDATE bsmoss_integration.authority_change SET database_actor='spoof'","DELETE FROM bsmoss_integration.authority_change","TRUNCATE bsmoss_integration.authority_change"])
+        await assert.rejects(adapterPool.query(sql),e=>e.code==='42501');
+      const acl=(await db.query("SELECT has_function_privilege('bsmoss_svc','bsmoss_integration.capture_authority_change()','EXECUTE') AS allowed")).rows[0];assert.equal(acl.allowed,false);
+      await assert.rejects(adapterPool.query('SELECT bsmoss_integration.capture_authority_change()'),e=>e.code==='42501');
+      await db.query(`CREATE SCHEMA authority_spoof; CREATE TABLE authority_spoof.source_mapping(workspace_id text,id text);
+        CREATE TRIGGER fake_capture AFTER INSERT ON authority_spoof.source_mapping FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_authority_change()`);
+      try{await assert.rejects(db.query("INSERT INTO authority_spoof.source_mapping VALUES ('w','spoof')"),/unsupported_authority_table/);}
+      finally{await db.query('DROP SCHEMA authority_spoof CASCADE');}
+    });
+    await t.test('authority identities are stable and SQL rejects mismatched tenants malformed operations and altered evidence',async()=>{
+      for(const kind of ['source_mapping','source_capability','station_service'])await assert.rejects(db.query('UPDATE '+authorityTable(kind)+" SET id=id||':renamed' WHERE id=$1",['authority:'+kind]),/authority_identity_immutable/);
+      const sample=(await authorityHistory('source_mapping','authority:source_mapping'))[1];
+      for(const patch of [{workspace_id:'other'},{entity_id:'other'},{operation:'insert'},{operation:'delete'},{before_snapshot:[]},{after_snapshot:{}},{evidence_sha256:'0'.repeat(64)}]){
+        const row={...sample,id:randomUUID(),revision:'99',...patch},keys=Object.keys(row);
+        await assert.rejects(db.query('INSERT INTO bsmoss_integration.authority_change('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row)),e=>e.code==='23514');
+      }
+    });
+    await t.test('concurrent authority updates serialize exact before-after revision chains and rollback leaves no ghost revision',async()=>{
+      const id='authority:source_mapping',before=await authorityHistory('source_mapping',id),a=new Client({connectionString:target.toString()}),b=new Client({connectionString:target.toString()});peers.push(a,b);await Promise.all([a.connect(),b.connect()]);
+      await Promise.all([a.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id]),b.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id])]);
+      let rows=await authorityHistory('source_mapping',id);assert.equal(rows.length,before.length+2);assert.deepEqual(rows.at(-1).before_snapshot,rows.at(-2).after_snapshot);
+      assert.equal(rows.at(-1).after_snapshot.version,String(BigInt(before.at(-1).after_snapshot.version)+2n));
+      await a.query('BEGIN');try{await a.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id]);assert.equal((await authorityHistory('source_mapping',id)).length,rows.length);}finally{await a.query('ROLLBACK');}
+      assert.deepEqual(await authorityHistory('source_mapping',id),rows);await db.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id]);
+      const last=(await authorityHistory('source_mapping',id)).at(-1);assert.equal(last.revision,String(BigInt(rows.at(-1).revision)+1n));
     });
   } finally {
     if (adapterPool) await adapterPool.end();

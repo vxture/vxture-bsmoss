@@ -140,6 +140,24 @@ model SourceCapability {
   @@schema("bsmoss_integration")
 }
 
+model AuthorityChange {
+  workspaceId String @map("workspace_id")
+  id String
+  entityKind String @map("entity_kind")
+  entityId String @map("entity_id")
+  revision Decimal @db.Decimal(30,0)
+  operation String
+  beforeSnapshot Json? @map("before_snapshot") @db.JsonB
+  afterSnapshot Json? @map("after_snapshot") @db.JsonB
+  evidenceSha256 String @map("evidence_sha256")
+  databaseActor String @map("database_actor")
+  recordedAt DateTime @map("recorded_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,id])
+  @@unique([workspaceId,entityKind,entityId,revision])
+  @@map("authority_change")
+  @@schema("bsmoss_integration")
+}
+
 model Measurement {
   workspaceId String @map("workspace_id")
   id String

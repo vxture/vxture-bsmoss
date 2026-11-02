@@ -472,3 +472,15 @@ access/aggregate-query按view权限构造有限reader，读取后重查C1／C2�
 416单测（新增7）、141项实际PG报告测试（140子项＋父项，新增8）、双层类型／生产构建／Prisma validate／20HTTP通过。79篇文档编号／36表镜像／交付／SCA配置守卫通过；最终ASCII／密钥／Git提交和运行SHA以收尾工具为准。首轮PG新增修订传播夹具误用hour，现有自动订阅只day／week／month，改为实际day验证且未放宽调度；第二轮全通过。测试覆盖大整数／超30位加权分子、完成与撤销／策略／质量失效、移设备日期和日周期自动传播、旧新范围验权、错误scale／能力／映射／窗口拒绝、原子回滚与并发保护、SQL形状／不可变权限。专用cluster已stop，仅随机合同库，无业务库操作。日志tmp/gauge-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。无依赖或演示布局变化，不重复六场景UI验收。
 
 下一步I08跨对象总分表权威／去重汇总，或I09能力策略／映射／服务有效期历史变化传播、登记订阅／种子／机器身份和常驻worker；I11正式面板与I12持久报告／异步导出继续待办。温度内部链路不代表真实接入或环境参数UI完成。五项1–3本地完成，4缺真实来源／平台注册，5仍缺内部出口、Beta环境／11万容量和3倍突发／安全恢复／业务UAT和生产批准。未push／PR／远端CI／外部部署／上线；目标active、bs-moss heartbeat复用。
+
+温度包收尾：132e76a提交，24个源码／SQL／测试／根文档ASCII、staged gitleaks65.84KB无泄漏、20HTTP和全部守卫通过，PG已stop。检查点gauge-persistence.json绑定SHA／树／BUILD_ID／日志和health；63333当时session58775，bsmoss-local-132e76a，页面200／匿名正式查询401，工作区clean。
+
+## I09能力与主数据变更证据（2026-11-03）
+
+同一持续任务接着完成第二切片，目标active、实质progress，不标blocked或重复外部追问。设计204／实施400。空库authority_change新表，共37表；Prisma标量同步。source_mapping／source_capability／station_service的INSERT／UPDATE／DELETE同原事务捕获前后完整行与workspace／实体种类／id／正修订、SHA256、session_user数据库actor；无变化UPDATE抑制。按实体事务advisory lock＋唯一键续修订，删除再建不复位；记录无当前行FK，保留删除证据。禁止原位换workspace／id与三源表TRUNCATE，防静默绕过。时间UTC，mapping.version和capability.metric_version转字符串保30位精度。
+
+捕获函数SECURITY DEFINER固定pg_catalog／UTC／源schema表白名单／完全限定目标、PUBLIC无执行。原97 grants已使新integration表只有SELECT，运行角色不能写主数据／伪造或改删账本。SHA仅对PostgreSQL jsonb envelope文本UTF8校验，非业务签认或owner防篡改证明；session_user不是审批人。没有新HTTP／管理批准／机器身份。该账本尚未接既有input_change，禁止宣称能力和主数据已自动传播。
+
+147项实际PG报告测试（146子项＋父项，新增6）、Prisma validate／37表镜像通过。新增覆盖三源全生命周期／noop／重建、30位版本／核验策略引用／UTC、SHA独立校验、捕获失败原写和同事务业务回滚、所有运行DML／函数执行拒绝／伪表白名单／TRUNCATE、租户身份形状哈希、并发修订链和未提交／回滚无幽灵。首次全DB已过，随后补运行INSERT拒绝断言后再全DB，最终结果和cluster停止以工具收尾为准。应用TS／布局未变，沿用132e76a已通过416单测／20HTTP／类型／构建，不重复无变化验收；日志tmp/authority-{db,prisma,guards,ascii,staged-scan}.log。最终文档／交付／SCA／ASCII／密钥／本地提交及运行SHA和authority-change-evidence.json以收尾为准。
+
+下一步必须补authority_change的发现、旧新来源／对象／指标全范围授权、有效期与依赖影响解析、删除或失效后的历史输出、消费回执／失败退避隔离、晚提交和原子批量入队；不得只用最新行代替旧快照或只处理现存映射。另I09登记订阅／种子／真实机器身份／常驻scheduler，I08跨对象权威去重汇总、I11正式面板与I12持久报告／异步导出未完成。真实来源／平台注册、Beta环境／11万容量3倍突发／安全恢复／UAT和生产批准仍缺。五项1–3本地完成，4–5未上线，无push／PR／远端CI／真实部署。保留费用预留、退服P2、陕西演示；heartbeat bs-moss复用。

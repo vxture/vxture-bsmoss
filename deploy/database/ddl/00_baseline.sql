@@ -670,3 +670,80 @@ CREATE TABLE bsmoss_analysis.input_dispatch_event (
     (state='quarantined' AND attempt=5 AND failure_code IS NOT NULL AND reason_ref IS NULL) OR
     (state='reopened' AND attempt=0 AND failure_code IS NULL AND reason_ref IS NOT NULL AND length(trim(reason_ref))>0))
 );
+
+-- Reviewed authority mutations retain their full old/new evidence in the same
+-- transaction. No live-row foreign key: deletion must not erase the history.
+CREATE TABLE bsmoss_integration.authority_change (
+  workspace_id text NOT NULL,
+  id text NOT NULL DEFAULT gen_random_uuid()::text,
+  entity_kind text NOT NULL CHECK(entity_kind IN ('source_mapping','source_capability','station_service')),
+  entity_id text NOT NULL CHECK(length(trim(entity_id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  operation text NOT NULL CHECK(operation IN ('insert','update','delete')),
+  before_snapshot jsonb,
+  after_snapshot jsonb,
+  evidence_sha256 text NOT NULL CHECK(evidence_sha256 ~ '^[a-f0-9]{64}$'),
+  database_actor text NOT NULL CHECK(length(trim(database_actor))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,entity_kind,entity_id,revision),
+  CHECK((operation='insert' AND before_snapshot IS NULL AND after_snapshot IS NOT NULL) OR
+    (operation='update' AND before_snapshot IS NOT NULL AND after_snapshot IS NOT NULL AND before_snapshot<>after_snapshot) OR
+    (operation='delete' AND before_snapshot IS NOT NULL AND after_snapshot IS NULL)),
+  CHECK(before_snapshot IS NULL OR (jsonb_typeof(before_snapshot)='object' AND
+    before_snapshot->>'workspace_id'=workspace_id AND before_snapshot->>'id'=entity_id) IS TRUE),
+  CHECK(after_snapshot IS NULL OR (jsonb_typeof(after_snapshot)='object' AND
+    after_snapshot->>'workspace_id'=workspace_id AND after_snapshot->>'id'=entity_id) IS TRUE),
+  CHECK(evidence_sha256=encode(sha256(convert_to(jsonb_build_object('before',before_snapshot,'after',after_snapshot)::text,'UTF8')),'hex'))
+);
+CREATE INDEX authority_change_pending ON bsmoss_integration.authority_change(workspace_id,recorded_at,id);
+CREATE FUNCTION bsmoss_integration.capture_authority_change() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET TimeZone='UTC' AS $$
+DECLARE
+  prior jsonb;
+  next jsonb;
+  anchor jsonb;
+  next_revision numeric(30,0);
+BEGIN
+  IF NOT ((TG_TABLE_SCHEMA='bsmoss_integration' AND TG_TABLE_NAME IN ('source_mapping','source_capability')) OR
+    (TG_TABLE_SCHEMA='bsmoss_resource' AND TG_TABLE_NAME='station_service')) THEN
+    RAISE EXCEPTION 'unsupported_authority_table';
+  END IF;
+  IF TG_OP='TRUNCATE' THEN RAISE EXCEPTION 'authority_truncate_forbidden'; END IF;
+  IF TG_OP NOT IN ('INSERT','UPDATE','DELETE') THEN RAISE EXCEPTION 'unsupported_authority_operation'; END IF;
+  IF TG_OP<>'INSERT' THEN prior=to_jsonb(OLD); END IF;
+  IF TG_OP<>'DELETE' THEN next=to_jsonb(NEW); END IF;
+  IF TG_OP='UPDATE' AND (prior->>'workspace_id' IS DISTINCT FROM next->>'workspace_id' OR prior->>'id' IS DISTINCT FROM next->>'id') THEN
+    RAISE EXCEPTION 'authority_identity_immutable';
+  END IF;
+  IF prior IS NOT DISTINCT FROM next THEN RETURN NULL; END IF;
+  -- PostgreSQL JSON numbers must not truncate 30-digit revisions in JS readers.
+  IF TG_TABLE_NAME='source_mapping' THEN
+    IF prior IS NOT NULL THEN prior=jsonb_set(prior,'{version}',to_jsonb(prior->>'version')); END IF;
+    IF next IS NOT NULL THEN next=jsonb_set(next,'{version}',to_jsonb(next->>'version')); END IF;
+  ELSIF TG_TABLE_NAME='source_capability' THEN
+    IF prior IS NOT NULL THEN prior=jsonb_set(prior,'{metric_version}',to_jsonb(prior->>'metric_version')); END IF;
+    IF next IS NOT NULL THEN next=jsonb_set(next,'{metric_version}',to_jsonb(next->>'metric_version')); END IF;
+  END IF;
+  anchor=coalesce(next,prior);
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-authority',anchor->>'workspace_id',TG_TABLE_NAME,anchor->>'id')::text,0));
+  SELECT coalesce(max(revision),0)+1 INTO next_revision FROM bsmoss_integration.authority_change
+    WHERE workspace_id=anchor->>'workspace_id' AND entity_kind=TG_TABLE_NAME AND entity_id=anchor->>'id';
+  INSERT INTO bsmoss_integration.authority_change(workspace_id,entity_kind,entity_id,revision,operation,before_snapshot,after_snapshot,evidence_sha256,database_actor)
+    VALUES(anchor->>'workspace_id',TG_TABLE_NAME,anchor->>'id',next_revision,lower(TG_OP),prior,next,
+      encode(sha256(convert_to(jsonb_build_object('before',prior,'after',next)::text,'UTF8')),'hex'),session_user);
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.capture_authority_change() FROM PUBLIC;
+CREATE TRIGGER source_mapping_authority_change AFTER INSERT OR UPDATE OR DELETE ON bsmoss_integration.source_mapping
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+CREATE TRIGGER source_capability_authority_change AFTER INSERT OR UPDATE OR DELETE ON bsmoss_integration.source_capability
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+CREATE TRIGGER station_service_authority_change AFTER INSERT OR UPDATE OR DELETE ON bsmoss_resource.station_service
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+CREATE TRIGGER source_mapping_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_mapping
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+CREATE TRIGGER source_capability_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_capability
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
+CREATE TRIGGER station_service_no_truncate BEFORE TRUNCATE ON bsmoss_resource.station_service
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.capture_authority_change();
