@@ -9,9 +9,9 @@ import { createAggregateWorker } from '../../portals/app/app/domains/workers/agg
 
 export async function aggregateWorkerCases(t,{db,adapterPool,access,scope,up,rate,state,gauge,period,target,write,intercept}) {
   const full={...access,async readLocalGrant(){return {...await access.readLocalGrant(),permissions:['metering.aggregate']};}};
-  async function enqueue(m=up,s=scope,q=target(m)) {
+  async function enqueue(m=up,s=scope,q=target(m),attempts=5) {
     const snapshot=await readRefreshSnapshot(adapterPool,s,q),job=planRefreshJob(snapshot,q,'aggregate-worker:'+randomUUID());
-    const queue=new PgRefreshJobs(adapterPool,{workspaceId:'w',series:[{sourceId:job.sourceId,subjectKey:job.subjectKey,metricKey:job.metricKey}]}),pending=await queue.enqueue(job);
+    const queue=new PgRefreshJobs(adapterPool,{workspaceId:'w',series:[{sourceId:job.sourceId,subjectKey:job.subjectKey,metricKey:job.metricKey}]}),pending=await queue.enqueue(job,attempts);
     return {queue,id:pending.id,claim:()=>queue.claim(60,[pending.id])};
   }
   const row=async id=>(await db.query('SELECT * FROM bsmoss_analysis.refresh_job WHERE id=$1',[id])).rows[0];
@@ -131,5 +131,47 @@ export async function aggregateWorkerCases(t,{db,adapterPool,access,scope,up,rat
     const cycle=await createAggregateWorker(denyPool,denied,{...options,partitionIds:[],maxStepsPerTick:1}).tick();
     assert.equal(cycle.events[0].failure,'authorization_denied');assert.deepEqual(await durable(),before);assert.equal((await row(two.id)).status,'leased');
     const leaseRow=await row(two.id);await executeRefreshLease(adapterPool,workerPorts,{id:two.id,token:leaseRow.lease_token,attempt:Number(leaseRow.attempt),leaseUntil:leaseRow.lease_until.toISOString(),job:{workspaceId:'w',sourceId:leaseRow.source_id,subjectKey:leaseRow.subject_key,metricKey:leaseRow.metric_key,target:leaseRow.target,triggerRef:leaseRow.trigger_ref,dedupeKey:leaseRow.dedupe_key}});
+  });
+  await t.test('failure acknowledgment rechecks authority after writing and cannot consume a revoked aggregate lease',async()=>{
+    const task=await enqueue(),before=await durable();let revoked=false,broken=false;
+    const denied={...workerPorts,async readLocalGrant(){const g=await workerPorts.readLocalGrant();return revoked?{...g,permissions:[]}:g;}};
+    const pool=intercepted(async(c,sql,args)=>{
+      if(!broken&&sql.includes('SELECT m.*,n.kind')){broken=true;throw Error('fixture_execution_failure');}
+      const result=await c.query(sql,args);if(sql.includes('INSERT INTO bsmoss_analysis.refresh_attempt'))revoked=true;return result;
+    });
+    const cycle=await createAggregateWorker(pool,denied,{...options,partitionIds:[],maxStepsPerTick:1}).tick();
+    assert.equal(broken,true);assert.equal(revoked,true);assert.equal(cycle.events[0].failure,'authorization_denied');
+    assert.deepEqual(await durable(),before);assert.equal((await row(task.id)).status,'leased');
+    const r=await row(task.id);await executeRefreshLease(adapterPool,workerPorts,{id:task.id,token:r.lease_token,attempt:Number(r.attempt),leaseUntil:r.lease_until.toISOString(),job:{workspaceId:'w',sourceId:r.source_id,subjectKey:r.subject_key,metricKey:r.metric_key,target:r.target,triggerRef:r.trigger_ref,dedupeKey:r.dedupe_key}});
+  });
+  await t.test('failure receipts atomically reject each authorization loss including terminal attempts and do not depend on unavailable input authority',async()=>{
+    for(const m of [up,rate,state,gauge])for(const mode of ['identity','coverage','expiry','scope','storage']) {
+      const task=await enqueue(m,scope,target(m),1),before=await durable();let written=false,broken=false;
+      await db.query("UPDATE bsmoss_analysis.refresh_job SET available_at='2000-01-01Z' WHERE id=$1",[task.id]);
+      const base={...full,now:workerPorts.now},denied={...base,
+        async readVerifiedIdentity(){const i=await base.readVerifiedIdentity();return written&&mode==='identity'?{...i,sub:'foreign-worker'}:i;},
+        async readCoverage(w){const c=await base.readCoverage(w);return written&&mode==='coverage'?{...c,tier:null,bundled:false}:c;},
+        async readLocalGrant(){const g=await base.readLocalGrant();return !written?g:mode==='expiry'?{...g,expiresAt:0}:mode==='scope'?{...g,scope:{...scope,metricKeys:scope.metricKeys.filter(k=>k!==m.code+'@1')}}:g;}};
+      const pool=intercepted(async(c,sql,args)=>{
+        if(!broken&&sql.includes('FROM bsmoss_integration.source_mapping')){broken=true;throw Error('fixture_execution_failure');}
+        const result=await c.query(sql,args);
+        if(sql.includes('available_at=clock_timestamp()+make_interval')){written=true;if(mode==='storage')await c.query('SELECT * FROM aggregate_fixture_missing');}
+        return result;
+      });
+      const cycle=await createAggregateWorker(pool,denied,{...options,partitionIds:[],maxStepsPerTick:1}).tick();
+      assert.equal(broken,true);assert.equal(written,true);assert.equal(cycle.events[0].status,'failed');
+      assert.equal(cycle.events[0].failure,mode==='storage'?'execution_failed':'authorization_denied');assert.deepEqual(await durable(),before);
+      const r=await row(task.id);assert.equal(r.status,'leased');assert.equal(r.attempt,'1');
+      await executeRefreshLease(adapterPool,base,{id:task.id,token:r.lease_token,attempt:Number(r.attempt),leaseUntil:r.lease_until.toISOString(),job:{workspaceId:'w',sourceId:r.source_id,subjectKey:r.subject_key,metricKey:r.metric_key,target:r.target,triggerRef:r.trigger_ref,dedupeKey:r.dedupe_key}});
+    }
+    const task=await enqueue(up,scope,target(up),1);let written=false;
+    const narrow={...full,async readLocalGrant(){const g=await full.readLocalGrant();return written?{...g,scope:finite}:g;}};
+    const pool=intercepted(async(c,sql,args)=>{const r=await c.query(sql,args);if(sql.includes('available_at=clock_timestamp()+make_interval'))written=true;return r;});
+    await db.query("UPDATE bsmoss_integration.source_capability SET status='retired' WHERE id=$1",['report-cap-'+up.code]);
+    try {
+      const cycle=await createAggregateWorker(pool,narrow,{...options,partitionIds:[],maxStepsPerTick:1}).tick();assert.equal(cycle.events[0].status,'failure_recorded');assert.equal(written,true);
+      assert.equal((await row(task.id)).status,'dead');const attempt=(await db.query('SELECT outcome,failure_code FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[task.id])).rows;
+      assert.deepEqual(attempt,[{outcome:'dead',failure_code:'execution_failed'}]);
+    } finally {await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id=$1",['report-cap-'+up.code]);}
   });
 }

@@ -113,7 +113,7 @@ export class PgRefreshJobs {
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }
-  private async transition(raw: RefreshLease, action: { kind: "renew"; seconds: number } | { kind: "succeeded"; resultRef: string } | { kind: "failed"; code: string }) {
+  private async transition(raw: RefreshLease, action: { kind: "renew"; seconds: number } | { kind: "succeeded"; resultRef: string } | { kind: "failed"; code: string; revalidate?: () => Promise<void> }) {
     const lease = structuredClone(raw); this.check(validateRefreshJob(lease.job)); jobIdentity(lease.id);
     if (!/^[0-9a-f-]{36}$/.test(lease.token) || !Number.isSafeInteger(lease.attempt) || lease.attempt < 1 || lease.attempt > 8) throw Error("invalid_refresh_token");
     const client = await this.pool.connect(); let discard = false;
@@ -131,11 +131,12 @@ export class PgRefreshJobs {
       await client.query(`UPDATE bsmoss_analysis.refresh_job SET status=$3,lease_token=NULL,lease_until=NULL,
         available_at=clock_timestamp()+make_interval(secs=>$4),updated_at=clock_timestamp() WHERE workspace_id=$1 AND id=$2`,
       [this.workspaceId, lease.id, outcome === "retry" ? "pending" : outcome, outcome === "retry" ? retrySeconds(lease.attempt) : 0]);
+      if (action.kind === "failed") await action.revalidate?.();
       await client.query("COMMIT"); return null;
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }
   async renew(lease: RefreshLease, seconds = 60) { leaseSeconds(seconds); return (await this.transition(lease, { kind: "renew", seconds }))!; }
   async succeed(lease: RefreshLease, resultRef: string) { jobIdentity(resultRef); await this.transition(lease, { kind: "succeeded", resultRef }); }
-  async fail(lease: RefreshLease, code: string) { failureCode(code); await this.transition(lease, { kind: "failed", code }); }
+  async fail(lease: RefreshLease, code: string, revalidate?: () => Promise<void>) { failureCode(code); await this.transition(lease, { kind: "failed", code, revalidate }); }
 }

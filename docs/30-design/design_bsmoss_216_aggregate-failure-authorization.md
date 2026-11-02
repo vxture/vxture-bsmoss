@@ -1,0 +1,21 @@
+# 聚合失败回执提交授权
+
+接续215的待审计项。成功结果已末次验权，但recordFailure只在失败事务开始前解析授权，PgRefreshJobs.fail写入attempt和retry／dead后直接提交。实际PG新增回归复现：执行故障后，在失败attempt插入时撤权，worker仍返回failure_recorded，错误推进重试状态。
+
+## 事务边界
+
+PgRefreshJobs的内部failed动作增加可选提交复查回调，位于attempt和job状态更新后、COMMIT前。授权supervisor始终提供回调，重新解析真实C1／平台权益／显式aggregate权限，并要求失败事务原身份租户与原、新授权有效期。任意拒绝或SQL故障使attempt和job状态一起回滚，不生成假失败、重试或dead回执。
+
+claim仍是先前独立提交：已增加的领取attempt和原token／lease_until保留，状态leased，而不是退回pending或把领取次数归零。恢复仍需合法原lease或到期重领，不能误宣称本次claim也回滚。
+
+## 必要范围
+
+共享215的规范mapped-object-v1对象核验：当前来源、站址、非空服务／设备、目标指标和必要物理站参数开关。失败回执只更新该任务生命周期，不生成或读取派生输入，因此不要求未知依赖或重新查询已缺失的capability。capability缺失正是可以被合法记录的执行错误；不能为记录失败编造policy。无关scope收缩仍允许合法失败回执提交。
+
+成功结果继续额外验证实际inputMode依赖，与失败生命周期的作用范围分别准确表达。内部队列本身不实现平台身份，直接低层调用仍由可信组合者负责；生产入口只能走授权supervisor，不能把可选回调暴露为用户开关。
+
+## 验证和范围
+
+实际PG先复现旧实现固定分类为null而非authorization_denied。修复后覆盖attempt写后撤权、四种值语义的身份／权益／过期／目标范围撤销、最终max_attempts=1的dead写后撤权以及失败回执SQL故障；验证完整回滚、原领取租约保留和同token合法恢复。缺capability与无关scope收缩仍可原子保存真实dead回执，worker保持failure_recorded中性事件。
+
+无DDL／Prisma／HTTP／UI／依赖变化，无迁移。真实机器provider、生产托管、持久监控、受审恢复、历史报告变化传播、I11配置和I08规模仍独立推进；真实来源、平台联调、Beta／11万3倍突发／安全恢复／客户UAT及生产批准继续待验收。

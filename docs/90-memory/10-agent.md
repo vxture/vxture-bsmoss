@@ -653,3 +653,15 @@ ReportExportStore与授权门面新增pending(limit1–25)，仅reports.export.e
 最终476单测／266实际PG（新增6）／双层类型／生产构建／20HTTP通过，103篇编号／55表镜像／交付／SCA守卫通过。PG覆盖四种值语义各维度写后撤权／原有效期、无关收缩、直接比率／派生实际依赖、物理站独立开关、暂停隔离／周期变化结果闭环、新实例恢复、固定subject/workspace、scan及claim后停止、租约过期重领、run在途停机等待及授权失败无虚假失败回执。扩展首轮误用不存在能耗code、numeric字符串attempt误作number，修fixture显式转换；复用report-src能耗遇到旧两个合法capability歧义，改新独立source/map/cap，无产品放宽。类型提示完整输入联合含quarantined/deferred后明确映射。日志tmp/aggregate-worker-{unit,db,types,build,http,guards,ascii,staged-scan}.log；最终SHA/扫描/预览以aggregate-worker-loop检查点和工具收尾为准。
 
 无DDL／Prisma／依赖／UI变化，沿55表CLI，无迁移、不重复稳定视觉QA。为build已核验本仓63333 Next PID20616并停，收尾恢复新SHA；PG专用58874 aggregate-data仍需收尾stop，仅随机合同库。下一项失败回执自身事务末次授权审计、真实机器provider／生产托管、任务监控与受审恢复、历史报告变化传播，或I11正式配置面板／I08对象分布和分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／外部部署或上线，bs-moss heartbeat复用、陕西演示／费用预留／退服P2不变。
+
+## 聚合失败回执末次授权（2026-11-03）
+
+同一goal turn在f2d03b6完成聚合worker后继续实质progress，不标blocked／complete。aggregate-worker-loop检查点绑定f2d03b69bbae7f609d573307474164195a8f00a4、476单测／266PG／20HTTP、103篇／55表、9文件ASCII和35.55KB staged gitleaks，预览曾为bsmoss-local-f2d03b6、session22480/PID3108、BUILD_ID ktdckLnfNTjUPVqCAsnnC；PG已stop后本批重新start。
+
+设计216／实施520。新增PG回归准确复现recordFailure只前置验权，失败attempt插入后撤权仍返回failure_recorded、failure=null；修复前证据tmp/aggregate-failure-regression.log。PgRefreshJobs内部failed动作新增可信可选提交复查回调，recordFailure始终提供：attempt和job retry/dead写后、COMMIT前重新解析真实C1／权益／aggregate权限、失败事务原身份／租户与原、新有效期，并复用规范稳定对象scope核验。成功结果仍按actual inputMode验证依赖；失败只更新job生命周期，不重查或编造已缺capability／依赖。无关scope收缩仍可合法记录失败。
+
+失败复查或SQL故障使attempt及retry/dead全回滚；独立claim的attempt/token/lease仍保留leased，不是领取次数归零，之后同lease合法恢复或过期重领。低层队列不代替平台授权，内部直接调用仍可信，不能把可选复查暴露用户开关。无DDL／Prisma／HTTP／依赖／UI变化。
+
+最终476单测／268实际PG（新增2）／双层类型通过；PG扩展四种值语义身份／权益／过期／目标范围及失败SQL故障，包含max_attempts=1最终dead边界、原claim保留／同token恢复，以及缺capability和无关scope收缩仍可真实dead。读取SQL夹具先核对state/gauge使用无别名FROM后统一匹配实际共同表名。生产build／20HTTP和105篇编号／55表／交付／SCA、4文件ASCII／staged密钥与最终SHA/预览以工具收尾、aggregate-failure-authorization检查点为准。日志tmp/aggregate-failure-{unit,db,types,build,http,guards,ascii,staged-scan}.log；为build已核验本仓PID3108并停63333，需恢复新SHA；专用58874 aggregate-data收尾stop，仅随机合同库。
+
+215所列失败回执审计已关闭。下一项真实机器provider／进程托管、持久监控与受审恢复、历史报告变化传播，或I11正式配置面板／I08分布和分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／外部部署或上线，原五项全部active、1–3本地完成／4–5未完成，bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。

@@ -3,6 +3,7 @@ import { resolveMeasurementAccess, type AccessPorts, type MeasurementAccess } fr
 import { PgRefreshJobs, type RefreshLease } from "./pg-refresh-jobs.ts";
 import { executeRefreshLease } from "./refresh-execution.ts";
 import { mappedSubject } from "./subjects.ts";
+import { revalidateRefreshFailureAccess } from "./refresh-access.ts";
 
 async function scopedQueue(pool: Pool, access: MeasurementAccess, id?: string) {
   const s = access.scope;
@@ -43,7 +44,7 @@ async function recordFailure(pool: Pool, ports: AccessPorts, lease: RefreshLease
   const { queue, found } = await scopedQueue(pool, access, lease.id);
   if (!found) throw Error("permission_denied");
   if (access.expiresAt <= (ports.now ?? Date.now)()) throw Error("access_expired");
-  await queue.fail(lease, code);
+  await queue.fail(lease, code, () => revalidateRefreshFailureAccess(ports, access, lease.job));
 }
 // A bounded supervisor step, intended for a future verified worker composition.
 // Success is already acknowledged in executeRefreshLease's result transaction.
