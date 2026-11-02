@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.next
+**/coverage
+artifacts
+tmp
+/*.pdf
+.env
+.env.*
+!.env.example
+**/*.env
+**/*.pem
+**/*.key
+private
+**/*.tsbuildinfo

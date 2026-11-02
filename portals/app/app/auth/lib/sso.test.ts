@@ -1,0 +1,79 @@
+// Adapted from the yucer engineering reference for product bsmoss.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  isInteractionRequired,
+  shouldResumeSilently,
+  shouldTrySilentSso,
+  silentErrorOutcome,
+  ssoAttemptCookieName,
+  ssoAttemptCookieOptions,
+} from "./sso";
+
+const visit = {
+  method: "GET",
+  pathname: "/",
+  enabled: true,
+  hasSession: false,
+  triedRecently: false,
+  justSignedOut: false,
+  fetchMode: "navigate",
+  isRscOrPrefetch: false,
+};
+
+test("a session-less page visit starts a silent attempt", () => {
+  assert.equal(shouldTrySilentSso(visit), true);
+  assert.equal(shouldTrySilentSso({ ...visit, pathname: "/pipeline/opp_1" }), true);
+
+  assert.equal(shouldTrySilentSso({ ...visit, fetchMode: null }), true);
+});
+
+test("no attempt with a session, after one attempt, or straight after sign-out", () => {
+  assert.equal(shouldTrySilentSso({ ...visit, hasSession: true }), false);
+  assert.equal(shouldTrySilentSso({ ...visit, triedRecently: true }), false);
+  assert.equal(shouldTrySilentSso({ ...visit, justSignedOut: true }), false);
+  assert.equal(shouldTrySilentSso({ ...visit, enabled: false }), false);
+});
+
+test("only top-level page navigations - never fetches, RSC, prefetch or POST", () => {
+  assert.equal(shouldTrySilentSso({ ...visit, method: "POST" }), false);
+  assert.equal(shouldTrySilentSso({ ...visit, fetchMode: "cors" }), false);
+  assert.equal(shouldTrySilentSso({ ...visit, isRscOrPrefetch: true }), false);
+});
+
+test("never the login round trip, route handlers, build output or files", () => {
+  for (const pathname of ["/auth/login", "/auth", "/api/status", "/api/auth/oidc/callback", "/_next/static/x.js", "/assets/logo.svg", "/favicon.ico"]) {
+    assert.equal(shouldTrySilentSso({ ...visit, pathname }), false, pathname);
+  }
+
+  assert.equal(shouldTrySilentSso({ ...visit, pathname: "/authz-audit" }), true);
+});
+
+test("login_required on a silent handshake returns to the page; anything else rejects", () => {
+  assert.equal(silentErrorOutcome("login_required", { silent: true }), "return");
+  assert.equal(silentErrorOutcome("interaction_required", { silent: true }), "return");
+
+  assert.equal(silentErrorOutcome("login_required", {}), "reject");
+  assert.equal(silentErrorOutcome("login_required", null), "reject");
+  assert.equal(silentErrorOutcome("access_denied", { silent: true }), "reject");
+  assert.equal(isInteractionRequired("server_error"), false);
+});
+
+test("the marker is host-prefixed exactly when the session cookie is", () => {
+  assert.equal(ssoAttemptCookieName("__Host-vx_rp_session"), "__Host-bsmoss_sso_tried");
+  assert.equal(ssoAttemptCookieName("vx_rp_session"), "bsmoss_sso_tried");
+  assert.equal(ssoAttemptCookieOptions("__Host-vx_rp_session").secure, true);
+  assert.equal(ssoAttemptCookieOptions("vx_rp_session", 0).maxAge, 0);
+});
+
+test("a dead session with its cookie still in the browser resumes silently, once", () => {
+  const dead = { enabled: true, hasCookie: true, triedRecently: false, justSignedOut: false };
+  assert.equal(shouldResumeSilently(dead), true);
+
+  assert.equal(shouldResumeSilently({ ...dead, triedRecently: true }), false);
+
+  assert.equal(shouldResumeSilently({ ...dead, hasCookie: false }), false);
+
+  assert.equal(shouldResumeSilently({ ...dead, justSignedOut: true }), false);
+  assert.equal(shouldResumeSilently({ ...dead, enabled: false }), false);
+});

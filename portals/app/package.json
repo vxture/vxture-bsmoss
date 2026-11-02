@@ -1,0 +1,26 @@
+{
+  "name": "@bsmoss/app",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "dependencies": {
+    "@bsmoss/shared": "workspace:*",
+    "@vxture/shared": "2.0.0",
+    "echarts": "^6.1.0",
+    "ioredis": "5.8.2",
+    "jose": "5.10.0",
+    "lucide-react": "^1.66.0",
+    "maplibre-gl": "^6.16.0",
+    "next": "15.5.28",
+    "pg": "8.22.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zustand": "^5.0.16"
+  },
+  "scripts": {
+    "dev": "node ../../scripts/prepare-map-assets.mjs && node ../../scripts/portal.mjs dev",
+    "build": "node ../../scripts/prepare-map-assets.mjs && next build",
+    "start": "node ../../scripts/portal.mjs start",
+    "type-check": "tsc --noEmit"
+  }
+}

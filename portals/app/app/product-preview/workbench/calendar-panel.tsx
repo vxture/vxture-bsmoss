@@ -1,0 +1,74 @@
+'use client';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {Table2,FileText,X,Download,LoaderCircle,RotateCcw,ArrowUpRight} from 'lucide-react';
+import {serializeSelection,selectionLabel} from '../../domains/map-demo/geometry.ts';
+import {periodContextKey,calendarLabel,PERIOD_NAMES,type CalendarUsage} from '../../domains/map-demo/period-rules.ts';
+import {calendarReportContextKey,type CalendarReport} from '../../domains/map-demo/period-report-rules.ts';
+import type {OperatorFilter,RegionDefinition} from '../../domains/map-demo/types.ts';
+import {DEMO_DATE,GIB} from '../../domains/map-demo/rules.ts';
+import {useWorkbench} from '../../domains/map-demo/workbench-store.ts';
+import {OP_NAMES} from './station-panel.tsx';
+import PeriodSelector from './period-selector.tsx';
+import {PeriodComparisonView,PeriodComparisonLoader} from './period-comparison.tsx';
+const n=(v:number|null,d=2)=>v===null?'\u2014':v.toLocaleString('zh-CN',{maximumFractionDigits:d});
+const pct=(v:number|null)=>v===null?'\u2014':n(v*100)+'%';
+const raw=(s:string)=>BigInt(s).toLocaleString('zh-CN');
+const COLORS=['#7fcbb3','#d8bb82','#9db7e3','#c3a1ce','#82b4be'];
+export default function CalendarPanel({mode,region,onPick}:{mode:'report'|'usage';region:RegionDefinition;onPick?:(id:string)=>void}) {
+  const state=useWorkbench(),period=mode==='report'?state.reportPeriod:state.usagePeriod;
+  const selectedPeriod=period==='week'?'week':'month';
+  const [snapshot,setSnapshot]=useState<CalendarUsage|CalendarReport|null>(null),[error,setError]=useState(false),[revision,setRevision]=useState(0);
+  const [section,setSection]=useState<'overview'|'comparison'|'operators'|'evidence'>('overview'),[metric,setMetric]=useState<'bytes'|'voiceSeconds'|'sms'>('bytes'),[selectedDate,setSelectedDate]=useState('');
+  const contentRef=useRef<HTMLDivElement>(null);
+  const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:0,selection:state.selection??undefined,search:''}),[region.id,state.cityId,state.countyId,state.operator,state.selection]);
+  const params=useMemo(()=>{
+    const p=new URLSearchParams({regionId:query.regionId,cityId:query.cityId,countyId:query.countyId,operator:query.operator,period:selectedPeriod});
+    if(query.selection)p.set('selection',serializeSelection(query.selection));return p.toString();
+  },[query,selectedPeriod]);
+  const key=mode==='report'?calendarReportContextKey(query,selectedPeriod):periodContextKey(query,selectedPeriod);
+  useEffect(()=>{contentRef.current?.scrollTo({top:0});},[section,key]);
+  useEffect(()=>{
+    const controller=new AbortController();setError(false);
+    fetch('/api/product-preview/'+(mode==='report'?'reports':'operators')+'?'+params,{signal:controller.signal}).then(async r=>{if(!r.ok)throw Error('calendar_failed');return r.json();}).then(result=>{if(!controller.signal.aborted)setSnapshot(result);}).catch(()=>{if(!controller.signal.aborted)setError(true);});
+    return()=>controller.abort();
+  },[params,mode,revision]);
+  const result=snapshot?.contextKey===key?snapshot:null,report=result&&'usage' in result?result:null,u=result&&'usage' in result?result.usage:result as CalendarUsage|null,t=u?.totals;
+  const scope=region.counties.find(c=>c.id===state.countyId)?.name??region.cities.find(c=>c.id===state.cityId)?.name??region.name;
+  const scale=metric==='bytes'?GIB:metric==='voiceSeconds'?3600:1,unit=metric==='bytes'?'GiB':metric==='voiceSeconds'?'\u5c0f\u65f6':'\u6761';
+  const value=(rows:{bytes:string;voiceSeconds:number;sms:number}[])=>rows.reduce((sum,r)=>sum+Number(r[metric]),0);
+  const max=u?Math.max(1,...u.dailySeries.map(d=>value(d.rows))):1;
+  const selected=u?.dailySeries.find(d=>d.date===selectedDate)??u?.dailySeries[0];
+  const dayDetail=report?.days.find(d=>d.date===selected?.date);
+  const allGood=u&&u.checks.bytesDelta==='0'&&u.checks.voiceSecondsDelta===0&&u.checks.smsDelta===0;
+  const close=()=>mode==='report'?state.set({reportOpen:false}):state.set({usageOpen:false});
+  return <aside className={'mw-comparison mw-calendar-panel '+(mode==='report'?'mw-report-panel':'mw-operator-panel')} aria-label={mode==='report'?'\u5468\u671f\u5206\u6790\u62a5\u544a':'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}>
+    <header><span>{mode==='report'?<FileText size={15}/>:<Table2 size={15}/>} {mode==='report'?'\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]:'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}<small>{'\u6a21\u62df\u6570\u636e'}</small></span><div>{report&&!error&&<a className="mw-report-download" href={'/api/product-preview/reports?'+params+'&format=html'} download aria-label={'\u4e0b\u8f7d\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]}><Download size={13}/>{'\u4e0b\u8f7d\u62a5\u544a'}</a>}<button aria-label={mode==='report'?'\u5173\u95ed\u5468\u671f\u62a5\u544a':'\u5173\u95ed\u4f7f\u7528\u6838\u67e5'} onClick={close}><X size={15}/></button></div></header>
+    <div className="mw-comparison-context"><span>{scope+(state.selection?' \xb7 '+selectionLabel(state.selection):'')}</span><PeriodSelector mode={mode}/><select aria-label={mode==='report'?'\u62a5\u544a\u8fd0\u8425\u5546':'\u6838\u67e5\u8fd0\u8425\u5546'} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,playing:false})}><option value="all">{'\u5168\u90e8\u8fd0\u8425\u5546'}</option>{Object.entries(OP_NAMES).map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></div>
+    <div className="mw-calendar-window"><span>{calendarLabel(selectedPeriod)}</span><small>{'\u5b8c\u6574\u6837\u4f8b \xb7 '+(selectedPeriod==='week'?7:31)+' \u5929'}</small></div>
+    <div className="mw-report-tabs" aria-label={'\u5468\u671f\u5206\u6790\u7ae0\u8282'}>{([{key:'overview',label:'\u5468\u671f\u6982\u89c8'},{key:'comparison',label:'\u73af\u6bd4\u5206\u6790'},{key:'operators',label:'\u8fd0\u8425\u5546\u5206\u9879'},{key:'evidence',label:'\u53e3\u5f84\u4e0e\u4f9d\u636e'}] as const).map(tab=><button key={tab.key} className={section===tab.key?'active':''} onClick={()=>setSection(tab.key)}>{tab.label}</button>)}</div>
+    <div ref={contentRef} className="mw-comparison-content">
+    {error?<div className="mw-comparison-empty"><span>{'\u5468\u671f\u6570\u636e\u52a0\u8f7d\u5931\u8d25'}</span><button onClick={()=>setRevision(v=>v+1)}><RotateCcw size={13}/>{'\u91cd\u8bd5'}</button></div>:!u||!t?<div className="mw-comparison-empty"><LoaderCircle size={22} className="mw-spin"/><span>{'\u6b63\u5728\u6c47\u603b\u5468\u671f\u6570\u636e'}</span></div>:<>
+      {section==='overview'&&<>
+      <div className="mw-report-cards">{[
+        {label:'\u5468\u671f\u6d41\u91cf',amount:n(Number(t.bytes)/GIB),unit:'GiB',average:n(Number(t.bytes)/GIB/u.calendar.days)+' GiB'},
+        {label:'\u5468\u671f\u901a\u8bdd',amount:n(t.voiceSeconds/3600),unit:'\u5c0f\u65f6',average:n(t.voiceSeconds/3600/u.calendar.days)+' \u5c0f\u65f6'},
+        {label:'\u5468\u671f\u77ed\u4fe1',amount:n(t.sms,0),unit:'\u6761',average:n(t.sms/u.calendar.days)+' \u6761'},
+        {label:'\u63a5\u901a\u7387',amount:pct(t.connectionRate),unit:'',average:null},
+        {label:'\u5bb9\u91cf\u6837\u672c\u8d1f\u8f7d',amount:pct(t.load),unit:'',average:null},
+        {label:'\u7269\u7406\u603b\u8868\u7535\u8017',amount:u.energyWh===null?'\u672a\u5206\u644a':n(u.energyWh/1000),unit:u.energyWh===null?'':'kWh',average:null},
+      ].map(card=><div key={card.label}><small>{card.label}</small><strong>{card.amount}<em>{card.unit}</em></strong>{card.average&&<span className="mw-calendar-average">{'\u65e5\u5747 '+card.average}</span>}</div>)}</div>
+      <div className="mw-comparison-trend-head"><span>{'\u9010\u65e5\u4e1a\u52a1\u5206\u5e03'}<small>{'\u70b9\u51fb\u67e5\u770b\u5f53\u65e5\u6784\u6210'}</small></span><select aria-label={'\u5468\u671f\u8d8b\u52bf\u6307\u6807'} value={metric} onChange={e=>setMetric(e.target.value as typeof metric)}><option value="bytes">{'\u6d41\u91cf / GiB'}</option><option value="voiceSeconds">{'\u901a\u8bdd / \u5c0f\u65f6'}</option><option value="sms">{'\u77ed\u4fe1 / \u6761'}</option></select></div>
+      <div className="mw-usage-bars mw-calendar-bars" aria-label={'\u9010\u65e5\u4e1a\u52a1\u91cf'}>{u.dailySeries.map(d=><button key={d.date} className={selected?.date===d.date?'active':''} aria-label={d.date+' '+n(value(d.rows)/scale)+' '+unit} title={d.date+' / '+n(value(d.rows)/scale)+' '+unit} onClick={()=>setSelectedDate(d.date)}><span style={{height:value(d.rows)/max*100+'%'}}>{d.rows.map((row,i)=><i key={row.code} style={{flex:Number(row[metric]),background:COLORS[i]}}/>)}</span></button>)}</div>
+      <div className="mw-usage-axis"><span>{u.dailySeries[0].date.slice(5)}</span><span>{u.dailySeries[Math.floor(u.dailySeries.length/2)].date.slice(5)}</span><span>{u.dailySeries.at(-1)!.date.slice(5)}</span></div>
+      <div className="mw-usage-legend">{u.rows.map((row,i)=><span key={row.code}><i style={{background:COLORS[i]}}/>{OP_NAMES[row.code]}</span>)}</div>
+      {selected&&<div className="mw-calendar-selected"><strong>{selected.date}</strong><span>{n(value(selected.rows)/scale)+' '+unit}</span>{dayDetail&&<small>{'\u63a5\u901a '+pct(dayDetail.connectionRate)+' \xb7 \u8d1f\u8f7d '+pct(dayDetail.load)}</small>}<div>{selected.rows.map(row=><span key={row.code}>{OP_NAMES[row.code]+' '+n(Number(row[metric])/scale)+' '+unit}</span>)}</div></div>}
+      {report&&<><div className="mw-report-observations"><div><small>{'\u7ad9\u7fa4\u540c\u65f6\u5cf0\u503c'}</small><strong>{report.busy?String(report.busy.hour).padStart(2,'0')+':00':'\u2014'}</strong><span>{report.busy?report.busy.date+' / '+n(Number(report.busy.bytes)/GIB)+' GiB':'\u65e0\u4e1a\u52a1\u91cf'}</span></div><div><small>{'\u6700\u9ad8\u5c0f\u65f6\u8d1f\u8f7d'}</small><strong>{report.highestLoad?pct(report.highestLoad.value):'\u2014'}</strong><span>{report.highestLoad?report.highestLoad.date+' / '+report.highestLoad.hour+':00':'\u65e0\u53ef\u7528\u5206\u6bcd'}</span></div><div><small>{'\u6700\u4f4e\u5c0f\u65f6\u63a5\u901a\u7387'}</small><strong>{report.lowestConnection?pct(report.lowestConnection.value):'\u2014'}</strong><span>{report.lowestConnection?report.lowestConnection.date+' / '+report.lowestConnection.hour+':00':'\u65e0\u53ef\u7528\u5206\u6bcd'}</span></div></div><div className="mw-report-lower"><section><h3>{'\u5468\u671f\u91cd\u70b9\u7ad9\u5740'}</h3>{report.ranking.map((s,i)=><button key={s.id} onClick={()=>onPick?.(s.id)}><i>{i+1}</i><span>{s.name}<small>{s.peakDate+' / '+s.peakHour+':00'}</small></span><strong>{n(Number(s.bytes)/GIB)}<small>GiB</small></strong><ArrowUpRight size={11}/></button>)}</section><section><h3>{'\u8fd0\u884c\u53c2\u6570'}</h3><dl><div><dt>{'\u6e29\u5ea6\u6837\u672c\u5747\u503c'}</dt><dd>{n(report.runtime.temperatureMean,1)+' \u2103'}</dd></div><div><dt>{'\u5907\u7528\u4f9b\u7535\u89c2\u6d4b'}</dt><dd>{n(report.runtime.batterySites,0)+' \u7ad9 / '+n(report.runtime.batterySiteHours,0)+' \u7ad9\u65f6'}</dd></div></dl><p>{'\u4e3a\u7ad9\u65f6\u6837\u672c\uff0c\u4e0d\u4ee3\u8868\u5b9e\u9645\u6301\u7eed\u65f6\u957f\u3002'}</p></section></div></>}
+      </>}
+      {section==='comparison'&&(report?.comparison?<PeriodComparisonView data={report.comparison} onPick={onPick}/>:<PeriodComparisonLoader query={query} period={selectedPeriod} onPick={onPick}/>)}
+      {section==='operators'&&<><div className="mw-usage-summary"><div><small>{'\u7269\u7406\u7ad9\u5740'}</small><strong>{n(u.physicalSites,0)}</strong></div><div><small>{'\u670d\u52a1\u5173\u7cfb'}</small><strong>{n(u.serviceRelations,0)}</strong></div><div><small>{'\u5171\u4eab\u7ad9\u5740'}</small><strong>{n(u.sharedSites,0)}</strong></div></div><div className="mw-usage-table-scroll"><table className="mw-usage-table"><thead><tr>{['\u8fd0\u8425\u5546 / \u7ad9\u6570','\u6d41\u91cf / GiB','\u901a\u8bdd / \u5c0f\u65f6','\u77ed\u4fe1','\u63a5\u901a\u7387','\u8d1f\u8f7d\u7387'].map(s=><th key={s}>{s}</th>)}</tr></thead><tbody>{u.rows.map(row=><tr key={row.code}><th>{OP_NAMES[row.code]}<small>{n(row.sites,0)+' \u7ad9'}</small></th><td>{n(Number(row.bytes)/GIB)}</td><td>{n(row.voiceSeconds/3600)}</td><td>{n(row.sms,0)}</td><td>{pct(row.connectionRate)}</td><td>{pct(row.load)}</td></tr>)}</tbody><tfoot><tr><th>{'\u540c\u8303\u56f4\u6c47\u603b'}</th><td>{n(Number(t.bytes)/GIB)}</td><td>{n(t.voiceSeconds/3600)}</td><td>{n(t.sms,0)}</td><td>{pct(t.connectionRate)}</td><td>{pct(t.load)}</td></tr></tfoot></table></div><div className="mw-usage-check"><i/>{allGood?'\u5206\u9879\u4e0e\u6c47\u603b\u4e00\u81f4':'\u5206\u9879\u5dee\u5f02\u5f85\u6838\u67e5'}</div></>}
+      {section==='evidence'&&<div className="mw-report-evidence"><h3>{'\u65f6\u95f4\u7a97\u4e0e\u6837\u672c'}</h3><p>{u.window.start+' \u2192 '+u.window.end+' / '+u.window.timezone+' / [start,end)'}</p><p>{'\u7269\u7406\u7ad9\u5740 '+n(u.physicalSites,0)+' \u7ad9\uff1b\u9884\u671f / \u5df2\u751f\u6210\u7269\u7406\u6837\u672c '+n(u.calendar.expectedPhysicalSamples,0)+' / '+n(u.calendar.observedPhysicalSamples,0)+'\uff1b\u670d\u52a1\u5173\u7cfb\u6837\u672c '+n(u.samples,0)+'\u3002'}</p><p>{'\u6837\u4f8b\u6309\u5b8c\u6574\u81ea\u7136\u5468\u671f\u751f\u6210\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u6765\u6e90\u5b8c\u6210\u786e\u8ba4\u3002\u5408\u6210\u5feb\u7167\u622a\u70b9 '+u.calendar.sampleCutoff}</p><h3>{'\u539f\u59cb\u8ba1\u6570'}</h3><p>{'\u603b\u5b57\u8282 '+raw(t.bytes)+' B\uff1b\u4e0a\u884c '+raw(t.upBytes)+' B / \u4e0b\u884c '+raw(t.downBytes)+' B'}</p><p>{'\u901a\u8bdd '+n(t.voiceSeconds,0)+' s / \u77ed\u4fe1 '+n(t.sms,0)+'\uff1b\u63a5\u901a '+n(t.connected,0)+' / \u5c1d\u8bd5 '+n(t.attempts,0)+'\uff1b\u5360\u7528 '+n(t.used,0)+' / \u5bb9\u91cf\u6837\u672c '+n(t.capacity,0)}</p>{u.rows.map(row=><p key={row.code}>{OP_NAMES[row.code]+' / '+raw(row.bytes)+' B / '+n(row.samples,0)+' \u670d\u52a1\u5173\u7cfb\u5c0f\u65f6\u6837\u672c'}</p>)}<h3>{'\u7edf\u8ba1\u53e3\u5f84'}</h3><p>{'\u65e5\u5747\uff1d\u5468\u671f\u603b\u91cf / \u81ea\u7136\u65e5\u6570\uff1b\u6bd4\u7387\u5408\u5e76\u5206\u5b50\u5206\u6bcd\uff0c\u4e0d\u5e73\u5747\u767e\u5206\u6bd4\u3002\u7ad9\u5740\u6570\u4e0d\u4e58\u5929\u6570\uff1b\u603b\u8868\u7535\u8017\u4e0d\u5206\u644a\u5230\u8fd0\u8425\u5546\u3002\u5bb9\u91cf\u4e3a\u5408\u6210\u5f52\u4e00\u5316\u5355\u4f4d\u3002\u73af\u6bd4\u6309\u76f8\u90bb\u5b8c\u6574\u5468\u671f\u8ba1\u7b97\uff1b\u65e0\u540c\u6bd4\u57fa\u671f\u3002'}</p><p>{u.version+' / '+u.ruleVersion}</p>{report&&<p className="mw-report-id">{report.id+' / '+report.templateVersion}</p>}</div>}
+      {!u.physicalSites&&<p className="mw-comparison-tip">{'\u5f53\u524d\u8303\u56f4\u65e0\u5339\u914d\u7ad9\u5740\uff1b\u6bd4\u7387\u4fdd\u7559\u672a\u77e5\u3002'}</p>}
+    </>}
+    </div><footer><span>{'\u6a21\u62df\u573a\u666f \xb7 '+PERIOD_NAMES[selectedPeriod]}</span><small>{'\u5730\u56fe\u56de\u653e '+DEMO_DATE+' \xb7 \u5468\u671f\u72ec\u7acb'}</small></footer>
+  </aside>;
+}

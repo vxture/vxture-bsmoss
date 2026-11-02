@@ -1,0 +1,24 @@
+version: 2
+registries:
+  vxture-github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{secrets.VXTURE_PACKAGES_READ_TOKEN}}
+updates:
+  - package-ecosystem: npm
+    directory: /
+    registries:
+      - vxture-github-packages
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      vxture-packages:
+        patterns:
+          - "@vxture/*"
+    ignore:
+      - dependency-name: "@vxture/*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

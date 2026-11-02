@@ -1,0 +1,87 @@
+name: env-update
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        type: choice
+        required: true
+        options:
+          - beta
+          - prod
+      config_kind:
+        description: Keep app credentials separate from database owner configuration
+        type: choice
+        required: true
+        options:
+          - app
+          - stack
+permissions:
+  contents: read
+concurrency:
+  group: delivery-${{ inputs.stage }}
+  cancel-in-progress: false
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.stage }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate configuration
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+        run: |
+          set -euo pipefail
+          bash deploy/assert-stack-root.sh "$STACK_ROOT"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+      - name: SSH credentials
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |-
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf "%s\n" "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf "%s\n" "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Deliver reviewed bundle
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |-
+          set -euo pipefail
+          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
+          scp -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
+      - name: Run env-update app
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          RUNTIME_ENV_FILE: ${{ secrets.APP_ENV_FILE }}
+          CONFIG_KIND: ${{ inputs.config_kind }}
+        run: |-
+          set -euo pipefail
+          printf "%s\n" "$RUNTIME_ENV_FILE" | ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "CONFIG_KIND='$CONFIG_KIND' STACK_ROOT='$STACK_ROOT' bash '$STACK_ROOT/deploy/env-update.sh'"
+        if: ${{ inputs.config_kind == 'app' }}
+      - name: Run env-update stack
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          RUNTIME_ENV_FILE: ${{ secrets.STACK_ENV_FILE }}
+          CONFIG_KIND: ${{ inputs.config_kind }}
+        run: |-
+          set -euo pipefail
+          printf "%s\n" "$RUNTIME_ENV_FILE" | ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "CONFIG_KIND='$CONFIG_KIND' STACK_ROOT='$STACK_ROOT' bash '$STACK_ROOT/deploy/env-update.sh'"
+        if: ${{ inputs.config_kind == 'stack' }}
+      - name: Remove runner SSH key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/id_ed25519

@@ -1,0 +1,416 @@
+// Client-generation source only. Empty-database DDL baseline is authoritative.
+// Scalar foreign keys; constraints and triggers are enforced by PostgreSQL.
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  schemas = ["bsmoss_resource", "bsmoss_integration", "bsmoss_catalog", "bsmoss_metering", "bsmoss_views", "vx_provision", "local_authz", "local_usage", "bsmoss_analysis"]
+}
+
+model Station {
+  workspaceId String @map("workspace_id")
+  id String
+  name String
+  ownerCode String @map("owner_code")
+  provinceCode String @map("province_code")
+  cityCode String @map("city_code")
+  @@id([workspaceId,id])
+  @@map("station")
+  @@schema("bsmoss_resource")
+}
+
+model OperatorEntity {
+  workspaceId String @map("workspace_id")
+  id String
+  category String
+  name String
+  @@id([workspaceId,id])
+  @@map("operator_entity")
+  @@schema("bsmoss_resource")
+}
+
+model StationService {
+  workspaceId String @map("workspace_id")
+  id String
+  stationId String @map("station_id")
+  operatorEntityId String @map("operator_entity_id")
+  validFrom DateTime @map("valid_from") @db.Timestamptz()
+  validTo DateTime @map("valid_to") @db.Timestamptz()
+  @@id([workspaceId,id])
+  @@unique([workspaceId,id,stationId])
+  @@map("station_service")
+  @@schema("bsmoss_resource")
+}
+
+model Device {
+  workspaceId String @map("workspace_id")
+  id String
+  stationId String @map("station_id")
+  deviceType String @map("device_type")
+  ownership String
+  @@id([workspaceId,id])
+  @@unique([workspaceId,id,stationId])
+  @@map("device")
+  @@schema("bsmoss_resource")
+}
+
+model NetworkObject {
+  workspaceId String @map("workspace_id")
+  id String
+  stationId String @map("station_id")
+  serviceId String @map("service_id")
+  kind String
+  @@id([workspaceId,id])
+  @@unique([workspaceId,id,stationId,serviceId])
+  @@map("network_object")
+  @@schema("bsmoss_resource")
+}
+
+model Source {
+  workspaceId String @map("workspace_id")
+  id String
+  name String
+  protocol String
+  @@id([workspaceId,id])
+  @@map("source")
+  @@schema("bsmoss_integration")
+}
+
+model MetricVersion {
+  code String
+  version Decimal @db.Decimal(30,0)
+  category String
+  semantic String
+  unit String
+  definition Json @db.JsonB
+  @@id([code,version])
+  @@map("metric_version")
+  @@schema("bsmoss_catalog")
+}
+
+model SourceMapping {
+  workspaceId String @map("workspace_id")
+  id String
+  sourceId String @map("source_id")
+  externalType String @map("external_type")
+  externalId String @map("external_id")
+  stationId String @map("station_id")
+  serviceId String? @map("service_id")
+  networkObjectId String? @map("network_object_id")
+  deviceId String? @map("device_id")
+  version Decimal @db.Decimal(30,0)
+  validFrom DateTime @map("valid_from") @db.Timestamptz()
+  validTo DateTime @map("valid_to") @db.Timestamptz()
+  @@id([workspaceId,id])
+  @@unique([workspaceId,id,stationId,sourceId])
+  @@map("source_mapping")
+  @@schema("bsmoss_integration")
+}
+
+model RawEvent {
+  workspaceId String @map("workspace_id")
+  sourceId String @map("source_id")
+  eventId String @map("event_id")
+  revision Decimal @db.Decimal(30,0)
+  previousRevision Decimal? @map("previous_revision") @db.Decimal(30,0)
+  payloadSha256 String @map("payload_sha256")
+  payloadUri String @map("payload_uri")
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz()
+  receivedAt DateTime @map("received_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,sourceId,eventId,revision])
+  @@map("raw_event")
+  @@schema("bsmoss_integration")
+}
+
+model SourceCapability {
+  workspaceId String @map("workspace_id")
+  id String
+  sourceId String @map("source_id")
+  metricCode String @map("metric_code")
+  metricVersion Decimal @map("metric_version") @db.Decimal(30,0)
+  nativeGrain String @map("native_grain")
+  status String
+  validationRef String? @map("validation_ref")
+  rules Json @db.JsonB
+  validFrom DateTime @map("valid_from") @db.Timestamptz()
+  validTo DateTime @map("valid_to") @db.Timestamptz()
+  @@id([workspaceId,id])
+  @@map("source_capability")
+  @@schema("bsmoss_integration")
+}
+
+model Measurement {
+  workspaceId String @map("workspace_id")
+  id String
+  sourceId String @map("source_id")
+  eventId String @map("event_id")
+  eventRevision Decimal @map("event_revision") @db.Decimal(30,0)
+  metricCode String @map("metric_code")
+  metricVersion Decimal @map("metric_version") @db.Decimal(30,0)
+  componentKey String @map("component_key")
+  stationId String @map("station_id")
+  mappingId String @map("mapping_id")
+  transformVersion String @map("transform_version")
+  periodStart DateTime @map("period_start") @db.Timestamptz()
+  periodEnd DateTime @map("period_end") @db.Timestamptz()
+  valueKind String @map("value_kind")
+  integerValue Decimal? @map("integer_value") @db.Decimal(30,0)
+  numerator Decimal? @db.Decimal(30,0)
+  denominator Decimal? @db.Decimal(30,0)
+  unscaled Decimal? @db.Decimal(30,0)
+  scale Decimal? @db.Decimal(30,0)
+  stateValue String? @map("state_value")
+  validUntil DateTime? @map("valid_until") @db.Timestamptz()
+  @@id([workspaceId,id])
+  @@unique([workspaceId,sourceId,eventId,eventRevision,metricCode,metricVersion,componentKey])
+  @@index([workspaceId,stationId,periodStart], map: "measurement_station_period")
+  @@index([workspaceId,metricCode,metricVersion,periodStart], map: "measurement_metric_period")
+  @@map("measurement")
+  @@schema("bsmoss_metering")
+}
+
+model QualityDecision {
+  workspaceId String @map("workspace_id")
+  id String
+  measurementId String @map("measurement_id")
+  revision Decimal @db.Decimal(30,0)
+  quality String
+  ruleVersion String @map("rule_version")
+  reason String
+  decidedBy String @map("decided_by")
+  decidedAt DateTime @map("decided_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,id])
+  @@unique([workspaceId,measurementId,revision])
+  @@index([workspaceId,measurementId,revision], map: "quality_measurement_revision")
+  @@map("quality_decision")
+  @@schema("bsmoss_metering")
+}
+
+model TemplateVersion {
+  workspaceId String @map("workspace_id")
+  code String
+  version Decimal @db.Decimal(30,0)
+  templateKind String @map("template_kind")
+  definition Json @db.JsonB
+  publishedBy String @map("published_by")
+  publishedAt DateTime @map("published_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,code,version])
+  @@map("template_version")
+  @@schema("bsmoss_views")
+}
+
+model TemplateSelection {
+  workspaceId String @map("workspace_id")
+  scopeKey String @map("scope_key")
+  templateCode String @map("template_code")
+  templateVersion Decimal @map("template_version") @db.Decimal(30,0)
+  changedBy String @map("changed_by")
+  changedAt DateTime @map("changed_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,scopeKey])
+  @@map("template_selection")
+  @@schema("bsmoss_views")
+}
+
+model UserPreference {
+  workspaceId String @map("workspace_id")
+  subject String
+  templateCode String @map("template_code")
+  templateVersion Decimal @map("template_version") @db.Decimal(30,0)
+  revision Decimal @db.Decimal(30,0)
+  definition Json @db.JsonB
+  createdAt DateTime @map("created_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,subject,templateCode,templateVersion,revision])
+  @@map("user_preference")
+  @@schema("bsmoss_views")
+}
+
+model VxProvisionAppInstance {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  tenant_id String? @db.Uuid
+  product_code String @db.VarChar(32)
+  status String @db.VarChar(32)
+  env String @db.VarChar(32)
+  provisioned_at DateTime? @db.Timestamptz()
+  created_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  @@map("app_instance")
+  @@schema("vx_provision")
+}
+
+model VxProvisionWebhookDelivery {
+  id String @db.Uuid @id
+  delivery_id String @db.VarChar(128)
+  type String @db.VarChar(64)
+  occurred_at DateTime? @db.Timestamptz()
+  result String @db.VarChar(32)
+  created_at DateTime @db.Timestamptz()
+  @@map("webhook_delivery")
+  @@schema("vx_provision")
+}
+
+model VxProvisionProvisionSeq {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  product_code String @db.VarChar(32)
+  last_seq BigInt
+  updated_at DateTime @db.Timestamptz()
+  @@map("provision_seq")
+  @@schema("vx_provision")
+}
+
+model LocalAuthzMember {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  sub String @db.VarChar(128)
+  display_name String? @db.VarChar(255)
+  avatar_hash String? @db.VarChar(128)
+  status String @db.VarChar(32)
+  first_seen_at DateTime @db.Timestamptz()
+  created_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  @@map("member")
+  @@schema("local_authz")
+}
+
+model LocalAuthzRole {
+  id String @db.Uuid @id
+  role_code String @db.VarChar(64)
+  name String @db.VarChar(255)
+  created_at DateTime @db.Timestamptz()
+  @@map("role")
+  @@schema("local_authz")
+}
+
+model LocalAuthzPermission {
+  id String @db.Uuid @id
+  perm_code String @db.VarChar(64)
+  name String @db.VarChar(255)
+  created_at DateTime @db.Timestamptz()
+  @@map("permission")
+  @@schema("local_authz")
+}
+
+model LocalAuthzMemberRole {
+  id String @db.Uuid @id
+  member_id String @db.Uuid
+  role_id String @db.Uuid
+  created_at DateTime @db.Timestamptz()
+  @@map("member_role")
+  @@schema("local_authz")
+}
+
+model LocalAuthzRolePermission {
+  id String @db.Uuid @id
+  role_id String @db.Uuid
+  permission_id String @db.Uuid
+  created_at DateTime @db.Timestamptz()
+  @@map("role_permission")
+  @@schema("local_authz")
+}
+
+model LocalUsageRaw {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  metric String @db.VarChar(128)
+  amount BigInt
+  idempotency_key String @db.VarChar(128)
+  flushed Boolean
+  created_at DateTime @db.Timestamptz()
+  @@map("raw")
+  @@schema("local_usage")
+}
+
+model LocalUsageCheckpoint {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  metric String @db.VarChar(128)
+  flushed_at DateTime @db.Timestamptz()
+  @@map("checkpoint")
+  @@schema("local_usage")
+}
+
+model LocalAuthzDataScope {
+  id String @db.Uuid @id
+  workspace_id String @db.Uuid
+  member_id String @db.Uuid
+  scope Json
+  expires_at DateTime @db.Timestamptz()
+  created_at DateTime @db.Timestamptz()
+  @@map("data_scope")
+  @@schema("local_authz")
+}
+
+model AggregateSeries {
+  workspace_id String
+  id String
+  source_id String
+  subject_key String
+  metric_code String
+  metric_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  current_revision Decimal? @db.Decimal(30,0)
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("aggregate_series")
+  @@schema("bsmoss_analysis")
+}
+
+model AggregateRevision {
+  workspace_id String
+  series_id String
+  revision Decimal @db.Decimal(30,0)
+  input_fingerprint String
+  aggregation_version String
+  watermark DateTime @db.Timestamptz()
+  completeness String
+  value_kind String
+  integer_value Decimal? @db.Decimal(30,0)
+  numerator Decimal? @db.Decimal(30,0)
+  denominator Decimal? @db.Decimal(30,0)
+  result_payload Json
+  input_manifest Json
+  published_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,series_id,revision])
+  @@map("aggregate_revision")
+  @@schema("bsmoss_analysis")
+}
+
+model AggregateOutbox {
+  workspace_id String
+  id String
+  series_id String
+  revision Decimal @db.Decimal(30,0)
+  event_type String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("aggregate_outbox")
+  @@schema("bsmoss_analysis")
+}
+
+model SourceCompletion {
+  workspace_id String
+  source_id String
+  mapping_id String
+  station_id String
+  metric_code String
+  metric_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  revision Decimal @db.Decimal(30,0)
+  status String
+  input_fingerprint String
+  watermark DateTime @db.Timestamptz()
+  evidence_ref String
+  evidence_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,source_id,mapping_id,metric_code,metric_version,grain,period_start,period_end,revision])
+  @@map("source_completion")
+  @@schema("bsmoss_integration")
+}

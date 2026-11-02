@@ -1,0 +1,81 @@
+// Adapted from the yucer engineering reference for product bsmoss.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { makeProvisioningAck, sendProvisioningAck } from "./ack";
+import type { PlatformClientConfig } from "../../entitlement/platform-client";
+
+const CFG: PlatformClientConfig = {
+  baseUrl: "https://platform.internal",
+  accessToken: async () => "tok_internal",
+  product: "bsmoss",
+};
+
+test("makeProvisioningAck posts the documented shape and auth header", async () => {
+  const captured: { url?: string; init?: RequestInit } = {};
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    captured.url = String(url);
+    captured.init = init;
+    return new Response(
+      JSON.stringify({ workspace_id: "ws_1", product: "bsmoss", acked_at: "2026-09-17T00:00:00Z", replayed: false }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  try {
+    const ack = makeProvisioningAck(CFG);
+    const result = await ack({ workspaceId: "ws_1", status: "ready", deliveryId: "evt_1" });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body?.replayed, false);
+    assert.equal(captured.url, "https://platform.internal/provisioning/ack");
+    assert.equal(captured.init?.method, "POST");
+    assert.equal((captured.init?.headers as Record<string, string>)["authorization"], "Bearer tok_internal");
+    const body = JSON.parse(captured.init?.body as string);
+    assert.deepEqual(body, {
+      workspace_id: "ws_1",
+      product: "bsmoss",
+      status: "ready",
+      delivery_id: "evt_1",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a repeated delivery_id comes back replayed:true with the original acked_at", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({ workspace_id: "ws_1", product: "bsmoss", acked_at: "2026-09-01T00:00:00Z", replayed: true }),
+      { status: 200 },
+    )) as typeof fetch;
+  try {
+    const result = await makeProvisioningAck(CFG)({ workspaceId: "ws_1", status: "ready", deliveryId: "evt_1" });
+    assert.equal(result.body?.replayed, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("sendProvisioningAck is a silent no-op when the platform is not configured", async () => {
+
+  const result = await sendProvisioningAck({ workspaceId: "ws_1", status: "ready" });
+  assert.equal(result, null);
+});
+
+test("sendProvisioningAck swallows a transport failure rather than throwing", async () => {
+  const originalEnv = { ...process.env };
+  process.env.PLATFORM_API_URL = "https://platform.internal";
+  process.env.OIDC_CLIENT_SECRET = "tok_internal";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error("ECONNREFUSED");
+  }) as typeof fetch;
+  try {
+    const result = await sendProvisioningAck({ workspaceId: "ws_1", status: "ready" });
+    assert.equal(result, null, "an ack failure must not throw - it must never fail the webhook that triggered it");
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env = originalEnv;
+  }
+});

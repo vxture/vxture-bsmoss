@@ -1,0 +1,59 @@
+# 3000 is container-internal only; the host port must come from environment registration.
+name: ${PROJECT_NAME:?set a distinct beta/prod project name}
+x-logging: &logging
+  driver: json-file
+  options: { max-size: 10m, max-file: "3" }
+services:
+  app:
+    image: ${IMAGE_REF:?set an immutable image digest}
+    env_file: ${APP_ENV_FILE:?set the runtime env file path}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      BSMOSS_PRODUCT_PREVIEW: "off"
+    ports: ["127.0.0.1:${APP_PUBLISH_PORT:?set registered host port}:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:3000/api/health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${APP_MEM_LIMIT:-2g}
+    cpus: ${APP_CPUS:-2}
+    restart: unless-stopped
+    logging: *logging
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes: ["${DATA_DIR:?set persistent storage}/redis:/data"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: ${REDIS_MEM_LIMIT:-512m}
+    restart: unless-stopped
+    logging: *logging
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set database name}
+      POSTGRES_USER: ${POSTGRES_DB_OWNER:?set database owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set owner password}
+    volumes: ["${DATA_DIR:?set persistent storage}/db:/var/lib/postgresql"]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: ${DB_MEM_LIMIT:-1g}
+    restart: unless-stopped
+    logging: *logging

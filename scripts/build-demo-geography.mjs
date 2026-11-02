@@ -1,0 +1,74 @@
+// Reproducible synthetic resources. No real station coordinates are used.
+import { readFileSync, writeFileSync } from 'node:fs';
+const root = new URL('../', import.meta.url);
+const boundary = JSON.parse(readFileSync(new URL('portals/app/public/geo/shaanxi-cities.geojson', root), 'utf8'));
+let seed = 20261025;
+const random = () => { seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; return seed / 4294967296; };
+function inRing(p, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x, y] = ring[i], [u, v] = ring[j];
+    if ((y > p[1]) !== (v > p[1]) && p[0] < (u - x) * (p[1] - y) / (v - y) + x) inside = !inside;
+  }
+  return inside;
+}
+const profiles = ['urban', 'hub', 'industrial', 'mountain', 'efficient', 'shared'];
+const operators = ['mobile', 'telecom', 'unicom', 'broadcast', 'other'];
+const targets = [240, 30, 140, 170, 90, 105, 100, 70, 65, 70];
+const curated = [
+  ['SX-DEMO-001', '\u9ad8\u65b0\u79d1\u6280\u8def\u5171\u4eab\u7ad9', '610100', 108.885, 34.226, 'urban'],
+  ['SX-DEMO-002', '\u897f\u5b89\u5317\u7ad9\u4ea4\u901a\u67a2\u7ebd\u7ad9', '610100', 108.939, 34.376, 'hub'],
+  ['SX-DEMO-003', '\u5b9d\u9e21\u9ad8\u65b0\u4ea7\u4e1a\u56ed\u7ad9', '610300', 107.23, 34.36, 'industrial'],
+  ['SX-DEMO-004', '\u79e6\u5cad\u5c71\u533a\u4fdd\u969c\u7ad9', '610100', 108.58, 33.96, 'mountain'],
+  ['SX-DEMO-005', '\u54b8\u9633\u6e2d\u57ce\u80fd\u6548\u89c2\u5bdf\u7ad9', '610400', 108.72, 34.36, 'efficient'],
+  ['SX-DEMO-006', '\u66f2\u6c5f\u6587\u65c5\u591a\u8fd0\u8425\u5546\u7ad9', '610100', 108.98, 34.20, 'shared'],
+];
+const sites = curated.map(([id, name, cityId, lng, lat, profile], i) => ({id, name, regionId:'610000', cityId, lng, lat, profile, operators: operators.slice(0, i === 5 ? 5 : 4), capacity: 65 + i * 9, seed: i + 11}));
+const cities = boundary.features.map((f, index) => {
+  const polygons = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+  const coords = polygons.flat(2);
+  const xs = coords.map(p => p[0]), ys = coords.map(p => p[1]);
+  const bounds = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  const cityId = String(f.properties.adcode);
+  const [cx,cy] = f.properties.center;
+  const target = targets[index] ?? 50;
+  let tries = 0;
+  while (sites.filter(s => s.cityId === cityId).length < target && tries++ < 100000) {
+    const near = random() < 0.55;
+    const p = near ? [cx + (random()+random()-1)*0.42, cy + (random()+random()-1)*0.30]
+      : [bounds[0]+random()*(bounds[2]-bounds[0]), bounds[1]+random()*(bounds[3]-bounds[1])];
+    if (!polygons.some(poly => inRing(p,poly[0]) && !poly.slice(1).some(hole => inRing(p,hole)))) continue;
+    const n = sites.length + 1;
+    const chosen = operators.filter((_,i) => i < 2 || random() > (i === 4 ? 0.88 : 0.25));
+    sites.push({id:'DEMO-'+String(n).padStart(5,'0'), name:f.properties.name.replace(/\u5e02$/,'')+'\u6837\u4f8b\u7ad9 '+String(n).padStart(4,'0'),regionId:'610000',cityId,lng:+p[0].toFixed(5),lat:+p[1].toFixed(5),profile:profiles[n%profiles.length],operators:chosen,capacity:25+Math.round(random()*65),seed:n*17});
+  }
+  return {id:cityId,name:f.properties.name,center:[cx,cy],bounds};
+});
+const counties=[];
+for(const city of cities) {
+  city.boundaryUrl='/geo/counties/'+city.id+'.geojson';
+  const data=JSON.parse(readFileSync(new URL('portals/app/public'+city.boundaryUrl,root),'utf8'));
+  const contains=(f,p)=> (f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[f.geometry.coordinates]).some(poly=>inRing(p,poly[0])&&!poly.slice(1).some(h=>inRing(p,h)));
+  for(const f of data.features) {
+    const polygons=f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[f.geometry.coordinates];
+    const coords=polygons.flat(2),xs=coords.map(p=>p[0]),ys=coords.map(p=>p[1]);
+    counties.push({id:String(f.properties.adcode),cityId:city.id,name:f.properties.name,center:f.properties.centroid??f.properties.center,bounds:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]});
+  }
+  for(const site of sites.filter(s=>s.cityId===city.id)) {
+    let match=data.features.find(f=>contains(f,[site.lng,site.lat]));
+    // City and county boundary simplifications differ at edges. Regenerate unmatched synthetic points.
+    for(let attempt=0;!match&&attempt<10000;attempt++) {
+      if(site.id.startsWith('SX-'))throw Error('Curated county polygon mismatch: '+site.id);
+      const lng=+(city.bounds[0]+random()*(city.bounds[2]-city.bounds[0])).toFixed(5);
+      const lat=+(city.bounds[1]+random()*(city.bounds[3]-city.bounds[1])).toFixed(5);
+      match=data.features.find(f=>contains(f,[lng,lat]));
+      if(match){site.lng=lng;site.lat=lat;}
+    }
+    if(!match)throw Error('County sampling exhausted: '+site.id);
+    site.countyId=String(match.properties.adcode);
+  }
+}
+const ascii = text => text.replace(/[^\x00-\x7f]/g, c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
+const output = '// Generated by scripts/build-demo-geography.mjs. Synthetic locations, not surveyed resources.\nimport type { DemoSite, RegionDefinition } from "./types.ts";\nexport const DEMO_REGION: RegionDefinition = '+JSON.stringify({id:'610000',name:'\u9655\u897f\u7701',parentId:'CN',center:[108.9,35.5],bounds:[105.45,31.7,111.3,39.62],boundaryUrl:'/geo/shaanxi-cities.geojson',cities,counties})+';\nexport const DEMO_SITES: readonly DemoSite[] = '+JSON.stringify(sites)+';\n';
+writeFileSync(new URL('portals/app/app/domains/map-demo/resources.ts',root),ascii(output));
+console.log('Generated '+sites.length+' synthetic sites across '+cities.length+' cities.');

@@ -1,0 +1,75 @@
+name: deploy
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        type: choice
+        required: true
+        options:
+          - beta
+          - prod
+      image_ref:
+        description: Registered bsmoss-app repository plus @sha256 digest
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: delivery-${{ inputs.stage }}
+  cancel-in-progress: false
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.stage }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate configuration
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+          IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          bash deploy/assert-stack-root.sh "$STACK_ROOT"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$IMAGE_REF" =~ ^[a-z0-9./_-]+/bsmoss-app@sha256:[a-f0-9]{64}$ ]]
+          [[ "$IMAGE_REPOSITORY" =~ ^ghcr.io/[a-z0-9_-]+/bsmoss-app$ ]]
+          [[ "$IMAGE_REF" == "$IMAGE_REPOSITORY@sha256:"* ]]
+      - name: SSH credentials
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |-
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf "%s\n" "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf "%s\n" "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Deliver reviewed bundle
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |-
+          set -euo pipefail
+          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
+          scp -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
+      - name: Run deploy
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+        run: |-
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/deploy.sh'"
+      - name: Remove runner SSH key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/id_ed25519
