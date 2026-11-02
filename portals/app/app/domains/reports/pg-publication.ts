@@ -3,11 +3,11 @@ import type { Pool, PoolClient } from "pg";
 import { fingerprintOf, positiveRevision } from "../aggregation/intervals.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
-import { reportScope } from "./rules.ts";
+import { reportScope, unionReportScopes } from "./rules.ts";
 import { readReportInTransaction, readStoredReportInTransaction } from "./pg-store.ts";
 import { assertPublishable, normalizePublicationCommand, normalizePublicationQuery,
   type PublicationCommand, type PublicationEvent, type PublicationQuery, type ReportPublicationStore } from "./publication.ts";
-import type { RevalidateReport } from "./store.ts";
+import type { RevalidateReport, StoredReport } from "./store.ts";
 
 function eventOf(row: Record<string, any>): PublicationEvent {
   positiveRevision(row.event_revision); positiveRevision(row.report_revision);
@@ -21,6 +21,16 @@ function eventOf(row: Record<string, any>): PublicationEvent {
 function commandOf(event: PublicationEvent): PublicationCommand {
   return { reportId: event.reportId, reportRevision: event.reportRevision, manifestSha256: event.manifestSha256,
     expectedEventRevision: event.previousEventRevision, commandId: event.commandId, action: event.action, reasonRef: event.reasonRef };
+}
+
+async function commandScope(scope: MeasurementScope, record: StoredReport, command: PublicationCommand, prior: Record<string, any> | null, client: PoolClient) {
+  if (command.action !== "published" || prior?.action !== "published") return record.manifest.requiredScope;
+  // Replacing a release also withdraws the displaced snapshot from the active
+  // head. Its complete historic scope belongs to this command's footprint.
+  // Replays use the original predecessor, never today's unrelated head.
+  const displaced = await readStoredReportInTransaction(scope, { reportId: command.reportId, revision: prior.report_revision }, client);
+  if (!displaced || displaced.manifestSha256 !== prior.manifest_sha256) throw Error("invalid_publication_record");
+  return unionReportScopes(scope.workspaceId, [record.manifest.requiredScope, displaced.manifest.requiredScope]);
 }
 
 export async function readPublicationInTransaction(pool: Pool, scope: MeasurementScope, raw: PublicationQuery, client: PoolClient) {
@@ -51,15 +61,22 @@ export class PgReportPublicationStore implements ReportPublicationStore {
       if (!record || record.manifestSha256 !== command.manifestSha256) throw Error("report_unavailable");
       const duplicate = (await client.query(`SELECT * FROM bsmoss_analysis.report_publication_event
         WHERE workspace_id=$1 AND report_id=$2 AND command_id=$3`, [this.workspaceId, command.reportId, command.commandId])).rows[0];
-      let event: PublicationEvent, status: "inserted" | "duplicate";
+      let event: PublicationEvent, status: "inserted" | "duplicate", required = record.manifest.requiredScope;
       if (duplicate) {
         event = eventOf(duplicate);
         if (event.recordedBy !== actor || fingerprintOf(commandOf(event)) !== fingerprintOf(command)) throw Error("conflicting_publication_replay");
+        if (event.previousEventRevision !== null) {
+          const originalPrior = (await client.query(`SELECT * FROM bsmoss_analysis.report_publication_event
+            WHERE workspace_id=$1 AND report_id=$2 AND event_revision=$3`, [this.workspaceId, command.reportId, event.previousEventRevision])).rows[0];
+          if (!originalPrior) throw Error("invalid_publication_record");
+          required = await commandScope(this.scope, record, command, originalPrior, client);
+        }
         status = "duplicate";
       } else {
         const prior = (await client.query(`SELECT * FROM bsmoss_analysis.report_publication_event
           WHERE workspace_id=$1 AND report_id=$2 ORDER BY event_revision DESC LIMIT 1`, [this.workspaceId, command.reportId])).rows[0];
         if ((prior?.event_revision ?? null) !== command.expectedEventRevision) throw Error("publication_revision_conflict");
+        required = await commandScope(this.scope, record, command, prior ?? null, client);
         if (command.action === "published") {
           const current = await readReportInTransaction(this.pool, this.scope, { reportId: command.reportId, revision: command.reportRevision }, client);
           if (!current) throw Error("report_unavailable"); assertPublishable(current);
@@ -78,7 +95,7 @@ export class PgReportPublicationStore implements ReportPublicationStore {
       const current = (await client.query(`SELECT event_revision FROM bsmoss_analysis.report_publication_event
         WHERE workspace_id=$1 AND report_id=$2 ORDER BY event_revision DESC LIMIT 1`, [this.workspaceId, command.reportId])).rows[0];
       if (!current) throw Error("invalid_publication_record");
-      await revalidate(record.manifest.requiredScope); await client.query("COMMIT");
+      await revalidate(required); await client.query("COMMIT");
       return { status, event, currentEventRevision: current.event_revision as string,
         isActive: event.action === "published" && event.eventRevision === current.event_revision };
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }

@@ -419,3 +419,5 @@ input_refresh_receipt及input_dispatch_event增成对可空partition_id／revisi
 465单测、238实际PG（新增5场景）及20HTTP／双层类型／构建已通过。独立localhost合成UI跑实际React组件：提交后丢响应的同commandId重试、撤回／重发、导出轮询下载、生成表单和精确计数；桌面1440与窄屏390无横向溢出／pageerror。无正式路由授权后门，不能替代实际RP／来源／客户UAT。无DDL或依赖变化，仍50表。
 
 I12继续in_progress，登记报告调度／机器身份常驻执行仍待；I11配置面板／I08对象分布和分层容量继续推进。真实来源、平台注册、Beta环境、11万容量3倍突发、安全恢复、业务UAT与生产批准未到位；五项1–3本地完成、4–5未上线，无push／PR／远端CI／外部部署。既有active目标及bs-moss heartbeat复用，费用预留／退服P2／陕西演示不变。
+
+发布替换授权补充：已实际复现并修复新窄范围间接撤下旧宽发布的问题。追加前和末次再验权均核对新报告及被替换原快照scope并集，旧命令重放按原前序事件恢复当时作用范围，不依赖今天无关head。无DDL／API／UI变化；465单测／239实际PG／20HTTP及类型／构建通过，日志和SHA见publication-replacement-scope检查点。当前I12及全部真实接入／部署验收状态不变。

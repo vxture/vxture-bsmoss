@@ -120,5 +120,29 @@ export async function reportPublicationCases(t,{db,adapterPool,access,scope,api,
     await assert.rejects(adapterPool.query('SELECT bsmoss_analysis.capture_report_publication()'),e=>e.code==='42501');
     assert.equal((await db.query("SELECT 1 FROM local_authz.permission WHERE perm_code='reports.publish'")).rowCount,1);assert.equal((await db.query("SELECT 1 FROM local_authz.role_permission rp JOIN local_authz.permission p ON p.id=rp.permission_id WHERE p.perm_code='reports.publish'")).rowCount,0);
   });
+  await t.test('publication replacement requires incoming and displaced historical scopes, including final revalidation and replay of the original footprint',async()=>{
+    await confirm();const rate={code:'status.voice.connection_rate',version:1},wide={...single(),panels:[...single().panels,{...panel('rate',rate,1),displayUnit:'%'}],bindings:[...single().bindings,{panelId:'rate',kind:'aggregate',sourceId:'report-src',mappingId:'report-cell-map'}]};
+    await putTemplate('publication-replace-scope',wide);const original=(await api.generate(command('publication-replace-scope'))).record;
+    assert.equal(original.manifest.dataCompleteness,'complete');await pub.execute(issue(original));
+    await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[single()]);
+    const incoming=(await api.generate(command('publication-replace-scope',original.revision))).record,replacement=issue(incoming,'1');
+    assert.ok(!incoming.manifest.requiredScope.metricKeys.includes(rate.code+'@1'));
+    const narrowScope={...scope,metricKeys:scope.metricKeys.filter(k=>k!==rate.code+'@1')},narrow={...publisher,async readLocalGrant(){return {...await publisher.readLocalGrant(),scope:narrowScope};}};
+    const before=await counts();await assert.rejects(make(narrow).execute(replacement),/report_scope_denied/);assert.deepEqual(await counts(),before);
+    let reads=0;const revoked={...publisher,async readLocalGrant(){const g=await publisher.readLocalGrant();return ++reads===1?g:{...g,scope:narrowScope};}};
+    await assert.rejects(make(revoked).execute(replacement),/report_scope_denied/);assert.deepEqual(await counts(),before);
+    const inserted=await pub.execute(replacement);assert.equal(inserted.event.eventRevision,'2');assert.equal(inserted.isActive,true);
+    const after=await counts();await assert.rejects(make(narrow).execute(replacement),/report_scope_denied/);assert.deepEqual(await counts(),after);
+    assert.equal((await pub.execute(replacement)).status,'duplicate');assert.equal((await pub.read({reportId:incoming.reportId})).event.reportRevision,incoming.revision);
+    // Once the narrower publication is explicitly withdrawn, a fresh command
+    // no longer displaces the wider historic scope. That is a different action.
+    await make(narrow).execute(issue(incoming,'2','withdrawn'));
+    const narrowCommand=issue(incoming,'3');assert.equal((await make(narrow).execute(narrowCommand)).event.eventRevision,'4');
+    const staleReplay=await pub.execute(replacement);assert.equal(staleReplay.isActive,false);assert.equal(staleReplay.currentEventRevision,'4');
+    await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[{...wide,title:'Expanded reviewed report'}]);
+    const expanded=(await api.generate(command('publication-replace-scope',incoming.revision))).record;
+    assert.equal((await pub.execute(issue(expanded,'4'))).event.eventRevision,'5');
+    const unaffectedReplay=await make(narrow).execute(narrowCommand);assert.equal(unaffectedReplay.status,'duplicate');assert.equal(unaffectedReplay.isActive,false);assert.equal(unaffectedReplay.currentEventRevision,'5');
+  });
   return { publisher, pub, issue, confirm, ready, lastEvent };
 }

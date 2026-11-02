@@ -601,3 +601,15 @@ Browser QA使用CUA隐藏临时页、桌面及390×844viewport，手机内容和
 实际React组件在独立63334合成fixture接口跑发布已提交却返回503、同命令重试、撤回CAS／重发事件3／导出轮询及下载、精确长计数与生成表单。1440与390宽无横向溢出、无pageerror，截图／HTML在artifacts/report-workspace-qa；只是UI合成QA，无正式路由测试身份或真实平台注册／来源验收。没有操作主地图或重复稳定六场景。专用PG随机合同库最终238全过并已stop；临时QA服务收尾核验停。日志tmp/report-workspace-{unit,db,types,build,http,guards,ascii,staged-scan,browser}.log，提交／63333 SHA／正式检查点以工具收尾为准。
 
 下一项登记报告调度／真实机器身份及常驻worker，或I11正式配置面板；I08设备状态／温度对象分布、分层规模汇总继续待办。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复／UAT和生产批准仍缺，未push／PR／远端CI／外部部署或上线。五项1–3本地完成、4–5未完成；费用预留／退服P2／陕西演示不变。
+
+工作区包收尾：c840089提交，clean；465单测／238PG／20HTTP／双层类型／构建、97篇编号／50表镜像与交付／SCA配置守卫、23文件ASCII通过，staged gitleaks74.55KB无泄漏。formal-report-workspace.json绑定SHA／树／BUILD_ID／全部日志及合成UI制品；63333当时session42128、版本bsmoss-local-c840089，/reports与预览200，正式全部匿名读写401。63334合成QA与专用PGcluster已stop。当前后续修复为构建已核验停止该仓63333 Next，最终状态以工具收尾为准。
+
+## I12发布替换范围修复（2026-11-03）
+
+同一turn继续实质progress，不标blocked。实际PG新回归复现：较宽流量＋接通率报告活跃发布，审阅模板缩至流量并生成新修订后，只有流量范围的主体可用已知CAS替换旧宽发布。原execute只校验新报告，遗漏间接撤下原发布的范围。commandScope现于追加前读取原被替换immutable快照，核对SHA／完整scope，末次再验权覆盖新旧并集；事件/outbox全回滚。
+
+重复命令沿原事件previousEventRevision取当时前序，原published被替换范围仍属原命令，不能在重放时缩减，也不读今天无关head。撤回后新命令不再隐含旧宽范围；后续扩大当前发布不阻断旧窄命令重放，旧回执仍isActive=false且不回退head。没有DDL／API／UI变化，报告原快照和历史事件不改。
+
+新增1PG场景覆盖前置拒绝、写后撤旧范围全回滚、完整权限成功、原footprint重放、明确撤回／新命令和无关后续head。首轮新夹具的rate对象不是原引用导致displayUnit误count，显式%修正后，修复前准确得到Missing expected rejection；修复后239PG，补无关head断言再全PG239均通过，cluster已stop。465单测、类型／生产构建／20HTTP也通过。日志tmp/publication-replacement-{unit,db,types,build,http,guards,ascii,staged-scan}.log，修复前证据tmp/publication-replacement-regression.log；最终守卫／扫描／提交与63333版本见publication-replacement-scope检查点。
+
+下一项仍为登记报告调度／机器身份与常驻worker或I11正式面板。真实接入、平台注册、Beta环境、11万3倍突发、安全恢复／UAT和生产批准仍缺，没有push／PR／远端CI／外部部署或上线；五项目标active、1–3本地完成、4–5未完成，bs-moss heartbeat复用。
