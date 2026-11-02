@@ -62,6 +62,7 @@ export class PgMeasurementStore implements MeasurementStore {
       if (m.service_id && !this.serviceIds.includes(m.service_id) || m.device_id && !this.deviceIds.includes(m.device_id) || !m.service_id && !m.device_id && !this.allowSiteParameters) throw new Error("object_scope_denied");
       if (metric.attribution === "service_required" && (!m.service_id || !m.network_object_id || m.service_from>new Date(r.periodStart) || m.service_to<new Date(r.periodEnd))) throw new Error("service_mapping_required");
       if (metric.object === "cell" && m.kind !== "cell" || metric.object === "device" && !m.device_id || metric.object === "station_meter" && (m.device_id || m.network_object_id || m.service_id)) throw new Error("mapping_object_mismatch");
+      if (metric.semantic === "gauge" && (m.service_id || m.network_object_id)) throw new Error("mapping_object_mismatch");
       const definition=await client.query("SELECT semantic,unit,category FROM bsmoss_catalog.metric_version WHERE code=$1 AND version=$2",[r.metric.code,r.metric.version]);
       const d=definition.rows[0];
       if (!d || d.semantic!==metric.semantic || d.unit!==metric.unit || d.category!==metric.category) throw new Error("metric_definition_mismatch");

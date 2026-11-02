@@ -458,3 +458,17 @@ access/aggregate-query按view权限构造有限reader，读取后重查C1／C2�
 409单测（新增4）、133项实际PG报告测试（132子项＋父项，新增7）、双层类型／生产构建、20项HTTP（新增preview不能解锁正式查询）通过。77篇文档编号／36表镜像／交付／SCA配置及9个源码／测试ASCII通过。首轮DB失败为新device夹具漏ownership，补tower后全量通过；首轮HTTP失败为测试错误地要求Vary等于Cookie而非包含，改为包含后20项通过，没有放松安全头。日志tmp/aggregate-query-{unit,db,types,build,http,guards,ascii,staged-scan}.log。无DDL／Prisma／依赖／UI变化，未重复Prisma CLI／六场景浏览器／在线漏洞扫描。专用PGcluster已stop，仅随机合同库；无真实业务库操作。
 
 最终提交／密钥扫描／63333运行SHA及检查点以工具收尾为准。后续可补I08瞬时值持久化（当前FIRST_METRICS仅11项，没有已注册gauge，需先完善字典／单位／固定精度而非冒充已接入）、跨对象权威汇总；I09能力／映射／服务变化历史传播及登记订阅／种子／真实机器身份／常驻worker，随后I11面板与I12持久报告／异步导出。五项1—3本地完成，4仍缺真实来源／平台注册，5环境／Beta／容量／安全恢复／业务UAT／生产审批未到位。目标active，不标blocked；未push／PR／远端CI／真实接入／部署／上线，费用预留／退服P2／陕西演示边界不变。
+
+查询包收尾：e38c605提交，409单测／133PG／20HTTP／类型／构建／79之前的77篇编号文档／36表守卫、9文件ASCII和staged gitleaks39.98KB通过；检查点authorized-aggregate-query.json。63333当时session15967，版本bsmoss-local-e38c605，首页200及匿名聚合401。
+
+## I08瞬时温度可信持久化（2026-11-03）
+
+接续既有active五项目标，恢复时已有gauge草稿，已完善并实际验证。本轮有内部实质进展，不满足blocked；真实来源／平台注册和环境仍未补齐，不重复追问或创建heartbeat。设计203／实施390。
+
+新增第12个planned字典定义runtime.environment.temperature_c@1、degC、物理device、gauge_summary／not_additive；测量fixed_point有符号30位unscaled和0–9整数scale，拒绝服务／网络归属。gauge-period绑定核验capability.rules.gaugeAggregation，sample_mean无时长宣称，time_weighted必须durationRef；固定5m／15m／hour／day来源网格，不自动保持／插值。精确mean分子分母字符串，极值保留时间，missing／partial不补零，pending／rejected不参与均值但影响摘要。映射和测量ISO时间规范化，完整全对象completion_set匹配才complete，最高撤销／失效不回退。
+
+新增pg-gauge-snapshot／gauge-service／gauge-store／pg-gauge-store；最新事实先选再过滤设备／日期，移对象或移窗撤回旧输入。共享PgAggregateRepository CAS／幂等／追加结果和outbox，refresh-enqueue／execute及GET /api/aggregates支持gauge，同RR快照绑定输入／head／结果／回执。旧快照不能覆盖新head，回执故障全回滚。DDL增加gauge_value JSON／typed互斥／shape和payload绑定，Prisma镜像同步，仍36表空库、无迁移。gauge策略缺少时长依据纳入source_unavailable退避分类。原11项地图合成样例过滤gauge，不编造温度。
+
+416单测（新增7）、141项实际PG报告测试（140子项＋父项，新增8）、双层类型／生产构建／Prisma validate／20HTTP通过。79篇文档编号／36表镜像／交付／SCA配置守卫通过；最终ASCII／密钥／Git提交和运行SHA以收尾工具为准。首轮PG新增修订传播夹具误用hour，现有自动订阅只day／week／month，改为实际day验证且未放宽调度；第二轮全通过。测试覆盖大整数／超30位加权分子、完成与撤销／策略／质量失效、移设备日期和日周期自动传播、旧新范围验权、错误scale／能力／映射／窗口拒绝、原子回滚与并发保护、SQL形状／不可变权限。专用cluster已stop，仅随机合同库，无业务库操作。日志tmp/gauge-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。无依赖或演示布局变化，不重复六场景UI验收。
+
+下一步I08跨对象总分表权威／去重汇总，或I09能力策略／映射／服务有效期历史变化传播、登记订阅／种子／机器身份和常驻worker；I11正式面板与I12持久报告／异步导出继续待办。温度内部链路不代表真实接入或环境参数UI完成。五项1–3本地完成，4缺真实来源／平台注册，5仍缺内部出口、Beta环境／11万容量和3倍突发／安全恢复／业务UAT和生产批准。未push／PR／远端CI／外部部署／上线；目标active、bs-moss heartbeat复用。

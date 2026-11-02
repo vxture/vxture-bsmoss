@@ -8,7 +8,7 @@ import type { RefreshLease } from "./pg-refresh-jobs.ts";
 export class PgAggregateStore extends PgAggregateRepository<AggregationPlan, IntervalInput, ReturnType<typeof aggregateIntervals>> implements AggregateStore {
   protected validateMetric(key: AggregateKey) {
     const metric = FIRST_METRICS.get(key.metric);
-    if (!metric || metric.semantic === "state") throw Error("unsupported_aggregate_metric");
+    if (!metric || !["interval_delta", "ratio", "derived"].includes(metric.semantic)) throw Error("unsupported_aggregate_metric");
   }
   constructor(pool: Pool, scope: AggregateScope, lease?: RefreshLease, transaction?: PoolClient) {
     super(pool, scope, aggregateIntervals, lease, transaction);

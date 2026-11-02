@@ -5,19 +5,19 @@ export type Category = typeof CATEGORIES[number];
 export type Grain = typeof GRAINS[number];
 export interface MetricRef { code: string; version: number }
 export interface MetricDefinition extends MetricRef {
-  category: Category; unit: "second" | "count" | "byte" | "ratio" | "Wh" | "enum";
-  semantic: "interval_delta" | "derived" | "ratio" | "state";
+  category: Category; unit: "second" | "count" | "byte" | "ratio" | "Wh" | "enum" | "degC";
+  semantic: "interval_delta" | "derived" | "ratio" | "state" | "gauge";
   lifecycle: "planned" | "validated" | "active" | "retired";
   object: "network_object" | "cell" | "station_meter" | "device";
   attribution: "service_required" | "physical_object";
-  timeAggregation: "sum" | "derived_sum" | "ratio_parts" | "state_duration";
-  objectAggregation: "disjoint_sum" | "ratio_parts" | "state_counts";
+  timeAggregation: "sum" | "derived_sum" | "ratio_parts" | "state_duration" | "gauge_summary";
+  objectAggregation: "disjoint_sum" | "ratio_parts" | "state_counts" | "not_additive";
   grains: readonly Grain[]; displayUnits: readonly string[];
   dependencies: readonly MetricRef[];
 }
 const UNITS: Record<MetricDefinition["unit"], readonly string[]> = {
   second: ["second", "minute", "hour"], count: ["count"], byte: ["B", "MB", "GB", "GiB"],
-  ratio: ["%"], Wh: ["Wh", "kWh"], enum: ["state", "second", "device_count"],
+  ratio: ["%"], Wh: ["Wh", "kWh"], enum: ["state", "second", "device_count"], degC: ["degC"],
 };
 export function refKey(ref: MetricRef) { return ref.code + "@" + ref.version; }
 export function createRegistry(input: readonly MetricDefinition[]) {
@@ -34,9 +34,10 @@ export function createRegistry(input: readonly MetricDefinition[]) {
       : m.semantic === "derived" ? m.unit === "byte" && m.timeAggregation === "derived_sum" && m.objectAggregation === "disjoint_sum" && m.dependencies.length === 2
       : m.semantic === "ratio" ? m.unit === "ratio" && m.timeAggregation === "ratio_parts" && m.objectAggregation === "ratio_parts"
       : m.semantic === "state" ? m.unit === "enum" && m.timeAggregation === "state_duration" && m.objectAggregation === "state_counts"
+      : m.semantic === "gauge" ? m.unit === "degC" && m.object === "device" && m.attribution === "physical_object" && m.timeAggregation === "gauge_summary" && m.objectAggregation === "not_additive"
       : false;
     if (!valid) throw new Error("invalid_aggregation");
-    if ((m.semantic === "state" || m.semantic === "interval_delta") && m.dependencies.length) throw new Error("unexpected_dependency");
+    if (["state", "interval_delta", "gauge"].includes(m.semantic) && m.dependencies.length) throw new Error("unexpected_dependency");
     const key = refKey(m);
     if (map.has(key)) throw new Error("duplicate_definition");
     map.set(key, Object.freeze({ ...m, grains: Object.freeze([...m.grains]), displayUnits: Object.freeze([...m.displayUnits]), dependencies: Object.freeze(m.dependencies.map(d => Object.freeze({ ...d }))) }));

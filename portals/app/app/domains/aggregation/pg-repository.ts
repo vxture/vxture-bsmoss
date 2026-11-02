@@ -6,6 +6,7 @@ import { positiveRevision, type AggregateValue } from "./intervals.ts";
 import { bucketFor } from "./periods.ts";
 import type { AggregateKey, AggregateScope } from "./store.ts";
 import type { aggregateStatePeriod } from "./state-period.ts";
+import type { aggregateGaugePeriod } from "./gauge-period.ts";
 import { completeRefreshLease, lockRefreshLease, type RefreshLease } from "./pg-refresh-jobs.ts";
 import { validateRefreshJob } from "./refresh-jobs.ts";
 
@@ -15,8 +16,9 @@ const identity = (value: string) => {
 const scopeKey = (sourceId: string, subjectKey: string, metricKey: string) => JSON.stringify([sourceId, subjectKey, metricKey]);
 
 type StateValue = ReturnType<typeof aggregateStatePeriod>["value"];
+type GaugeValue = ReturnType<typeof aggregateGaugePeriod>["value"];
 export interface PersistedAggregateResult {
-  value: AggregateValue | StateValue | null;
+  value: AggregateValue | StateValue | GaugeValue | null;
   aggregationVersion: string; inputFingerprint: string; watermark: string; completeness: string;
 }
 export interface StoredAggregateResult<R> { seriesId: string; revision: string; publishedBy: string; createdAt: string; result: R }
@@ -90,12 +92,12 @@ export class PgAggregateRepository<P extends AggregateKey & { workspaceId: strin
       const revision = (BigInt(head.current_revision ?? "0") + 1n).toString(); positiveRevision(revision);
       const value = result.value;
       await client.query(`INSERT INTO bsmoss_analysis.aggregate_revision(workspace_id,series_id,revision,input_fingerprint,aggregation_version,watermark,
-        completeness,value_kind,integer_value,numerator,denominator,result_payload,input_manifest,published_by,state_value)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+        completeness,value_kind,integer_value,numerator,denominator,result_payload,input_manifest,published_by,state_value,gauge_value)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
       [this.workspaceId, head.id, revision, result.inputFingerprint, result.aggregationVersion, result.watermark, result.completeness,
         value?.kind ?? "none", value?.kind === "integer" ? value.value : null, value?.kind === "ratio" ? value.numerator : null,
         value?.kind === "ratio" ? value.denominator : null, JSON.stringify(result), JSON.stringify(manifest), publishedBy,
-        value?.kind === "state" ? JSON.stringify(value) : null]);
+        value?.kind === "state" ? JSON.stringify(value) : null, value?.kind === "gauge" ? JSON.stringify(value) : null]);
       await client.query("UPDATE bsmoss_analysis.aggregate_series SET current_revision=$3 WHERE workspace_id=$1 AND id=$2", [this.workspaceId, head.id, revision]);
       await client.query("INSERT INTO bsmoss_analysis.aggregate_outbox(workspace_id,id,series_id,revision,event_type) VALUES($1,$2,$3,$4,'aggregate.revised')", [this.workspaceId, randomUUID(), head.id, revision]);
       if (this.lease) await completeRefreshLease(client, this.lease, JSON.stringify(["bsmoss-aggregate", head.id, revision]));

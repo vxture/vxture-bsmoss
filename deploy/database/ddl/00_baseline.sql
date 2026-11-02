@@ -72,7 +72,7 @@ CREATE TABLE bsmoss_catalog.metric_version (
   code text NOT NULL,
   version numeric(30,0) NOT NULL CHECK (version > 0),
   category text NOT NULL CHECK (category IN ('business_service','operational_status','runtime_parameter')),
-  semantic text NOT NULL CHECK (semantic IN ('interval_delta','derived','ratio','state')),
+  semantic text NOT NULL CHECK (semantic IN ('interval_delta','derived','ratio','state','gauge')),
   unit text NOT NULL,
   definition jsonb NOT NULL CHECK (jsonb_typeof(definition) = 'object'),
   PRIMARY KEY (code,version)
@@ -405,11 +405,12 @@ CREATE TABLE bsmoss_analysis.aggregate_revision (
   aggregation_version text NOT NULL CHECK(length(aggregation_version) > 0),
   watermark timestamptz NOT NULL,
   completeness text NOT NULL CHECK(completeness IN ('complete','preliminary','partial','missing','not_applicable')),
-  value_kind text NOT NULL CHECK(value_kind IN ('none','integer','ratio','state')),
+  value_kind text NOT NULL CHECK(value_kind IN ('none','integer','ratio','state','gauge')),
   integer_value numeric(30,0),
   numerator numeric(30,0),
   denominator numeric(30,0),
   state_value jsonb,
+  gauge_value jsonb,
   result_payload jsonb NOT NULL CHECK(jsonb_typeof(result_payload)='object'),
   input_manifest jsonb NOT NULL CHECK(jsonb_typeof(input_manifest)='object'),
   published_by text NOT NULL CHECK(length(published_by) > 0),
@@ -417,10 +418,23 @@ CREATE TABLE bsmoss_analysis.aggregate_revision (
   PRIMARY KEY(workspace_id,series_id,revision),
   UNIQUE(workspace_id,series_id,input_fingerprint),
   FOREIGN KEY(workspace_id,series_id) REFERENCES bsmoss_analysis.aggregate_series(workspace_id,id),
-  CHECK((value_kind='none' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL) OR
-        (value_kind='integer' AND integer_value IS NOT NULL AND integer_value >= 0 AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL) OR
-        (value_kind='ratio' AND integer_value IS NULL AND numerator IS NOT NULL AND denominator IS NOT NULL AND numerator >= 0 AND denominator > 0 AND numerator <= denominator AND state_value IS NULL) OR
-        (value_kind='state' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NOT NULL AND jsonb_typeof(state_value)='object' AND state_value->>'kind' IS NOT DISTINCT FROM 'state')),
+  CHECK((value_kind='none' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL AND gauge_value IS NULL) OR
+        (value_kind='integer' AND integer_value IS NOT NULL AND integer_value >= 0 AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL AND gauge_value IS NULL) OR
+        (value_kind='ratio' AND integer_value IS NULL AND numerator IS NOT NULL AND denominator IS NOT NULL AND numerator >= 0 AND denominator > 0 AND numerator <= denominator AND state_value IS NULL AND gauge_value IS NULL) OR
+        (value_kind='state' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NOT NULL AND gauge_value IS NULL AND jsonb_typeof(state_value)='object' AND state_value->>'kind' IS NOT DISTINCT FROM 'state') OR
+        (value_kind='gauge' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL AND gauge_value IS NOT NULL AND jsonb_typeof(gauge_value)='object' AND gauge_value->>'kind' IS NOT DISTINCT FROM 'gauge')),
+  CHECK(value_kind <> 'gauge' OR (
+    gauge_value->>'mode' IN ('sample_mean','time_weighted') AND
+    jsonb_typeof(gauge_value->'scale')='number' AND (gauge_value->>'scale') ~ '^[0-9]$' AND
+    jsonb_typeof(gauge_value->'mean')='object' AND
+    jsonb_typeof(gauge_value->'mean'->'numerator')='string' AND (gauge_value->'mean'->>'numerator') ~ '^(0|-?[1-9][0-9]{0,49})$' AND
+    jsonb_typeof(gauge_value->'mean'->'denominator')='string' AND (gauge_value->'mean'->>'denominator') ~ '^[1-9][0-9]{0,29}$' AND
+    jsonb_typeof(gauge_value->'minimum')='object' AND jsonb_typeof(gauge_value->'maximum')='object' AND
+    jsonb_typeof(gauge_value->'minimum'->'unscaled')='string' AND (gauge_value->'minimum'->>'unscaled') ~ '^(0|-?[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(gauge_value->'maximum'->'unscaled')='string' AND (gauge_value->'maximum'->>'unscaled') ~ '^(0|-?[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(gauge_value->'minimum'->'observedAt')='string' AND length(gauge_value->'minimum'->>'observedAt')>0 AND
+    jsonb_typeof(gauge_value->'maximum'->'observedAt')='string' AND length(gauge_value->'maximum'->>'observedAt')>0
+  ) IS TRUE),
   CHECK(value_kind <> 'state' OR (
     jsonb_typeof(state_value->'durationMilliseconds')='object' AND
     jsonb_typeof(state_value->'durationMilliseconds'->'running')='string' AND (state_value->'durationMilliseconds'->>'running') ~ '^(0|[1-9][0-9]{0,29})$' AND
@@ -437,6 +451,7 @@ CREATE TABLE bsmoss_analysis.aggregate_revision (
     WHEN 'none' THEN 'null'::jsonb
     WHEN 'integer' THEN jsonb_build_object('kind','integer','value',integer_value::text)
     WHEN 'state' THEN state_value
+    WHEN 'gauge' THEN gauge_value
     ELSE jsonb_build_object('kind','ratio','numerator',numerator::text,'denominator',denominator::text) END),
   CHECK(result_payload->>'inputFingerprint' IS NOT DISTINCT FROM input_fingerprint),
   CHECK(result_payload->>'aggregationVersion' IS NOT DISTINCT FROM aggregation_version),

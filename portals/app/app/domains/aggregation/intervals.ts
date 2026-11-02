@@ -93,7 +93,7 @@ export function aggregateIntervals(
   plan.watermark = new Date(instant(plan.watermark)).toISOString();
   if (!Number.isSafeInteger(plan.metric.version) || plan.metric.version < 1) throw new Error("invalid_metric_version");
   const metric = registry.get(plan.metric);
-  if (!metric || metric.lifecycle === "retired" || !metric.grains.includes(plan.grain) || metric.semantic === "state") throw new Error("unsupported_aggregate_metric");
+  if (!metric || metric.lifecycle === "retired" || !metric.grains.includes(plan.grain) || !["interval_delta", "ratio", "derived"].includes(metric.semantic)) throw new Error("unsupported_aggregate_metric");
   if (!["direct", "dependencies"].includes(plan.inputMode) ||
       metric.semantic === "derived" && plan.inputMode !== "dependencies" ||
       plan.inputMode === "dependencies" && metric.dependencies.length !== 2) throw new Error("invalid_input_mode");

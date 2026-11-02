@@ -372,6 +372,7 @@ model AggregateRevision {
   numerator Decimal? @db.Decimal(30,0)
   denominator Decimal? @db.Decimal(30,0)
   state_value Json?
+  gauge_value Json?
   result_payload Json
   input_manifest Json
   published_by String

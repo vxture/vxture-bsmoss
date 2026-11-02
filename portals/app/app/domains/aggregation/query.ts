@@ -5,13 +5,14 @@ import { positiveRevision } from "./intervals.ts";
 import { bucketFor } from "./periods.ts";
 import type { IntervalAggregate } from "./store.ts";
 import type { aggregateStatePeriod } from "./state-period.ts";
+import type { aggregateGaugePeriod } from "./gauge-period.ts";
 
 export interface AggregateQuery extends AggregateTarget { revision?: string }
 export interface AggregateQueryResult {
   seriesId: string; revision: string; currentRevision: string; publishedBy: string; createdAt: string;
   selection: "current" | "revision"; freshness: "current" | "stale";
   currentInputFingerprint: string; reasons: readonly string[];
-  result: IntervalAggregate | ReturnType<typeof aggregateStatePeriod>;
+  result: IntervalAggregate | ReturnType<typeof aggregateStatePeriod> | ReturnType<typeof aggregateGaugePeriod>;
 }
 export interface AggregateQueryReader {
   readonly workspaceId: string;

@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { FIRST_METRICS } from "./first-metrics.ts";
 import { createRegistry, assertDisplay, type MetricDefinition } from "./registry.ts";
 const base = FIRST_METRICS.get({ code: "service.data.uplink_bytes", version: 1 })!;
-test("eleven planned definitions cover all three categories and fixed dependencies", () => {
-  assert.equal(FIRST_METRICS.list().length, 11);
+test("planned definitions cover all three categories and fixed dependencies", () => {
+  assert.equal(FIRST_METRICS.list().length, 12);
   assert.equal(new Set(FIRST_METRICS.list().map(m => m.category)).size, 3);
   assert.ok(FIRST_METRICS.list().every(m => m.lifecycle === "planned"));
   assert.equal(FIRST_METRICS.get({code:base.code,version:2}),undefined);

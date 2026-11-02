@@ -74,7 +74,7 @@ The map portal covers 1,080 synthetic sites and six featured station profiles in
 Shaanxi. It supports province/city/county and operator scopes, exact spatial
 selections, hour/day/week/month usage analysis, and station/regional HTML drafts.
 Its calendar and four-week reference data are fixed synthetic samples. The
-separate /product-preview/metrics portal retains the first 11 metric definitions
+separate /product-preview/metrics portal exposes the versioned metric definitions
 and browser display preferences. Preferences do not change formal report templates.
 No database is required for this sample. Run pnpm test:portal after pnpm build.
 
@@ -101,10 +101,10 @@ input manifests, expected-head concurrency checks and atomic outbox writes.
 The authorized internal facade reads reviewed active capabilities, full-period
 mappings, latest facts and latest quality in one PostgreSQL snapshot. It supports
 direct counters/ratios, reviewed directional/rate dependency inputs and session
-composition; no aggregate route or scheduler
-is enabled. Reviewed source completion/revocation evidence is bound to the exact
+composition. GET /api/aggregates reads authorized single-object revisions;
+no production scheduler is enabled. Reviewed source completion/revocation evidence is bound to the exact
 input snapshot; stale evidence cannot approve later revisions. Live confirmation
-ingestion and gauge persistence remain pending. Target and dependency
+ingestion remains pending. Target and dependency
 metric grants/capabilities are all required, with one shared native frequency.
 See docs/40-implementation/300-trusted-derived-inputs.md.
 Adjacent mappings of one stable subject are planned per native window; service
@@ -116,9 +116,15 @@ See docs/40-implementation/310-composite-completion.md.
 Device state now has a reviewed heartbeat policy, bounded carry-in, exact state
 durations, unknown gaps, object completion proofs and immutable PostgreSQL
 revisions. State refresh jobs use the same scoped atomic execution path; state
-and interval adapters reject each other's metric semantics. There is no public
-state query route or live device connector yet.
+and interval adapters reject each other's metric semantics. Authorized queries
+support state revisions; there is no live device connector yet.
 See docs/40-implementation/340-device-state-persistence.md.
+Device temperature adds a twelfth planned definition with exact fixed-point
+sample or explicitly reviewed duration-weighted summaries, extrema, quality,
+whole-object completion and immutable PostgreSQL revisions. Scoped refresh and
+GET /api/aggregates support these values; no live source or synthetic map
+temperature is claimed. Cross-object authoritative aggregation remains pending.
+See docs/40-implementation/390-gauge-persistence.md.
 
 ## Cumulative source normalization (I07, in progress)
 

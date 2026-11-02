@@ -26,6 +26,9 @@ import { inputRefreshSubscription } from "../../portals/app/app/domains/aggregat
 import { readRefreshSnapshot } from "../../portals/app/app/domains/aggregation/refresh-snapshot.ts";
 import { PgAggregateQueryReader } from "../../portals/app/app/domains/aggregation/pg-query.ts";
 import { createAuthorizedAggregateQuery } from "../../portals/app/app/domains/access/aggregate-query.ts";
+import { PgGaugeSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-gauge-snapshot.ts";
+import { PgGaugeAggregateStore } from "../../portals/app/app/domains/aggregation/pg-gauge-store.ts";
+import { aggregateGaugePeriod } from "../../portals/app/app/domains/aggregation/gauge-period.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -1677,6 +1680,126 @@ await test("empty-database PostgreSQL contract", async t => {
       const before=await counts();await queryApi.read(queryTarget);await queryApi.read(queryStateTarget);assert.deepEqual(await counts(),before);
       const observed={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(sql.includes('FROM bsmoss_analysis.aggregate_series s JOIN')&&result.rows[0])result.rows[0].result_payload.sourceId='foreign';return result;},release(discard){client.release(discard);}};}};
       await assert.rejects(new PgAggregateQueryReader(observed,queryScope).read(queryTarget),/aggregate_publication_corrupt/);
+    });
+    const gaugeMetric={code:'runtime.environment.temperature_c',version:1},gAt=n=>new Date(Date.parse('2026-05-01T16:00:00Z')+n*60000).toISOString();
+    const gaugePolicy={gaugeAggregation:{version:1,authorityRef:'fixture://gauge-policy',mode:'sample_mean',scale:3}};
+    await db.query(`INSERT INTO bsmoss_integration.source VALUES ('w','gauge-src','GaugeSource','file');
+      INSERT INTO bsmoss_catalog.metric_version VALUES ('runtime.environment.temperature_c',1,'runtime_parameter','gauge','degC','{}');
+      INSERT INTO bsmoss_resource.device VALUES ('w','gauge-main','st','sensor','tower'),('w','gauge-big','st','sensor','tower'),('w','gauge-moved','st','sensor','tower');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+      VALUES ('w','gauge-main-map','gauge-src','device','gauge-main','st','gauge-main',1,'2026-01-01Z','2027-01-01Z'),
+        ('w','gauge-big-map','gauge-src','device','gauge-big','st','gauge-big',1,'2026-01-01Z','2027-01-01Z'),
+        ('w','gauge-moved-map','gauge-src','device','gauge-moved','st','gauge-moved',1,'2026-01-01Z','2027-01-01Z')`);
+    await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','gauge-cap','gauge-src',$1,1,'15m','active','fixture://gauge-validated',$2,'2026-01-01Z','2027-01-01Z')`,[gaugeMetric.code,gaugePolicy]);
+    const gaugeScope={...scope,sourceIds:['gauge-src'],metricKeys:[gaugeMetric.code+'@1'],serviceIds:[],deviceIds:['gauge-main','gauge-big','gauge-moved'],allowSiteParameters:false};
+    const gaugePorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:gaugeScope};}};
+    const gaugeReader=new PgGaugeSnapshotReader(adapterPool,gaugeScope),gaugeWriter=new PgMeasurementStore(adapterPool,gaugeScope,FIRST_METRICS);
+    const gaugeTarget=(sensor='main',at=gAt(0))=>({sourceId:'gauge-src',mappingId:'gauge-'+sensor+'-map',metric:gaugeMetric,grain:'hour',at});
+    const gaugeDraft=(sensor,n,value,patch={})=>draft('gauge:'+sensor+':'+n,{sourceId:'gauge-src',mappingId:'gauge-'+sensor+'-map',metric:gaugeMetric,componentKey:'temperature',
+      periodStart:gAt(n*15),periodEnd:gAt((n+1)*15),value:{kind:'fixed_point',unscaled:value,scale:3},...patch});
+    const gaugeView=new PgAggregateQueryReader(adapterPool,gaugeScope);
+    async function gaugeAggregate(target=gaugeTarget()){
+      const snap=await gaugeReader.load(target),store=new PgGaugeAggregateStore(adapterPool,{workspaceId:'w',series:[{sourceId:'gauge-src',subjectKey:snap.plan.subjectKey,metricKey:gaugeMetric.code+'@1'}]});
+      return {snap,store};
+    }
+    async function publishGauge(target=gaugeTarget()) {const {snap,store}=await gaugeAggregate(target),head=await store.current(snap.plan);return store.publish(snap.plan,snap.inputs,head?.revision??null,'gauge-worker');}
+    async function gaugeProof(revision,status='confirmed'){
+      const {snap}=await gaugeAggregate(),basePlan={...snap.plan,sourceComplete:false,watermark:gAt(0)};delete basePlan.completionEvidence;
+      const base=aggregateGaugePeriod(basePlan,snap.inputs);
+      await db.query(`INSERT INTO bsmoss_integration.source_completion_set(workspace_id,id,source_id,station_id,device_id,metric_code,metric_version,grain,period_start,period_end,revision,status,input_fingerprint,mapping_manifest_sha256,watermark,evidence_ref,evidence_sha256,recorded_by)
+        VALUES ('w',$1,'gauge-src','st','gauge-main',$2,1,'hour',$3,$4,$5,$6,$7,$8,$9,'fixture://gauge-proof',$10,'fixture-reviewer')`,
+        ['gauge-proof:'+revision,gaugeMetric.code,gAt(0),gAt(60),revision,status,base.inputFingerprint,mappingSetFingerprint(base.mappingWindows),status==='confirmed'?gAt(60):gAt(0),'e'.repeat(64)]);
+    }
+    let gaugeFirst;
+    await t.test('gauge fixed precision survives raw persistence, replay, publication and read-only query',async()=>{
+      const values=['-9007199254740993','9007199254740995','100','-100'];
+      for(let i=0;i<4;i++){const result=await gaugeWriter.append(gaugeDraft('main',i,values[i]));if(!i)gaugeFirst=result;}
+      assert.equal((await gaugeWriter.append(gaugeDraft('main',0,values[0]))).status,'duplicate');
+      const raw=(await db.query('SELECT unscaled,scale FROM bsmoss_metering.measurement WHERE id=$1',[gaugeFirst.id])).rows[0];assert.equal(raw.unscaled,values[0]);assert.equal(raw.scale,'3');
+      const published=await publishGauge();assert.equal(published.status,'inserted');assert.equal((await publishGauge()).status,'duplicate');
+      const read=await gaugeView.read(gaugeTarget());assert.equal(read.freshness,'current');assert.equal(read.result.completeness,'preliminary');
+      assert.deepEqual(read.result.value.mean,{numerator:'2',denominator:'4'});assert.equal(read.result.value.minimum.observedAt,gAt(0));assert.equal(read.result.coveredMilliseconds,null);
+      const typed=(await db.query('SELECT value_kind,gauge_value,integer_value,state_value FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[published.seriesId])).rows[0];
+      assert.equal(typed.value_kind,'gauge');assert.deepEqual(typed.gauge_value,read.result.value);assert.equal(typed.integer_value,null);assert.equal(typed.state_value,null);
+    });
+    await t.test('gauge confirmed completeness binds exact quality and policy and revocation remains visible',async()=>{
+      await gaugeProof('1');assert.equal((await gaugeView.read(gaugeTarget())).freshness,'stale');await publishGauge();
+      const full=await gaugeView.read(gaugeTarget());assert.equal(full.result.completeness,'complete');const revision=full.revision;
+      await gaugeProof('2','revoked');const stale=await gaugeView.read(gaugeTarget());assert.equal(stale.result.completeness,'complete');assert.equal(stale.freshness,'stale');
+      await publishGauge();assert.equal((await gaugeView.read(gaugeTarget())).result.completeness,'preliminary');
+      assert.equal((await gaugeView.read({...gaugeTarget(),revision})).result.completeness,'complete');
+      await gaugeProof('3');await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[{gaugeAggregation:{...gaugePolicy.gaugeAggregation,authorityRef:'fixture://revalidated-gauge'}},'gauge-cap']);
+      let snap=await gaugeReader.load(gaugeTarget());assert.ok(aggregateGaugePeriod(snap.plan,snap.inputs).reasons.includes('source_confirmation_stale'));
+      await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[gaugePolicy,'gauge-cap']);
+      await db.query(`INSERT INTO bsmoss_metering.quality_decision VALUES ('w','gauge-rejected',$1,2,'rejected','fixture','fixture','reviewer',clock_timestamp())`,[gaugeFirst.id]);
+      snap=await gaugeReader.load(gaugeTarget());const partial=aggregateGaugePeriod(snap.plan,snap.inputs);assert.equal(partial.completeness,'partial');assert.equal(partial.validWindows,3);assert.ok(partial.reasons.includes('source_confirmation_stale'));
+      await publishGauge();assert.equal((await gaugeView.read(gaugeTarget())).result.value.minimum.unscaled,'-100');
+    });
+    await t.test('reviewed time weighting stores a numerator beyond numeric30 without float truncation',async()=>{
+      const huge='9'.repeat(30);for(let i=0;i<4;i++)await gaugeWriter.append(gaugeDraft('big',i,huge));
+      await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[{gaugeAggregation:{...gaugePolicy.gaugeAggregation,mode:'time_weighted',durationRef:'fixture://explicit-valid-duration'}},'gauge-cap']);
+      await publishGauge(gaugeTarget('big'));const read=await gaugeView.read(gaugeTarget('big'));
+      assert.deepEqual(read.result.value.mean,{numerator:String(BigInt(huge)*3600000n),denominator:'3600000'});assert.equal(read.result.coveredMilliseconds,'3600000');
+      await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[gaugePolicy,'gauge-cap']);
+      assert.equal((await gaugeView.read(gaugeTarget('big'))).freshness,'stale');
+    });
+    await t.test('gauge device and calendar corrections retract old samples before filtering and dispatch both windows',async()=>{
+      await gaugeWriter.append(gaugeDraft('main',1,'1234',{revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64),mappingId:'gauge-moved-map',periodStart:gAt(1440),periodEnd:gAt(1455)}));
+      const old=await gaugeReader.load(gaugeTarget());assert.equal(old.inputs.length,3);assert.ok(!old.inputs.some(r=>r.eventId==='gauge:main:1'));
+      const next=await gaugeReader.load(gaugeTarget('moved',gAt(1440)));assert.equal(next.inputs.length,1);assert.equal(next.inputs[0].unscaled,'1234');
+      const change=(await db.query(`SELECT c.id FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id) WHERE m.event_id='gauge:main:1' AND m.event_revision=2 AND c.change_kind='measurement'`)).rows[0];
+      const result=await dispatchInputChange(adapterPool,gaugePorts,change.id,{outputs:[gaugeMetric],grains:['day']});assert.equal(result.manifest.targets.length,2);await finishChangeJobs(result.manifest,gaugePorts);
+      assert.equal((await gaugeView.read({...gaugeTarget(),grain:'day'})).result.validWindows,2);assert.equal((await gaugeView.read({...gaugeTarget('moved',gAt(1440)),grain:'day'})).result.completeness,'partial');
+      const empty=await gaugeReader.load(gaugeTarget('moved'));assert.equal(aggregateGaugePeriod(empty.plan,empty.inputs).value,null);
+      const denied={...gaugePorts,async readLocalGrant(){return {...await gaugePorts.readLocalGrant(),scope:{...gaugeScope,deviceIds:['gauge-moved']}};}};
+      await assert.rejects(dispatchInputChange(adapterPool,denied,change.id,{outputs:[gaugeMetric],grains:['day']}),/object_scope_denied/);
+    });
+    await t.test('gauge scope and reviewed policies reject wrong attribution, scale, capability and coarse periods',async()=>{
+      for(const patch of [{deviceIds:[]},{stationIds:[]},{sourceIds:[]},{metricKeys:[]},{workspaceId:'other'}])await assert.rejects(new PgGaugeSnapshotReader(adapterPool,{...gaugeScope,...patch}).load(gaugeTarget()),/scope_denied|mapping_unavailable/);
+      for(const policy of [{...gaugePolicy.gaugeAggregation,mode:'time_weighted'},null]){
+        await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[{gaugeAggregation:policy},'gauge-cap']);
+        await assert.rejects(gaugeReader.load(gaugeTarget()),/gauge_duration_required|gauge_policy_required/);
+      }
+      await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[gaugePolicy,'gauge-cap']);
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='planned' WHERE id='gauge-cap'");await assert.rejects(gaugeReader.load(gaugeTarget()),/capability_unavailable/);
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id='gauge-cap'");
+      await gaugeWriter.append(gaugeDraft('moved',8,'1',{value:{kind:'fixed_point',unscaled:'1',scale:2}}));
+      await assert.rejects(gaugeReader.load(gaugeTarget('moved',gAt(120))),/gauge_scale_mismatch/);
+      await gaugeWriter.append(gaugeDraft('moved',12,'1',{periodEnd:gAt(240)}));await assert.rejects(gaugeReader.load(gaugeTarget('moved',gAt(180))),/unexpected_or_coarse_window/);
+      await db.query("UPDATE bsmoss_integration.source_mapping SET service_id='svc' WHERE id='gauge-moved-map'");
+      try{await assert.rejects(gaugeReader.load(gaugeTarget('moved')),/mapping_object_mismatch/);await assert.rejects(gaugeWriter.append(gaugeDraft('moved',16,'1')),/object_scope_denied|mapping_object_mismatch/);}
+      finally{await db.query("UPDATE bsmoss_integration.source_mapping SET service_id=NULL WHERE id='gauge-moved-map'");}
+    });
+    await t.test('gauge refresh rolls back value outbox and receipt together and preserves idempotent retry',async()=>{
+      const target=gaugeTarget('big'),input={targets:[target],triggerRef:'fixture:gauge:atomic'};
+      const {snap,store}=await gaugeAggregate(target),before=await store.current(snap.plan);
+      await enqueueAuthorizedRefresh(adapterPool,gaugePorts,input);const lease=await claimAuthorizedRefresh(adapterPool,gaugePorts);
+      const injected={async connect(){const c=await adapterPool.connect();return {query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.refresh_attempt'))throw Error('fixture_gauge_receipt_failure');return c.query(sql,args);},release(discard){c.release(discard);}};}};
+      await assert.rejects(executeRefreshLease(injected,gaugePorts,lease),/fixture_gauge_receipt_failure/);
+      assert.equal((await store.current(snap.plan)).revision,before.revision);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const result=await executeRefreshLease(adapterPool,gaugePorts,lease);assert.equal(result.status,'inserted');
+      assert.equal((await db.query('SELECT count(*)::int n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[result.seriesId])).rows[0].n,2);
+      await enqueueAuthorizedRefresh(adapterPool,gaugePorts,{...input,triggerRef:'fixture:gauge:atomic:replay'});assert.equal((await runRefreshStep(adapterPool,gaugePorts)).result.status,'duplicate');
+    });
+    await t.test('gauge refresh cannot overwrite a new head using an older repeatable-read input snapshot',async()=>{
+      await gaugeWriter.append(gaugeDraft('big',0,'1',{revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64)}));
+      await enqueueAuthorizedRefresh(adapterPool,gaugePorts,{targets:[gaugeTarget('big')],triggerRef:'fixture:gauge:race'});const lease=await claimAuthorizedRefresh(adapterPool,gaugePorts);let changed=false;
+      const intercepted={async connect(){const c=await adapterPool.connect();return {async query(sql,args){const result=await c.query(sql,args);if(!changed&&sql.includes('SELECT m.*,r.payload_sha256')){
+        changed=true;await gaugeWriter.append(gaugeDraft('big',0,'2',{revision:'3',previousRevision:'2',payloadSha256:'d'.repeat(64)}));await publishGauge(gaugeTarget('big'));
+      }return result;},release(discard){c.release(discard);}};}};
+      await assert.rejects(executeRefreshLease(intercepted,gaugePorts,lease),e=>e.code==='40001'||/aggregate_revision_conflict/.test(e.message));assert.equal(changed,true);
+      const read=await gaugeView.read(gaugeTarget('big'));assert.equal(read.freshness,'current');assert.equal(read.result.value.minimum.unscaled,'2');
+      assert.equal((await executeRefreshLease(adapterPool,gaugePorts,lease)).status,'duplicate');
+    });
+    await t.test('gauge SQL rejects malformed precision, zero denominator, mixed variants and immutable rewrites',async()=>{
+      const row=(await db.query("SELECT * FROM bsmoss_analysis.aggregate_revision WHERE value_kind='gauge' LIMIT 1")).rows[0];
+      for(const patch of [{gauge_value:{kind:'gauge'}},{gauge_value:{...row.gauge_value,scale:10}},{gauge_value:{...row.gauge_value,mean:{numerator:'1',denominator:'0'}}},
+        {gauge_value:{...row.gauge_value,minimum:{unscaled:'1e3',observedAt:gAt(0)}}},{state_value:{}},{integer_value:'1'}]){
+        const candidate={...row,revision:'99',input_fingerprint:'f'.repeat(64),...patch};candidate.result_payload={...row.result_payload,inputFingerprint:candidate.input_fingerprint,value:candidate.gauge_value};
+        const keys=Object.keys(candidate);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.aggregate_revision('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(candidate)),e=>e.code==='23514');
+      }
+      await assert.rejects(adapterPool.query("UPDATE bsmoss_analysis.aggregate_revision SET gauge_value='{}' WHERE series_id=$1",[row.series_id]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query('DELETE FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[row.series_id]),e=>e.code==='42501');
     });
   } finally {
     if (adapterPool) await adapterPool.end();
