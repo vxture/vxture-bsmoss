@@ -794,6 +794,8 @@ model ReportGenerationJob {
   result_current_revision Decimal? @db.Decimal(30,0)
   result_manifest_sha256 String?
   result_outcome String
+  recovery_of String?
+  scan_job_id String?
   @@id([workspace_id,id])
   @@map("report_generation_job")
   @@schema("bsmoss_analysis")
@@ -852,5 +854,24 @@ model ReportExportRecovery {
   recorded_at DateTime @db.Timestamptz()
   @@id([workspace_id,command_id])
   @@map("report_export_recovery")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationRecovery {
+  workspace_id String
+  command_id String
+  original_job_id String
+  original_attempt Decimal @db.Decimal(30,0)
+  original_outcome String
+  replacement_job_id String
+  reason_ref String
+  requested_by String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,command_id])
+  @@map("report_generation_recovery")
   @@schema("bsmoss_analysis")
 }

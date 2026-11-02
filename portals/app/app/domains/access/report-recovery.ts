@@ -1,11 +1,11 @@
 import { resolveMeasurementAccess, type AccessPorts, type AccessPlane } from "./resolve.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
 import { assertReportScope } from "../reports/rules.ts";
-import { normalizeRecoverExportJob, type RecoverExportJob, type ExportRecoveryStore } from "../supervision/report-jobs.ts";
+import { normalizeRecoverReportJob, type RecoverReportJob, type ReportRecoveryStore } from "../supervision/report-jobs.ts";
 
-export function createAuthorizedReportRecovery(ports: AccessPorts, stores: { create(scope: MeasurementScope): ExportRecoveryStore }, plane: AccessPlane) {
-  return Object.freeze({ async recover(raw: RecoverExportJob) {
-    const command = normalizeRecoverExportJob(raw), initial = await resolveMeasurementAccess(ports, "report_jobs_recover", plane);
+export function createAuthorizedReportRecovery(ports: AccessPorts, stores: { create(scope: MeasurementScope): ReportRecoveryStore }, plane: AccessPlane) {
+  return Object.freeze({ async recover(raw: RecoverReportJob) {
+    const command = normalizeRecoverReportJob(raw), initial = await resolveMeasurementAccess(ports, "report_jobs_recover", plane);
     const now = ports.now ?? Date.now, store = stores.create(initial.scope);
     if (store.workspaceId !== initial.context.workspaceId) throw Error("workspace_mismatch");
     return store.recover(command, initial.context.sub, async required => {

@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 生成任务受审恢复（2026-11-03，最新入口）
+
+接续cff5450，本goal turn有实质progress，保持active，不重建goal／heartbeat、不spawn。设计220／实施560。一般ReportRecoveryStore／RecoverReportJob替代仅export接口，HTTP显式generation|export；独立reports.jobs.recover无自动赋role。生成首次恢复锁原dead／连续终态，原scope先SQL过滤，当前登记共享锁必须active／同revision／原模板有效，requested_by保持原登记subject、审计另记reviewer，新pending与不可变审计和末次真实授权同RR。
+
+空库58表report_generation_recovery；generation新增recovery_of／scan_job_id，普通扫描窗口唯一索引仅普通任务，反向延迟FK防孤立恢复；同租户parent／root、精确终态FK和invoker固定search_path触发器绑定旧新/root/原登记scope及窗口，捕获DB SHA／actor／时间、禁止改删清空。新generation-recovery模块完整JOIN和双SHA／真实列验证；worker／monitor共享validateGenerationProvenance，原scan manifest精确root／period／dueAt不可改写。恢复可成链，历史命令按原actor/reason/attempt/scope验权；今天pause／换subject不改原receipt，执行仍独立拒绝，不自动发布。
+
+491单测／302实际PG（新增10场景）／双层type／Prisma／生产build／20HTTP通过。真实PG含5次失败及新任务执行、pause换版、CAS/template漂移、独立权限／owner／全scope／固定worker、物理flag、写后撤权与SQL回滚、链式root／普通扫描唯一性／孤立和跨租户FK、登记RR fence／同异command并发、SHA/scope/root/terminal损坏，SQL独立防伪及append-only。首轮SQL JSONB包含加括号修优先级；TRUNCATE夹具需CASCADE才到达append-only触发器，runtime仍42501，无产品放宽。
+
+63334合成实际React QA：首次提交生效回503，完全相同generation命令重放仅1replacement；旧5次失败／固定登记subject／父子双向，409清旧详情要求刷新；1440与390×844实际client1425／375无横向溢出，无warn/error。证据artifacts/generation-recovery-qa，viewport reset、tab11 close。日志tmp/generation-recovery-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,browser}.log；113篇／58表／最终SHA／服务与清理见report-generation-recovery检查点。
+
+下一包历史报告变化传播、I11正式配置、I08分布与规模；不能拿aud=vxture channel token冒充测量C1，不虚构机器provider。真实来源协议样例／口径签认、C1/C2/C3平台注册、app.env／stack.env、Linux／域名／TLS／registry／DB和远端CI／Beta／prod、11万3倍突发／安全恢复／UAT／生产批准仍缺。无push／PR／远端CI／真实接入／外部部署或上线；五项1–3本地完成、4–5active，复用bs-moss，陕西／费用预留／退服P2不变。
+
 ## 导出任务受审恢复（2026-11-03，最新入口）
 
 接续48d63b2，本goal turn实质progress，不标blocked／complete，不重建goal／heartbeat、不spawn。设计219／实施550。新增ExportRecoveryStore独立门面／reports.jobs.recover，真实RP及POST /api/report-jobs/{id}/recover，配置origin／实际流16KiB／严格kind=export和CAS／路径。只入权限种子，不自动赋role；owner／view／export／execute不隐含。

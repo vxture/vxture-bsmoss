@@ -2,7 +2,7 @@ import { boundedText } from "../../lib/http.ts";
 import { errorResponse } from "../../platform/envelope.ts";
 import { privateReportResponse } from "../reports/http.ts";
 import { normalizeJobList, type JobListQuery, normalizeRecoverJob, type RecoverJob } from "./jobs.ts";
-import { normalizeRecoverExportJob, type RecoverExportJob } from "./report-jobs.ts";
+import { normalizeRecoverReportJob, type RecoverReportJob } from "./report-jobs.ts";
 
 export const privateJobResponse = privateReportResponse;
 export function jobHttpError(error: unknown): Response {
@@ -11,7 +11,7 @@ export function jobHttpError(error: unknown): Response {
   if (["identity_required", "access_expired"].includes(message)) response = errorResponse(401, "AUTH_REQUIRED", "Authentication required");
   else if (["permission_denied", "feature_denied"].includes(message)) response = errorResponse(403, "POLICY_DENIED", "Access denied");
   else if (message.endsWith("scope_denied") || message === "job_unavailable") response = errorResponse(404, "JOB_UNAVAILABLE", "Job unavailable");
-  else if (["40001", "40P01", "23505"].includes(String(sql)) || ["job_recovery_conflict", "conflicting_job_recovery", "report_not_active", "report_stale", "report_incomplete", "export_renderer_unavailable"].includes(message)) response = errorResponse(409, "JOB_CONTEXT_CHANGED", "Refresh and review the current job");
+  else if (["40001", "40P01", "23505"].includes(String(sql)) || ["job_recovery_conflict", "conflicting_job_recovery", "report_not_active", "report_stale", "report_incomplete", "export_renderer_unavailable", "report_schedule_unavailable", "report_schedule_template_changed"].includes(message)) response = errorResponse(409, "JOB_CONTEXT_CHANGED", "Refresh and review the current job");
   else response = errorResponse(503, "JOB_UNAVAILABLE", "Job operation temporarily unavailable", { retryable: true });
   return privateJobResponse(response);
 }
@@ -25,9 +25,9 @@ export async function recoveryCommand(request: Request, session: { enabled: bool
   execute: (sid: string, command: RecoverJob) => Promise<unknown>): Promise<Response> {
   return reviewedCommand(request, session, jobId, normalizeRecoverJob, execute);
 }
-export async function exportRecoveryCommand(request: Request, session: { enabled: boolean; sid?: string; appOrigin: string }, jobId: string,
-  execute: (sid: string, command: RecoverExportJob) => Promise<unknown>): Promise<Response> {
-  return reviewedCommand(request, session, jobId, normalizeRecoverExportJob, execute);
+export async function reportRecoveryCommand(request: Request, session: { enabled: boolean; sid?: string; appOrigin: string }, jobId: string,
+  execute: (sid: string, command: RecoverReportJob) => Promise<unknown>): Promise<Response> {
+  return reviewedCommand(request, session, jobId, normalizeRecoverReportJob, execute);
 }
 async function reviewedCommand<T extends { jobId: string }>(request: Request, session: { enabled: boolean; sid?: string; appOrigin: string }, jobId: string,
   normalize: (raw: T) => T, execute: (sid: string, command: T) => Promise<unknown>): Promise<Response> {

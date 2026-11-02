@@ -1153,8 +1153,12 @@ CREATE TABLE bsmoss_analysis.report_generation_job (
   result_current_revision numeric(30,0),
   result_manifest_sha256 text,
   result_outcome text NOT NULL DEFAULT 'succeeded' CHECK(result_outcome='succeeded'),
+  recovery_of text,
+  scan_job_id text,
   PRIMARY KEY(workspace_id,id),
-  UNIQUE(workspace_id,schedule_id,schedule_revision,scan_hour,period_start),
+  CHECK((recovery_of IS NULL AND scan_job_id IS NULL) OR (recovery_of IS NOT NULL AND scan_job_id IS NOT NULL AND recovery_of<>id AND scan_job_id<>id)),
+  FOREIGN KEY(workspace_id,recovery_of) REFERENCES bsmoss_analysis.report_generation_job(workspace_id,id),
+  FOREIGN KEY(workspace_id,scan_job_id) REFERENCES bsmoss_analysis.report_generation_job(workspace_id,id),
   CHECK(period_start=date_trunc(grain,period_start AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' AND
     period_end=((period_start AT TIME ZONE 'Asia/Shanghai')+CASE grain WHEN 'day' THEN interval '1 day' WHEN 'week' THEN interval '1 week' ELSE interval '1 month' END) AT TIME ZONE 'Asia/Shanghai'),
   CHECK((status='succeeded' AND attempt>0 AND result_report_id IS NOT NULL AND result_report_revision IS NOT NULL AND result_current_revision IS NOT NULL AND result_manifest_sha256 IS NOT NULL) OR
@@ -1164,6 +1168,7 @@ CREATE TABLE bsmoss_analysis.report_generation_job (
   FOREIGN KEY(workspace_id,schedule_id,schedule_revision,scan_hour) REFERENCES bsmoss_analysis.report_schedule_scan(workspace_id,schedule_id,schedule_revision,scan_hour) DEFERRABLE INITIALLY DEFERRED
 );
 CREATE INDEX report_generation_due ON bsmoss_analysis.report_generation_job(workspace_id,schedule_id,schedule_revision,available_at,id) WHERE status='pending';
+CREATE UNIQUE INDEX report_generation_scan_window ON bsmoss_analysis.report_generation_job(workspace_id,schedule_id,schedule_revision,scan_hour,period_start) WHERE recovery_of IS NULL;
 CREATE TABLE bsmoss_analysis.report_generation_attempt (
   workspace_id text NOT NULL,
   job_id text NOT NULL,
@@ -1311,3 +1316,64 @@ END $$;
 REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_export_recovery() FROM PUBLIC;
 CREATE TRIGGER report_export_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_export_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_export_recovery();
 CREATE TRIGGER report_export_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_export_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_export_recovery();
+
+ALTER TABLE bsmoss_analysis.report_generation_attempt ADD UNIQUE(workspace_id,job_id,attempt,outcome);
+CREATE TABLE bsmoss_analysis.report_generation_recovery (
+  workspace_id text NOT NULL,
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 2048),
+  original_job_id text NOT NULL,
+  original_attempt numeric(30,0) NOT NULL CHECK(original_attempt BETWEEN 1 AND 5),
+  original_outcome text NOT NULL DEFAULT 'dead' CHECK(original_outcome='dead'),
+  replacement_job_id text NOT NULL,
+  reason_ref text NOT NULL CHECK(length(trim(reason_ref)) BETWEEN 1 AND 2048),
+  requested_by text NOT NULL CHECK(length(trim(requested_by)) BETWEEN 1 AND 2048),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL,
+  database_actor text NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,command_id),
+  UNIQUE(workspace_id,original_job_id),
+  UNIQUE(workspace_id,replacement_job_id),
+  UNIQUE(workspace_id,original_job_id,replacement_job_id),
+  CHECK(original_job_id<>replacement_job_id),
+  FOREIGN KEY(workspace_id,original_job_id,original_attempt,original_outcome) REFERENCES bsmoss_analysis.report_generation_attempt(workspace_id,job_id,attempt,outcome),
+  FOREIGN KEY(workspace_id,replacement_job_id) REFERENCES bsmoss_analysis.report_generation_job(workspace_id,id)
+);
+ALTER TABLE bsmoss_analysis.report_generation_job ADD FOREIGN KEY(workspace_id,recovery_of,id)
+  REFERENCES bsmoss_analysis.report_generation_recovery(workspace_id,original_job_id,replacement_job_id) DEFERRABLE INITIALLY DEFERRED;
+CREATE FUNCTION bsmoss_analysis.capture_report_generation_recovery() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+DECLARE p bsmoss_analysis.report_generation_job%ROWTYPE; n bsmoss_analysis.report_generation_job%ROWTYPE; root bsmoss_analysis.report_generation_job%ROWTYPE;
+  a bsmoss_analysis.report_generation_attempt%ROWTYPE; m jsonb; b jsonb; s jsonb;
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME<>'report_generation_recovery' THEN RAISE EXCEPTION 'invalid_report_recovery_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'report_generation_recovery_append_only'; END IF;
+  SELECT * INTO p FROM bsmoss_analysis.report_generation_job WHERE workspace_id=NEW.workspace_id AND id=NEW.original_job_id FOR SHARE;
+  SELECT * INTO n FROM bsmoss_analysis.report_generation_job WHERE workspace_id=NEW.workspace_id AND id=NEW.replacement_job_id FOR SHARE;
+  SELECT * INTO root FROM bsmoss_analysis.report_generation_job WHERE workspace_id=NEW.workspace_id AND id=n.scan_job_id FOR SHARE;
+  SELECT * INTO a FROM bsmoss_analysis.report_generation_attempt WHERE workspace_id=NEW.workspace_id AND job_id=NEW.original_job_id AND attempt=NEW.original_attempt;
+  SELECT config->'scope' INTO s FROM bsmoss_integration.report_schedule_revision WHERE workspace_id=p.workspace_id AND id=p.schedule_id AND revision=p.schedule_revision;
+  b:=jsonb_build_object('scheduleId',p.schedule_id,'scheduleRevision',p.schedule_revision::text,'scheduleSha256',p.schedule_sha256,
+    'scanHour',to_char(p.scan_hour AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'scanJobId',n.scan_job_id,'grain',p.grain,
+    'period',jsonb_build_object('start',to_char(p.period_start AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'end',to_char(p.period_end AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),
+    'dueAt',to_char(p.due_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'requestedBy',p.requested_by);
+  m:=NEW.manifest;
+  IF p.id IS NULL OR n.id IS NULL OR root.id IS NULL OR a.job_id IS NULL OR p.status<>'dead' OR p.attempt<>NEW.original_attempt OR a.outcome<>'dead' OR n.status<>'pending' OR n.attempt<>0 OR
+    n.recovery_of IS DISTINCT FROM p.id OR n.scan_job_id IS DISTINCT FROM coalesce(p.scan_job_id,p.id) OR root.recovery_of IS NOT NULL OR root.scan_job_id IS NOT NULL OR
+    (p.schedule_id,p.schedule_revision,p.schedule_sha256,p.scan_hour,p.grain,p.period_start,p.period_end,p.due_at,p.requested_by) IS DISTINCT FROM
+      (n.schedule_id,n.schedule_revision,n.schedule_sha256,n.scan_hour,n.grain,n.period_start,n.period_end,n.due_at,n.requested_by) OR
+    (p.schedule_id,p.schedule_revision,p.schedule_sha256,p.scan_hour,p.grain,p.period_start,p.period_end,p.due_at,p.requested_by) IS DISTINCT FROM
+      (root.schedule_id,root.schedule_revision,root.schedule_sha256,root.scan_hour,root.grain,root.period_start,root.period_end,root.due_at,root.requested_by) OR
+    ((m->'requiredScope') @> s AND s @> (m->'requiredScope')) IS DISTINCT FROM TRUE OR
+    m IS DISTINCT FROM jsonb_build_object('version','report-generation-recovery-v1','workspaceId',NEW.workspace_id,'commandId',NEW.command_id,'reasonRef',NEW.reason_ref,'requestedBy',NEW.requested_by,
+      'requiredScope',m->'requiredScope','binding',b,'replacement',jsonb_build_object('id',n.id),
+      'original',jsonb_build_object('id',p.id,'attempt',p.attempt,'terminal',jsonb_build_object('attempt',a.attempt,'outcome',a.outcome,'failureCode',a.failure_code,
+        'recordedAt',to_char(a.recorded_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'recordedBy',a.recorded_by,'result',NULL,'generationStatus',NULL,'artifactSha256',NULL))) THEN RAISE EXCEPTION 'invalid_report_recovery_binding';
+  END IF;
+  NEW.database_sha256:=encode(sha256(convert_to(m::text,'UTF8')),'hex'); NEW.database_actor:=session_user; NEW.recorded_at:=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_generation_recovery() FROM PUBLIC;
+CREATE TRIGGER report_generation_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_generation_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_generation_recovery();
+CREATE TRIGGER report_generation_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_generation_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_generation_recovery();

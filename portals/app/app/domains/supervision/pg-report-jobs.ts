@@ -4,7 +4,8 @@ import type { MeasurementScope } from "../measurements/store.ts";
 import type { RevalidateReport, StoredReport } from "../reports/store.ts";
 import { reportScope, assertReportScope, unionReportScopes } from "../reports/rules.ts";
 import { readStoredReportInTransaction } from "../reports/pg-store.ts";
-import { readReportScheduleRevision, generationJobOf, validateScan } from "../reports/pg-schedule.ts";
+import { readReportScheduleRevision, validateGenerationProvenance, loadSchedule, reviewedTemplate } from "../reports/pg-schedule.ts";
+import { generationRecoverySelect, generationRecoveryOf, readGenerationRecoveries, type GenerationRecoveryManifest } from "../reports/generation-recovery.ts";
 import { exportJobOf } from "../reports/pg-exports.ts";
 import { REPORT_GENERATION_MAX_ATTEMPTS } from "../reports/schedule.ts";
 import { EXPORT_MAX_ATTEMPTS, REPORT_RENDERER_VERSION, assertExportPublication } from "../reports/exports.ts";
@@ -13,7 +14,7 @@ import { exportRecoverySelect, exportRecoveryOf, exportRecoveryCommand, readExpo
 import { fingerprintOf } from "../aggregation/intervals.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { reportJobList, reportJobQuery, decodeReportJobCursor, encodeReportJobCursor, reportResultRef, emptyReportJobScope,
-  normalizeRecoverExportJob, type RecoverExportJob, type ExportRecoveryStore,
+  normalizeRecoverReportJob, type RecoverReportJob, type ReportRecoveryStore,
   type ReportJobStore, type ReportJobListQuery, type ReportJobQuery, type ReportJobKind, type ReportJobSummary, type ReportJobAttempt } from "./report-jobs.ts";
 
 const scopePredicate = `AND required->>'workspaceId'=$1
@@ -32,7 +33,7 @@ const columns = `j.*,j.available_at<=clock_timestamp() AS due,
   to_char(j.requested_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_cursor`;
 const generationFailures = ["storage_failed", "report_binding_unavailable"], exportFailures = ["report_not_active", "report_stale", "report_incomplete", "export_too_large", "export_renderer_unavailable", "render_failed", "storage_failed"];
 
-export class PgReportJobStore implements ReportJobStore, ExportRecoveryStore {
+export class PgReportJobStore implements ReportJobStore, ReportRecoveryStore {
   readonly workspaceId: string; private readonly scope: MeasurementScope;
   constructor(private readonly pool: Pool, scope: MeasurementScope) { this.scope = reportScope(scope); this.workspaceId = scope.workspaceId; }
   private args() { const s = this.scope; return [s.workspaceId, ...[s.sourceIds, s.stationIds, s.serviceIds, s.deviceIds, s.metricKeys].map(a => JSON.stringify(a)), s.allowSiteParameters]; }
@@ -53,9 +54,7 @@ export class PgReportJobStore implements ReportJobStore, ExportRecoveryStore {
     if (kind === "generation") {
       const binding = await readReportScheduleRevision(client, this.workspaceId, row.schedule_id, row.schedule_revision), p = binding.schedule;
       required = p.scope; assertReportScope(this.scope, required);
-      const job = generationJobOf(row, binding), scan = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.report_schedule_scan
-        WHERE workspace_id=$1 AND schedule_id=$2 AND schedule_revision=$3 AND scan_hour=$4`, [this.workspaceId, p.id, p.revision, job.scanHour])).rows[0];
-      if (!scan || !validateScan(binding, scan.manifest, scan.manifest_sha256).jobs.some(j => j.id === job.id && fingerprintOf(j.period) === fingerprintOf(job.period) && j.dueAt === job.dueAt)) throw Error("invalid_report_job_evidence");
+      const job = await validateGenerationProvenance(client, binding, row);
       const current = (await client.query("SELECT revision FROM bsmoss_integration.report_schedule_head WHERE workspace_id=$1 AND id=$2", [this.workspaceId, p.id])).rows[0]?.revision ?? null;
       if (current !== p.revision) blocked = "registration_changed"; else if (p.status === "paused") blocked = "registration_paused";
       if (job.result) {
@@ -120,14 +119,15 @@ export class PgReportJobStore implements ReportJobStore, ExportRecoveryStore {
       const row = (await client.query(`SELECT ${columns} ${visible(q.kind)} AND j.id=$8`, [...this.args(), q.jobId])).rows[0];
       if (!row) { await revalidate(emptyReportJobScope(this.scope)); return null; }
       const { job, required } = await this.inspect(client, row, q.kind), attempts = await this.history(client, job);
-      const links = q.kind === "export" ? await readExportRecoveries(client, this.workspaceId, q.jobId) : [];
+      const links = q.kind === "export" ? await readExportRecoveries(client, this.workspaceId, q.jobId) : await readGenerationRecoveries(client, this.workspaceId, q.jobId);
       for (const link of links) if (fingerprintOf(link.manifest.requiredScope) !== fingerprintOf(reportScope(required))) throw Error("invalid_report_recovery_evidence");
       await revalidate(required); return { job, attempts, recoveredFrom: links.find(l => l.record.replacementJobId === q.jobId)?.record ?? null,
         recovery: links.find(l => l.record.originalJobId === q.jobId)?.record ?? null };
     });
   }
-  async recover(raw: RecoverExportJob, actor: string, revalidate: RevalidateReport) {
-    const c = normalizeRecoverExportJob(raw); jobIdentity(actor);
+  async recover(raw: RecoverReportJob, actor: string, revalidate: RevalidateReport) {
+    const c = normalizeRecoverReportJob(raw); jobIdentity(actor);
+    if (c.kind === "generation") return this.recoverGeneration(c, actor, revalidate);
     return this.transaction(false, async client => {
       const row = (await client.query(`SELECT ${columns} ${visible("export")} AND j.id=$8 FOR UPDATE OF j`, [...this.args(), c.jobId])).rows[0];
       if (!row) throw Error("job_unavailable");
@@ -159,6 +159,36 @@ export class PgReportJobStore implements ReportJobStore, ExportRecoveryStore {
       const saved = (await client.query(exportRecoverySelect + " WHERE r.workspace_id=$1 AND r.command_id=$2", [this.workspaceId, c.commandId])).rows[0];
       if (!saved) throw Error("invalid_report_recovery_evidence");
       const record = exportRecoveryOf(saved).record; await revalidate(required); return { status: "inserted" as const, record };
+    });
+  }
+  private async recoverGeneration(c: RecoverReportJob, actor: string, revalidate: RevalidateReport) {
+    return this.transaction(false, async client => {
+      const row = (await client.query(`SELECT ${columns} ${visible("generation")} AND j.id=$8 FOR UPDATE OF j`, [...this.args(), c.jobId])).rows[0];
+      if (!row) throw Error("job_unavailable");
+      const { job, required } = await this.inspect(client, row, "generation"), attempts = await this.history(client, job);
+      const prior = (await client.query(generationRecoverySelect + " WHERE r.workspace_id=$1 AND r.command_id=$2", [this.workspaceId, c.commandId])).rows[0];
+      if (prior) {
+        const saved = generationRecoveryOf(prior), m = saved.manifest;
+        if (m.original.id !== c.jobId || m.original.attempt !== c.expectedAttempt || m.reasonRef !== c.reasonRef || m.requestedBy !== actor) throw Error("conflicting_job_recovery");
+        assertReportScope(this.scope, m.requiredScope); await revalidate(m.requiredScope); return { status: "duplicate" as const, record: saved.record };
+      }
+      const existing = await client.query("SELECT 1 FROM bsmoss_analysis.report_generation_recovery WHERE workspace_id=$1 AND original_job_id=$2", [this.workspaceId, c.jobId]);
+      if (existing.rowCount || job.status !== "dead" || job.attempt !== c.expectedAttempt || attempts.at(-1)?.outcome !== "dead") throw Error("job_recovery_conflict");
+      const current = await loadSchedule(client, this.workspaceId, row.schedule_id), p = current.schedule;
+      if (p.revision !== row.schedule_revision || p.status !== "active") throw Error("job_recovery_conflict");
+      assertReportScope(this.scope, p.scope); await reviewedTemplate(client, p);
+      const scanJobId = row.scan_job_id ?? row.id, replacement = { id: randomUUID() };
+      await client.query(`INSERT INTO bsmoss_analysis.report_generation_job(workspace_id,id,schedule_id,schedule_revision,schedule_sha256,scan_hour,grain,period_start,period_end,due_at,requested_by,recovery_of,scan_job_id)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, [this.workspaceId, replacement.id, p.id, p.revision, current.sha256, row.scan_hour, p.grain,
+        row.period_start, row.period_end, row.due_at, p.subject, c.jobId, scanJobId]);
+      const manifest: GenerationRecoveryManifest = { version: "report-generation-recovery-v1", workspaceId: this.workspaceId, commandId: c.commandId, reasonRef: c.reasonRef, requestedBy: actor, requiredScope: reportScope(required),
+        binding: { scheduleId: p.id, scheduleRevision: p.revision, scheduleSha256: current.sha256, scanHour: row.scan_hour.toISOString(), scanJobId, grain: p.grain,
+          period: job.period, dueAt: row.due_at.toISOString(), requestedBy: p.subject }, original: { id: c.jobId, attempt: job.attempt, terminal: attempts.at(-1)! }, replacement };
+      await client.query(`INSERT INTO bsmoss_analysis.report_generation_recovery(workspace_id,command_id,original_job_id,original_attempt,replacement_job_id,reason_ref,requested_by,manifest,manifest_sha256)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [this.workspaceId, c.commandId, c.jobId, job.attempt, replacement.id, c.reasonRef, actor, manifest, fingerprintOf(manifest)]);
+      const saved = (await client.query(generationRecoverySelect + " WHERE r.workspace_id=$1 AND r.command_id=$2", [this.workspaceId, c.commandId])).rows[0];
+      if (!saved) throw Error("invalid_report_recovery_evidence");
+      const record = generationRecoveryOf(saved).record; await revalidate(required); return { status: "inserted" as const, record };
     });
   }
 }

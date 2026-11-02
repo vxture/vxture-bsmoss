@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reportJobList, reportJobQuery, encodeReportJobCursor, decodeReportJobCursor, normalizeRecoverExportJob } from "./report-jobs.ts";
+import { reportJobList, reportJobQuery, encodeReportJobCursor, decodeReportJobCursor, normalizeRecoverReportJob } from "./report-jobs.ts";
 import { createAuthorizedReportRecovery } from "../access/report-recovery.ts";
-import { exportRecoveryCommand } from "./http.ts";
+import { reportRecoveryCommand } from "./http.ts";
 import { reportJobListFromUrl, reportJobQueryFromUrl } from "./report-http.ts";
 import { createAuthorizedReportJobs } from "../access/report-jobs.ts";
 import type { AccessPorts } from "../access/resolve.ts";
@@ -42,8 +42,8 @@ test("report deep links select only explicit exact revisions and never manufactu
 });
 const recovery = { kind: "export", jobId: "failed", expectedAttempt: 5, commandId: "review", reasonRef: "review://fixed" } as const;
 test("export recovery accepts only an explicit export terminal CAS command without scope or publication overrides", () => {
-  assert.deepEqual(normalizeRecoverExportJob(recovery), recovery);
-  for (const patch of [{ kind: "generation" }, { expectedAttempt: 0 }, { expectedAttempt: 6 }, { expectedAttempt: "5" }, { scope: {} }, { publicationRevision: "2" }, { commandId: "*" }, { reasonRef: " " }]) assert.throws(() => normalizeRecoverExportJob({ ...recovery, ...patch } as never));
+  assert.deepEqual(normalizeRecoverReportJob(recovery), recovery);
+  for (const patch of [{ kind: "aggregate" }, { expectedAttempt: 0 }, { expectedAttempt: 6 }, { expectedAttempt: "5" }, { scope: {} }, { publicationRevision: "2" }, { commandId: "*" }, { reasonRef: " " }]) assert.throws(() => normalizeRecoverReportJob({ ...recovery, ...patch } as never));
 });
 test("export recovery requires independent permission even for owner and rechecks the original actor and full required scope", async () => {
   const scope = { workspaceId: "w", sourceIds: ["s"], stationIds: ["st"], serviceIds: ["svc"], deviceIds: ["d"], metricKeys: ["m@1"], allowSiteParameters: true };
@@ -61,13 +61,24 @@ test("export recovery HTTP closes origin body and path boundaries before executi
   const origin = "https://bsmoss.example", session = { enabled: true, sid: "opaque", appOrigin: origin };
   const request = (body: unknown = recovery, headers = { origin, "content-type": "application/json" }, suffix = "") => new Request(origin + "/api/report-jobs/failed/recover" + suffix, { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) });
   let calls = 0; const execute = async () => { calls++; return { status: "inserted" }; };
-  assert.equal((await exportRecoveryCommand(request(), { ...session, sid: undefined }, "failed", execute)).status, 401);
-  assert.equal((await exportRecoveryCommand(request(recovery, { origin: "https://forged.example", "content-type": "application/json" }), session, "failed", execute)).status, 403);
-  assert.equal((await exportRecoveryCommand(request(recovery, { origin, "content-type": "text/plain" }), session, "failed", execute)).status, 415);
-  assert.equal((await exportRecoveryCommand(request(recovery, undefined, "?scope=w"), session, "failed", execute)).status, 400);
-  assert.equal((await exportRecoveryCommand(request({ ...recovery, kind: "generation" }), session, "failed", execute)).status, 400);
-  assert.equal((await exportRecoveryCommand(request(), session, "other", execute)).status, 400);
-  assert.equal((await exportRecoveryCommand(request(" ".repeat(16385)), session, "failed", execute)).status, 413); assert.equal(calls, 0);
-  const result = await exportRecoveryCommand(request(), session, "failed", execute); assert.equal(result.status, 202); assert.equal(result.headers.get("cache-control"), "no-store");
-  for (const message of ["report_not_active", "report_stale", "report_incomplete", "export_renderer_unavailable"]) assert.equal((await exportRecoveryCommand(request(), session, "failed", async () => { throw Error(message); })).status, 409);
+  assert.equal((await reportRecoveryCommand(request(), { ...session, sid: undefined }, "failed", execute)).status, 401);
+  assert.equal((await reportRecoveryCommand(request(recovery, { origin: "https://forged.example", "content-type": "application/json" }), session, "failed", execute)).status, 403);
+  assert.equal((await reportRecoveryCommand(request(recovery, { origin, "content-type": "text/plain" }), session, "failed", execute)).status, 415);
+  assert.equal((await reportRecoveryCommand(request(recovery, undefined, "?scope=w"), session, "failed", execute)).status, 400);
+  assert.equal((await reportRecoveryCommand(request({ ...recovery, kind: "aggregate" }), session, "failed", execute)).status, 400);
+  assert.equal((await reportRecoveryCommand(request(), session, "other", execute)).status, 400);
+  assert.equal((await reportRecoveryCommand(request(" ".repeat(16385)), session, "failed", execute)).status, 413); assert.equal(calls, 0);
+  const result = await reportRecoveryCommand(request(), session, "failed", execute); assert.equal(result.status, 202); assert.equal(result.headers.get("cache-control"), "no-store");
+  for (const message of ["report_not_active", "report_stale", "report_incomplete", "export_renderer_unavailable"]) assert.equal((await reportRecoveryCommand(request(), session, "failed", async () => { throw Error(message); })).status, 409);
+});
+test("report recovery dispatches explicit generation without accepting a scan scope worker or schedule override", async () => {
+  const command = { ...recovery, kind: "generation" } as const, origin = "https://bsmoss.example", session = { enabled: true, sid: "opaque", appOrigin: origin };
+  assert.deepEqual(normalizeRecoverReportJob(command), command);
+  for (const patch of [{ kind: "aggregate" }, { scope: {} }, { subject: "forged" }, { scanJobId: "forged" }, { scheduleRevision: "2" }, { expectedAttempt: 6 }]) assert.throws(() => normalizeRecoverReportJob({ ...command, ...patch } as never));
+  let calls = 0;
+  const request = (body: unknown, headers = { origin, "content-type": "application/json" }) => new Request(origin + "/api/report-jobs/failed/recover", { method: "POST", headers, body: JSON.stringify(body) });
+  const execute = async (_: string, c: unknown) => { calls++; assert.deepEqual(c, command); return { status: "inserted" }; };
+  assert.equal((await reportRecoveryCommand(request(command, { origin: "https://forged.example", "content-type": "application/json" }), session, "failed", execute)).status, 403);
+  assert.equal((await reportRecoveryCommand(request({ ...command, scanJobId: "forged" }), session, "failed", execute)).status, 400);
+  assert.equal(calls, 0); assert.equal((await reportRecoveryCommand(request(command), session, "failed", execute)).status, 202); assert.equal(calls, 1);
 });

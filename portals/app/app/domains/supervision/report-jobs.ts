@@ -29,15 +29,15 @@ export interface ReportJobAttempt {
   result: ReportResultRef | null; generationStatus: "inserted" | "duplicate" | null; artifactSha256: string | null;
 }
 export interface ReportJobDetail { job: ReportJobSummary; attempts: ReportJobAttempt[]; recoveredFrom: RecoveryRecord | null; recovery: RecoveryRecord | null }
-export interface RecoverExportJob { kind: "export"; jobId: string; expectedAttempt: number; commandId: string; reasonRef: string }
-export interface ExportRecoveryStore {
+export interface RecoverReportJob { kind: ReportJobKind; jobId: string; expectedAttempt: number; commandId: string; reasonRef: string }
+export interface ReportRecoveryStore {
   readonly workspaceId: string;
-  recover(command: RecoverExportJob, actor: string, revalidate: RevalidateReport): Promise<RecoveryResult>;
+  recover(command: RecoverReportJob, actor: string, revalidate: RevalidateReport): Promise<RecoveryResult>;
 }
-export function normalizeRecoverExportJob(raw: RecoverExportJob): RecoverExportJob {
+export function normalizeRecoverReportJob(raw: RecoverReportJob): RecoverReportJob {
   fields(raw, ["kind", "jobId", "expectedAttempt", "commandId", "reasonRef"]);
   [raw.jobId, raw.commandId, raw.reasonRef].forEach(jobIdentity);
-  if (raw.kind !== "export" || !Number.isSafeInteger(raw.expectedAttempt) || raw.expectedAttempt < 1 || raw.expectedAttempt > 5) throw Error("invalid_report_recovery");
+  if (!REPORT_JOB_KINDS.includes(raw.kind) || !Number.isSafeInteger(raw.expectedAttempt) || raw.expectedAttempt < 1 || raw.expectedAttempt > 5) throw Error("invalid_report_recovery");
   return structuredClone(raw);
 }
 export interface ReportJobPage { items: ReportJobSummary[]; next: string | null }

@@ -6,6 +6,7 @@ import { bucketFor } from "../aggregation/periods.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { fields, normalizeReportTemplate } from "./rules.ts";
 import { generateReportInTransaction } from "./pg-store.ts";
+import { generationRecoverySelect, generationRecoveryOf } from "./generation-recovery.ts";
 import { reportSchedule, reportScheduleAccess, planReportCalendar, generationFailure, generationRetrySeconds,
   REPORT_CALENDAR_VERSION, REPORT_GENERATION_MAX_ATTEMPTS, type ReportSchedule } from "./schedule.ts";
 
@@ -16,10 +17,11 @@ interface ScanManifest {
 }
 export interface ReportGenerationJob {
   id: string; scheduleId: string; scheduleRevision: string; scanHour: string; period: { start: string; end: string }; dueAt: string;
+  scanJobId: string; recoveryOf: string | null;
   status: "pending" | "succeeded" | "dead"; attempt: number; availableAt: string;
   result: { reportId: string; revision: string; currentRevision: string; manifestSha256: string } | null;
 }
-async function loadSchedule(client: PoolClient, workspaceId: string, id: string): Promise<ScheduleBinding> {
+export async function loadSchedule(client: PoolClient, workspaceId: string, id: string): Promise<ScheduleBinding> {
   const head = (await client.query("SELECT bsmoss_integration.lock_report_schedule($1,$2)::text AS revision", [workspaceId, id])).rows[0];
   if (!head?.revision) throw Error("report_schedule_unavailable");
   return readReportScheduleRevision(client, workspaceId, id, head.revision);
@@ -34,7 +36,7 @@ export async function readReportScheduleRevision(client: PoolClient, workspaceId
   if (row.template_code !== normalized.schedule.templateCode || row.template_version !== String(normalized.schedule.templateVersion) || row.grain !== normalized.schedule.grain) throw Error("invalid_report_schedule_evidence");
   return { ...normalized, configSha256: row.config_sha256 };
 }
-async function reviewedTemplate(client: PoolClient, p: ReportSchedule) {
+export async function reviewedTemplate(client: PoolClient, p: ReportSchedule) {
   const row = (await client.query("SELECT definition,template_kind FROM bsmoss_views.template_version WHERE workspace_id=$1 AND code=$2 AND version=$3", [p.workspaceId, p.templateCode, p.templateVersion])).rows[0];
   if (!row || row.template_kind !== "report" || fingerprintOf(row.definition) !== p.templateSha256 || normalizeReportTemplate(row.definition).grain !== p.grain) throw Error("report_schedule_template_changed");
 }
@@ -59,8 +61,25 @@ export function generationJobOf(row: Record<string, any>, binding: ScheduleBindi
       !["pending", "succeeded", "dead"].includes(row.status) || !Number.isSafeInteger(attempt) || attempt < 0 || attempt > REPORT_GENERATION_MAX_ATTEMPTS ||
       (row.status === "succeeded") !== (result !== null)) throw Error("invalid_report_generation_job");
   if (result) { jobIdentity(result.reportId); positiveRevision(result.revision); positiveRevision(result.currentRevision); if (!/^[a-f0-9]{64}$/.test(result.manifestSha256)) throw Error("invalid_report_generation_job"); }
+  if (row.recovery_of !== null || row.scan_job_id !== null) {
+    jobIdentity(row.recovery_of); jobIdentity(row.scan_job_id);
+    if (row.recovery_of === row.id || row.scan_job_id === row.id) throw Error("invalid_report_generation_job");
+  }
   return { id: row.id, scheduleId: p.id, scheduleRevision: p.revision, scanHour: row.scan_hour.toISOString(), period, dueAt: row.due_at.toISOString(),
+    scanJobId: row.scan_job_id ?? row.id, recoveryOf: row.recovery_of,
     status: row.status, attempt, availableAt: row.available_at.toISOString(), result };
+}
+export async function validateGenerationProvenance(client: PoolClient, binding: ScheduleBinding, row: Record<string, any>) {
+  const p = binding.schedule, job = generationJobOf(row, binding), receipt = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.report_schedule_scan
+    WHERE workspace_id=$1 AND schedule_id=$2 AND schedule_revision=$3 AND scan_hour=$4`, [p.workspaceId, p.id, p.revision, job.scanHour])).rows[0];
+  if (!receipt || !validateScan(binding, receipt.manifest, receipt.manifest_sha256).jobs.some(j => j.id === job.scanJobId && fingerprintOf(j.period) === fingerprintOf(job.period) && j.dueAt === job.dueAt)) throw Error("invalid_report_generation_job");
+  if (job.recoveryOf !== null) {
+    const saved = (await client.query(generationRecoverySelect + " WHERE r.workspace_id=$1 AND r.replacement_job_id=$2", [p.workspaceId, job.id])).rows[0];
+    if (!saved) throw Error("invalid_report_recovery_evidence");
+    const { manifest: m } = generationRecoveryOf(saved);
+    if (fingerprintOf(m.requiredScope) !== fingerprintOf(p.scope) || m.binding.scheduleSha256 !== binding.sha256 || m.binding.scheduleId !== p.id || m.binding.scheduleRevision !== p.revision) throw Error("invalid_report_recovery_evidence");
+  }
+  return job;
 }
 async function registeredTransaction<T>(pool: Pool, ports: AccessPorts, id: string,
   work: (client: PoolClient, binding: ScheduleBinding) => Promise<T>): Promise<T> {
@@ -117,9 +136,7 @@ export async function runRegisteredReport(pool: Pool, ports: AccessPorts, schedu
     const row = (await client.query(`SELECT *,available_at<=clock_timestamp() AS due FROM bsmoss_analysis.report_generation_job
       WHERE workspace_id=$1 AND id=$2 AND schedule_id=$3 AND schedule_revision=$4 FOR UPDATE SKIP LOCKED`, [p.workspaceId, jobId, p.id, p.revision])).rows[0];
     if (!row) return { status: "busy_or_unavailable" as const };
-    const job = generationJobOf(row, binding), receipt = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.report_schedule_scan
-      WHERE workspace_id=$1 AND schedule_id=$2 AND schedule_revision=$3 AND scan_hour=$4`, [p.workspaceId, p.id, p.revision, job.scanHour])).rows[0];
-    if (!receipt || !validateScan(binding, receipt.manifest, receipt.manifest_sha256).jobs.some(j => j.id === job.id && fingerprintOf(j.period) === fingerprintOf(job.period) && j.dueAt === job.dueAt)) throw Error("invalid_report_generation_job");
+    const job = await validateGenerationProvenance(client, binding, row);
     if (job.status !== "pending" || !row.due) return { status: job.status !== "pending" ? "terminal" as const : "delayed" as const, job };
     if (job.attempt >= REPORT_GENERATION_MAX_ATTEMPTS) throw Error("invalid_report_generation_job");
     const attempt = job.attempt + 1; let outcome: "succeeded" | "retry" | "dead", failure: string | null = null;
