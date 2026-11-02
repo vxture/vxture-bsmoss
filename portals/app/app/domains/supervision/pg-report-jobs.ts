@@ -1,4 +1,5 @@
 import type { Pool, PoolClient } from "pg";
+import { randomUUID } from "node:crypto";
 import type { MeasurementScope } from "../measurements/store.ts";
 import type { RevalidateReport, StoredReport } from "../reports/store.ts";
 import { reportScope, assertReportScope, unionReportScopes } from "../reports/rules.ts";
@@ -6,10 +7,13 @@ import { readStoredReportInTransaction } from "../reports/pg-store.ts";
 import { readReportScheduleRevision, generationJobOf, validateScan } from "../reports/pg-schedule.ts";
 import { exportJobOf } from "../reports/pg-exports.ts";
 import { REPORT_GENERATION_MAX_ATTEMPTS } from "../reports/schedule.ts";
-import { EXPORT_MAX_ATTEMPTS } from "../reports/exports.ts";
+import { EXPORT_MAX_ATTEMPTS, REPORT_RENDERER_VERSION, assertExportPublication } from "../reports/exports.ts";
+import { readPublicationInTransaction } from "../reports/pg-publication.ts";
+import { exportRecoverySelect, exportRecoveryOf, exportRecoveryCommand, readExportRecoveries, type ExportRecoveryManifest } from "./export-recovery.ts";
 import { fingerprintOf } from "../aggregation/intervals.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { reportJobList, reportJobQuery, decodeReportJobCursor, encodeReportJobCursor, reportResultRef, emptyReportJobScope,
+  normalizeRecoverExportJob, type RecoverExportJob, type ExportRecoveryStore,
   type ReportJobStore, type ReportJobListQuery, type ReportJobQuery, type ReportJobKind, type ReportJobSummary, type ReportJobAttempt } from "./report-jobs.ts";
 
 const scopePredicate = `AND required->>'workspaceId'=$1
@@ -28,13 +32,13 @@ const columns = `j.*,j.available_at<=clock_timestamp() AS due,
   to_char(j.requested_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_cursor`;
 const generationFailures = ["storage_failed", "report_binding_unavailable"], exportFailures = ["report_not_active", "report_stale", "report_incomplete", "export_too_large", "export_renderer_unavailable", "render_failed", "storage_failed"];
 
-export class PgReportJobStore implements ReportJobStore {
+export class PgReportJobStore implements ReportJobStore, ExportRecoveryStore {
   readonly workspaceId: string; private readonly scope: MeasurementScope;
   constructor(private readonly pool: Pool, scope: MeasurementScope) { this.scope = reportScope(scope); this.workspaceId = scope.workspaceId; }
   private args() { const s = this.scope; return [s.workspaceId, ...[s.sourceIds, s.stationIds, s.serviceIds, s.deviceIds, s.metricKeys].map(a => JSON.stringify(a)), s.allowSiteParameters]; }
-  private async transaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+  private async transaction<T>(readOnly: boolean, work: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect(); let discard = false;
-    try { await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY"); const result = await work(client); await client.query("COMMIT"); return result; }
+    try { await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ" + (readOnly ? " READ ONLY" : "")); const result = await work(client); await client.query("COMMIT"); return result; }
     catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }
@@ -100,7 +104,7 @@ export class PgReportJobStore implements ReportJobStore {
   }
   async list(raw: ReportJobListQuery, revalidate: RevalidateReport) {
     const q = reportJobList(raw), cursor = q.after ? decodeReportJobCursor(q.after) : null;
-    return this.transaction(async client => {
+    return this.transaction(true, async client => {
       const rows = (await client.query(`SELECT ${columns} ${visible(q.kind)}
         AND ($8='all' OR j.status=$8) AND ($9::timestamptz IS NULL OR j.requested_at<$9 OR (j.requested_at=$9 AND j.id COLLATE "C"<$10))
         ORDER BY j.requested_at DESC,j.id COLLATE "C" DESC LIMIT $11`, [...this.args(), q.status, cursor?.createdAt ?? null, cursor?.jobId ?? null, q.limit + 1])).rows;
@@ -112,11 +116,49 @@ export class PgReportJobStore implements ReportJobStore {
   }
   async read(raw: ReportJobQuery, revalidate: RevalidateReport) {
     const q = reportJobQuery(raw);
-    return this.transaction(async client => {
+    return this.transaction(true, async client => {
       const row = (await client.query(`SELECT ${columns} ${visible(q.kind)} AND j.id=$8`, [...this.args(), q.jobId])).rows[0];
       if (!row) { await revalidate(emptyReportJobScope(this.scope)); return null; }
       const { job, required } = await this.inspect(client, row, q.kind), attempts = await this.history(client, job);
-      await revalidate(required); return { job, attempts };
+      const links = q.kind === "export" ? await readExportRecoveries(client, this.workspaceId, q.jobId) : [];
+      for (const link of links) if (fingerprintOf(link.manifest.requiredScope) !== fingerprintOf(reportScope(required))) throw Error("invalid_report_recovery_evidence");
+      await revalidate(required); return { job, attempts, recoveredFrom: links.find(l => l.record.replacementJobId === q.jobId)?.record ?? null,
+        recovery: links.find(l => l.record.originalJobId === q.jobId)?.record ?? null };
+    });
+  }
+  async recover(raw: RecoverExportJob, actor: string, revalidate: RevalidateReport) {
+    const c = normalizeRecoverExportJob(raw); jobIdentity(actor);
+    return this.transaction(false, async client => {
+      const row = (await client.query(`SELECT ${columns} ${visible("export")} AND j.id=$8 FOR UPDATE OF j`, [...this.args(), c.jobId])).rows[0];
+      if (!row) throw Error("job_unavailable");
+      const { job, required } = await this.inspect(client, row, "export"), attempts = await this.history(client, job), old = exportJobOf(row);
+      const prior = (await client.query(exportRecoverySelect + " WHERE r.workspace_id=$1 AND r.command_id=$2", [this.workspaceId, c.commandId])).rows[0];
+      if (prior) {
+        const saved = exportRecoveryOf(prior), m = saved.manifest;
+        if (m.original.id !== c.jobId || m.original.attempt !== c.expectedAttempt || m.reasonRef !== c.reasonRef || m.requestedBy !== actor) throw Error("conflicting_job_recovery");
+        assertReportScope(this.scope, m.requiredScope); await revalidate(m.requiredScope); return { status: "duplicate" as const, record: saved.record };
+      }
+      const existing = await client.query("SELECT 1 FROM bsmoss_analysis.report_export_recovery WHERE workspace_id=$1 AND original_job_id=$2", [this.workspaceId, c.jobId]);
+      if (existing.rowCount || job.status !== "dead" || job.attempt !== c.expectedAttempt || attempts.at(-1)?.outcome !== "dead") throw Error("job_recovery_conflict");
+      // Match the publication writer's RR fence before considering the old
+      // release eligible. Replays above confirm history, not today's release.
+      const head = await client.query("SELECT current_revision,current_publication_revision FROM bsmoss_analysis.report_series WHERE workspace_id=$1 AND id=$2 FOR UPDATE", [this.workspaceId, old.reportId]);
+      if (!head.rowCount) throw Error("report_not_active");
+      const state = await readPublicationInTransaction(this.pool, this.scope, { reportId: old.reportId, eventRevision: old.publicationRevision }, client);
+      assertExportPublication(state);
+      if (state.report.revision !== old.reportRevision || state.report.manifestSha256 !== old.manifestSha256) throw Error("invalid_report_recovery_evidence");
+      if (old.rendererVersion !== REPORT_RENDERER_VERSION) throw Error("export_renderer_unavailable");
+      const replacement = { id: randomUUID(), commandId: exportRecoveryCommand(this.workspaceId, c.jobId, c.commandId) };
+      await client.query(`INSERT INTO bsmoss_analysis.report_export_job(workspace_id,id,report_id,publication_revision,report_revision,manifest_sha256,renderer_version,command_id,requested_by)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [this.workspaceId, replacement.id, old.reportId, old.publicationRevision, old.reportRevision, old.manifestSha256, old.rendererVersion, replacement.commandId, actor]);
+      const manifest: ExportRecoveryManifest = { version: "report-export-recovery-v1", workspaceId: this.workspaceId, commandId: c.commandId, reasonRef: c.reasonRef, requestedBy: actor,
+        requiredScope: reportScope(required), binding: { reportId: old.reportId, publicationRevision: old.publicationRevision, reportRevision: old.reportRevision, manifestSha256: old.manifestSha256, rendererVersion: old.rendererVersion },
+        original: { id: c.jobId, attempt: job.attempt, commandId: old.commandId, requestedBy: old.requestedBy, terminal: attempts.at(-1)! }, replacement };
+      await client.query(`INSERT INTO bsmoss_analysis.report_export_recovery(workspace_id,command_id,original_job_id,original_attempt,original_outcome,replacement_job_id,reason_ref,requested_by,manifest,manifest_sha256)
+        VALUES($1,$2,$3,$4,'dead',$5,$6,$7,$8,$9)`, [this.workspaceId, c.commandId, c.jobId, job.attempt, replacement.id, c.reasonRef, actor, manifest, fingerprintOf(manifest)]);
+      const saved = (await client.query(exportRecoverySelect + " WHERE r.workspace_id=$1 AND r.command_id=$2", [this.workspaceId, c.commandId])).rows[0];
+      if (!saved) throw Error("invalid_report_recovery_evidence");
+      const record = exportRecoveryOf(saved).record; await revalidate(required); return { status: "inserted" as const, record };
     });
   }
 }

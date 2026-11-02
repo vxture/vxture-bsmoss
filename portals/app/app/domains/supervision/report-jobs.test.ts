@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reportJobList, reportJobQuery, encodeReportJobCursor, decodeReportJobCursor } from "./report-jobs.ts";
+import { reportJobList, reportJobQuery, encodeReportJobCursor, decodeReportJobCursor, normalizeRecoverExportJob } from "./report-jobs.ts";
+import { createAuthorizedReportRecovery } from "../access/report-recovery.ts";
+import { exportRecoveryCommand } from "./http.ts";
 import { reportJobListFromUrl, reportJobQueryFromUrl } from "./report-http.ts";
 import { createAuthorizedReportJobs } from "../access/report-jobs.ts";
 import type { AccessPorts } from "../access/resolve.ts";
@@ -37,4 +39,35 @@ test("report deep links select only explicit exact revisions and never manufactu
   assert.deepEqual(reportSelection({}), { selection: null, invalid: false });
   assert.deepEqual(reportSelection({ report: "report/with?chars", revision: "9007199254740993" }), { selection: { id: "report/with?chars", revision: "9007199254740993" }, invalid: false });
   for (const p of [{ report: "one" }, { revision: "1" }, { report: ["one", "two"], revision: "1" }, { report: "*", revision: "1" }, { report: "one", revision: "01" }, { report: "one", revision: "0" }]) assert.deepEqual(reportSelection(p), { selection: null, invalid: true });
+});
+const recovery = { kind: "export", jobId: "failed", expectedAttempt: 5, commandId: "review", reasonRef: "review://fixed" } as const;
+test("export recovery accepts only an explicit export terminal CAS command without scope or publication overrides", () => {
+  assert.deepEqual(normalizeRecoverExportJob(recovery), recovery);
+  for (const patch of [{ kind: "generation" }, { expectedAttempt: 0 }, { expectedAttempt: 6 }, { expectedAttempt: "5" }, { scope: {} }, { publicationRevision: "2" }, { commandId: "*" }, { reasonRef: " " }]) assert.throws(() => normalizeRecoverExportJob({ ...recovery, ...patch } as never));
+});
+test("export recovery requires independent permission even for owner and rechecks the original actor and full required scope", async () => {
+  const scope = { workspaceId: "w", sourceIds: ["s"], stationIds: ["st"], serviceIds: ["svc"], deviceIds: ["d"], metricKeys: ["m@1"], allowSiteParameters: true };
+  let reads = 0, revoked = "", permissions = ["reports.jobs.view", "reports.export", "reports.export.execute"];
+  const ports: AccessPorts = { featuresFor: () => ["metering"], async readVerifiedIdentity() { return { sub: reads && revoked === "identity" ? "changed" : "reviewer", activeWorkspace: "w", accountStatus: "active", governanceRoles: ["workspace:owner"], expiresAt: Date.now() + 60000 }; },
+    async readCoverage() { return { workspaceId: "w", product: "bsmoss", tier: reads && revoked === "coverage" ? null : "fixture", bundled: false, expiresAt: Date.now() + 60000 }; },
+    async readLocalGrant(s) { return { ...s, active: true, permissions: reads++ && revoked === "permission" ? [] : permissions, scope: reads > 1 && revoked === "scope" ? { ...scope, allowSiteParameters: false } : scope, expiresAt: Date.now() + 60000 }; } };
+  const record = { commandId: "review", originalJobId: "failed", replacementJobId: "new", originalAttempt: 5, reasonRef: "review://fixed", requestedBy: "reviewer", recordedAt: "2026-11-03T00:00:00.000Z" };
+  const api = createAuthorizedReportRecovery(ports, { create: () => ({ workspaceId: "w", async recover(c, actor, revalidate) { assert.deepEqual(c, recovery); assert.equal(actor, "reviewer"); await revalidate(scope); return { status: "inserted", record }; } }) }, "interactive");
+  await assert.rejects(api.recover(recovery), /permission_denied/); permissions = ["reports.jobs.recover"]; reads = 0;
+  assert.equal((await api.recover(recovery)).status, "inserted"); assert.equal("download" in api, false);
+  for (const mode of ["identity", "coverage", "permission", "scope"]) { reads = 0; revoked = mode; await assert.rejects(api.recover(recovery), /denied/); }
+});
+test("export recovery HTTP closes origin body and path boundaries before executing and returns private conflict receipts", async () => {
+  const origin = "https://bsmoss.example", session = { enabled: true, sid: "opaque", appOrigin: origin };
+  const request = (body: unknown = recovery, headers = { origin, "content-type": "application/json" }, suffix = "") => new Request(origin + "/api/report-jobs/failed/recover" + suffix, { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) });
+  let calls = 0; const execute = async () => { calls++; return { status: "inserted" }; };
+  assert.equal((await exportRecoveryCommand(request(), { ...session, sid: undefined }, "failed", execute)).status, 401);
+  assert.equal((await exportRecoveryCommand(request(recovery, { origin: "https://forged.example", "content-type": "application/json" }), session, "failed", execute)).status, 403);
+  assert.equal((await exportRecoveryCommand(request(recovery, { origin, "content-type": "text/plain" }), session, "failed", execute)).status, 415);
+  assert.equal((await exportRecoveryCommand(request(recovery, undefined, "?scope=w"), session, "failed", execute)).status, 400);
+  assert.equal((await exportRecoveryCommand(request({ ...recovery, kind: "generation" }), session, "failed", execute)).status, 400);
+  assert.equal((await exportRecoveryCommand(request(), session, "other", execute)).status, 400);
+  assert.equal((await exportRecoveryCommand(request(" ".repeat(16385)), session, "failed", execute)).status, 413); assert.equal(calls, 0);
+  const result = await exportRecoveryCommand(request(), session, "failed", execute); assert.equal(result.status, 202); assert.equal(result.headers.get("cache-control"), "no-store");
+  for (const message of ["report_not_active", "report_stale", "report_incomplete", "export_renderer_unavailable"]) assert.equal((await exportRecoveryCommand(request(), session, "failed", async () => { throw Error(message); })).status, 409);
 });

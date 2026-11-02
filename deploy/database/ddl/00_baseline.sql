@@ -1257,3 +1257,57 @@ CREATE INDEX report_generation_history ON bsmoss_analysis.report_generation_job(
 CREATE INDEX report_generation_state_history ON bsmoss_analysis.report_generation_job(workspace_id,status,requested_at DESC,id COLLATE "C" DESC);
 CREATE INDEX report_export_history ON bsmoss_analysis.report_export_job(workspace_id,requested_at DESC,id COLLATE "C" DESC);
 CREATE INDEX report_export_state_history ON bsmoss_analysis.report_export_job(workspace_id,status,requested_at DESC,id COLLATE "C" DESC);
+
+-- Recovery is an append-only command receipt; the original dead job remains.
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('reports.jobs.recover','Review and replace terminal report export jobs');
+ALTER TABLE bsmoss_analysis.report_export_attempt ADD UNIQUE(workspace_id,job_id,attempt,outcome);
+CREATE TABLE bsmoss_analysis.report_export_recovery (
+  workspace_id text NOT NULL,
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 2048),
+  original_job_id text NOT NULL,
+  original_attempt numeric(30,0) NOT NULL CHECK(original_attempt BETWEEN 1 AND 5),
+  original_outcome text NOT NULL DEFAULT 'dead' CHECK(original_outcome='dead'),
+  replacement_job_id text NOT NULL,
+  reason_ref text NOT NULL CHECK(length(trim(reason_ref)) BETWEEN 1 AND 2048),
+  requested_by text NOT NULL CHECK(length(trim(requested_by)) BETWEEN 1 AND 2048),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL,
+  database_actor text NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,command_id),
+  UNIQUE(workspace_id,original_job_id),
+  UNIQUE(workspace_id,replacement_job_id),
+  CHECK(original_job_id<>replacement_job_id),
+  FOREIGN KEY(workspace_id,original_job_id,original_attempt,original_outcome) REFERENCES bsmoss_analysis.report_export_attempt(workspace_id,job_id,attempt,outcome),
+  FOREIGN KEY(workspace_id,replacement_job_id) REFERENCES bsmoss_analysis.report_export_job(workspace_id,id)
+);
+CREATE FUNCTION bsmoss_analysis.capture_report_export_recovery() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+DECLARE p bsmoss_analysis.report_export_job%ROWTYPE; n bsmoss_analysis.report_export_job%ROWTYPE;
+  a bsmoss_analysis.report_export_attempt%ROWTYPE; m jsonb; b jsonb; s jsonb; cmd text;
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME<>'report_export_recovery' THEN RAISE EXCEPTION 'invalid_report_recovery_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'report_export_recovery_append_only'; END IF;
+  SELECT * INTO p FROM bsmoss_analysis.report_export_job WHERE workspace_id=NEW.workspace_id AND id=NEW.original_job_id FOR SHARE;
+  SELECT * INTO n FROM bsmoss_analysis.report_export_job WHERE workspace_id=NEW.workspace_id AND id=NEW.replacement_job_id FOR SHARE;
+  SELECT * INTO a FROM bsmoss_analysis.report_export_attempt WHERE workspace_id=NEW.workspace_id AND job_id=NEW.original_job_id AND attempt=NEW.original_attempt;
+  SELECT manifest->'requiredScope' INTO s FROM bsmoss_analysis.report_revision WHERE workspace_id=p.workspace_id AND report_id=p.report_id AND revision=p.report_revision AND manifest_sha256=p.manifest_sha256;
+  b:=jsonb_build_object('reportId',p.report_id,'publicationRevision',p.publication_revision::text,'reportRevision',p.report_revision::text,'manifestSha256',p.manifest_sha256,'rendererVersion',p.renderer_version);
+  cmd:='reviewed-export-recovery:'||encode(sha256(convert_to('['||to_json(NEW.workspace_id)::text||','||to_json(NEW.original_job_id)::text||','||to_json(NEW.command_id)::text||']','UTF8')),'hex');
+  m:=NEW.manifest;
+  IF p.id IS NULL OR n.id IS NULL OR a.job_id IS NULL OR p.status<>'dead' OR p.attempt<>NEW.original_attempt OR a.outcome<>'dead' OR n.status<>'pending' OR n.attempt<>0 OR
+    n.artifact_sha256 IS NOT NULL OR n.requested_by<>NEW.requested_by OR n.command_id<>cmd OR
+    (p.report_id,p.publication_revision,p.report_revision,p.manifest_sha256,p.renderer_version) IS DISTINCT FROM (n.report_id,n.publication_revision,n.report_revision,n.manifest_sha256,n.renderer_version) OR
+    m IS DISTINCT FROM jsonb_build_object('version','report-export-recovery-v1','workspaceId',NEW.workspace_id,'commandId',NEW.command_id,'reasonRef',NEW.reason_ref,'requestedBy',NEW.requested_by,
+      'requiredScope',s,'binding',b,'replacement',jsonb_build_object('id',n.id,'commandId',n.command_id),
+      'original',jsonb_build_object('id',p.id,'attempt',p.attempt,'commandId',p.command_id,'requestedBy',p.requested_by,
+        'terminal',jsonb_build_object('attempt',a.attempt,'outcome',a.outcome,'failureCode',a.failure_code,'recordedAt',to_char(a.recorded_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+          'recordedBy',a.recorded_by,'result',NULL,'generationStatus',NULL,'artifactSha256',NULL))) THEN RAISE EXCEPTION 'invalid_report_recovery_binding';
+  END IF;
+  NEW.database_sha256:=encode(sha256(convert_to(m::text,'UTF8')),'hex'); NEW.database_actor:=session_user; NEW.recorded_at:=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_export_recovery() FROM PUBLIC;
+CREATE TRIGGER report_export_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_export_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_export_recovery();
+CREATE TRIGGER report_export_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_export_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_export_recovery();

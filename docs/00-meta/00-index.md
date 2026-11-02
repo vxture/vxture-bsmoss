@@ -66,3 +66,4 @@
 - [报告worker循环](../40-implementation/500-report-worker-loop.md)：授权导出待办、轮转限额、独立退避与事务停机恢复。
 - [聚合任务工作台与受审恢复](../40-implementation/530-aggregate-job-supervision.md)：授权任务历史、不可变恢复链、同命令重试与末次验权。
 - [报告任务监控](../40-implementation/540-report-job-inspection.md)：生成／导出历史、原登记和精确修订跳转。
+- [导出受审恢复](../40-implementation/550-report-export-recovery.md)：保留失败证据、精确发布复核、关联任务和恢复链。

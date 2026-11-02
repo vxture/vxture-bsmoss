@@ -5,6 +5,7 @@ import { fields } from "../reports/rules.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { positiveRevision } from "../aggregation/intervals.ts";
 import { decodeJobCursor } from "./jobs.ts";
+import type { RecoveryRecord, RecoveryResult } from "./jobs.ts";
 
 export const REPORT_JOB_KINDS = ["generation", "export"] as const;
 export const REPORT_JOB_STATES = ["all", "pending", "succeeded", "dead"] as const;
@@ -27,7 +28,18 @@ export interface ReportJobAttempt {
   attempt: number; outcome: "retry" | "succeeded" | "dead"; failureCode: string | null; recordedAt: string; recordedBy: string;
   result: ReportResultRef | null; generationStatus: "inserted" | "duplicate" | null; artifactSha256: string | null;
 }
-export interface ReportJobDetail { job: ReportJobSummary; attempts: ReportJobAttempt[] }
+export interface ReportJobDetail { job: ReportJobSummary; attempts: ReportJobAttempt[]; recoveredFrom: RecoveryRecord | null; recovery: RecoveryRecord | null }
+export interface RecoverExportJob { kind: "export"; jobId: string; expectedAttempt: number; commandId: string; reasonRef: string }
+export interface ExportRecoveryStore {
+  readonly workspaceId: string;
+  recover(command: RecoverExportJob, actor: string, revalidate: RevalidateReport): Promise<RecoveryResult>;
+}
+export function normalizeRecoverExportJob(raw: RecoverExportJob): RecoverExportJob {
+  fields(raw, ["kind", "jobId", "expectedAttempt", "commandId", "reasonRef"]);
+  [raw.jobId, raw.commandId, raw.reasonRef].forEach(jobIdentity);
+  if (raw.kind !== "export" || !Number.isSafeInteger(raw.expectedAttempt) || raw.expectedAttempt < 1 || raw.expectedAttempt > 5) throw Error("invalid_report_recovery");
+  return structuredClone(raw);
+}
 export interface ReportJobPage { items: ReportJobSummary[]; next: string | null }
 export interface ReportJobStore {
   readonly workspaceId: string;

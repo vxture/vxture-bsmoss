@@ -1,5 +1,19 @@
 # 后续代理入口
 
+## 导出任务受审恢复（2026-11-03，最新入口）
+
+接续48d63b2，本goal turn实质progress，不标blocked／complete，不重建goal／heartbeat、不spawn。设计219／实施550。新增ExportRecoveryStore独立门面／reports.jobs.recover，真实RP及POST /api/report-jobs/{id}/recover，配置origin／实际流16KiB／严格kind=export和CAS／路径。只入权限种子，不自动赋role；owner／view／export／execute不隐含。
+
+PgReportJobStore锁完整scope可见原dead／连续attempt，首次恢复沿report_series发布fence，精确原发布仍活跃、报告完整新鲜、原renderer仍受支持才另建pending0，不重绑新版。新job／不可变恢复审计／末次真实身份租户权益独立权限原和新有效期／实际scope同RR提交。每原任务一次，新任务dead可继续形成链；精确同command／actor／reason／attempt重放只核验原历史作用范围和当前授权，今日撤回不改变原回执，执行下载仍独立拒绝。
+
+空库第57表report_export_recovery和原终态精确同租户FK，Prisma镜像／CLI通过，无迁移。invoker固定search_path触发器精确绑定旧新job、manifest scope／terminal／确定性命令／主体，捕获DB SHA／session_user／时间，禁止改删清空。应用读回完整JOIN和双SHA核验，没有RETURNING缺关联列时跳过验证。详情提供父子恢复链，生成详情两个link为null。UI原命令503重试／锁表单，明确4xx清详情要求刷新，不恢复发布或授予下载。
+
+最终490单测／292实际PG（新增8）／双层类型／Prisma／生产build／20HTTP通过；PG含五次失败／真正执行下载、撤回后历史重放、重发不改绑、全scope及物理站选择／末次／重放、链式恢复、同异命令并发、真实发布RR fence、各种写后撤权和SQL回滚、无关收缩、不可变审计及跨租户FK，篡改manifest重算应用SHA也不能缩scope或换binding／terminal／command。物理夹具首轮误用无站级flag的pub.read被正确拒绝，改DBA读取真实既有event编号后走站级完整授权，无产品放宽，最终292全过。
+
+独立63334合成实际React QA：第一次提交成功返回503，第二次完全相同command duplicate仅一replacement；父子双向回溯／五次旧失败／准确报告链接，1440与390×844实际client1425／375无横向溢出、无warn／error；artifacts/export-recovery-qa含commands.json与两张截图。viewport已reset、临时tab10已close。日志tmp/export-recovery-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,browser}.log，最终111篇／57表守卫、扫描、SHA和63333以report-export-recovery检查点为准。
+
+build已核验本仓63333 Next PID9760并停，收尾需新SHA恢复；专用PG58874 aggregate-data与合成63334收尾停止，仅随机合同库／合成数据。下一项生成受审恢复（必须处理scan provenance／唯一约束，不能简单复制job）、历史报告变化传播、I11配置、I08分布规模；真实机器provider／生产宿主仍需权威契约，不能拿aud=vxture channel token冒充测量C1。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT和生产批准仍缺，无push／PR／远端CI／真实接入／外部部署或上线；原五项1–3本地完成、4–5active，bs-moss复用，陕西／费用仅预留／退服P2不变。
+
 ## 最新地图展示配置（2026-11-02）
 
 已完成顶部三类六指标的选择／排序（1–3 项），以及每专题地图显示、区块显隐／排序、3／4／6 站、指标证据和完整／精简模板。

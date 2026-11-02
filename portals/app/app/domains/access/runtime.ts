@@ -26,6 +26,7 @@ import { createAuthorizedAggregateJobs } from "./aggregate-jobs";
 import { PgAggregateJobStore } from "../supervision/pg-jobs";
 import { createAuthorizedReportJobs } from "./report-jobs";
 import { PgReportJobStore } from "../supervision/pg-report-jobs";
+import { createAuthorizedReportRecovery } from "./report-recovery";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -90,6 +91,9 @@ export function aggregateJobsForSession(rpsid: string) {
 }
 export function reportJobsForSession(rpsid: string) {
   return createAuthorizedReportJobs(sessionAccessPorts(rpsid), { create: scope => new PgReportJobStore(getPool(), scope) }, "interactive");
+}
+export function reportRecoveryForSession(rpsid: string) {
+  return createAuthorizedReportRecovery(sessionAccessPorts(rpsid), { create: scope => new PgReportJobStore(getPool(), scope) }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.
 export function aggregatesForSession(rpsid: string) {
