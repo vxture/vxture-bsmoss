@@ -414,3 +414,30 @@ model SourceCompletion {
   @@map("source_completion")
   @@schema("bsmoss_integration")
 }
+
+model SourceCompletionSet {
+  workspace_id String
+  id String
+  source_id String
+  station_id String
+  service_id String?
+  network_object_id String?
+  device_id String?
+  metric_code String
+  metric_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  revision Decimal @db.Decimal(30,0)
+  status String
+  input_fingerprint String
+  mapping_manifest_sha256 String
+  watermark DateTime @db.Timestamptz()
+  evidence_ref String
+  evidence_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_completion_set")
+  @@schema("bsmoss_integration")
+}

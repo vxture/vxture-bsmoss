@@ -466,3 +466,40 @@ CREATE TABLE bsmoss_integration.source_completion (
   FOREIGN KEY(workspace_id,mapping_id,station_id,source_id) REFERENCES bsmoss_integration.source_mapping(workspace_id,id,station_id,source_id),
   FOREIGN KEY(metric_code,metric_version) REFERENCES bsmoss_catalog.metric_version(code,version)
 );
+
+-- Reviewed whole-object completion, including adjacent mapping versions.
+-- One revision stream per stable object/metric/window; NULL object parts compare equal.
+-- No runtime INSERT grant: computation cannot approve its own source evidence.
+CREATE TABLE bsmoss_integration.source_completion_set (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  source_id text NOT NULL,
+  station_id text NOT NULL,
+  service_id text,
+  network_object_id text,
+  device_id text,
+  metric_code text NOT NULL,
+  metric_version numeric(30,0) NOT NULL,
+  grain text NOT NULL CHECK(grain IN ('15m','hour','day','week','month')),
+  period_start timestamptz NOT NULL,
+  period_end timestamptz NOT NULL CHECK(period_end > period_start),
+  revision numeric(30,0) NOT NULL CHECK(revision > 0),
+  status text NOT NULL CHECK(status IN ('confirmed','revoked')),
+  input_fingerprint text NOT NULL CHECK(input_fingerprint ~ '^[a-f0-9]{64}$'),
+  mapping_manifest_sha256 text NOT NULL CHECK(mapping_manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  watermark timestamptz NOT NULL CHECK(watermark >= period_start AND (status <> 'confirmed' OR watermark >= period_end)),
+  evidence_ref text NOT NULL CHECK(length(trim(evidence_ref)) > 0),
+  evidence_sha256 text NOT NULL CHECK(evidence_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by)) > 0),
+  recorded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE NULLS NOT DISTINCT(workspace_id,source_id,station_id,service_id,network_object_id,device_id,metric_code,metric_version,grain,period_start,period_end,revision),
+  FOREIGN KEY(workspace_id,source_id) REFERENCES bsmoss_integration.source(workspace_id,id),
+  FOREIGN KEY(workspace_id,station_id) REFERENCES bsmoss_resource.station(workspace_id,id),
+  FOREIGN KEY(workspace_id,service_id,station_id) REFERENCES bsmoss_resource.station_service(workspace_id,id,station_id),
+  FOREIGN KEY(workspace_id,network_object_id,station_id,service_id) REFERENCES bsmoss_resource.network_object(workspace_id,id,station_id,service_id),
+  FOREIGN KEY(workspace_id,device_id,station_id) REFERENCES bsmoss_resource.device(workspace_id,id,station_id),
+  FOREIGN KEY(metric_code,metric_version) REFERENCES bsmoss_catalog.metric_version(code,version),
+  CHECK(network_object_id IS NULL OR service_id IS NOT NULL),
+  CHECK(network_object_id IS NULL OR device_id IS NULL)
+);

@@ -20,8 +20,8 @@ Reproducible checks: pnpm test:db (requires TEST_DATABASE_ADMIN_URL for a local
 test cluster), pnpm prisma:validate and pnpm lint:schema-mirror.
 See docs/40-implementation/20-database-contract.md for evidence and limits.
 
-The current baseline contains 30 tables: 15 original domain tables, 3 aggregate
-tables, 1 source completion ledger, 10 neutral platform tables
+The current baseline contains 31 tables: 15 original domain tables, 3 aggregate
+tables, 2 source completion ledgers, 10 neutral platform tables
 (vx_provision/local_authz/local_usage), and explicit local_authz.data_scope.
 DDL files intentionally do not commit independently; the initializer owns the
 transaction and refuses a database with existing product schemas.
@@ -39,3 +39,9 @@ source_completion is a reviewed, append-only confirmation/revocation ledger;
 the runtime role has SELECT only, with no INSERT/UPDATE/DELETE/TRUNCATE grant.
 It does not create an automatic source confirmation or ingestion approval path.
 See docs/40-implementation/120-source-completion.md.
+
+source_completion_set attests a whole stable object/metric/window across mapping
+versions, with exact mapping-manifest and input fingerprints. Latest set revisions
+win before fingerprint matching, including revocation; runtime has SELECT only.
+NULLS NOT DISTINCT uniqueness requires PostgreSQL 15+ (deployment targets 18).
+See docs/40-implementation/310-composite-completion.md.

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { planMappingWindows, type EffectiveMapping } from "./applicability.ts";
-import { aggregateIntervals, type AggregationPlan, type IntervalInput } from "./intervals.ts";
+import { aggregateIntervals, mappingSetFingerprint, type AggregationPlan, type IntervalInput } from "./intervals.ts";
 import { bindSourceCompletion } from "./completion.ts";
 
 const time = (m: number) => new Date(Date.parse("2026-10-25T00:00:00+08:00") + m * 60000).toISOString();
@@ -64,7 +64,8 @@ test("manifest order and timezone spelling canonicalize, while mapping switches 
   const first = aggregateIntervals(plan, rows);
   const reordered = aggregateIntervals({ ...plan, mappingWindows: [...applicability.mappingWindows].reverse() }, rows);
   assert.equal(first.inputFingerprint, reordered.inputFingerprint);
-  const evidence = { revision: "1", status: "confirmed" as const, inputFingerprint: first.inputFingerprint, watermark: time(60), evidenceRef: "fixture://completion", evidenceSha256: "b".repeat(64) };
+  const evidence = { revision: "1", status: "confirmed" as const, inputFingerprint: first.inputFingerprint, watermark: time(60), evidenceRef: "fixture://completion", evidenceSha256: "b".repeat(64),
+    mappingSet: { version: 1 as const, sha256: mappingSetFingerprint(applicability.mappingWindows) } };
   assert.equal(bindSourceCompletion(plan, rows, evidence).sourceComplete, true);
   const changed = planMappingWindows(period, "15m", [mapping("old", 0, 15), mapping("new", 15, 60, "2")]);
   assert.equal(bindSourceCompletion({ ...base, ...changed }, inputs(changed.mappingWindows), evidence).sourceComplete, false);

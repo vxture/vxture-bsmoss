@@ -10,7 +10,7 @@ import { PgProvisioningStore } from "../../portals/app/app/provisioning/lib/pg-s
 import { handleProvisioning } from "../../portals/app/app/provisioning/lib/handler.ts";
 import { readPgGrant } from "../../portals/app/app/domains/access/pg-grants.ts";
 import { PgAggregateStore } from "../../portals/app/app/domains/aggregation/pg-store.ts";
-import { aggregateIntervals } from "../../portals/app/app/domains/aggregation/intervals.ts";
+import { aggregateIntervals, mappingSetFingerprint } from "../../portals/app/app/domains/aggregation/intervals.ts";
 import { PgAggregateSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-snapshot.ts";
 import { createAuthorizedAggregates } from "../../portals/app/app/domains/access/aggregates.ts";
 const { Client } = pg;
@@ -39,7 +39,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,30);
+      assert.equal(tables.rows[0].n,31);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -733,6 +733,105 @@ await test("empty-database PostgreSQL contract", async t => {
       let changed=false;const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const rows=await client.query(sql,args);if(!changed&&sql.includes('SELECT m.*,r.payload_sha256')){changed=true;await depDraft('dep-connected-',{code:'service.voice.connected_count',version:1},0,'2',{revision:'2',previousRevision:'1',payloadSha256:'d'.repeat(64)});}return rows;},release(discard){client.release(discard);}};}};
       const before=await new PgAggregateSnapshotReader(intercepted,scope).load(depRate),after=await snapshotReader.load(depRate);
       assert.equal(changed,true);assert.deepEqual(aggregateIntervals(before.plan,before.inputs).value,{kind:'ratio',numerator:'28',denominator:'130'});assert.deepEqual(aggregateIntervals(after.plan,after.inputs).value,{kind:'ratio',numerator:'29',denominator:'130'});
+    });
+    async function attestSet(revision,status='confirmed',patch={},target=rollTarget) {
+      const snapshot=await snapshotReader.load(target),base={...snapshot.plan,sourceComplete:false,watermark:snapshot.plan.period.start};delete base.completionEvidence;
+      const object=(await db.query('SELECT station_id,service_id,network_object_id,device_id FROM bsmoss_integration.source_mapping WHERE workspace_id=$1 AND id=$2',['w',target.mappingId])).rows[0];
+      const row={workspace_id:'w',id:randomUUID(),source_id:target.sourceId,...object,metric_code:target.metric.code,metric_version:target.metric.version,
+        grain:target.grain,period_start:snapshot.plan.period.start,period_end:snapshot.plan.period.end,revision,status,
+        input_fingerprint:aggregateIntervals(base,snapshot.inputs).inputFingerprint,mapping_manifest_sha256:mappingSetFingerprint(snapshot.plan.mappingWindows),
+        watermark:status==='confirmed'?snapshot.plan.period.end:snapshot.plan.period.start,evidence_ref:'fixture://whole-object/'+revision,
+        evidence_sha256:'e'.repeat(64),recorded_by:'reviewed-import',...patch};
+      const columns=Object.keys(row);await db.query('INSERT INTO bsmoss_integration.source_completion_set('+columns.join(',')+') VALUES ('+columns.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row));
+      return row;
+    }
+    await t.test('whole-object completion reads one snapshot, covers all mappings and persists reproducible proof',async()=>{
+      let inserted=false;const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(!inserted&&sql.includes('SELECT m.*,n.kind')){inserted=true;await attestSet('1');}return result;},release(discard){client.release(discard);}};}};
+      const before=await new PgAggregateSnapshotReader(intercepted,scope).load(rollTarget);
+      assert.equal(inserted,true);assert.equal(before.plan.completionEvidence,undefined);
+      for(const mappingId of ['roll-old','roll-new']) {
+        const snapshot=await snapshotReader.load({...rollTarget,mappingId}),result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+        assert.equal(result.completeness,'complete');assert.equal(result.completionEvidence.revision,'1');
+        assert.equal(result.completionEvidence.mappingSet.sha256,mappingSetFingerprint(result.mappingWindows));
+      }
+      const saved=await snapshotApi.recompute({...rollTarget,expectedRevision:'2'});assert.equal(saved.revision,'3');
+      assert.equal((await snapshotApi.recompute({...rollTarget,mappingId:'roll-new',expectedRevision:'3'})).status,'duplicate');
+      const version=(await db.query('SELECT result_payload,input_manifest FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1 AND revision=3',[rollSeries])).rows[0];
+      assert.deepEqual(aggregateIntervals(version.input_manifest.plan,version.input_manifest.inputs),version.result_payload);
+    });
+    await t.test('latest set manifest or fingerprint mismatch and revocation never revive older matching evidence',async()=>{
+      await attestSet('2','confirmed',{mapping_manifest_sha256:'0'.repeat(64)});
+      let snapshot=await snapshotReader.load(rollTarget),result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+      assert.equal(result.completeness,'preliminary');assert.equal(result.completionEvidence.revision,'2');assert.ok(result.reasons.includes('source_confirmation_stale'));
+      await attestSet('3');assert.equal((await snapshotReader.load(rollTarget)).plan.sourceComplete,true);
+      await attestSet('4','revoked');snapshot=await snapshotReader.load(rollTarget);result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+      assert.equal(result.completeness,'preliminary');assert.ok(result.reasons.includes('source_confirmation_revoked'));assert.equal(result.completionEvidence.revision,'4');
+      await attestSet('5','confirmed',{input_fingerprint:'0'.repeat(64)});
+      snapshot=await snapshotReader.load(rollTarget);assert.equal(snapshot.plan.sourceComplete,false);assert.equal(snapshot.plan.completionEvidence.revision,'5');
+      await attestSet('6');
+    });
+    await t.test('set completion is invalidated by measurement, quality and authority revisions',async()=>{
+      await store.append(draft('roll-0',{mappingId:'roll-old',revision:'3',previousRevision:'2',payloadSha256:'c'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'30'}}));
+      let snapshot=await snapshotReader.load(rollTarget),result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+      assert.equal(result.completeness,'preliminary');assert.ok(result.reasons.includes('source_confirmation_stale'));assert.deepEqual(result.value,{kind:'integer',value:'60'});
+      await attestSet('7');
+      const id=(await db.query("SELECT id FROM bsmoss_metering.measurement WHERE event_id='roll-0' AND event_revision=3")).rows[0].id;
+      await db.query("INSERT INTO bsmoss_metering.quality_decision VALUES ('w','set-quality',$1,2,'pending','2','fixture','reviewer',now())",[id]);
+      snapshot=await snapshotReader.load(rollTarget);result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+      assert.equal(result.completeness,'partial');assert.equal(snapshot.plan.sourceComplete,false);
+      await attestSet('8');snapshot=await snapshotReader.load(rollTarget);assert.equal(snapshot.plan.sourceComplete,true);assert.equal(aggregateIntervals(snapshot.plan,snapshot.inputs).completeness,'partial');
+      await db.query("INSERT INTO bsmoss_metering.quality_decision VALUES ('w','set-quality-restore',$1,3,'verified','3','fixture','reviewer',now())",[id]);
+      assert.equal((await snapshotReader.load(rollTarget)).plan.sourceComplete,false);
+      await attestSet('9');
+      await db.query("UPDATE bsmoss_integration.source_mapping SET version=3 WHERE id='roll-new'");
+      snapshot=await snapshotReader.load(rollTarget);assert.equal(snapshot.plan.sourceComplete,false);assert.ok(aggregateIntervals(snapshot.plan,snapshot.inputs).reasons.includes('source_confirmation_stale'));
+      await db.query("UPDATE bsmoss_integration.source_mapping SET version=2 WHERE id='roll-new'");
+    });
+    await t.test('set ledger scopes object, source, metric, grain and time without segment fallback',async()=>{
+      for(const target of [{...rollTarget,at:snapshotTime(75)},{...rollTarget,mappingId:'dependency-map'},{...rollTarget,metric:depTarget.metric},{...rollTarget,grain:'day'}]) {
+        const current=await snapshotReader.load(target);assert.equal(current.plan.completionEvidence,undefined);
+      }
+      const next={...rollTarget,at:snapshotTime(75)},snapshot=await snapshotReader.load(next);
+      const binding=aggregateIntervals(snapshot.plan,snapshot.inputs).inputFingerprint;
+      await db.query(`INSERT INTO bsmoss_integration.source_completion(workspace_id,source_id,mapping_id,station_id,metric_code,metric_version,grain,period_start,period_end,revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256,recorded_by)
+        VALUES ('w','src','roll-new','st','service.data.uplink_bytes',1,'hour',$1,$2,1,'confirmed',$3,$2,'fixture://single-fallback',$4,'reviewer')`,[snapshot.plan.period.start,snapshot.plan.period.end,binding,'a'.repeat(64)]);
+      assert.equal((await snapshotReader.load(next)).plan.sourceComplete,true);
+      await attestSet('1','revoked',{},next);
+      const revoked=await snapshotReader.load(next);assert.equal(revoked.plan.sourceComplete,false);assert.equal(revoked.plan.completionEvidence.status,'revoked');assert.ok(revoked.plan.completionEvidence.mappingSet);
+      // Another source may attest the same physical object, but cannot confirm src.
+      await attestSet('10','confirmed',{source_id:'src2'});
+      assert.equal((await snapshotReader.load(rollTarget)).plan.completionEvidence.revision,'9');
+    });
+    await t.test('set proof is read-only to runtime, tenant constrained and unique with null object parts',async()=>{
+      for(const sql of ["UPDATE bsmoss_integration.source_completion_set SET status='confirmed'",'DELETE FROM bsmoss_integration.source_completion_set',
+        'TRUNCATE bsmoss_integration.source_completion_set','INSERT INTO bsmoss_integration.source_completion_set SELECT * FROM bsmoss_integration.source_completion_set LIMIT 1']) {
+        await assert.rejects(adapterPool.query(sql),e=>e.code==='42501');
+      }
+      for(const patch of [{watermark:snapshotTime(30)},{revision:'0'},{mapping_manifest_sha256:'bad'},{input_fingerprint:'bad'},{evidence_ref:' '},{recorded_by:''},{service_id:null}]) {
+        await assert.rejects(attestSet('10','confirmed',patch),e=>e.code==='23514');
+      }
+      await assert.rejects(attestSet('10','confirmed',{workspace_id:'other'}),e=>e.code==='23503');
+      await assert.rejects(attestSet('10','confirmed',{station_id:'foreign'}),e=>e.code==='23503');
+      await assert.rejects(attestSet('9'),e=>e.code==='23505');
+      const outcomes=await Promise.allSettled([attestSet('10'),attestSet('10')]);
+      assert.equal(outcomes.filter(r=>r.status==='fulfilled').length,1);assert.equal(outcomes.find(r=>r.status==='rejected').reason.code,'23505');
+    });
+    await t.test('whole-object derived proof binds both metrics across the entire mapping manifest',async()=>{
+      const target={...rollTarget,metric:depTarget.metric};
+      for(let i=0;i<4;i++)await store.append(draft('set-down-'+i,{mappingId:i<2?'roll-old':'roll-new',metric:down,
+        periodStart:snapshotTime(i*15),periodEnd:snapshotTime((i+1)*15),value:{kind:'integer_delta',value:'5'}}));
+      await attestSet('1','confirmed',{},target);
+      const snapshot=await snapshotReader.load(target),result=aggregateIntervals(snapshot.plan,snapshot.inputs);
+      assert.equal(snapshot.inputs.length,8);assert.equal(result.completeness,'complete');assert.deepEqual(result.value,{kind:'integer',value:'80'});
+      const saved=await snapshotApi.recompute({...target,expectedRevision:null});
+      const version=(await db.query('SELECT result_payload,input_manifest FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[saved.seriesId])).rows[0];
+      assert.deepEqual(aggregateIntervals(version.input_manifest.plan,version.input_manifest.inputs),version.result_payload);
+      const id=(await db.query("SELECT id FROM bsmoss_metering.measurement WHERE event_id='set-down-3'")).rows[0].id;
+      await db.query("INSERT INTO bsmoss_metering.quality_decision VALUES ('w','set-derived-quality',$1,2,'pending','2','fixture','reviewer',now())",[id]);
+      const changed=await snapshotReader.load(target),partial=aggregateIntervals(changed.plan,changed.inputs);
+      assert.equal(partial.value,null);assert.equal(partial.completeness,'partial');assert.equal(partial.validWindows,3);assert.ok(partial.reasons.includes('source_confirmation_stale'));
+      const denied=new PgAggregateSnapshotReader(adapterPool,{...scope,metricKeys:scope.metricKeys.filter(k=>k!=='service.data.downlink_bytes@1')});
+      await assert.rejects(denied.load(target),/dependency_scope_denied/);
     });
   } finally {
     if (adapterPool) await adapterPool.end();

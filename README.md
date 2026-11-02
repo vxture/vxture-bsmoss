@@ -109,8 +109,10 @@ metric grants/capabilities are all required, with one shared native frequency.
 See docs/40-implementation/300-trusted-derived-inputs.md.
 Adjacent mappings of one stable subject are planned per native window; service
 activation/retirement sets expected coverage. Gaps, overlaps and off-grid
-boundaries fail closed; multi-mapping results remain preliminary without a
-combined completion proof. See docs/40-implementation/130-effective-windows.md.
+boundaries fail closed. A reviewed whole-object completion ledger binds the exact
+mapping set and complete input snapshot. Latest revocations/stale proofs never
+fall back to older or single-segment confirmations; missing inputs remain partial.
+See docs/40-implementation/310-composite-completion.md.
 
 ## Cumulative source normalization (I07, in progress)
 

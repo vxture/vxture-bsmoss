@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aggregateIntervals, type AggregationPlan, type CompletionEvidence, type IntervalInput } from "./intervals.ts";
+import { aggregateIntervals, mappingSetFingerprint, type AggregationPlan, type CompletionEvidence, type IntervalInput } from "./intervals.ts";
 import { bindSourceCompletion } from "./completion.ts";
 
 const time = (m: number) => new Date(Date.parse("2026-10-25T00:00:00+08:00") + m * 60000).toISOString();
@@ -65,4 +65,46 @@ test("invalid completion evidence, insufficient watermarks and forged completed 
   const stale = { ...evidence(), inputFingerprint: "f".repeat(64) };
   assert.throws(() => aggregateIntervals({ ...plan, sourceComplete: true, watermark: time(60), completionEvidence: stale }, rows), /completion_binding_mismatch/);
   assert.throws(() => aggregateIntervals({ ...plan, completionEvidence: evidence() }, rows), /completion_binding_mismatch/);
+});
+
+function compositeFixture() {
+  const mappingWindows = rows.map((r, i) => ({ mappingId: i < 2 ? "old" : "new", mappingVersion: i < 2 ? "1" : "2", period: r.period }));
+  const p = { ...plan, mappingWindows };
+  const inputs = rows.map((r, i) => ({ ...r, mappingId: mappingWindows[i]!.mappingId, mappingVersion: mappingWindows[i]!.mappingVersion }));
+  const e: CompletionEvidence = { ...evidence(p, inputs), mappingSet: { version: 1, sha256: mappingSetFingerprint(mappingWindows) } };
+  return { p, inputs, e };
+}
+test("whole-object proof covers the exact mapping set and reproduces independently of manifest order", () => {
+  const { p, inputs, e } = compositeFixture();
+  const result = aggregateIntervals(bindSourceCompletion(p, inputs, e), inputs);
+  assert.equal(result.completeness, "complete"); assert.deepEqual(result.completionEvidence, e);
+  const reordered = { ...p, mappingWindows: [...p.mappingWindows].reverse() };
+  assert.equal(mappingSetFingerprint(p.mappingWindows), mappingSetFingerprint(reordered.mappingWindows));
+  assert.deepEqual(aggregateIntervals(bindSourceCompletion(reordered, [...inputs].reverse(), e), inputs), result);
+  result.completionEvidence!.mappingSet!.sha256 = "0".repeat(64);
+  assert.equal(e.mappingSet!.sha256, mappingSetFingerprint(p.mappingWindows));
+});
+test("segment proofs, stale sets and changed facts cannot approve a combined snapshot", () => {
+  const { p, inputs, e } = compositeFixture();
+  const segment = { ...e }; delete segment.mappingSet;
+  for (const proof of [segment, { ...e, mappingSet: { version: 1 as const, sha256: "0".repeat(64) } }]) {
+    const result = aggregateIntervals(bindSourceCompletion(p, inputs, proof), inputs);
+    assert.equal(result.completeness, "preliminary"); assert.ok(result.reasons.includes("source_confirmation_stale"));
+  }
+  const changed = inputs.map((r, i) => i === 2 ? { ...r, revision: "2", payloadSha256: "c".repeat(64) } : r);
+  assert.equal(bindSourceCompletion(p, changed, e).sourceComplete, false);
+  const missing = inputs.slice(0, 3);
+  const proof = { ...e, inputFingerprint: aggregateIntervals(p, missing).inputFingerprint };
+  const partial = aggregateIntervals(bindSourceCompletion(p, missing, proof), missing);
+  assert.equal(partial.completeness, "partial"); assert.equal(partial.validWindows, 3);
+});
+test("whole-object revocations and invalid manifests fail closed", () => {
+  const { p, inputs, e } = compositeFixture();
+  const revoked = { ...e, revision: "2", status: "revoked" as const, watermark: time(0) };
+  const result = aggregateIntervals(bindSourceCompletion(p, inputs, revoked), inputs);
+  assert.equal(result.completeness, "preliminary"); assert.ok(result.reasons.includes("source_confirmation_revoked"));
+  for (const mappingSet of [{ version: 2, sha256: "a".repeat(64) }, { version: 1, sha256: "bad" }, null]) {
+    assert.throws(() => bindSourceCompletion(p, inputs, { ...e, mappingSet } as CompletionEvidence), /invalid_completion_mapping_set/);
+  }
+  assert.throws(() => bindSourceCompletion(plan, rows, { ...evidence(), mappingSet: e.mappingSet }), /invalid_completion_mapping_set/);
 });

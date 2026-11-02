@@ -1,4 +1,4 @@
-import { aggregateIntervals, type AggregationPlan, type CompletionEvidence, type IntervalInput } from "./intervals.ts";
+import { aggregateIntervals, completionMatches, type AggregationPlan, type CompletionEvidence, type IntervalInput } from "./intervals.ts";
 import { instant } from "./periods.ts";
 
 // Internal, trusted source attestation. Never accepts an unverified request flag.
@@ -13,7 +13,7 @@ export function bindSourceCompletion(rawPlan: AggregationPlan, inputs: readonly 
     const evidence = structuredClone(rawEvidence);
     evidence.watermark = new Date(instant(evidence.watermark)).toISOString();
     plan.completionEvidence = evidence;
-    if (evidence.status === "confirmed" && evidence.inputFingerprint === base.inputFingerprint) {
+    if (evidence.status === "confirmed" && completionMatches(evidence, base.inputFingerprint, base.mappingWindows)) {
       plan.sourceComplete = true; plan.watermark = evidence.watermark;
     }
   }

@@ -55,3 +55,4 @@
 - [真实接入与上线前置](../50-deployment/40-live-prerequisites.md)
 
 - [可信依赖输入](../40-implementation/300-trusted-derived-inputs.md)：方向总流量、次数接通率的授权快照与原始证据。
+- [跨映射组合完成证明](../40-implementation/310-composite-completion.md)：全对象周期确认、最高撤销和不可变证据。

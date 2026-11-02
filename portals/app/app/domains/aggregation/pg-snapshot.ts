@@ -125,17 +125,25 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         ...applicability,
         // Missing confirmation never falls back to observed maximum sample time.
         watermark: period.start, sourceComplete: false };
-      // The current ledger attests one mapping. Never reuse one segment's proof
-      // as a completion proof for a combined multi-mapping snapshot.
+      // Object-scoped ledger wins even after topology shrinks to one mapping.
+      // Select the latest revision BEFORE comparing its manifest/fingerprint;
+      // a stale/revoked set must never fall back to an older segment proof.
+      const setCompletion = (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256,mapping_manifest_sha256
+        FROM bsmoss_integration.source_completion_set WHERE workspace_id=$1 AND source_id=$2 AND station_id=$3
+        AND service_id IS NOT DISTINCT FROM $4 AND network_object_id IS NOT DISTINCT FROM $5 AND device_id IS NOT DISTINCT FROM $6
+        AND metric_code=$7 AND metric_version=$8 AND grain=$9 AND period_start=$10 AND period_end=$11
+        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, mapping.station_id, mapping.service_id,
+        mapping.network_object_id, mapping.device_id, metric.code, metric.version, target.grain, period.start, period.end])).rows[0];
       const completionMapping = new Set(applicability.mappingWindows.map(w => w.mappingId));
       const completionId = completionMapping.size === 1 ? [...completionMapping][0]! : null;
-      const completion = completionId === null ? undefined : (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256
+      const completion = setCompletion ?? (completionId === null ? undefined : (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256
         FROM bsmoss_integration.source_completion WHERE workspace_id=$1 AND source_id=$2 AND mapping_id=$3
         AND metric_code=$4 AND metric_version=$5 AND grain=$6 AND period_start=$7 AND period_end=$8
-        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, completionId, metric.code, metric.version, target.grain, period.start, period.end])).rows[0];
+        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, completionId, metric.code, metric.version, target.grain, period.start, period.end])).rows[0]);
       const plan = bindSourceCompletion(basePlan, inputs, completion ? { revision: completion.revision, status: completion.status,
         inputFingerprint: completion.input_fingerprint, watermark: completion.watermark.toISOString(),
-        evidenceRef: completion.evidence_ref, evidenceSha256: completion.evidence_sha256 } : undefined);
+        evidenceRef: completion.evidence_ref, evidenceSha256: completion.evidence_sha256,
+        ...(setCompletion ? { mappingSet: { version: 1 as const, sha256: setCompletion.mapping_manifest_sha256 } } : {}) } : undefined);
       await client.query("COMMIT");
       return { plan, inputs };
     } catch (error) {

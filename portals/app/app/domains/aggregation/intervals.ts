@@ -48,6 +48,7 @@ export interface CompletionEvidence {
   watermark: string;
   evidenceRef: string;
   evidenceSha256: string;
+  mappingSet?: { version: 1; sha256: string };
 }
 export type AggregateValue = { kind: "integer"; value: string } | { kind: "ratio"; numerator: string; denominator: string };
 const key = (value: unknown): string => {
@@ -59,6 +60,17 @@ const key = (value: unknown): string => {
   return JSON.stringify(value) ?? "null";
 };
 export function fingerprintOf(value: unknown) { return createHash("sha256").update(key(value)).digest("hex"); }
+export function mappingSetFingerprint(windows: readonly MappingWindow[]) {
+  return fingerprintOf({ version: "mapping-set-v1", windows: [...windows].sort((a, b) => Date.parse(a.period.start) - Date.parse(b.period.start)) });
+}
+export function completionMatches(e: CompletionEvidence, inputFingerprint: string, windows?: readonly MappingWindow[]) {
+  if (e.mappingSet === undefined && windows && new Set(windows.map(w => w.mappingId)).size > 1) return false;
+  if (e.mappingSet !== undefined) {
+    if (!e.mappingSet || e.mappingSet.version !== 1 || !/^[a-f0-9]{64}$/.test(e.mappingSet.sha256) || !windows) throw new Error("invalid_completion_mapping_set");
+    if (e.mappingSet.sha256 !== mappingSetFingerprint(windows)) return false;
+  }
+  return e.inputFingerprint === inputFingerprint;
+}
 function identity(value: string) {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_identity");
 }
@@ -210,7 +222,7 @@ export function aggregateIntervals(
     if (Date.parse(e.watermark) < start || e.status === "confirmed" && Date.parse(e.watermark) < end) throw new Error("invalid_completion_watermark");
     const basePlan = { ...plan, watermark: plan.period.start, sourceComplete: false };
     delete basePlan.completionEvidence;
-    const matches = e.inputFingerprint === fingerprintOf({ version: AGGREGATION_VERSION, plan: basePlan, selected });
+    const matches = completionMatches(e, fingerprintOf({ version: AGGREGATION_VERSION, plan: basePlan, selected }), plan.mappingWindows);
     const confirmed = e.status === "confirmed" && matches;
     if (plan.sourceComplete !== confirmed || plan.watermark !== (confirmed ? e.watermark : plan.period.start)) throw new Error("completion_binding_mismatch");
     if (!matches) reasons.add("source_confirmation_stale");
@@ -234,7 +246,7 @@ export function aggregateIntervals(
     validMilliseconds, watermark: plan.watermark, requiredWatermark,
     reasons: [...reasons].sort(),
     ...(plan.mappingWindows === undefined ? {} : { mappingWindows: structuredClone(plan.mappingWindows) }),
-    ...(plan.completionEvidence === undefined ? {} : { completionEvidence: { ...plan.completionEvidence } }),
+    ...(plan.completionEvidence === undefined ? {} : { completionEvidence: structuredClone(plan.completionEvidence) }),
     evidence: selected.map(row => ({ sourceId: row.sourceId, eventId: row.eventId, componentKey: row.componentKey,
       revision: row.revision, qualityRevision: row.qualityRevision, payloadSha256: row.payloadSha256,
       mappingVersion: row.mappingVersion, ...(row.mappingId === undefined ? {} : { mappingId: row.mappingId }), transformVersion: row.transformVersion, metric: { ...row.metric } })),
