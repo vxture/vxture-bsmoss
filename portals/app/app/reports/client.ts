@@ -26,6 +26,7 @@ export const reportStatusLabels: Record<string, string> = {
   complete: "\u5b8c\u6574", incomplete: "\u4e0d\u5b8c\u6574", current: "\u5f53\u524d\u4e00\u81f4", stale: "\u5df2\u8fc7\u671f", preliminary: "\u5f85\u786e\u8ba4",
   missing: "\u7f3a\u6570", partial: "\u90e8\u5206\u6570\u636e", not_connected: "\u672a\u63a5\u5165", not_published: "\u672a\u53d1\u5e03\u7ed3\u679c",
   authority_unavailable: "\u6765\u6e90\u4f9d\u636e\u4e0d\u53ef\u7528", dependencies_incomplete: "\u9010\u65e5\u4f9d\u636e\u4e0d\u5b8c\u6574", not_applicable: "\u4e0d\u9002\u7528",
+  unavailable: "\u6682\u4e0d\u53ef\u7528",
   day: "\u65e5\u62a5", week: "\u5468\u62a5", month: "\u6708\u62a5", pending: "\u7b49\u5f85\u5904\u7406", succeeded: "\u5df2\u751f\u6210\u6587\u4ef6", dead: "\u5df2\u7ec8\u6b62",
   report_not_active: "\u5f53\u524d\u53d1\u5e03\u5df2\u64a4\u56de\u6216\u66ff\u6362", report_stale: "\u53d1\u5e03\u6570\u636e\u5df2\u8fc7\u671f", report_incomplete: "\u62a5\u544a\u6570\u636e\u4e0d\u5b8c\u6574",
   export_renderer_unavailable: "\u62a5\u544a\u6e32\u67d3\u6682\u4e0d\u53ef\u7528", export_too_large: "\u62a5\u544a\u8d85\u51fa\u5bfc\u51fa\u5927\u5c0f\u4e0a\u9650",

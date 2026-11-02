@@ -219,6 +219,9 @@ CREATE TABLE bsmoss_views.user_preference (
   template_version numeric(30,0) NOT NULL,
   revision numeric(30,0) NOT NULL CHECK (revision > 0),
   definition jsonb NOT NULL CHECK (jsonb_typeof(definition) = 'object'),
+  definition_sha256 text NOT NULL CHECK (definition_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL DEFAULT '' CHECK (database_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL DEFAULT session_user,
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (workspace_id,subject,template_code,template_version,revision),
   FOREIGN KEY (workspace_id,template_code,template_version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
@@ -229,6 +232,35 @@ CREATE INDEX measurement_metric_period ON bsmoss_metering.measurement(workspace_
 CREATE INDEX quality_measurement_revision ON bsmoss_metering.quality_decision(workspace_id,measurement_id,revision);
 -- Neutral platform contract schemas adapted from yucer.
 CREATE EXTENSION IF NOT EXISTS pgcrypto; 
+
+CREATE UNIQUE INDEX analysis_preference_command ON bsmoss_views.user_preference
+  (workspace_id,subject,template_code,template_version,(definition->'command'->>'commandId'))
+  WHERE definition->>'schema'='analysis-preference-v1';
+CREATE FUNCTION bsmoss_views.capture_user_preference() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog,bsmoss_views AS $$
+DECLARE prior numeric; c jsonb;
+BEGIN
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'immutable_user_preference' USING ERRCODE='42501'; END IF;
+  c=NEW.definition->'command';
+  IF NEW.definition->>'schema' IS DISTINCT FROM 'analysis-preference-v1' OR
+    (c->>'templateCode',c->>'templateVersion') IS DISTINCT FROM (NEW.template_code,NEW.template_version::text) OR
+    NEW.definition->'requiredScope'->>'workspaceId' IS DISTINCT FROM NEW.workspace_id OR
+    jsonb_typeof(c->'preferences') IS DISTINCT FROM 'array' OR
+    length(coalesce(c->>'commandId','')) NOT BETWEEN 1 AND 200 THEN
+    RAISE EXCEPTION 'invalid_user_preference' USING ERRCODE='23514';
+  END IF;
+  SELECT max(revision) INTO prior FROM bsmoss_views.user_preference WHERE
+    workspace_id=NEW.workspace_id AND subject=NEW.subject AND template_code=NEW.template_code AND template_version=NEW.template_version;
+  IF NEW.revision<>coalesce(prior,0)+1 OR
+    (c->>'expectedRevision') IS DISTINCT FROM prior::text THEN RAISE EXCEPTION 'invalid_user_preference_revision' USING ERRCODE='23514'; END IF;
+  NEW.database_sha256=encode(sha256(convert_to(NEW.definition::text,'UTF8')),'hex');
+  NEW.recorded_by=session_user; NEW.created_at=clock_timestamp(); RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_views.capture_user_preference() FROM PUBLIC;
+CREATE TRIGGER user_preference_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_views.user_preference
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_views.capture_user_preference();
+CREATE TRIGGER user_preference_no_truncate BEFORE TRUNCATE ON bsmoss_views.user_preference
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_views.capture_user_preference();
 
 
 

@@ -41,6 +41,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');
       }
       const reportsPage=await fetch(url+'/reports');assert.equal(reportsPage.status,200);assert.ok((await reportsPage.text()).includes('\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e'));
+      const analysisPage=await fetch(url+'/analysis');assert.equal(analysisPage.status,200);assert.ok((await analysisPage.text()).includes('\u6b63\u5f0f\u5206\u6790\u5c1a\u672a\u5f00\u653e'));
+      for(const method of ['GET','POST']){const r=await fetch(url+'/api/analysis',{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');}
       for(const path of ['/api/aggregate-jobs','/api/aggregate-jobs/untrusted','/api/report-jobs?kind=generation','/api/report-jobs/untrusted?kind=export']){const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');}
       assert.equal((await fetch(url+'/api/aggregate-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
       const recovery=await fetch(url+'/api/report-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});assert.equal(recovery.status,401);assert.equal(recovery.headers.get('cache-control'),'no-store');assert.equal(recovery.headers.get('x-content-type-options'),'nosniff');
@@ -65,11 +67,12 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview/station/SX-DEMO-001/period/report?format=html")).status,404);
       assert.equal((await fetch(url+"/api/product-preview",{method:"POST",body:JSON.stringify(request)})).status,404);
       const root=await fetch(url);assert.equal(root.status,200);assert.ok(!(await root.text()).includes("fixture-hourly-v1"));
-      const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,307);assert.equal(formalRoot.headers.get('location'),'/reports');
+      const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,307);assert.equal(formalRoot.headers.get('location'),'/analysis');
     });
   });
   await withServer(true,async url=>{
     await t.test('synthetic preview never grants formal aggregate access or falls back to sample results',async()=>{
+      assert.equal((await fetch(url+'/api/analysis?at=2026-11-03T00%3A00%3A00Z')).status,401);
       const response=await fetch(url+'/api/aggregates?sourceId=src&mappingId=map&metricCode=service.data.uplink_bytes&metricVersion=1&grain=day&at=2026-10-25T00%3A00%3A00Z');
       assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');assert.ok(response.headers.get('vary').split(',').map(s=>s.trim().toLowerCase()).includes('cookie'));
       const body=await response.json();assert.equal(body.code,'AUTH_REQUIRED');assert.ok(!JSON.stringify(body).includes('9007199254740993'));

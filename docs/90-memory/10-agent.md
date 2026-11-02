@@ -1,5 +1,19 @@
 # 后续代理入口
 
+## 正式分析工作台与账户显示配置（2026-11-03，最新入口）
+
+接续dd1f9b1及上轮未完成的222草稿／4个analysis源文件，本turn继续实质progress，复用active goal和bs-moss heartbeat，不重建、不spawn。设计222／实施580。完成views analysis纯规则／PgAnalysisStore／正式授权门面／RP组合根、/analysis和/api/analysis；正式根入口改为分析，preview仍陕西地图，首页不默认选站和地图布局均未改。
+
+固定服务端analysis:default page模板，最多16面板，同RR读取本人配置与三类；最近7自然周期、单卡周期、设备状态条／温度摘要／精确表格及全量依据。显示换算BigInt，仅有界图形坐标转Number，缺数／过期不连线。未授权绑定不返回，隐藏不读时序；真实scope／实际依赖／物理参数开关及末次C1/C2/C3权限有效期复查，未接入／未发布／依据不可用／SQL错误有区别，不回退演示或补零。直接比率rollup定位不强加未使用依赖。
+
+本人偏好仅visible/order/displayUnit/grain/precision，租户／可信subject／模板版本追加；CAS和commandId、精确历史回执／当前head分开、重置追加空偏好。有限RR竞争重试让同command并发只插一次；首次保存模板选择共享锁，写后撤权／故障全回滚。既有user_preference增加双SHA／DB actor、命令唯一索引、invoker固定search_path捕获／连续revision校验／不可变trigger，仍59表，Prisma同步，无旧库迁移。HTTP复用配置origin／16KiB实际流／严格字段及私有响应头，409／400／503区分；共享reportCommand新增可选错误映射，原调用默认不变。
+
+最终505单测／326实际PG（新增10场景）／双层types／Prisma／生产build／20HTTP与117篇编号／59表／交付／SCA／ASCII／staged密钥扫描以authorized-analysis-workspace检查点及tmp/analysis-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,preflight}.log为准。首轮单测required fixture共用可变scope，改独立快照；新增physical测试遗留无测量mapping与后续同对象重叠被正确拒，finally清理后326全过。没有放宽产品限制。
+
+独立63334合成实际React QA首次已提交回503、完全同command重试只有1偏好、隐藏通话／GB换算／刷新恢复／追加重置、三类状态／桌面和390×844。手机抽屉width390、主页面client375，无横溢；桌面实际1265，无warn/error。artifacts/analysis-workspace-qa含desktop.png、mobile.png、mobile-settings.png、commands.json；viewport reset、临时tab12关闭及专用PG58874与63334停止、63333当前SHA见检查点。无正式路由测试身份后门。
+
+I11本人配置切片完成，总体in_progress；后续受审管理员／角色模板、I08对象分布与分层规模。真实来源字段／脱敏样例／签认、C1/C2/C3 live注册、机器provider权威契约、私有app.env／stack.env、远端源码及build／beta／prod、Linux／域名／TLS／registry／DB、11万3倍突发／安全恢复／业务UAT及生产批准仍缺。只读预检prerequisites_missing；没有push／PR／远端CI／真实接入／外部部署或上线，五项1–3本地完成、4–5active，费用预留／退服P2／陕西演示不变。
+
 ## 历史报告周期核验（2026-11-03，最新入口）
 
 接续01ea8ac，本goal turn实质progress，保持active，不重建goal／heartbeat、不spawn。设计221／实施570。新增reports/history、pg-history；export registeredTransaction复用当前登记共享锁、active／subject／全scope／原templateSHA及真实generate和末次授权。已有到期报告不受72小时lookback限制；scope先SQL过滤再LIMIT，每步一份，小时回执排除本小时已核验，先never再最久checked再period/id，无全局watermark，跨小时积压不饥饿，晚提交更早周期可见。

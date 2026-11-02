@@ -22,6 +22,7 @@ import { reportScheduleCases } from './report-schedule.cases.mjs';
 import { aggregateWorkerCases } from './aggregate-worker.cases.mjs';
 import { jobRecoveryCases } from './job-recovery.cases.mjs';
 import { reportJobMonitorCases } from './report-job-monitor.cases.mjs';
+import { analysisCases } from './analysis.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -62,6 +63,7 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const command=(code,expectedRevision=null,at=period.start)=>({templateCode:code,templateVersion:1,at,expectedRevision});
   const counts=async()=>(await db.query(`SELECT (SELECT count(*) FROM bsmoss_analysis.report_series) series,(SELECT count(*) FROM bsmoss_analysis.report_revision) revisions,(SELECT count(*) FROM bsmoss_analysis.report_outbox) outbox`)).rows[0];
   for(const [m,value] of [[up,{kind:'integer_delta',value:'90071992547409931234567890'}],[rate,{kind:'ratio_parts',numerator:'19',denominator:'20'}],[state,{kind:'state_event',state:'running',validUntil:period.end}],[gauge,{kind:'fixed_point',unscaled:'25345',scale:3}]]){await write(m,value);await publish(m);}
+  await analysisCases(t,{db,adapterPool,access,scope,up,rate,state,gauge,sms,period,publish,putTemplate,panel,intercept});
   await putTemplate('report-single',single());
   let first;
   await t.test('report generation persists a stable exact snapshot with atomic generated outbox and authorized idempotent replay',async()=>{

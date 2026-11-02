@@ -20,7 +20,7 @@ export function reportHttpError(error: unknown): Response {
 }
 export interface ReportHttpSession { enabled: boolean; sid?: string; appOrigin: string }
 export async function reportCommand<T>(request: Request, session: ReportHttpSession,
-  normalize: (raw: any) => T, execute: (sid: string, command: T) => Promise<unknown>, accepted = 200): Promise<Response> {
+  normalize: (raw: any) => T, execute: (sid: string, command: T) => Promise<unknown>, accepted = 200, onError = reportHttpError): Promise<Response> {
   const reply = (status: number, code: string, message: string) => privateReportResponse(errorResponse(status, code, message));
   if (!session.enabled || !session.sid) return reply(401, "AUTH_REQUIRED", "Authentication required");
   // Bind to the configured public origin. Host, forwarded headers and request
@@ -35,5 +35,5 @@ export async function reportCommand<T>(request: Request, session: ReportHttpSess
   try { command = normalize(JSON.parse(await boundedText(request, 16384))); }
   catch (error) { return error instanceof Error && error.message === "body_too_large" ? reply(413, "REPORT_BODY_TOO_LARGE", "Command too large") : reply(400, "REPORT_INVALID_COMMAND", "Invalid command"); }
   try { return privateReportResponse(Response.json(await execute(session.sid, command), { status: accepted })); }
-  catch (error) { return reportHttpError(error); }
+  catch (error) { return onError(error); }
 }

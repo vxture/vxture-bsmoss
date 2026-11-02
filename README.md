@@ -31,9 +31,10 @@ Requires Node >=22.18 and pnpm 10.30.3.
     pnpm type-check:all
     pnpm lint:docs-numbering
 
-Implemented: versioned metric and view rules, a 30-table empty-database baseline,
-the transactional PostgreSQL measurement adapter, and an explicitly gated sample
-portal. The internal trusted-access resolver and measurement facade are tested;
+Implemented: versioned metric and view rules, a 59-table empty-database baseline,
+transactional PostgreSQL measurements and aggregates, formal analysis with personal
+display preferences, versioned reports and audited task queues, and a gated sample
+portal. The internal trusted-access resolver and service facades are tested;
 production RP, entitlement, PostgreSQL local-grant and provisioning providers
 are now wired, with no in-memory production fallback.
 Live sources and production deployment remain pending.
@@ -54,9 +55,11 @@ enabled product capability. See docs/20-specs/60-periodic-usage-analysis.md.
 Periodic analysis covers three configurable categories: business service,
 operational status and runtime parameters. The planned catalog and versioned
 view/report configuration are specified in docs/20-specs/70-metric-catalog.md.
-The sample portal implements configurable display for the first 11 metric
-definitions. The authenticated evidence API is /api/measurements; live source
-adapters, aggregate reports and their production validation remain pending.
+The sample portal implements configurable display for the first metric catalog.
+Formal /analysis, /reports and /operations workspaces use real RP authorization;
+the authenticated evidence API is /api/measurements. Live source adapters and
+production acceptance remain pending. Formal analysis defaults to a server-selected
+page template; personal preferences never change scope, bindings or report templates.
 
 ## Local sample portal (I10)
 

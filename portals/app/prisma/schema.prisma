@@ -237,6 +237,9 @@ model UserPreference {
   templateVersion Decimal @map("template_version") @db.Decimal(30,0)
   revision Decimal @db.Decimal(30,0)
   definition Json @db.JsonB
+  definitionSha256 String @map("definition_sha256")
+  databaseSha256 String @map("database_sha256") @default("")
+  recordedBy String @map("recorded_by") @default(dbgenerated("SESSION_USER"))
   createdAt DateTime @map("created_at") @db.Timestamptz() @default(now())
   @@id([workspaceId,subject,templateCode,templateVersion,revision])
   @@map("user_preference")
