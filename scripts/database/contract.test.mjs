@@ -59,7 +59,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,45);
+      assert.equal(tables.rows[0].n,47);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{

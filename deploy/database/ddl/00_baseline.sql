@@ -376,7 +376,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
@@ -931,6 +931,7 @@ CREATE TABLE bsmoss_analysis.report_revision (
   generated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   PRIMARY KEY(workspace_id,report_id,revision),
   UNIQUE(workspace_id,report_id,manifest_sha256),
+  UNIQUE(workspace_id,report_id,revision,manifest_sha256),
   FOREIGN KEY(workspace_id,report_id) REFERENCES bsmoss_analysis.report_series(workspace_id,id)
 );
 ALTER TABLE bsmoss_analysis.report_series ADD FOREIGN KEY(workspace_id,id,current_revision)
@@ -945,4 +946,54 @@ CREATE TABLE bsmoss_analysis.report_outbox (
   PRIMARY KEY(workspace_id,id),
   UNIQUE(workspace_id,report_id,revision,event_type),
   FOREIGN KEY(workspace_id,report_id,revision) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision)
+);
+
+CREATE TABLE bsmoss_analysis.report_publication_event (
+  workspace_id text NOT NULL,
+  report_id text NOT NULL,
+  event_revision numeric(30,0) NOT NULL CHECK(event_revision>0),
+  previous_event_revision numeric(30,0),
+  report_revision numeric(30,0) NOT NULL,
+  manifest_sha256 text NOT NULL,
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 2048),
+  action text NOT NULL CHECK(action IN ('published','withdrawn')),
+  reason_ref text NOT NULL CHECK(length(trim(reason_ref)) BETWEEN 1 AND 2048),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by)) BETWEEN 1 AND 2048),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,report_id,event_revision),
+  UNIQUE(workspace_id,report_id,command_id),
+  UNIQUE(workspace_id,report_id,event_revision,action),
+  CHECK((CASE WHEN event_revision=1 THEN previous_event_revision IS NULL ELSE previous_event_revision=event_revision-1 END) IS TRUE),
+  FOREIGN KEY(workspace_id,report_id,report_revision,manifest_sha256) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256),
+  FOREIGN KEY(workspace_id,report_id,previous_event_revision) REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision)
+);
+CREATE FUNCTION bsmoss_analysis.capture_report_publication() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE prior bsmoss_analysis.report_publication_event%ROWTYPE;
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME<>'report_publication_event' THEN RAISE EXCEPTION 'invalid_publication_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'publication_append_only'; END IF;
+  PERFORM 1 FROM bsmoss_analysis.report_series WHERE workspace_id=NEW.workspace_id AND id=NEW.report_id FOR UPDATE;
+  SELECT * INTO prior FROM bsmoss_analysis.report_publication_event WHERE workspace_id=NEW.workspace_id AND report_id=NEW.report_id ORDER BY event_revision DESC LIMIT 1;
+  IF NEW.event_revision<>coalesce(prior.event_revision,0)+1 OR NEW.previous_event_revision IS DISTINCT FROM prior.event_revision THEN RAISE EXCEPTION 'publication_revision_conflict'; END IF;
+  IF NEW.action='withdrawn' AND (prior.action IS DISTINCT FROM 'published' OR NEW.report_revision IS DISTINCT FROM prior.report_revision OR NEW.manifest_sha256 IS DISTINCT FROM prior.manifest_sha256) THEN RAISE EXCEPTION 'publication_withdrawal_conflict'; END IF;
+  IF NEW.action='published' AND prior.action='published' AND NEW.report_revision=prior.report_revision THEN RAISE EXCEPTION 'report_already_published'; END IF;
+  NEW.recorded_at=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_publication() FROM PUBLIC;
+CREATE TRIGGER report_publication_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_publication_event
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_publication();
+CREATE TRIGGER report_publication_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_publication_event
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_publication();
+CREATE TABLE bsmoss_analysis.report_publication_outbox (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  report_id text NOT NULL,
+  event_revision numeric(30,0) NOT NULL,
+  action text NOT NULL CHECK(action IN ('published','withdrawn')),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,report_id,event_revision),
+  FOREIGN KEY(workspace_id,report_id,event_revision,action) REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision,action)
 );

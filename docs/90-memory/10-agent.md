@@ -549,3 +549,19 @@ authority generation变更和改回旧值不复活旧审阅；需新配置修订
 448单测（新增11）、209实际PG报告测试（208子项＋父项，新增16）全通过。覆盖真实三类完成／撤销、超安全整数、单RR区域＋单对象并发发布、生成与owner权限、历史完整scope和末次撤权、CAS／并发首建／旧RR竞态、旧重放不回退、outbox和写后身份权限范围全回滚、模板／区域配置／权威变更、逐日依赖、周期能力边界逐日实读、租户FK／typed generated／不可变列权限和SQL故障。首轮206PG全过、补完成证据和并发后208全过；增来源不可用／周期边界后主不可用被日stale覆盖导致一例失败，按上条保留主状态且仍标freshness后209全过。最终类型／构建／Prisma／20HTTP、91篇编号／45表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA见收尾工具与persistent-report-snapshots.json。日志tmp/report-snapshot-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，收尾停止；无依赖或演示UI变化，不重复六场景验收。
 
 下一项报告发布／撤回事件、异步HTML导出、正式报告页面及生成命令／登记调度；I12保持in_progress。I11面板、I08设备状态／温度对象分布和分层规模汇总、I09真实机器身份／常驻scheduler／worker未完成。有限报告查询不是11万站容量证明。真实来源／平台注册／Beta环境、11万3倍突发、安全恢复、UAT和生产批准仍缺；五项1–3本地完成、4–5未上线，无push／PR／远端CI／真实接入／外部部署。既有active目标与bs-moss heartbeat复用，费用预留／退服P2／陕西演示不变。
+
+持久快照包收尾：f27d9a1提交，448单测／209PG／20HTTP／类型／构建／Prisma与91篇文档／45表守卫通过，19文件ASCII、staged gitleaks100.41KB无泄漏。检查点persistent-report-snapshots.json绑定Git树／SHA／BUILD_ID和日志；63333当时session51059，bsmoss-local-f27d9a1，页面200／正式报告匿名401。PGcluster已stop。随后为下一包构建已核验并停止同仓Next PID24432，当前预览状态以工具收尾为准。
+
+## I12报告发布／撤回（2026-11-03）
+
+同一active五项目标接续内部实质progress，不标blocked；真实来源和环境仍缺，没有重复追问或创建自动化。设计210／实施460。publication规则／PgReportPublicationStore／独立授权服务及生产组合根；公开仅GET /api/reports/{id}/publication，可选eventRevision，命令仍内部调用。新增reports.publish显式本地权限只入种子不赋role，owner无发布／撤回基线。
+
+抽取pg-store事务内持久报告／新鲜度核心，普通报告回看复用。发布锁series＋单RR核验当前生成修订、精确SHA、完整与新鲜度，追加event／typed outbox及末次全scope再验权原子。withdrawn必须匹配当前活跃原报告修订与SHA，可撤回已stale或不再最新生成的版本，不改历史manifest／签认／费用。命令绑定expectedEventRevision／commandId／actor／reasonRef，冲突拒绝；旧命令重放仍验原scope和权限，不要求原发布仍新鲜，不复活已撤回发布。命令及读回执独立currentEventRevision／isActive，原报告freshness另返，历史published动作不冒充当前活跃。
+
+新增report_publication_event／report_publication_outbox，共47表空库／Prisma、无旧库迁移。DDL连续链、同租户报告修订及SHA、撤回目标、不可变触发器、数据库时间与outbox动作精确FK；函数固定pg_catalog／目标表白名单、PUBLIC无执行。SQL不替代当前用户scope／业务完整和新鲜度。成功并发只一条连续事件，另一个需显式重试，不能吞旧CAS。发布判断只承诺RR快照，随后事实修订使活跃报告read stale。
+
+453单测（新增5）、220实际PG报告测试（219子项＋父项，新增11）首轮全过；增强旧重放回执及隔离测试事务内outbox动作FK后再全DB，最终见工具。验证完整／过期门槛、显式权限／owner、精确SHA／版本、主体绑定重放、撤回重发与旧命令不复活、输入修订与旧生成head、双连接并发、旧RR、同RR发布后修订可见、历史完整范围／跨租户、末次scope／权限／主体／权益／有效期撤回和outbox故障全回滚、SQL／权限。最终类型／构建／Prisma／20HTTP、93篇文档／47表守卫、ASCII／staged扫描／Git及运行SHA以收尾和report-publication-events.json为准。日志tmp/report-publication-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。只本地专用PG随机合同库，无业务库操作，收尾停止；无依赖／地图布局变化，不重复六场景UI。
+
+下一项异步HTML导出＋下载时重新验当前发布／scope／权限，随后正式报告页面／生成发布命令／登记调度。I12保持in_progress，I11面板、I08状态／温度对象分布和分层规模汇总、I09真实机器身份／常驻scheduler／worker未完。没有外部outbox投递／真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、UAT或生产批准；未push／PR／远端CI／外部部署或上线。五项1–3本地完成，4–5继续active；heartbeat bs-moss复用，费用预留／退服P2／陕西演示不变。
+
+发布包最终本地验证补记：220实际PG在加强回执／动作FK后再全量通过，cluster已stop；双层类型／生产构建／Prisma／20HTTP／93篇文档／47表及交付／SCA配置守卫、16文件ASCII全部通过。最终Git／staged密钥和63333 SHA见后续工具收尾。

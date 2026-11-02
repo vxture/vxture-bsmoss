@@ -20,7 +20,7 @@ Reproducible checks: pnpm test:db (requires TEST_DATABASE_ADMIN_URL for a local
 test cluster), pnpm prisma:validate and pnpm lint:schema-mirror.
 See docs/40-implementation/20-database-contract.md for evidence and limits.
 
-The current baseline contains 45 tables, including the original domain and
+The current baseline contains 47 tables, including the original domain and
 neutral platform tables, typed aggregate revisions, completion ledgers, refresh
 queues, input/authority change evidence, dispatch receipts and registered partitions.
 object_rollup_revision adds reviewed finite coverage configuration. Runtime can
@@ -31,6 +31,11 @@ report_series/report_revision/report_outbox persist generated report snapshots,
 not approved publication or exported files. Only the current_revision series
 column is runtime-updatable. The service enforces finite source scope, report
 template semantics, CAS, fingerprints and final access revalidation atomically.
+report_publication_event/report_publication_outbox add a separate append-only
+publication/withdrawal chain and atomic event delivery records. Generated reports
+stay unchanged. SQL enforces contiguous transitions and exact tenant/revision/SHA
+references; freshness, completeness and full current authorization are enforced
+by the publication service. This does not publish externally or sign source data.
 DDL files intentionally do not commit independently; the initializer owns the
 transaction and refuses a database with existing product schemas.
 Runtime cannot edit member roles/scopes or use the reserved platform usage buffer.

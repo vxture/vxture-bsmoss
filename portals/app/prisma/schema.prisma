@@ -652,3 +652,32 @@ model ReportOutbox {
   @@map("report_outbox")
   @@schema("bsmoss_analysis")
 }
+
+model ReportPublicationEvent {
+  workspace_id String
+  report_id String
+  event_revision Decimal @db.Decimal(30,0)
+  previous_event_revision Decimal? @db.Decimal(30,0)
+  report_revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  command_id String
+  action String
+  reason_ref String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,report_id,event_revision])
+  @@map("report_publication_event")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportPublicationOutbox {
+  workspace_id String
+  id String
+  report_id String
+  event_revision Decimal @db.Decimal(30,0)
+  action String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("report_publication_outbox")
+  @@schema("bsmoss_analysis")
+}

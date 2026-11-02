@@ -92,6 +92,44 @@ function recordOf(row: Record<string, any>, scope: MeasurementScope): StoredRepo
     generatedBy: row.generated_by, generatedAt: row.generated_at.toISOString() };
 }
 
+export async function readStoredReportInTransaction(scope: MeasurementScope, raw: ReportQuery, client: PoolClient): Promise<StoredReport | null> {
+  const query = normalizeReportQuery(raw);
+  const row = (await client.query(`SELECT s.*,r.* FROM bsmoss_analysis.report_series s JOIN bsmoss_analysis.report_revision r
+    ON (r.workspace_id,r.report_id)=(s.workspace_id,s.id) AND r.revision=coalesce($3::numeric,s.current_revision)
+    WHERE s.workspace_id=$1 AND s.id=$2`, [scope.workspaceId, query.reportId, query.revision ?? null])).rows[0];
+  return row ? recordOf(row, scope) : null;
+}
+
+export async function readReportInTransaction(pool: Pool, scope: MeasurementScope, raw: ReportQuery, client: PoolClient) {
+  const query = normalizeReportQuery(raw);
+  const record = await readStoredReportInTransaction(scope, query, client);
+  if (!record) return null;
+  const m = record.manifest, reasons: string[] = [];
+  if (record.revision !== record.currentRevision) reasons.push("older_generated_revision");
+  if (m.capturedFreshness === "stale") reasons.push("captured_stale_publication");
+  const template = (await client.query(`SELECT definition,template_kind FROM bsmoss_views.template_version WHERE workspace_id=$1 AND code=$2 AND version=$3`, [scope.workspaceId, m.template.code, m.template.version])).rows[0];
+  if (!template || template.template_kind !== "report" || fingerprintOf(template.definition) !== m.template.definitionSha256) reasons.push("template_definition_changed");
+  for (const item of m.items) {
+    if (item.data.kind === "not_connected") continue;
+    if (item.data.kind === "rollup") {
+      // A newer config can cover objects this historical reader does not
+      // own. Compare its pointer first, never read its new member payload.
+      const head = (await client.query(`SELECT revision,config_sha256 FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=$1 AND id=$2 ORDER BY revision DESC LIMIT 1`, [scope.workspaceId, item.data.query.rollupId])).rows[0];
+      if (!head || head.revision !== item.data.result.configRevision || head.config_sha256 !== item.data.result.configSha256) { reasons.push(item.panel.id + ":rollup_configuration_changed"); continue; }
+    }
+    try {
+      const current = (await observe(pool, client, scope, { ...m.template.definition, panels: [item.panel], bindings: [item.binding] }, m.period.start))[0]!;
+      if (current.data.kind === "aggregate" && current.data.authorityVersion === null && item.data.kind === "aggregate" && item.data.authorityVersion !== null) { reasons.push(item.panel.id + ":authority_unavailable"); continue; }
+      const currentItem = reportManifest(scope.workspaceId, m.template.code, m.template.version, { ...m.template.definition, panels: [item.panel], bindings: [item.binding] }, m.period.start, [current]).items[0]!;
+      if (currentItem.dependencyFingerprint !== item.dependencyFingerprint) reasons.push(item.panel.id + ":input_or_publication_changed");
+    } catch (error) {
+      if (!(error instanceof Error) || !unavailable.has(error.message)) throw error;
+      reasons.push(item.panel.id + ":authority_unavailable");
+    }
+  }
+  return { ...record, freshness: reasons.length ? "stale" as const : "current" as const, reasons: [...new Set(reasons)].sort() };
+}
+
 export class PgReportStore implements ReportStore {
   readonly workspaceId: string;
   private readonly scope: MeasurementScope;
@@ -138,35 +176,9 @@ export class PgReportStore implements ReportStore {
     const query = normalizeReportQuery(raw), client = await this.pool.connect(); let discard = false;
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
-      const row = (await client.query(`SELECT s.*,r.* FROM bsmoss_analysis.report_series s JOIN bsmoss_analysis.report_revision r
-        ON (r.workspace_id,r.report_id)=(s.workspace_id,s.id) AND r.revision=coalesce($3::numeric,s.current_revision)
-        WHERE s.workspace_id=$1 AND s.id=$2`, [this.workspaceId, query.reportId, query.revision ?? null])).rows[0];
-      if (!row) { await revalidate(reportScope({ ...this.scope, sourceIds: [], stationIds: [], serviceIds: [], deviceIds: [], metricKeys: [], allowSiteParameters: false })); await client.query("COMMIT"); return null; }
-      const record = recordOf(row, this.scope), m = record.manifest, reasons: string[] = [];
-      if (record.revision !== record.currentRevision) reasons.push("older_generated_revision");
-      if (m.capturedFreshness === "stale") reasons.push("captured_stale_publication");
-      const template = (await client.query(`SELECT definition,template_kind FROM bsmoss_views.template_version WHERE workspace_id=$1 AND code=$2 AND version=$3`, [this.workspaceId, m.template.code, m.template.version])).rows[0];
-      if (!template || template.template_kind !== "report" || fingerprintOf(template.definition) !== m.template.definitionSha256) reasons.push("template_definition_changed");
-      for (const item of m.items) {
-        if (item.data.kind === "not_connected") continue;
-        if (item.data.kind === "rollup") {
-          // A newer config can cover objects this historical reader does not
-          // own. Compare its pointer first, never read its new member payload.
-          const head = (await client.query(`SELECT revision,config_sha256 FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=$1 AND id=$2 ORDER BY revision DESC LIMIT 1`, [this.workspaceId, item.data.query.rollupId])).rows[0];
-          if (!head || head.revision !== item.data.result.configRevision || head.config_sha256 !== item.data.result.configSha256) { reasons.push(item.panel.id + ":rollup_configuration_changed"); continue; }
-        }
-        try {
-          const current = (await observe(this.pool, client, this.scope, { ...m.template.definition, panels: [item.panel], bindings: [item.binding] }, m.period.start))[0]!;
-          if (current.data.kind === "aggregate" && current.data.authorityVersion === null && item.data.kind === "aggregate" && item.data.authorityVersion !== null) { reasons.push(item.panel.id + ":authority_unavailable"); continue; }
-          const currentItem = reportManifest(this.workspaceId, m.template.code, m.template.version, { ...m.template.definition, panels: [item.panel], bindings: [item.binding] }, m.period.start, [current]).items[0]!;
-          if (currentItem.dependencyFingerprint !== item.dependencyFingerprint) reasons.push(item.panel.id + ":input_or_publication_changed");
-        } catch (error) {
-          if (!(error instanceof Error) || !unavailable.has(error.message)) throw error;
-          reasons.push(item.panel.id + ":authority_unavailable");
-        }
-      }
-      await revalidate(m.requiredScope); await client.query("COMMIT");
-      return { ...record, freshness: reasons.length ? "stale" as const : "current" as const, reasons: [...new Set(reasons)].sort() };
+      const record = await readReportInTransaction(this.pool, this.scope, query, client);
+      await revalidate(record?.manifest.requiredScope ?? reportScope({ ...this.scope, sourceIds: [], stationIds: [], serviceIds: [], deviceIds: [], metricKeys: [], allowSiteParameters: false }));
+      await client.query("COMMIT"); return record;
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }
