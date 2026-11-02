@@ -344,3 +344,5 @@ TOP 5与其余合计守恒；增量+减量=净变化，增减持平数量等于�
 本轮固化本地初始feature分支代码基线，含既有产品代码与本次依赖入口；先按受控路径暂存并密钥扫描，提交状态／SHA以git log为准。仅本机Git，没有push／PR／远端CI或部署，公开远端仍空。根客户PDF、tmp、私有env、artifacts保持排除。旧artifacts/demo-release/bsmoss-demo-f606ca9cd299646f仍是此前可恢复演示快照，新内部代码不能冒充那个快照。
 
 下一工作包：I08组合完成证明（需明确证据集合与撤销，不滥用单映射账本）、瞬时／状态结果持久化与跨对象权威汇总；I09持久任务／租约／outbox与修订传播，之后I11/I12正式授权查询与发布。用户真实资料到位后按第4项接入，不继续扩展退服／费用或外省演示；不把单测或本地构建称上线。
+
+收尾补充：本地初始提交ff2d30f（feat: establish bsmoss product baseline and trusted derived inputs）成功，330文件，工作区当时clean，Git hook staged gitleaks扫描3.31MB无泄漏；61篇文档编号／30表静态镜像／交付／SCA配置通过，最终19HTTP通过。本轮377单测／62DB／类型／构建通过，不重跑无改动的六场景浏览器。外部状态仍无来源与环境资料；本地commit不能计为远端提交／CI／上线。预览将以最后文档提交SHA作为运行health的gitSha，当前会话句柄以工具输出为准。
