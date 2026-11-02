@@ -15,6 +15,7 @@ import { PgReportStore } from '../../portals/app/app/domains/reports/pg-store.ts
 import { createAuthorizedReports } from '../../portals/app/app/domains/access/reports.ts';
 import { reportPublicationCases } from './report-publication.cases.mjs';
 import { reportExportCases } from './report-export.cases.mjs';
+import { reportListCases } from './report-list.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -200,4 +201,5 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   });
   const publicationContext=await reportPublicationCases(t,{db,adapterPool,access,scope,api,up,sms,period,target,write,publish,putTemplate,single,panel,command,intercept});
   await reportExportCases(t,{db,adapterPool,scope,api,up,rate,state,gauge,period,target,write,publish,putTemplate,single,panel,command,intercept,publicationContext});
+  await reportListCases(t,{db,adapterPool,access,scope,api,sms,up,putTemplate,panel,intercept});
 }

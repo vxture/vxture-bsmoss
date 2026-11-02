@@ -585,3 +585,19 @@ Browser QA使用CUA隐藏临时页、桌面及390×844viewport，手机内容和
 下一项正式报告页面和生成／发布／导出命令，再接登记报告调度／真实机器身份及常驻worker。I12保持in_progress，I11面板、I08对象分布和分层规模汇总、I09常驻调度仍待。真实来源／平台注册／Beta环境、11万3倍突发、安全恢复、UAT及生产批准未到位；未push／PR／远端CI／真实接入／外部部署或上线。五项1–3本地完成，4–5继续active；bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。
 
 导出包最终验证补记：北京时间渲染修正后的460单测／233实际PG／类型／生产构建／Prisma／20HTTP和95篇文档／50表／交付／SCA守卫、20文件ASCII全部通过。PGcluster已stop；63334 QA服务已核验停止，63333也暂无listener（待新SHA预览重启）。最终Git／密钥／检查点与预览以工具收尾为准。
+
+## I12正式报告工作区（2026-11-03）
+
+接续7fdbf09导出包，恢复时clean，async-report-exports检查点绑定460单测／233PG／20HTTP及63333正确SHA。当前turn有内部实质progress，不标blocked、不重复外部追问或创建heartbeat；五项active目标与bs-moss沿用。
+
+设计212／实施480。ReportStore.list／授权门面／Pg同RR列表，SQL先过滤完整requiredScope（含物理站参数独立开关）再limit+1，period_start与id COLLATE C降序键集分页，严格base64url游标。返回前完整manifest／SHA与全部scope验证、末次union再验权；元数据freshness=unchecked，不冒充当前完整／发布，不吞SQL或损坏记录为空态。无全省总数或容量宣称。
+
+新增POST生成／发布撤回／导出请求和GET列表。HTTP只信配置appOrigin，对实际流16KiB、JSON／无query／严格字段与路径报告匹配，CAS／过期完整性冲突409、范围404／身份401／权限403／故障503及no-store／nosniff／Vary Cookie。服务仍为实际RP／权益／本地显式权限／有限scope和事务末次再验权，无owner隐含、无preview授权。导出run仍内部，不开放用户HTTP。
+
+新增/reports正式列表与宽详情、模板生成、修订回看、三类／逐日／精确原证据、发布撤回／导出任务。无默认选中，RP未配置未开放、未登录实际平台入口。preview关闭首页转/reports，开启仍地图。当前发布GET无事件改200 null，明确历史事件不存在仍404；null不证明报告存在，读失败不能显示未发布或解锁操作。发布针对当前展示且最新完整可信生成；撤回／导出针对明确当前活跃发布，历史详情与其分开。响应不确定保留同commandId重试，同步inFlight锁防重复，切换卸载取消客户端请求不代表服务端回滚。导出轮询5秒最多60次，终态／错误停止，卸载取消。display纯函数从renderer抽出给浏览器复用，HTML renderer版本和内容规则未改。
+
+最终465单测／238实际PG（237子项＋父项）／双层类型／生产构建／20HTTP已通过。PG新增5场景：授权先分页／同周期无重漏、各维度／独立物理参数开关／租户、末次撤权与无关范围收缩、损坏及SQL故障。首轮夹具只期待新建5短信记录，漏已有合法短信空态，修正独立全授权集合并保留前5顺序验证，未改产品过滤。无DDL／Prisma／依赖变化，沿用50表Prisma验证，不重跑未变CLI／在线扫描；编号文档／镜像／交付／SCA配置／ASCII／扫描仍执行。
+
+实际React组件在独立63334合成fixture接口跑发布已提交却返回503、同命令重试、撤回CAS／重发事件3／导出轮询及下载、精确长计数与生成表单。1440与390宽无横向溢出、无pageerror，截图／HTML在artifacts/report-workspace-qa；只是UI合成QA，无正式路由测试身份或真实平台注册／来源验收。没有操作主地图或重复稳定六场景。专用PG随机合同库最终238全过并已stop；临时QA服务收尾核验停。日志tmp/report-workspace-{unit,db,types,build,http,guards,ascii,staged-scan,browser}.log，提交／63333 SHA／正式检查点以工具收尾为准。
+
+下一项登记报告调度／真实机器身份及常驻worker，或I11正式配置面板；I08设备状态／温度对象分布、分层规模汇总继续待办。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复／UAT和生产批准仍缺，未push／PR／远端CI／外部部署或上线。五项1–3本地完成、4–5未完成；费用预留／退服P2／陕西演示不变。

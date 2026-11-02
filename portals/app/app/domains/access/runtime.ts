@@ -70,8 +70,8 @@ export function objectRollupForSession(rpsid: string) {
     create: scope => new PgObjectRollupReader(getPool(), scope),
   }, "interactive");
 }
-// Generation remains an internal session/worker call until its command and
-// publication workflow is wired. The public route below only reads snapshots.
+// Interactive report commands share the same RP identity and finite scope as
+// reads. HTTP origin validation is an additional boundary, not authorization.
 export function reportsForSession(rpsid: string) {
   return createAuthorizedReports(sessionAccessPorts(rpsid), { create: scope => new PgReportStore(getPool(), scope) }, "interactive");
 }

@@ -14,7 +14,8 @@ function fixture() {
     async readLocalGrant() { return grant; }, featuresFor() { return ["metering"]; } };
   let change = () => {};
   const stores = { create() { return { workspaceId: "w", async generate(_q, actor, revalidate) { calls++; assert.equal(actor, "generator"); change(); await revalidate(required); throw Error("fixture_revalidated"); },
-    async read(_q, revalidate) { calls++; change(); await revalidate(required); return null; } } as ReportStore; } };
+    async read(_q, revalidate) { calls++; change(); await revalidate(required); return null; },
+    async list(_q, revalidate) { calls++; change(); await revalidate(required); return { items: [], next: null }; } } as ReportStore; } };
   return { scope, required, grant, identity, ports, stores, expire() { clock = 6000; }, onRead(fn: () => void) { change = fn; }, get calls() { return calls; } };
 }
 test("report generation requires an explicit local permission even for workspace owners and view never grants generation", async () => {
@@ -28,9 +29,9 @@ test("reports fail closed before storage for absent identity, entitlement, permi
   await assert.rejects(createAuthorizedReports(f.ports, f.stores, "interactive").generate({ ...query, scope: f.scope } as typeof query)); assert.equal(f.calls, 0);
 });
 test("reports revalidate exact required scope and discard writes or reads on final identity authority or lifetime changes", async () => {
-  for (const mode of ["permission", "scope", "identity", "expiry"]) for (const operation of ["generate", "read"]) {
+  for (const mode of ["permission", "scope", "identity", "expiry"]) for (const operation of ["generate", "read", "list"]) {
     const f = fixture(); f.onRead(() => { if (mode === "permission") f.grant.active = false; if (mode === "scope") f.scope.stationIds = []; if (mode === "identity") f.identity.sub = "other"; if (mode === "expiry") f.expire(); });
-    const api = createAuthorizedReports(f.ports, f.stores, "interactive"); await assert.rejects(operation === "generate" ? api.generate(query) : api.read({ reportId: "id" }), /denied|expired/);
+    const api = createAuthorizedReports(f.ports, f.stores, "interactive"); await assert.rejects(operation === "generate" ? api.generate(query) : operation === "list" ? api.list({ limit: 20 }) : api.read({ reportId: "id" }), /denied|expired/);
   }
 });
 test("removing unrelated parent scope leaves a fully authorized report visible", async () => {

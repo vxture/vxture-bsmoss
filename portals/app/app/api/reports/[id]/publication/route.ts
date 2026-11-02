@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { getOidcConfig } from "../../../../auth/lib/config";
 import { reportPublicationForSession } from "../../../../domains/access/runtime";
-import { normalizePublicationQuery } from "../../../../domains/reports/publication";
+import { normalizePublicationQuery, normalizePublicationCommand } from "../../../../domains/reports/publication";
+import { reportCommand } from "../../../../domains/reports/http";
 import { errorResponse } from "../../../../platform/envelope";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   } catch { return privateResponse(errorResponse(400, "REPORT_INVALID_FILTER", "Invalid filter")); }
   try {
     const record = await reportPublicationForSession(sid).read(query);
-    if (!record) return privateResponse(errorResponse(404, "REPORT_UNAVAILABLE", "Report unavailable"));
+    if (!record && query.eventRevision) return privateResponse(errorResponse(404, "REPORT_UNAVAILABLE", "Report unavailable"));
     return privateResponse(Response.json(record));
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
@@ -30,4 +31,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       return privateResponse(errorResponse(404, "REPORT_UNAVAILABLE", "Report unavailable"));
     return privateResponse(errorResponse(503, "REPORT_UNAVAILABLE", "Report query temporarily unavailable", { retryable: true }));
   }
+}
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const cfg = getOidcConfig(), sid = (await cookies()).get(cfg.cookieName)?.value, reportId = (await context.params).id;
+  return reportCommand(request, { enabled: cfg.enabled, sid, appOrigin: cfg.appOrigin }, raw => {
+    const command = normalizePublicationCommand(raw);
+    if (command.reportId !== reportId) throw Error("invalid_publication_target");
+    return command;
+  }, (id, command) => reportPublicationForSession(id).execute(command));
 }

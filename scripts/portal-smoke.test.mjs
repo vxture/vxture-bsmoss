@@ -35,6 +35,12 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const report=await fetch(url+'/api/reports/forged?workspaceId=forged');assert.equal(report.status,401);assert.equal(report.headers.get('cache-control'),'no-store');
       const publication=await fetch(url+'/api/reports/forged/publication?eventRevision=1');assert.equal(publication.status,401);assert.equal(publication.headers.get('cache-control'),'no-store');
       const download=await fetch(url+'/api/report-exports/forged?format=html');assert.equal(download.status,401);assert.equal(download.headers.get('cache-control'),'no-store');
+      const list=await fetch(url+'/api/reports');assert.equal(list.status,401);assert.equal(list.headers.get('cache-control'),'no-store');
+      for(const path of ['/api/reports','/api/reports/forged/publication','/api/report-exports']) {
+        const response=await fetch(url+path,{method:'POST',headers:{'content-type':'application/json',origin:url},body:'{}'});
+        assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');
+      }
+      const reportsPage=await fetch(url+'/reports');assert.equal(reportsPage.status,200);assert.ok((await reportsPage.text()).includes('\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e'));
       assert.equal((await fetch(url+"/api/webhooks/vxture",{method:"POST",body:"{}"})).status,503);
       assert.equal((await fetch(url+"/auth/login")).status,404);
       assert.equal((await fetch(url+"/auth/session")).status,200);
@@ -55,6 +61,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview/station/SX-DEMO-001/period/report?format=html")).status,404);
       assert.equal((await fetch(url+"/api/product-preview",{method:"POST",body:JSON.stringify(request)})).status,404);
       const root=await fetch(url);assert.equal(root.status,200);assert.ok(!(await root.text()).includes("fixture-hourly-v1"));
+      const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,307);assert.equal(formalRoot.headers.get('location'),'/reports');
     });
   });
   await withServer(true,async url=>{

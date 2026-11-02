@@ -12,6 +12,7 @@ import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { assertReportScope, normalizeGenerateReport, normalizeReportQuery, normalizeReportTemplate,
   reportManifest, reportScope, unionReportScopes, validateReportManifest, type GenerateReport, type ReportQuery, type ReportObservation, type ReportTemplate, type ReportManifest } from "./rules.ts";
 import type { ReportStore, StoredReport, RevalidateReport } from "./store.ts";
+import { normalizeReportListQuery, decodeReportCursor, encodeReportCursor, type ReportListQuery, type ReportListPage } from "./list.ts";
 
 const unavailable = new Set(["aggregate_mapping_unavailable", "aggregate_capability_unavailable_or_ambiguous", "aggregate_capability_boundary", "aggregate_policy_required",
   "aggregate_mapping_gap", "aggregate_subject_mapping_ambiguous", "unaligned_mapping_boundary", "unaligned_service_boundary", "aggregate_dependency_policy_required",
@@ -134,6 +135,37 @@ export class PgReportStore implements ReportStore {
   readonly workspaceId: string;
   private readonly scope: MeasurementScope;
   constructor(private readonly pool: Pool, scope: MeasurementScope) { this.scope = reportScope(scope); this.workspaceId = this.scope.workspaceId; }
+  async list(raw: ReportListQuery, revalidate: RevalidateReport): Promise<ReportListPage> {
+    const query = normalizeReportListQuery(raw), cursor = query.after ? decodeReportCursor(query.after) : null;
+    const client = await this.pool.connect(); let discard = false;
+    try {
+      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      // Filter the entire immutable required scope before LIMIT. The cursor is
+      // an untrusted position, never an authorization or a publication claim.
+      const rows = (await client.query(`SELECT s.*,r.* FROM bsmoss_analysis.report_series s
+        JOIN bsmoss_analysis.report_revision r ON (r.workspace_id,r.report_id,r.revision)=(s.workspace_id,s.id,s.current_revision)
+        WHERE s.workspace_id=$1 AND r.manifest->'requiredScope'->>'workspaceId'=$1
+        AND r.manifest->'requiredScope'->'sourceIds' <@ $2::jsonb
+        AND r.manifest->'requiredScope'->'stationIds' <@ $3::jsonb
+        AND r.manifest->'requiredScope'->'serviceIds' <@ $4::jsonb
+        AND r.manifest->'requiredScope'->'deviceIds' <@ $5::jsonb
+        AND r.manifest->'requiredScope'->'metricKeys' <@ $6::jsonb
+        AND (r.manifest->'requiredScope'->'allowSiteParameters'='false'::jsonb OR $7::boolean)
+        AND ($8::timestamptz IS NULL OR (s.period_start,s.id COLLATE "C") < ($8::timestamptz,$9::text COLLATE "C"))
+        ORDER BY s.period_start DESC,s.id COLLATE "C" DESC LIMIT $10`,
+      [this.workspaceId, ...[this.scope.sourceIds, this.scope.stationIds, this.scope.serviceIds, this.scope.deviceIds, this.scope.metricKeys].map(a => JSON.stringify(a)),
+        this.scope.allowSiteParameters, cursor?.periodStart ?? null, cursor?.reportId ?? null, query.limit + 1])).rows;
+      const records = rows.map(row => recordOf(row, this.scope));
+      await revalidate(unionReportScopes(this.workspaceId, records.map(r => r.manifest.requiredScope)));
+      const selected = records.slice(0, query.limit), last = selected.at(-1);
+      const page: ReportListPage = { items: selected.map(r => ({ reportId: r.reportId, revision: r.revision, manifestSha256: r.manifestSha256,
+        title: r.manifest.template.definition.title, templateCode: r.manifest.template.code, templateVersion: r.manifest.template.version,
+        grain: r.manifest.grain, period: r.manifest.period, generatedAt: r.generatedAt, capturedCompleteness: r.manifest.dataCompleteness === "complete" ? "complete" : "incomplete", freshness: "unchecked" })),
+        next: records.length > query.limit && last ? encodeReportCursor({ periodStart: last.manifest.period.start, reportId: last.reportId }) : null };
+      await client.query("COMMIT"); return page;
+    } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
+    finally { client.release(discard); }
+  }
   async generate(raw: GenerateReport, actor: string, revalidate: RevalidateReport) {
     const query = normalizeGenerateReport(raw); jobIdentity(actor);
     const client = await this.pool.connect(); let discard = false;

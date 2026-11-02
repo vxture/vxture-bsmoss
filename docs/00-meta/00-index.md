@@ -61,3 +61,4 @@
 - [设备状态持久化](../40-implementation/340-device-state-persistence.md)：可信心跳有效期、未知时长、组合证明和调度原子发布。
 - [测量及质量变化传播](../40-implementation/350-input-change-dispatch.md)：事务变化记录、旧新及依赖窗口、消费清单与晚提交处理。
 - [来源完成及撤销传播](../40-implementation/360-completion-change-dispatch.md)：精确指标／周期、最高证明优先及当前结果降级。
+- [正式报告工作区](../40-implementation/480-formal-report-workspace.md)：授权分页、历史回看、生成发布撤回和异步导出操作。

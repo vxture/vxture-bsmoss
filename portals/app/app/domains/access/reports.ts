@@ -2,6 +2,7 @@ import { resolveMeasurementAccess, type AccessPorts, type AccessPlane, type Meas
 import { assertReportScope, normalizeGenerateReport, normalizeReportQuery, type GenerateReport, type ReportQuery } from "../reports/rules.ts";
 import type { ReportStore } from "../reports/store.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
+import { normalizeReportListQuery, type ReportListQuery } from "../reports/list.ts";
 
 export function createAuthorizedReports(ports: AccessPorts, stores: { create(scope: MeasurementScope): ReportStore }, plane: AccessPlane) {
   const now = ports.now ?? Date.now;
@@ -20,6 +21,10 @@ export function createAuthorizedReports(ports: AccessPorts, stores: { create(sco
     return { store, access, revalidate };
   }
   return Object.freeze({
+    async list(raw: ReportListQuery) {
+      const query = normalizeReportListQuery(raw), { store, revalidate } = await open("view");
+      return store.list(query, revalidate);
+    },
     async generate(raw: GenerateReport) {
       const query = normalizeGenerateReport(raw), { store, access, revalidate } = await open("report_generate");
       return store.generate(query, access.context.sub, revalidate);
