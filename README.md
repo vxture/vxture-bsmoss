@@ -199,3 +199,10 @@ queues closed periods and a replayable receipt, including missing-data seeds,
 and rechecks current grants before committing. Configuration remains read-only
 to runtime; no production machine identity or daemon is enabled. See
 docs/40-implementation/420-registered-periodic-partitions.md.
+The same locked configuration now drives registered input discovery, one-step
+supervision, direct dispatch and evidence-referenced reopen. Configuration,
+historical impact, jobs, invalidations and receipts share one transaction;
+backoff/quarantine remain bound to the exact registered revision. Scope changes
+outside the registered partition do not reset progress, while any registered
+scope loss rolls back the batch. See
+docs/40-implementation/430-registered-input-consumption.md.

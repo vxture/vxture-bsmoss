@@ -506,3 +506,16 @@ access/aggregate-query按view权限构造有限reader，读取后重查C1／C2�
 425单测（新增3）、167项实际PG报告测试（166子项＋父项，新增7）通过。覆盖配置修订／不可变权限／租户、同小时重放与新小时、新配置／暂停／主体／完整scope、无事实种子、任务回执故障／撤权全回滚、并发fence、配置共享锁和取锁前RR竞态。最终类型／构建／Prisma／20HTTP、85篇编号／41表镜像／交付／SCA配置守卫、ASCII／密钥／Git与运行SHA见收尾工具及registered-periodic-partitions.json。日志tmp/registered-periodic-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log，专用PG随机合同库收尾停止，无业务库操作。无依赖／地图变化，不重复六场景UI。
 
 下一出口：登记分区到输入消费的同事务接线，全省种子自动分区／机器身份provider／常驻调度；I08跨对象权威去重、I11正式面板与I12持久报告／异步导出。真实来源／平台注册／Beta环境、11万容量和3倍突发、安全恢复、UAT与生产批准仍缺；未push／PR／远端CI／真实接入／外部部署／上线。五项1–3本地完成，4–5继续active，heartbeat bs-moss复用，费用预留／退服P2／陕西演示不变。
+
+
+## I09登记输入消费与恢复（2026-11-03）
+
+前一goal turn为progress：e93ad32权威传播、40de497登记周期分区两批真实实现并提交，最后检查点registered-periodic-partitions.json为425单测／167PG／20HTTP及全部检查通过，63333版本bsmoss-local-40de497。当前turn继续内部实质进展，不满足blocked；未重复追问真实资料或创建自动化。
+
+设计207／实施430。pg-registered-partition共用配置读取器锁head／核验原始SHA和规范语义，周期和输入统一使用。pg-input-refresh抽取事务内发现／消费／恢复核心，pg-registered-input只接分区id及必要事件／恢复选择器。外层唯一RR事务持配置锁，内层SAVEPOINT包住历史影响、可信快照、全部失效／任务和成功回执；失败回滚工作后原子追加退避隔离，不把两独立事务包装成可靠登记消费。inputRefreshSubscription可选登记id／精确修订／原始配置SHA／规范SHA，原无登记摘要保持，父grant未使用范围变化不重置登记进度；登记完整scope失权必须回滚。成功／重放／发现／延迟／隔离／恢复与外层提交前均重新验权。
+
+input_refresh_receipt及input_dispatch_event增成对可空partition_id／revision和同租户配置FK，回执载荷登记与指针必须同时存在并匹配。空库仍41表／Prisma标量，无旧库迁移。新配置／暂停等待旧事务释放head共享锁，内层SAVEPOINT回滚不释放该锁；取锁前head已变更则RR回滚。跨对象修订必须包含全部旧新历史scope，不能单分区静默处理一半；审阅新完整配置后才消费，旧失败／进度不删除。
+
+428单测（新增3）、178项实际PG报告测试（177子项＋父项，新增11）通过；强化登记载荷不能空指针及精确FK断言后再全PG，仍178全通过。覆盖独立分区／修订／无登记、暂停所有入口、完整范围及末次撤权、回执／失败写后回滚、5次隔离恢复历史、并发fence、成功／失败配置锁、取锁前RR竞态、晚提交完成、质量／权威路径、租户指针及旧新对象范围。最终类型／构建／Prisma／20HTTP、87篇文档／41表镜像／交付／SCA配置守卫、ASCII／密钥／本地提交及运行SHA以工具收尾和registered-input-consumption.json为准。日志tmp/registered-input-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log，PG仅随机合同库，收尾停止。无依赖／地图变更，不重复六场景UI。
+
+下一出口全省自动分区／时间分片、真实机器身份provider和常驻scheduler／worker；I08跨对象权威去重、I11正式面板、I12持久报告／异步导出。真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、UAT与生产批准仍缺；未push／PR／远端CI／真实接入／外部部署／上线。既有五项目标active，1–3本地完成、4–5未完成，heartbeat bs-moss复用；费用预留／退服P2／陕西演示不变。

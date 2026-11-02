@@ -1,15 +1,17 @@
 import type { Pool, PoolClient } from "pg";
-import { resolveMeasurementAccess, type AccessPorts } from "../access/resolve.ts";
+import { resolveMeasurementAccess, type AccessPorts, type MeasurementAccess } from "../access/resolve.ts";
 import { refKey } from "../catalog/registry.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { fingerprintOf, positiveRevision } from "./intervals.ts";
 import { inputFailureCode, nextInputFailure } from "./input-dispatch-control.ts";
-import { inputRefreshSubscription, planInputRefresh, planCompletionRefresh, INPUT_REFRESH_VERSION, type InputRefreshPolicy } from "./input-refresh.ts";
+import { inputRefreshSubscription, planInputRefresh, planCompletionRefresh, INPUT_REFRESH_VERSION, type InputRefreshPolicy, type InputRefreshRegistration } from "./input-refresh.ts";
 import { enqueueRefreshInTransaction } from "./refresh-enqueue.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
 import { readRefreshSnapshot } from "./refresh-snapshot.ts";
 import { authorizedAuthorityChange, authorityEvidence } from "./pg-authority-impact.ts";
+import { partitionAccess } from "./registered-partitions.ts";
+import type { InputPartitionBinding } from "./pg-registered-partition.ts";
 
 function objectAllowed(row: { station_id: string; service_id: string | null; device_id: string | null }, scope: MeasurementScope) {
   return scope.stationIds.includes(row.station_id) && (!row.service_id || scope.serviceIds.includes(row.service_id)) &&
@@ -102,30 +104,40 @@ async function evidenceHistory(pool: Pool, client: PoolClient, scope: Measuremen
 
 // One committed change -> all subscribed old/new/dependency windows -> receipt,
 // in one transaction. No machine identity, timer or global offset is invented.
-async function executeInputChange(pool: Pool, ports: AccessPorts, rawChangeId: string, rawPolicy: InputRefreshPolicy, supervised: boolean) {
+export async function revalidateInputRefreshAccess(ports: AccessPorts, access: MeasurementAccess, policy: InputRefreshPolicy, binding?: InputPartitionBinding) {
+  const now = ports.now ?? Date.now, resolved = await resolveMeasurementAccess(ports, "aggregate", "data");
+  const current = binding ? partitionAccess(binding.partition, resolved, now()) : resolved;
+  if (current.context.sub !== access.context.sub || current.context.workspaceId !== access.context.workspaceId ||
+      inputRefreshSubscription(current.scope, policy, binding?.registration).sha256 !== inputRefreshSubscription(access.scope, policy, binding?.registration).sha256) throw Error("permission_denied");
+  if (current.expiresAt <= now()) throw Error("access_expired");
+  return current;
+}
+// Internal caller owns the RR transaction and any registered configuration lock.
+export async function dispatchInputChangeInTransaction(pool: Pool, client: PoolClient, ports: AccessPorts, initial: MeasurementAccess,
+  rawChangeId: string, rawPolicy: InputRefreshPolicy, supervised: boolean, binding?: InputPartitionBinding) {
   jobIdentity(rawChangeId); const changeId = rawChangeId, policy = structuredClone(rawPolicy), now = ports.now ?? Date.now;
-  const access = await resolveMeasurementAccess(ports, "aggregate", "data"), subscription = inputRefreshSubscription(access.scope, policy);
+  const access = binding ? partitionAccess(binding.partition, initial, now()) : initial;
+  const subscription = inputRefreshSubscription(access.scope, policy, binding?.registration);
   if (access.expiresAt <= now()) throw Error("access_expired");
-  const client = await pool.connect(); let discard = false;
+  const locked = (await client.query("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [JSON.stringify([INPUT_REFRESH_VERSION, access.context.workspaceId, changeId, subscription.sha256])])).rows[0].acquired;
+  if (!locked) return { status: "busy" as const };
+  await authorizeInputChange(client, access.scope, changeId);
+  const prior = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.input_refresh_receipt
+    WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3`, [access.context.workspaceId, changeId, subscription.sha256])).rows[0];
+  if (prior) {
+    if (access.expiresAt <= now()) throw Error("access_expired");
+    if (fingerprintOf(prior.manifest) !== prior.manifest_sha256) throw Error("input_receipt_corrupt");
+    await revalidateInputRefreshAccess(ports, access, policy, binding);
+    if (fingerprintOf(prior.manifest.registration ?? null) !== fingerprintOf(subscription.registration ?? null)) throw Error("input_receipt_corrupt");
+    return { status: "duplicate" as const, manifest: prior.manifest, manifestSha256: prior.manifest_sha256 as string };
+  }
+  const last = (await client.query(`SELECT revision,attempt,state,available_at,available_at<=clock_timestamp() AS ready FROM bsmoss_analysis.input_dispatch_event
+    WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 ORDER BY revision DESC LIMIT 1`, [access.context.workspaceId, changeId, subscription.sha256])).rows[0];
+  if (last?.state === "quarantined") { await revalidateInputRefreshAccess(ports, access, policy, binding); return { status: "quarantined" as const, revision: last.revision as string }; }
+  if (last?.state === "retry" && !last.ready) { await revalidateInputRefreshAccess(ports, access, policy, binding); return { status: "deferred" as const, retryAt: last.available_at.toISOString() as string }; }
+  await client.query("SAVEPOINT input_dispatch_work");
+  let outcome;
   try {
-    await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-    const locked = (await client.query("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [JSON.stringify([INPUT_REFRESH_VERSION, access.context.workspaceId, changeId, subscription.sha256])])).rows[0].acquired;
-    if (!locked) { await client.query("ROLLBACK"); return { status: "busy" as const }; }
-    await authorizeInputChange(client, access.scope, changeId);
-    const prior = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.input_refresh_receipt
-      WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3`, [access.context.workspaceId, changeId, subscription.sha256])).rows[0];
-    if (prior) {
-      if (access.expiresAt <= now()) throw Error("access_expired");
-      if (fingerprintOf(prior.manifest) !== prior.manifest_sha256) throw Error("input_receipt_corrupt");
-      await client.query("COMMIT"); return { status: "duplicate" as const, manifest: prior.manifest, manifestSha256: prior.manifest_sha256 as string };
-    }
-    const last = (await client.query(`SELECT revision,attempt,state,available_at,available_at<=clock_timestamp() AS ready FROM bsmoss_analysis.input_dispatch_event
-      WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 ORDER BY revision DESC LIMIT 1`, [access.context.workspaceId, changeId, subscription.sha256])).rows[0];
-    if (last?.state === "quarantined") { await client.query("COMMIT"); return { status: "quarantined" as const, revision: last.revision as string }; }
-    if (last?.state === "retry" && !last.ready) { await client.query("COMMIT"); return { status: "deferred" as const, retryAt: last.available_at.toISOString() as string }; }
-    await client.query("SAVEPOINT input_dispatch_work");
-    let outcome;
-    try {
     const evidence = await evidenceHistory(pool, client, access.scope, changeId, subscription.policy, subscription.sha256, access.context.sub);
     const candidates = evidence.kind === "measurement" ? planInputRefresh(evidence.impacts, subscription.policy) : evidence.targets, targets = [];
     for (const target of candidates) {
@@ -141,39 +153,42 @@ async function executeInputChange(pool: Pool, ports: AccessPorts, rawChangeId: s
     }
     const triggerRef = "input:" + INPUT_REFRESH_VERSION + ":" + fingerprintOf([changeId, subscription.sha256]);
     const queued = await enqueueRefreshInTransaction(pool, client, access, now, targets, triggerRef);
-    const current = await resolveMeasurementAccess(ports, "aggregate", "data");
-    if (current.context.sub !== access.context.sub || current.context.workspaceId !== access.context.workspaceId ||
-        inputRefreshSubscription(current.scope, policy).sha256 !== subscription.sha256) throw Error("permission_denied");
-    if (current.expiresAt <= now()) throw Error("access_expired");
+    const current = await revalidateInputRefreshAccess(ports, access, policy, binding);
     const manifest = { version: INPUT_REFRESH_VERSION, changeId, subscriptionSha256: subscription.sha256,
-      policy: subscription.policy, triggerRef, change: evidence.change, evidence: evidence.records,
+      policy: subscription.policy, ...(subscription.registration ? { registration: subscription.registration } : {}), triggerRef, change: evidence.change, evidence: evidence.records,
       targets, jobs: queued.jobs.map(job => ({ id: job.id })), queueManifestSha256: queued.manifestSha256 };
     const manifestSha256 = fingerprintOf(manifest);
-    await client.query(`INSERT INTO bsmoss_analysis.input_refresh_receipt(workspace_id,change_id,subscription_sha256,manifest_sha256,manifest,recorded_by)
-      VALUES($1,$2,$3,$4,$5,$6)`, [access.context.workspaceId, changeId, subscription.sha256, manifestSha256, manifest, access.context.sub]);
+    await client.query(`INSERT INTO bsmoss_analysis.input_refresh_receipt(workspace_id,change_id,subscription_sha256,manifest_sha256,manifest,recorded_by,partition_id,partition_revision)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, [access.context.workspaceId, changeId, subscription.sha256, manifestSha256, manifest, current.context.sub, subscription.registration?.partitionId ?? null, subscription.registration?.revision ?? null]);
     if (access.expiresAt <= now()) throw Error("access_expired");
     await client.query("RELEASE SAVEPOINT input_dispatch_work");
     outcome = { status: "dispatched" as const, manifest, manifestSha256 };
-    } catch (error) {
-      await client.query("ROLLBACK TO SAVEPOINT input_dispatch_work");
-      await client.query("RELEASE SAVEPOINT input_dispatch_work");
-      const code = inputFailureCode(error);
-      if (!supervised || !code) throw error;
-      // Re-resolve grants before writing failure evidence. Lost/changed scope
-      // cannot quarantine work under the old authorization subscription.
-      const current = await resolveMeasurementAccess(ports, "aggregate", "data");
-      if (current.context.sub !== access.context.sub || current.context.workspaceId !== access.context.workspaceId ||
-          inputRefreshSubscription(current.scope, policy).sha256 !== subscription.sha256) throw Error("permission_denied");
-      if (current.expiresAt <= now()) throw Error("access_expired");
-      const next = nextInputFailure(last ? { revision: last.revision, attempt: Number(last.attempt), state: last.state } : null);
-      const row = (await client.query(`INSERT INTO bsmoss_analysis.input_dispatch_event(workspace_id,change_id,subscription_sha256,revision,attempt,state,failure_code,available_at,recorded_by)
-        VALUES($1,$2,$3,$4,$5,$6,$7,clock_timestamp()+$8::int*interval '1 second',$9) RETURNING available_at`,
-      [access.context.workspaceId, changeId, subscription.sha256, next.revision, next.attempt, next.state, code, next.delaySeconds, current.context.sub])).rows[0];
-      if (current.expiresAt <= now()) throw Error("access_expired");
-      outcome = { status: "failure_recorded" as const, changeId, revision: next.revision, attempt: next.attempt, state: next.state, code, retryAt: row.available_at.toISOString() as string };
-    }
-    await client.query("COMMIT");
-    return outcome;
+  } catch (error) {
+    await client.query("ROLLBACK TO SAVEPOINT input_dispatch_work");
+    await client.query("RELEASE SAVEPOINT input_dispatch_work");
+    const code = inputFailureCode(error);
+    if (!supervised || !code) throw error;
+    // Re-resolve grants before writing failure evidence. Lost/changed scope
+    // cannot quarantine work under the old authorization subscription.
+    const current = await revalidateInputRefreshAccess(ports, access, policy, binding);
+    const next = nextInputFailure(last ? { revision: last.revision, attempt: Number(last.attempt), state: last.state } : null);
+    const row = (await client.query(`INSERT INTO bsmoss_analysis.input_dispatch_event(workspace_id,change_id,subscription_sha256,revision,attempt,state,failure_code,available_at,recorded_by,partition_id,partition_revision)
+      VALUES($1,$2,$3,$4,$5,$6,$7,clock_timestamp()+$8::int*interval '1 second',$9,$10,$11) RETURNING available_at`,
+    [access.context.workspaceId, changeId, subscription.sha256, next.revision, next.attempt, next.state, code, next.delaySeconds, current.context.sub, subscription.registration?.partitionId ?? null, subscription.registration?.revision ?? null])).rows[0];
+    if (current.expiresAt <= now()) throw Error("access_expired");
+    outcome = { status: "failure_recorded" as const, changeId, revision: next.revision, attempt: next.attempt, state: next.state, code, retryAt: row.available_at.toISOString() as string };
+  }
+  return outcome;
+}
+async function executeInputChange(pool: Pool, ports: AccessPorts, changeId: string, policy: InputRefreshPolicy, supervised: boolean) {
+  jobIdentity(changeId);
+  const access = await resolveMeasurementAccess(ports, "aggregate", "data");
+  inputRefreshSubscription(access.scope, policy);
+  const client = await pool.connect(); let discard = false;
+  try {
+    await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+    const result = await dispatchInputChangeInTransaction(pool, client, ports, access, changeId, policy, supervised);
+    await client.query("COMMIT"); return result;
   } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
   finally { client.release(discard); }
 }
@@ -187,44 +202,53 @@ export function superviseInputChange(pool: Pool, ports: AccessPorts, changeId: s
   return executeInputChange(pool, ports, changeId, policy, true);
 }
 
-export async function reopenInputChange(pool: Pool, ports: AccessPorts, raw: { changeId: string; expectedRevision: string; reasonRef: string; policy: InputRefreshPolicy }) {
+export interface InputReopenRequest { changeId: string; expectedRevision: string; reasonRef: string; policy: InputRefreshPolicy }
+function reopenRequest(raw: InputReopenRequest) {
   const input = structuredClone(raw);
   if (!input || Object.keys(input).some(k => !["changeId", "expectedRevision", "reasonRef", "policy"].includes(k))) throw Error("invalid_input_reopen_request");
-  jobIdentity(input.changeId); jobIdentity(input.reasonRef); positiveRevision(input.expectedRevision);
-  const access = await resolveMeasurementAccess(ports, "aggregate", "data"), subscription = inputRefreshSubscription(access.scope, input.policy), now = ports.now ?? Date.now;
-  const args = [access.context.workspaceId, input.changeId, subscription.sha256], client = await pool.connect(); let discard = false;
+  jobIdentity(input.changeId); jobIdentity(input.reasonRef); positiveRevision(input.expectedRevision); return input;
+}
+export async function reopenInputChangeInTransaction(client: PoolClient, ports: AccessPorts, initial: MeasurementAccess, raw: InputReopenRequest, binding?: InputPartitionBinding) {
+  const input = reopenRequest(raw), now = ports.now ?? Date.now;
+  const access = binding ? partitionAccess(binding.partition, initial, now()) : initial;
+  const subscription = inputRefreshSubscription(access.scope, input.policy, binding?.registration), args = [access.context.workspaceId, input.changeId, subscription.sha256];
+  const locked = (await client.query("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [JSON.stringify([INPUT_REFRESH_VERSION, ...args])])).rows[0].acquired;
+  if (!locked) { return { status: "busy" as const }; }
+  await authorizeInputChange(client, access.scope, input.changeId);
+  if (access.expiresAt <= now()) throw Error("access_expired");
+  const prior = (await client.query(`SELECT revision FROM bsmoss_analysis.input_dispatch_event WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 AND reason_ref=$4`, [...args, input.reasonRef])).rows[0];
+  if (prior) {
+    if (BigInt(prior.revision) !== BigInt(input.expectedRevision) + 1n) throw Error("conflicting_input_reopen_replay");
+    await revalidateInputRefreshAccess(ports, access, input.policy, binding); return { status: "duplicate" as const, revision: prior.revision as string };
+  }
+  if ((await client.query("SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3", args)).rowCount) throw Error("input_already_dispatched");
+  const last = (await client.query(`SELECT revision,state FROM bsmoss_analysis.input_dispatch_event WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 ORDER BY revision DESC LIMIT 1`, args)).rows[0];
+  if (!last || last.revision !== input.expectedRevision) throw Error("input_dispatch_revision_conflict");
+  if (last.state !== "quarantined") throw Error("input_not_quarantined");
+  const revision = (BigInt(last.revision) + 1n).toString(); positiveRevision(revision);
+  await client.query(`INSERT INTO bsmoss_analysis.input_dispatch_event(workspace_id,change_id,subscription_sha256,revision,attempt,state,reason_ref,available_at,recorded_by,partition_id,partition_revision)
+    VALUES($1,$2,$3,$4,0,'reopened',$5,clock_timestamp(),$6,$7,$8)`, [...args, revision, input.reasonRef, access.context.sub, subscription.registration?.partitionId ?? null, subscription.registration?.revision ?? null]);
+  if (access.expiresAt <= now()) throw Error("access_expired");
+  await revalidateInputRefreshAccess(ports, access, input.policy, binding); return { status: "reopened" as const, revision };
+}
+export async function reopenInputChange(pool: Pool, ports: AccessPorts, raw: InputReopenRequest) {
+  const input = reopenRequest(raw), access = await resolveMeasurementAccess(ports, "aggregate", "data");
+  inputRefreshSubscription(access.scope, input.policy);
+  const client = await pool.connect(); let discard = false;
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-    const locked = (await client.query("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [JSON.stringify([INPUT_REFRESH_VERSION, ...args])])).rows[0].acquired;
-    if (!locked) { await client.query("ROLLBACK"); return { status: "busy" as const }; }
-    await authorizeInputChange(client, access.scope, input.changeId);
-    if (access.expiresAt <= now()) throw Error("access_expired");
-    const prior = (await client.query(`SELECT revision FROM bsmoss_analysis.input_dispatch_event WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 AND reason_ref=$4`, [...args, input.reasonRef])).rows[0];
-    if (prior) {
-      if (BigInt(prior.revision) !== BigInt(input.expectedRevision) + 1n) throw Error("conflicting_input_reopen_replay");
-      await client.query("COMMIT"); return { status: "duplicate" as const, revision: prior.revision as string };
-    }
-    if ((await client.query("SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3", args)).rowCount) throw Error("input_already_dispatched");
-    const last = (await client.query(`SELECT revision,state FROM bsmoss_analysis.input_dispatch_event WHERE workspace_id=$1 AND change_id=$2 AND subscription_sha256=$3 ORDER BY revision DESC LIMIT 1`, args)).rows[0];
-    if (!last || last.revision !== input.expectedRevision) throw Error("input_dispatch_revision_conflict");
-    if (last.state !== "quarantined") throw Error("input_not_quarantined");
-    const revision = (BigInt(last.revision) + 1n).toString(); positiveRevision(revision);
-    await client.query(`INSERT INTO bsmoss_analysis.input_dispatch_event(workspace_id,change_id,subscription_sha256,revision,attempt,state,reason_ref,available_at,recorded_by)
-      VALUES($1,$2,$3,$4,0,'reopened',$5,clock_timestamp(),$6)`, [...args, revision, input.reasonRef, access.context.sub]);
-    if (access.expiresAt <= now()) throw Error("access_expired");
-    await client.query("COMMIT"); return { status: "reopened" as const, revision };
+    const result = await reopenInputChangeInTransaction(client, ports, access, input);
+    await client.query("COMMIT"); return result;
   } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
   finally { client.release(discard); }
 }
 
 // Bounded discovery has no created_at/id high-water mark. A transaction which
 // commits late remains pending; expired/revoked scope cannot acknowledge it.
-export async function pendingInputChanges(pool: Pool, ports: AccessPorts, rawPolicy: InputRefreshPolicy) {
-  const policy = structuredClone(rawPolicy);
-  const access = await resolveMeasurementAccess(ports, "aggregate", "data"), s = access.scope;
-  const subscription = inputRefreshSubscription(s, policy);
+export async function pendingInputChangesInTransaction(queryable: Pool | PoolClient, access: MeasurementAccess, rawPolicy: InputRefreshPolicy, registration?: InputRefreshRegistration) {
+  const policy = structuredClone(rawPolicy), s = access.scope, subscription = inputRefreshSubscription(s, policy, registration);
   const relevant = new Set(subscription.policy.outputs.flatMap(ref => [ref, ...FIRST_METRICS.get(ref)!.dependencies]).map(refKey));
-  const rows = (await pool.query(`WITH visible AS (
+  const rows = (await queryable.query(`WITH visible AS (
       SELECT c.id,c.created_at,m.source_id,m.metric_code,m.metric_version,m.station_id,sm.service_id,sm.device_id,NULL::text AS proof_grain,false AS is_proof,false AS is_authority
       FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id)
       JOIN bsmoss_integration.source_mapping sm ON (sm.workspace_id,sm.id)=(m.workspace_id,m.mapping_id) WHERE c.workspace_id=$1
@@ -252,8 +276,12 @@ export async function pendingInputChanges(pool: Pool, ports: AccessPorts, rawPol
     AND NOT EXISTS(SELECT 1 FROM bsmoss_analysis.input_refresh_receipt r WHERE (r.workspace_id,r.change_id,r.subscription_sha256)=($1,v.id,$8))
     ORDER BY v.created_at,v.id LIMIT 64`, [s.workspaceId, s.sourceIds, s.metricKeys.filter(key => relevant.has(key)), s.stationIds, s.serviceIds, s.deviceIds,
     s.allowSiteParameters, subscription.sha256, subscription.policy.outputs.map(refKey), subscription.policy.grains])).rows;
-  if (access.expiresAt <= (ports.now ?? Date.now)()) throw Error("access_expired");
   return { subscriptionSha256: subscription.sha256, changeIds: rows.map(row => row.id as string) };
+}
+export async function pendingInputChanges(pool: Pool, ports: AccessPorts, policy: InputRefreshPolicy) {
+  const access = await resolveMeasurementAccess(ports, "aggregate", "data");
+  const result = await pendingInputChangesInTransaction(pool, access, policy);
+  await revalidateInputRefreshAccess(ports, access, policy); return result;
 }
 
 export async function runInputRefreshStep(pool: Pool, ports: AccessPorts, rawPolicy: InputRefreshPolicy) {

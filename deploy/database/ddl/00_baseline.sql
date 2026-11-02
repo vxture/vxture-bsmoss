@@ -654,6 +654,8 @@ CREATE TABLE bsmoss_analysis.input_refresh_receipt (
   workspace_id text NOT NULL,
   change_id text NOT NULL,
   subscription_sha256 text NOT NULL CHECK(subscription_sha256 ~ '^[a-f0-9]{64}$'),
+  partition_id text,
+  partition_revision numeric(30,0),
   manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
   manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
   recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
@@ -661,7 +663,12 @@ CREATE TABLE bsmoss_analysis.input_refresh_receipt (
   PRIMARY KEY(workspace_id,change_id,subscription_sha256),
   FOREIGN KEY(workspace_id,change_id) REFERENCES bsmoss_metering.input_change(workspace_id,id),
   CHECK(manifest->>'subscriptionSha256' IS NOT DISTINCT FROM subscription_sha256),
-  CHECK(manifest->>'changeId' IS NOT DISTINCT FROM change_id)
+  CHECK(manifest->>'changeId' IS NOT DISTINCT FROM change_id),
+  CHECK((partition_id IS NULL)=(partition_revision IS NULL)),
+  CHECK((partition_id IS NULL AND NOT manifest ? 'registration') OR
+    (partition_id IS NOT NULL AND jsonb_typeof(manifest->'registration')='object' AND
+      manifest->'registration'->>'partitionId'=partition_id AND
+      manifest->'registration'->>'revision'=partition_revision::text) IS TRUE)
 );
 -- Runtime cannot inject changes outside these fixed triggers.
 CREATE FUNCTION bsmoss_metering.capture_input_change() RETURNS trigger
@@ -698,6 +705,8 @@ CREATE TABLE bsmoss_analysis.input_dispatch_event (
   workspace_id text NOT NULL,
   change_id text NOT NULL,
   subscription_sha256 text NOT NULL CHECK(subscription_sha256 ~ '^[a-f0-9]{64}$'),
+  partition_id text,
+  partition_revision numeric(30,0),
   revision numeric(30,0) NOT NULL CHECK(revision>0),
   attempt numeric(30,0) NOT NULL CHECK(attempt BETWEEN 0 AND 5),
   state text NOT NULL CHECK(state IN ('retry','quarantined','reopened')),
@@ -711,7 +720,8 @@ CREATE TABLE bsmoss_analysis.input_dispatch_event (
   FOREIGN KEY(workspace_id,change_id) REFERENCES bsmoss_metering.input_change(workspace_id,id),
   CHECK((state='retry' AND attempt BETWEEN 1 AND 4 AND failure_code IS NOT NULL AND reason_ref IS NULL) OR
     (state='quarantined' AND attempt=5 AND failure_code IS NOT NULL AND reason_ref IS NULL) OR
-    (state='reopened' AND attempt=0 AND failure_code IS NULL AND reason_ref IS NOT NULL AND length(trim(reason_ref))>0))
+    (state='reopened' AND attempt=0 AND failure_code IS NULL AND reason_ref IS NOT NULL AND length(trim(reason_ref))>0)),
+  CHECK((partition_id IS NULL)=(partition_revision IS NULL))
 );
 
 CREATE FUNCTION bsmoss_integration.capture_authority_change() RETURNS trigger
@@ -849,3 +859,9 @@ CREATE TABLE bsmoss_analysis.refresh_scan_receipt (
   PRIMARY KEY(workspace_id,partition_id,partition_revision,scan_hour),
   FOREIGN KEY(workspace_id,partition_id,partition_revision) REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision)
 );
+
+-- Configuration references are part of the empty baseline, not an upgrade.
+ALTER TABLE bsmoss_analysis.input_refresh_receipt ADD FOREIGN KEY(workspace_id,partition_id,partition_revision)
+  REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision);
+ALTER TABLE bsmoss_analysis.input_dispatch_event ADD FOREIGN KEY(workspace_id,partition_id,partition_revision)
+  REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision);

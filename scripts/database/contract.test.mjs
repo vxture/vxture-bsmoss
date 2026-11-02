@@ -30,6 +30,7 @@ import { PgGaugeSnapshotReader } from "../../portals/app/app/domains/aggregation
 import { PgGaugeAggregateStore } from "../../portals/app/app/domains/aggregation/pg-gauge-store.ts";
 import { aggregateGaugePeriod } from "../../portals/app/app/domains/aggregation/gauge-period.ts";
 import { registeredPeriodicCases } from "./registered-periodic.cases.mjs";
+import { registeredInputCases } from "./registered-input.cases.mjs";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -2046,6 +2047,7 @@ await test("empty-database PostgreSQL contract", async t => {
         VALUES ('w','authority:source_mapping','authority-src','station','authority:source_mapping','st','flow-dev',1,'2026-01-01Z','2027-01-01Z')`),/authority_object_immutable/);
     });
     await registeredPeriodicCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,gaugeMetric,period:flowPeriod,finishChangeJobs});
+    await registeredInputCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,writer:flowWriter,draft:flowDraft,finishChangeJobs});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

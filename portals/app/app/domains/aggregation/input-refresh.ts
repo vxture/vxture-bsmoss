@@ -1,7 +1,7 @@
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type MetricRef, type Grain } from "../catalog/registry.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
-import { fingerprintOf } from "./intervals.ts";
+import { fingerprintOf, positiveRevision } from "./intervals.ts";
 import { bounds, bucketFor, type Period } from "./periods.ts";
 import { refreshTargets } from "./refresh-coordination.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
@@ -10,6 +10,7 @@ import { planRevisionRefresh, type RefreshGrain } from "./refresh-planning.ts";
 export const INPUT_REFRESH_VERSION = "bsmoss-input-refresh-v1";
 // Server-owned output subscription, never a request-supplied authorization scope.
 export interface InputRefreshPolicy { outputs: readonly MetricRef[]; grains: readonly RefreshGrain[] }
+export interface InputRefreshRegistration { partitionId: string; revision: string; configSha256: string; partitionSha256: string }
 export interface InputImpact { sourceId: string; mappingId: string; metric: MetricRef; period: Period; mappingEnd: string }
 export interface CompletionImpact { sourceId: string; mappingId: string; metric: MetricRef; grain: Grain; period: Period }
 export function planCompletionRefresh(impact: CompletionImpact, policy: InputRefreshPolicy) {
@@ -22,7 +23,7 @@ export function planCompletionRefresh(impact: CompletionImpact, policy: InputRef
   if (!policy.grains.some(g => g === row.grain) || !policy.outputs.some(ref => refKey(ref) === refKey(row.metric))) return [];
   return refreshTargets([{ sourceId: row.sourceId, mappingId: row.mappingId, metric: row.metric, grain: row.grain, at: canonical.start }]);
 }
-export function inputRefreshSubscription(scope: MeasurementScope, raw: InputRefreshPolicy) {
+export function inputRefreshSubscription(scope: MeasurementScope, raw: InputRefreshPolicy, rawRegistration?: InputRefreshRegistration) {
   const policy = structuredClone(raw);
   if (!policy || Object.keys(policy).some(k => !["outputs", "grains"].includes(k)) || !Array.isArray(policy.outputs) || !policy.outputs.length || policy.outputs.length > 16) throw Error("invalid_input_refresh_policy");
   planRevisionRefresh({ affected: [], grains: policy.grains });
@@ -40,7 +41,15 @@ export function inputRefreshSubscription(scope: MeasurementScope, raw: InputRefr
   const normalized = { ...scope, sourceIds: list(scope.sourceIds), stationIds: list(scope.stationIds), metricKeys: list(scope.metricKeys),
     serviceIds: list(scope.serviceIds), deviceIds: list(scope.deviceIds) };
   const result = { outputs, grains: [...policy.grains].sort() };
-  return { policy: result, sha256: fingerprintOf({ version: INPUT_REFRESH_VERSION, scope: normalized, policy: result }) };
+  const registration = rawRegistration === undefined ? undefined : structuredClone(rawRegistration);
+  if (registration !== undefined) {
+    if (!registration || typeof registration !== "object" || Array.isArray(registration) ||
+        Object.keys(registration).some(k => !["partitionId", "revision", "configSha256", "partitionSha256"].includes(k))) throw Error("invalid_input_registration");
+    jobIdentity(registration.partitionId); positiveRevision(registration.revision);
+    if (![registration.configSha256, registration.partitionSha256].every(v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v))) throw Error("invalid_input_registration");
+  }
+  const binding = registration === undefined ? {} : { registration };
+  return { policy: result, ...binding, sha256: fingerprintOf({ version: INPUT_REFRESH_VERSION, scope: normalized, policy: result, ...binding }) };
 }
 export function planInputRefresh(raw: readonly InputImpact[], policy: InputRefreshPolicy) {
   if (!Array.isArray(raw) || raw.length > 1000) throw Error("input_history_bound_exceeded");

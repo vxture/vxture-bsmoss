@@ -519,6 +519,8 @@ model InputRefreshReceipt {
   workspace_id String
   change_id String
   subscription_sha256 String
+  partition_id String?
+  partition_revision Decimal? @db.Decimal(30,0)
   manifest_sha256 String
   manifest Json
   recorded_by String
@@ -546,6 +548,8 @@ model InputDispatchEvent {
   workspace_id String
   change_id String
   subscription_sha256 String
+  partition_id String?
+  partition_revision Decimal? @db.Decimal(30,0)
   revision Decimal @db.Decimal(30,0)
   attempt Decimal @db.Decimal(30,0)
   state String
