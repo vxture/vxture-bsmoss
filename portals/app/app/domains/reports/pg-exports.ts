@@ -12,7 +12,7 @@ import { assertExportPublication, normalizeExportRequest, normalizeExportQuery, 
   type ExportRun, type ExportPendingQuery, type ReportExportStore } from "./exports.ts";
 import type { RevalidateReport } from "./store.ts";
 
-function jobOf(row: Record<string, any>): ExportJob {
+export function exportJobOf(row: Record<string, any>): ExportJob {
   [row.id, row.report_id, row.command_id, row.requested_by, row.renderer_version].forEach(jobIdentity);
   positiveRevision(row.report_revision); positiveRevision(row.publication_revision);
   const attempt = Number(row.attempt);
@@ -67,7 +67,7 @@ export class PgReportExportStore implements ReportExportStore {
         ORDER BY j.available_at,j.id COLLATE "C" LIMIT $8`,
       [this.workspaceId, ...[this.scope.sourceIds, this.scope.stationIds, this.scope.serviceIds, this.scope.deviceIds, this.scope.metricKeys].map(a => JSON.stringify(a)),
         this.scope.allowSiteParameters, query.limit])).rows;
-      const jobs = rows.map(jobOf), scopes: MeasurementScope[] = [];
+      const jobs = rows.map(exportJobOf), scopes: MeasurementScope[] = [];
       for (const job of jobs) scopes.push(await this.required(client, job));
       await revalidate(unionReportScopes(this.workspaceId, scopes));
       return { jobIds: jobs.map(job => job.jobId) };
@@ -86,7 +86,7 @@ export class PgReportExportStore implements ReportExportStore {
       [this.workspaceId, randomUUID(), candidate.reportId, candidate.publicationRevision, candidate.reportRevision, candidate.manifestSha256, candidate.rendererVersion, command.commandId, actor])).rows[0];
       const row = inserted ?? (await client.query("SELECT * FROM bsmoss_analysis.report_export_job WHERE workspace_id=$1 AND command_id=$2", [this.workspaceId, command.commandId])).rows[0];
       if (!row) throw Error("conflicting_export_replay");
-      const job = jobOf(row);
+      const job = exportJobOf(row);
       if (job.reportId !== candidate.reportId || job.publicationRevision !== candidate.publicationRevision || job.reportRevision !== candidate.reportRevision ||
           job.manifestSha256 !== candidate.manifestSha256 || job.requestedBy !== actor) throw Error("conflicting_export_replay");
       await revalidate(state.report.manifest.requiredScope); return { status: inserted ? "inserted" as const : "duplicate" as const, job };
@@ -98,7 +98,7 @@ export class PgReportExportStore implements ReportExportStore {
       const row = (await client.query(`SELECT *,available_at<=clock_timestamp() AS due FROM bsmoss_analysis.report_export_job
         WHERE workspace_id=$1 AND id=$2 FOR UPDATE SKIP LOCKED`, [this.workspaceId, query.jobId])).rows[0];
       if (!row) { await revalidate(this.emptyScope()); return { status: "busy_or_unavailable" }; }
-      const job = jobOf(row), required = await this.required(client, job);
+      const job = exportJobOf(row), required = await this.required(client, job);
       if (job.status !== "pending" || !row.due) { await revalidate(required); return { status: job.status !== "pending" ? "terminal" : "delayed", job }; }
       if (job.attempt >= EXPORT_MAX_ATTEMPTS) throw Error("invalid_export_job");
       const attempt = job.attempt + 1; let outcome: "succeeded" | "retry" | "dead", failureCode: string | null = null, sha256: string | null = null;
@@ -124,7 +124,7 @@ export class PgReportExportStore implements ReportExportStore {
       const updated = (await client.query(`UPDATE bsmoss_analysis.report_export_job SET attempt=$3,status=$4,artifact_sha256=$5,
         available_at=clock_timestamp()+make_interval(secs=>$6),updated_at=clock_timestamp() WHERE workspace_id=$1 AND id=$2 RETURNING *`,
       [this.workspaceId, job.jobId, attempt, outcome === "retry" ? "pending" : outcome, sha256, outcome === "retry" ? exportRetrySeconds(attempt) : 0])).rows[0];
-      await revalidate(required); return { status: outcome, job: jobOf(updated) };
+      await revalidate(required); return { status: outcome, job: exportJobOf(updated) };
     });
   }
   async status(raw: ExportQuery, revalidate: RevalidateReport) {
@@ -132,7 +132,7 @@ export class PgReportExportStore implements ReportExportStore {
     return this.transaction(true, async client => {
       const row = (await client.query("SELECT * FROM bsmoss_analysis.report_export_job WHERE workspace_id=$1 AND id=$2", [this.workspaceId, query.jobId])).rows[0];
       if (!row) { await revalidate(this.emptyScope()); return null; }
-      const job = jobOf(row), required = await this.required(client, job), state = await this.publication(client, job);
+      const job = exportJobOf(row), required = await this.required(client, job), state = await this.publication(client, job);
       let blockingReason: string | null = null;
       try { assertExportPublication(state); } catch (error) { const failure = exportFailure(error); if (!failure) throw error; blockingReason = failure.code; }
       if (job.rendererVersion !== REPORT_RENDERER_VERSION) blockingReason ??= "export_renderer_unavailable";
@@ -145,7 +145,7 @@ export class PgReportExportStore implements ReportExportStore {
     return this.transaction(true, async client => {
       const row = (await client.query("SELECT * FROM bsmoss_analysis.report_export_job WHERE workspace_id=$1 AND id=$2", [this.workspaceId, query.jobId])).rows[0];
       if (!row) { await revalidate(this.emptyScope()); return null; }
-      const job = jobOf(row), required = await this.required(client, job);
+      const job = exportJobOf(row), required = await this.required(client, job);
       if (job.status !== "succeeded") { await revalidate(required); return null; }
       const state = await this.publication(client, job); assertExportPublication(state);
       if (job.rendererVersion !== REPORT_RENDERER_VERSION) throw Error("export_renderer_unavailable");

@@ -27,3 +27,4 @@
 
 .reports-export>small { display:block; margin-top:8px; }
 .reports-page-nav { display:flex; gap:22px; align-items:center; font-size:13px; }.reports-page-nav a { color:#a8c8d4; text-decoration:none; }@media(max-width:700px) { .reports-page-nav { display:none; } }
+@media(max-width:700px) { .reports-header { height:auto; min-height:76px; padding:14px 16px; gap:10px; flex-wrap:wrap; }.reports-page-nav { display:flex; width:100%; flex-wrap:wrap; gap:18px; font-size:12px; } }

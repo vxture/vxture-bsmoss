@@ -677,3 +677,21 @@ dead恢复保留原任务与attempt，另建同对象／指标／周期的新pen
 最终483单测／277实际PG（276子项＋父项，新增9）／双层类型／生产build／Prisma／20HTTP、107篇文档／56表镜像／交付／SCA、23文件ASCII全通过。测试含微秒同时间分页、授权先limit、当前policy缺失、三语义／直接比率／实际派生依赖／站级电耗未知、历史重放policy变化、写后撤权及SQL故障／并发唯一性／不可变审计及跨租户FK。日志tmp/job-recovery-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,browser}.log；最终扫描／提交与运行SHA见aggregate-job-supervision检查点。为构建已核验并停本仓63333 Next PID1848；PG专用58874和合成63334服务收尾需核验停止，仅随机合同库。
 
 I09聚合队列监控恢复子项已完；报告生成／导出队列监控恢复、历史报告传播、真实机器provider／宿主、I11配置及I08对象分布／分层规模仍待，不能称全部调度上线。下一包可推进报告任务监控或配置面板。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT与生产批准仍缺，五项1–3本地完成、4–5active；没有push／PR／远端CI／真实接入／外部部署或上线，bs-moss复用，陕西／费用预留／退服P2不变。
+
+## 报告任务持久监控与结果跳转（2026-11-03）
+
+前一goal turn为实质progress：f3053820fe6ea29688724f4635976fd2358639ef聚合工作台包已提交clean，aggregate-job-supervision检查点绑定483单测／277PG／20HTTP／107篇／56表及实际63333 SHA，BUILD_ID cIB64TILgYdP-YHOFJ6WS、session7886。PG和63334均已停。只读release-preflight实际仍缺app／stack私有文件、远端源码和build／beta／prod环境；未执行远端变更。当前turn继续实质progress，不标blocked／complete、不重建goal／heartbeat、不spawn。
+
+设计218／实施540。新增ReportJobStore规则／PgReportJobStore／独立授权门面、实际RP组合根、GET /api/report-jobs与/{id}?kind和/operations/reports工作台。reports.jobs.view只入权限种子不分role，owner／generate／export／execute不隐含；运维查看者可不同于登记worker，但原worker执行主体绑定不改。SQL生成按原登记完整scope、导出按历史报告requiredScope先过滤再limit，六位微秒requested_at＋C排序ID键集分页，游标绑定kind／status、lookahead亦末次授权。只读RR返回前原／当前主体、租户、权益、显式权限、有效期及完整必要scope重验。
+
+复用生成job／scan／schedule配置与导出job及持久报告校验，生成成功核对原模板／周期／摘要及原登记scope；详情最多5条连续attempt，校验失败分类和精确结果／制品。任务无独立持久租约，不造“执行中”；到期ready／delayed、终态及登记换版保留原与当前修订。旧结果revision与执行时currentRevision分别显示；导出不具有历史head信息，currentRevision=null，不编造最新。监控不读HTML、不宣称当前可下载，打开正式报告重新验权及发布／freshness。错误／损坏不能冒充空态。
+
+正式页面双队列／状态／分页／宽详情／时间线／精确报告链接，无默认任务。/reports显式report＋revision严格解析（大整数不Number化，重复／非法拒绝），登录returnTo保留合法链接；无参数仍无默认。窄屏跨工作区导航保留。空库只加独立权限与4历史索引，仍56表，Prisma标量镜像／CLI沿上包已验证，无迁移／依赖升级。
+
+最终487单测／284实际PG（283子项＋父项，新增7）／双层类型／生产build／20HTTP全过；109篇编号／56表镜像／交付／SCA、24文件ASCII通过。PG测试两队列微秒同时间分页、隐藏设备先limit、原登记完整scope／查看者主体、物理站开关、5次失败、精确旧结果与执行时新head、并发暂停换版RR、各阶段末次撤权和无关范围缩小、损坏／SQL错误。初轮新夹具假设存在单上行导出但实际不存在，改取真实既有服务级导出的完整原scope作为独立基准，未放宽条件；随后284全过，再补高时间隐藏设备、旧结果／新head及常量复用最终284仍全过。
+
+CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、双队列切换、空态筛选、精确9007199254740993链接与9007199254740994分开显示、5次storage失败和移动导航；1440及390×844实际client375无横溢，浏览器无warn／error。artifacts/report-job-monitor-qa含generation-desktop.png、export-mobile.png；viewport已reset、tab已close，没有操作用户主地图。合成fixture不替代平台／来源／UAT。专用PG58874仅随机合同库、最终284后收尾已stop，63334合成服务已核验停止。
+
+日志tmp/report-job-monitor-{unit,db,types,build,http,guards,ascii,staged-scan,browser}.log；最终SHA／扫描／运行版本见report-job-inspection检查点。构建前已核验并停本仓63333 Next PID24172，收尾恢复新SHA。报告队列受审恢复、历史报告变化传播、I11配置和I08分布规模仍待，不能称全部正式调度或上线。平台token-exchange service模式无用户sub，再确认aud=vxture通道token不能充当产品测量C1；真实机器provider／宿主需权威契约。
+
+真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT及生产批准仍缺；原五项全部范围active，1–3本地完成、4–5未完成。没有push／PR／远端CI／真实接入／外部部署或上线，bs-moss复用，陕西演示／费用仅预留／退服P2不变。

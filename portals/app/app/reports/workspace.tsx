@@ -6,10 +6,10 @@ import { reportTime } from "../domains/reports/display";
 import { reportErrorText, reportJson, reportStatus } from "./client";
 import ReportDetail from "./detail";
 
-export default function ReportWorkspace() {
+export default function ReportWorkspace({ initialSelection = null, invalidLink = false }: { initialSelection?: { id: string; revision: string } | null; invalidLink?: boolean }) {
   const [page, setPage] = useState<ReportListPage | null>(null), [cursor, setCursor] = useState<string | null>(null);
   const [pages, setPages] = useState<(string | null)[]>([]), [epoch, setEpoch] = useState(0);
-  const [selection, setSelection] = useState<{ id: string; revision: string } | null>(null);
+  const [selection, setSelection] = useState<{ id: string; revision: string } | null>(initialSelection);
   const [error, setError] = useState(""), [loading, setLoading] = useState(true), [generating, setGenerating] = useState(false);
   const [code, setCode] = useState(""), [version, setVersion] = useState("1"), [at, setAt] = useState("");
   const [expected, setExpected] = useState("");
@@ -37,6 +37,7 @@ export default function ReportWorkspace() {
     <aside className="reports-library" aria-label={"\u62a5\u544a\u5217\u8868"}>
       <div className="reports-row"><h1>{"\u5468\u671f\u62a5\u544a"}</h1><button onClick={refreshList} disabled={loading}>{"\u5237\u65b0"}</button></div>
       <p className="reports-muted">{"\u5217\u8868\u663e\u793a\u751f\u6210\u65f6\u7684\u5b8c\u6574\u6027\uff0c\u6253\u5f00\u8be6\u60c5\u6838\u9a8c\u6700\u65b0\u72b6\u6001\u3002"}</p>
+      {invalidLink && <p role="alert" className="reports-error">{"\u62a5\u544a\u94fe\u63a5\u53c2\u6570\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9\u62a5\u544a\u3002"}</p>}
       {error && <p role="alert" className="reports-error">{error}</p>}
       {loading ? <p role="status">{"\u6b63\u5728\u8bfb\u53d6\u62a5\u544a\u2026"}</p> : page && !page.items.length ? <p className="reports-muted">{"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u62a5\u544a\u3002"}</p> : null}
       <div className="reports-list">{page?.items.map(item => <button key={item.reportId} className={"reports-list-item" + (selection?.id === item.reportId ? " selected" : "")}

@@ -9,7 +9,7 @@ import { generateReportInTransaction } from "./pg-store.ts";
 import { reportSchedule, reportScheduleAccess, planReportCalendar, generationFailure, generationRetrySeconds,
   REPORT_CALENDAR_VERSION, REPORT_GENERATION_MAX_ATTEMPTS, type ReportSchedule } from "./schedule.ts";
 
-interface ScheduleBinding { schedule: ReportSchedule; sha256: string; configSha256: string }
+export interface ScheduleBinding { schedule: ReportSchedule; sha256: string; configSha256: string }
 interface ScanManifest {
   version: typeof REPORT_CALENDAR_VERSION; scheduleId: string; scheduleRevision: string; configSha256: string; scheduleSha256: string;
   scanAt: string; scanHour: string; jobs: { id: string; period: { start: string; end: string }; dueAt: string }[];
@@ -22,8 +22,13 @@ export interface ReportGenerationJob {
 async function loadSchedule(client: PoolClient, workspaceId: string, id: string): Promise<ScheduleBinding> {
   const head = (await client.query("SELECT bsmoss_integration.lock_report_schedule($1,$2)::text AS revision", [workspaceId, id])).rows[0];
   if (!head?.revision) throw Error("report_schedule_unavailable");
+  return readReportScheduleRevision(client, workspaceId, id, head.revision);
+}
+// Historical inspection must not lock or require the current registration to
+// remain active. Execution still goes through loadSchedule and its head fence.
+export async function readReportScheduleRevision(client: PoolClient, workspaceId: string, id: string, revision: string): Promise<ScheduleBinding> {
   const row = (await client.query(`SELECT *,config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex') AS valid
-    FROM bsmoss_integration.report_schedule_revision WHERE workspace_id=$1 AND id=$2 AND revision=$3`, [workspaceId, id, head.revision])).rows[0];
+    FROM bsmoss_integration.report_schedule_revision WHERE workspace_id=$1 AND id=$2 AND revision=$3`, [workspaceId, id, revision])).rows[0];
   if (!row?.valid) throw Error("invalid_report_schedule_evidence");
   const normalized = reportSchedule({ ...row.config, workspaceId, id, revision: row.revision });
   if (row.template_code !== normalized.schedule.templateCode || row.template_version !== String(normalized.schedule.templateVersion) || row.grain !== normalized.schedule.grain) throw Error("invalid_report_schedule_evidence");
@@ -33,7 +38,7 @@ async function reviewedTemplate(client: PoolClient, p: ReportSchedule) {
   const row = (await client.query("SELECT definition,template_kind FROM bsmoss_views.template_version WHERE workspace_id=$1 AND code=$2 AND version=$3", [p.workspaceId, p.templateCode, p.templateVersion])).rows[0];
   if (!row || row.template_kind !== "report" || fingerprintOf(row.definition) !== p.templateSha256 || normalizeReportTemplate(row.definition).grain !== p.grain) throw Error("report_schedule_template_changed");
 }
-function validateScan(binding: ScheduleBinding, raw: ScanManifest, sha256: string): ScanManifest {
+export function validateScan(binding: ScheduleBinding, raw: ScanManifest, sha256: string): ScanManifest {
   fields(raw, ["version", "scheduleId", "scheduleRevision", "configSha256", "scheduleSha256", "scanAt", "scanHour", "jobs"]);
   const { schedule: p } = binding, plan = planReportCalendar(p, raw.scanAt);
   if (fingerprintOf(raw) !== sha256 || raw.version !== REPORT_CALENDAR_VERSION || raw.scheduleId !== p.id || raw.scheduleRevision !== p.revision ||
@@ -43,7 +48,7 @@ function validateScan(binding: ScheduleBinding, raw: ScanManifest, sha256: strin
     if (fingerprintOf({ period: job.period, dueAt: job.dueAt }) !== fingerprintOf(plan.windows[i])) throw Error("invalid_report_scan_evidence"); });
   return structuredClone(raw);
 }
-function jobOf(row: Record<string, any>, binding: ScheduleBinding): ReportGenerationJob {
+export function generationJobOf(row: Record<string, any>, binding: ScheduleBinding): ReportGenerationJob {
   const p = binding.schedule; jobIdentity(row.id);
   const period = { start: row.period_start.toISOString(), end: row.period_end.toISOString() }, canonical = bucketFor(period.start, p.grain);
   const attempt = Number(row.attempt), result = row.result_report_id === null ? null : { reportId: row.result_report_id, revision: row.result_report_revision,
@@ -112,7 +117,7 @@ export async function runRegisteredReport(pool: Pool, ports: AccessPorts, schedu
     const row = (await client.query(`SELECT *,available_at<=clock_timestamp() AS due FROM bsmoss_analysis.report_generation_job
       WHERE workspace_id=$1 AND id=$2 AND schedule_id=$3 AND schedule_revision=$4 FOR UPDATE SKIP LOCKED`, [p.workspaceId, jobId, p.id, p.revision])).rows[0];
     if (!row) return { status: "busy_or_unavailable" as const };
-    const job = jobOf(row, binding), receipt = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.report_schedule_scan
+    const job = generationJobOf(row, binding), receipt = (await client.query(`SELECT manifest,manifest_sha256 FROM bsmoss_analysis.report_schedule_scan
       WHERE workspace_id=$1 AND schedule_id=$2 AND schedule_revision=$3 AND scan_hour=$4`, [p.workspaceId, p.id, p.revision, job.scanHour])).rows[0];
     if (!receipt || !validateScan(binding, receipt.manifest, receipt.manifest_sha256).jobs.some(j => j.id === job.id && fingerprintOf(j.period) === fingerprintOf(job.period) && j.dueAt === job.dueAt)) throw Error("invalid_report_generation_job");
     if (job.status !== "pending" || !row.due) return { status: job.status !== "pending" ? "terminal" as const : "delayed" as const, job };
@@ -138,6 +143,6 @@ export async function runRegisteredReport(pool: Pool, ports: AccessPorts, schedu
       result_report_id=$6,result_report_revision=$7,result_current_revision=$8,result_manifest_sha256=$9 WHERE workspace_id=$1 AND id=$2 RETURNING *`,
     [p.workspaceId, job.id, outcome === "retry" ? "pending" : outcome, attempt, outcome === "retry" ? generationRetrySeconds(attempt) : 0,
       record?.reportId ?? null, record?.revision ?? null, record?.currentRevision ?? null, record?.manifestSha256 ?? null])).rows[0];
-    return { status: outcome, job: jobOf(updated, binding), generationStatus: generated?.status ?? null };
+    return { status: outcome, job: generationJobOf(updated, binding), generationStatus: generated?.status ?? null };
   });
 }

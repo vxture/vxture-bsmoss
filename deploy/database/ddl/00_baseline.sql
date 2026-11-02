@@ -376,7 +376,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('metering.jobs.view','Inspect scoped aggregate jobs'),('metering.jobs.recover','Review and replace terminal aggregate jobs'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('metering.jobs.view','Inspect scoped aggregate jobs'),('metering.jobs.recover','Review and replace terminal aggregate jobs'),('reports.jobs.view','Inspect scoped report jobs'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
@@ -1251,3 +1251,9 @@ END $$;
 REVOKE ALL ON FUNCTION bsmoss_analysis.capture_refresh_recovery() FROM PUBLIC;
 CREATE TRIGGER refresh_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.refresh_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_refresh_recovery();
 CREATE TRIGGER refresh_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.refresh_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_refresh_recovery();
+
+-- Inspection indexes do not change queue execution or retry semantics.
+CREATE INDEX report_generation_history ON bsmoss_analysis.report_generation_job(workspace_id,requested_at DESC,id COLLATE "C" DESC);
+CREATE INDEX report_generation_state_history ON bsmoss_analysis.report_generation_job(workspace_id,status,requested_at DESC,id COLLATE "C" DESC);
+CREATE INDEX report_export_history ON bsmoss_analysis.report_export_job(workspace_id,requested_at DESC,id COLLATE "C" DESC);
+CREATE INDEX report_export_state_history ON bsmoss_analysis.report_export_job(workspace_id,status,requested_at DESC,id COLLATE "C" DESC);
