@@ -395,6 +395,7 @@ model AggregateOutbox {
 
 model SourceCompletion {
   workspace_id String
+  id String
   source_id String
   mapping_id String
   station_id String
@@ -483,7 +484,9 @@ model RefreshAttempt {
 model InputChange {
   workspace_id String
   id String
-  measurement_id String
+  measurement_id String?
+  legacy_completion_id String?
+  completion_set_id String?
   change_kind String
   quality_revision Decimal? @db.Decimal(30,0)
   created_at DateTime @db.Timestamptz()

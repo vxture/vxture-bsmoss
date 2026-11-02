@@ -23,6 +23,7 @@ import { PgStateAggregateStore } from "../../portals/app/app/domains/aggregation
 import { aggregateStatePeriod } from "../../portals/app/app/domains/aggregation/state-period.ts";
 import { dispatchInputChange, pendingInputChanges } from "../../portals/app/app/domains/aggregation/pg-input-refresh.ts";
 import { inputRefreshSubscription } from "../../portals/app/app/domains/aggregation/input-refresh.ts";
+import { readRefreshSnapshot } from "../../portals/app/app/domains/aggregation/refresh-snapshot.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -1344,6 +1345,140 @@ await test("empty-database PostgreSQL contract", async t => {
       await db.query("UPDATE bsmoss_integration.source_capability SET status='planned' WHERE id='dependency-down-cap'");
       try{await assert.rejects(dispatchInputChange(adapterPool,changePorts,change,missing),/aggregate_capability_unavailable/);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[change])).rowCount,0);}
       finally{await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id='dependency-down-cap'");}
+    });
+    const proofSource='proof-src',proofPeriod={start:'2026-01-31T16:00:00.000Z',end:'2026-02-01T16:00:00.000Z'};
+    await db.query(`INSERT INTO bsmoss_integration.source VALUES ('w','proof-src','ProofSource','file');
+      INSERT INTO bsmoss_resource.station_service VALUES ('w','proof-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','proof-cell','st','proof-svc','cell');
+      INSERT INTO bsmoss_resource.device VALUES ('w','proof-device','st','controller','tower');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,device_id,version,valid_from,valid_to)
+      VALUES ('w','proof-cell-map','proof-src','cell','proof-external','st','proof-svc','proof-cell',NULL,1,'2026-01-01Z','2027-01-01Z'),
+      ('w','proof-device-map','proof-src','device','proof-physical','st',NULL,NULL,'proof-device',1,'2026-01-01Z','2027-01-01Z')`);
+    for(const [code,grain,rules] of [[upMetric.code,'day',capabilityPolicy],[down.code,'day',capabilityPolicy],[depTarget.metric.code,'day',depPolicy],
+      [stateMetric.code,'event',{stateAggregation:{version:1,authorityRef:'fixture://proof-state-policy',maxHoldMilliseconds:86400000}}]])
+      await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w',$1,'proof-src',$2,1,$3,'active','fixture://proof-validation',$4,'2026-01-01Z','2027-01-01Z')`,['proof-cap:'+code,code,grain,rules]);
+    const proofScope={...scope,sourceIds:[proofSource],serviceIds:['proof-svc'],deviceIds:['proof-device','proof-split-device'],allowSiteParameters:false};
+    const proofPorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:proofScope};}},proofWriter=new PgMeasurementStore(adapterPool,proofScope,FIRST_METRICS);
+    const proofTarget=(metric=upMetric)=>({sourceId:proofSource,mappingId:metric.code===stateMetric.code?'proof-device-map':'proof-cell-map',metric,grain:'day',at:proofPeriod.start});
+    const proofPolicy={outputs:[upMetric,depTarget.metric,stateMetric],grains:['day','week','month']};
+    const proofAggregate=async(target)=>{
+      const snap=await readRefreshSnapshot(adapterPool,proofScope,target),s={workspaceId:'w',series:[{sourceId:proofSource,subjectKey:snap.plan.subjectKey,metricKey:target.metric.code+'@1'}]};
+      return {snap,store:snap.kind==='state'?new PgStateAggregateStore(adapterPool,s):new PgAggregateStore(adapterPool,s)};
+    };
+    async function appendProof(revision,status='confirmed',target=proofTarget(),legacy=false,patch={}) {
+      const snapshot=await readRefreshSnapshot(adapterPool,proofScope,target),base={...snapshot.plan,sourceComplete:false,watermark:snapshot.plan.period.start};delete base.completionEvidence;
+      const result=snapshot.kind==='state'?aggregateStatePeriod(base,snapshot.inputs):aggregateIntervals(base,snapshot.inputs),id=randomUUID();
+      const object=(await db.query('SELECT station_id,service_id,network_object_id,device_id FROM bsmoss_integration.source_mapping WHERE workspace_id=$1 AND id=$2',['w',target.mappingId])).rows[0];
+      const row={workspace_id:'w',id,source_id:proofSource,...(legacy?{mapping_id:target.mappingId,station_id:object.station_id}:object),metric_code:target.metric.code,metric_version:1,
+        grain:target.grain,period_start:base.period.start,period_end:base.period.end,revision,status,input_fingerprint:result.inputFingerprint,
+        ...(!legacy?{mapping_manifest_sha256:mappingSetFingerprint(snapshot.kind==='state'?result.mappingWindows:base.mappingWindows)}:{}),
+        watermark:status==='confirmed'?base.period.end:base.period.start,evidence_ref:'fixture://completion-dispatch/'+revision,evidence_sha256:'e'.repeat(64),recorded_by:'reviewed-import',...patch};
+      const keys=Object.keys(row),table=legacy?'source_completion':'source_completion_set';
+      await db.query('INSERT INTO bsmoss_integration.'+table+'('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row));
+      const change=(await db.query('SELECT id FROM bsmoss_metering.input_change WHERE workspace_id=$1 AND '+(legacy?'legacy_completion_id':'completion_set_id')+'=$2',['w',id])).rows[0];
+      return {id,changeId:change.id,row};
+    }
+    for(const [id,metric,value] of [['up',upMetric,{kind:'integer_delta',value:'100'}],['down',down,{kind:'integer_delta',value:'7'}],['state',stateMetric,{kind:'state_event',state:'running',validUntil:proofPeriod.end}]])
+      await proofWriter.append(draft('proof:'+id,{sourceId:proofSource,mappingId:proofTarget(metric).mappingId,metric,periodStart:proofPeriod.start,periodEnd:proofPeriod.end,value}));
+    for(const metric of [upMetric,depTarget.metric,stateMetric]){const {snap,store}=await proofAggregate(proofTarget(metric));await store.publish(snap.plan,snap.inputs,null,'proof-worker');}
+    let firstProof,revokedProof;
+    await t.test('reviewed completion insertion captures its own durable change and publishes only the exact target',async()=>{
+      firstProof=await appendProof('1');assert.equal((await db.query('SELECT change_kind,measurement_id,completion_set_id FROM bsmoss_metering.input_change WHERE id=$1',[firstProof.changeId])).rows[0].change_kind,'completion_set');
+      const result=await dispatchInputChange(adapterPool,proofPorts,firstProof.changeId,proofPolicy);assert.equal(result.manifest.jobs.length,1);assert.equal(result.manifest.targets[0].grain,'day');assert.equal(result.manifest.change.completionId,firstProof.id);
+      assert.equal(result.manifest.targets[0].metric.code,upMetric.code);await finishChangeJobs(result.manifest,proofPorts);
+      const up=await proofAggregate(proofTarget()),total=await proofAggregate(proofTarget(depTarget.metric));assert.equal((await up.store.current(up.snap.plan)).result.completeness,'complete');assert.equal((await total.store.current(total.snap.plan)).revision,'1');
+      assert.equal((await dispatchInputChange(adapterPool,proofPorts,firstProof.changeId,proofPolicy)).status,'duplicate');
+    });
+    await t.test('a latest completion revocation requeues and downgrades current result while history remains complete',async()=>{
+      revokedProof=await appendProof('2','revoked');const result=await dispatchInputChange(adapterPool,proofPorts,revokedProof.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      const {snap,store}=await proofAggregate(proofTarget()),head=await store.current(snap.plan);assert.equal(head.result.completeness,'preliminary');assert.ok(head.result.reasons.includes('source_confirmation_revoked'));
+      assert.equal((await store.readRevision(snap.plan,'2')).result.completeness,'complete');assert.equal(head.result.knownValue.value,'100');
+    });
+    await t.test('out-of-order and stale proof changes cannot revive an older confirmation',async()=>{
+      await assert.rejects(appendProof('0'),e=>e.code==='23514');
+      const stale=await appendProof('3','confirmed',proofTarget(),false,{input_fingerprint:'0'.repeat(64)});const result=await dispatchInputChange(adapterPool,proofPorts,stale.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      const replayed=await dispatchInputChange(adapterPool,proofPorts,firstProof.changeId,{outputs:[upMetric],grains:['day']});await finishChangeJobs(replayed.manifest,proofPorts);
+      const {snap,store}=await proofAggregate(proofTarget()),head=await store.current(snap.plan);assert.equal(head.result.completeness,'preliminary');assert.ok(head.result.reasons.includes('source_confirmation_stale'));assert.equal(head.result.completionEvidence.revision,'3');
+    });
+    await t.test('legacy mapping confirmation capture works and cannot bypass a newer whole-object revocation',async()=>{
+      const before=await appendProof('1','confirmed',proofTarget(depTarget.metric),true);
+      let result=await dispatchInputChange(adapterPool,proofPorts,before.changeId,proofPolicy);assert.equal(result.manifest.change.kind,'completion');await finishChangeJobs(result.manifest,proofPorts);
+      let current=await proofAggregate(proofTarget(depTarget.metric));assert.equal((await current.store.current(current.snap.plan)).result.completeness,'complete');
+      const set=await appendProof('1','revoked',proofTarget(depTarget.metric));result=await dispatchInputChange(adapterPool,proofPorts,set.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      const later=await appendProof('2','confirmed',proofTarget(depTarget.metric),true);result=await dispatchInputChange(adapterPool,proofPorts,later.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      current=await proofAggregate(proofTarget(depTarget.metric));assert.equal((await current.store.current(current.snap.plan)).result.completeness,'preliminary');assert.ok((await current.store.current(current.snap.plan)).result.reasons.includes('source_confirmation_revoked'));
+    });
+    await t.test('state completion and revocation propagate without inferring missing state as running',async()=>{
+      const target=proofTarget(stateMetric),full=await appendProof('1','confirmed',target);
+      let result=await dispatchInputChange(adapterPool,proofPorts,full.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      let state=await proofAggregate(target);assert.equal((await state.store.current(state.snap.plan)).result.completeness,'complete');
+      const revoked=await appendProof('2','revoked',target);result=await dispatchInputChange(adapterPool,proofPorts,revoked.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      state=await proofAggregate(target);assert.equal((await state.store.current(state.snap.plan)).result.completeness,'preliminary');
+      const fact=(await db.query("SELECT id FROM bsmoss_metering.measurement WHERE event_id='proof:state'")).rows[0];
+      await db.query("INSERT INTO bsmoss_metering.quality_decision(workspace_id,id,measurement_id,revision,quality,rule_version,reason,decided_by) VALUES ('w',$1,$2,2,'pending','2','review','reviewer')",[randomUUID(),fact.id]);
+      const incomplete=await appendProof('3','confirmed',target);result=await dispatchInputChange(adapterPool,proofPorts,incomplete.changeId,proofPolicy);await finishChangeJobs(result.manifest,proofPorts);
+      state=await proofAggregate(target);const head=await state.store.current(state.snap.plan);assert.equal(head.result.completeness,'missing');assert.equal(head.result.value.durationMilliseconds.unknown,'86400000');
+    });
+    await t.test('completion capture or consumer receipt failure never leaves partial proof propagation',async()=>{
+      await db.query(`CREATE FUNCTION public.fixture_proof_capture_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture_proof_capture_failure'; END $$;
+        CREATE TRIGGER fixture_proof_capture_fail BEFORE INSERT ON bsmoss_metering.input_change FOR EACH ROW EXECUTE FUNCTION public.fixture_proof_capture_fail()`);
+      try{await assert.rejects(appendProof('4'),/fixture_proof_capture_failure/);assert.equal((await db.query("SELECT 1 FROM bsmoss_integration.source_completion_set WHERE source_id='proof-src' AND metric_code=$1 AND revision=4",[upMetric.code])).rowCount,0);}
+      finally{await db.query('DROP TRIGGER fixture_proof_capture_fail ON bsmoss_metering.input_change; DROP FUNCTION public.fixture_proof_capture_fail()');}
+      const proof=await appendProof('4'),before=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n;
+      const injected={async connect(){const client=await adapterPool.connect();return {async query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.input_refresh_receipt'))throw Error('fixture_proof_receipt_failure');return client.query(sql,args);},release(discard){client.release(discard);}};}};
+      await assert.rejects(dispatchInputChange(injected,proofPorts,proof.changeId,proofPolicy),/fixture_proof_receipt_failure/);assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n,before);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[proof.changeId])).rowCount,0);
+      const done=await dispatchInputChange(adapterPool,proofPorts,proof.changeId,proofPolicy);await finishChangeJobs(done.manifest,proofPorts);
+    });
+    await t.test('completion discovery respects exact output grain, source, station, service and device scope',async()=>{
+      const hour=await appendProof('5','confirmed',proofTarget(),false,{grain:'hour',period_start:proofPeriod.start,period_end:'2026-01-31T17:00:00.000Z',watermark:'2026-01-31T17:00:00.000Z'});
+      const pending=await pendingInputChanges(adapterPool,proofPorts,proofPolicy);assert.ok(!pending.changeIds.includes(hour.changeId));
+      const noService={...proofPorts,async readLocalGrant(){return {...await proofPorts.readLocalGrant(),scope:{...proofScope,serviceIds:[]}};}};
+      await assert.rejects(dispatchInputChange(adapterPool,noService,firstProof.changeId,proofPolicy),/object_scope_denied/);
+      const noSource={...proofPorts,async readLocalGrant(){return {...await proofPorts.readLocalGrant(),scope:{...proofScope,sourceIds:[]}};}};
+      await assert.rejects(dispatchInputChange(adapterPool,noSource,firstProof.changeId,proofPolicy),/input_change_unavailable/);
+      const state=(await db.query("SELECT c.id FROM bsmoss_metering.input_change c JOIN bsmoss_integration.source_completion_set p ON (p.workspace_id,p.id)=(c.workspace_id,c.completion_set_id) WHERE p.source_id='proof-src' AND p.metric_code=$1 AND p.revision=3",[stateMetric.code])).rows[0];
+      const noDevice={...proofPorts,async readLocalGrant(){return {...await proofPorts.readLocalGrant(),scope:{...proofScope,deviceIds:[]}};}};await assert.rejects(dispatchInputChange(adapterPool,noDevice,state.id,proofPolicy),/object_scope_denied/);
+      const ignored=await dispatchInputChange(adapterPool,proofPorts,hour.changeId,proofPolicy);assert.equal(ignored.manifest.jobs.length,0);
+      await assert.rejects(adapterPool.query("INSERT INTO bsmoss_integration.source_completion_set SELECT * FROM bsmoss_integration.source_completion_set WHERE id=$1",[firstProof.id]),e=>e.code==='42501');
+    });
+    await t.test('completion change pointers are tenant constrained, mutually exclusive and append-only',async()=>{
+      for(const patch of [{measurement_id:'missing',completion_set_id:firstProof.id,change_kind:'completion_set'},
+        {completion_set_id:firstProof.id,quality_revision:'1',change_kind:'completion_set'},
+        {completion_set_id:firstProof.id,legacy_completion_id:'missing',change_kind:'completion_set'},
+        {completion_set_id:firstProof.id,change_kind:'measurement'}]) {
+        const row={workspace_id:'w',id:randomUUID(),...patch},keys=Object.keys(row);
+        await assert.rejects(db.query('INSERT INTO bsmoss_metering.input_change('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row)),e=>e.code==='23514');
+      }
+      await assert.rejects(db.query("INSERT INTO bsmoss_metering.input_change(workspace_id,completion_set_id,change_kind) VALUES ('other',$1,'completion_set')",[firstProof.id]),e=>e.code==='23503');
+      await assert.rejects(db.query('DELETE FROM bsmoss_integration.source_completion_set WHERE id=$1',[firstProof.id]),e=>e.code==='23503');
+      const row=firstProof.row,keys=Object.keys(row);await assert.rejects(db.query('INSERT INTO bsmoss_integration.source_completion_set('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row)),e=>e.code==='23505');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_metering.input_change WHERE completion_set_id=$1',[firstProof.id])).rows[0].n,1);
+    });
+    await t.test('whole-object completion dispatch chooses a deterministic anchor across off-grid state mappings',async()=>{
+      const switchAt=new Date(Date.parse(proofPeriod.start)+17*60000).toISOString();
+      await db.query("INSERT INTO bsmoss_resource.device VALUES ('w','proof-split-device','st','controller','tower')");
+      for(const [id,from,to] of [['proof-state-old',proofPeriod.start,switchAt],['proof-state-new',switchAt,proofPeriod.end]])
+        await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+          VALUES ('w',$1,'proof-src','device','proof-split-external','st','proof-split-device',1,$2,$3)`,[id,from,to]);
+      for(const [id,start,end,state] of [['proof-state-old',proofPeriod.start,switchAt,'running'],['proof-state-new',switchAt,proofPeriod.end,'standby']])
+        await proofWriter.append(draft(id,{sourceId:proofSource,mappingId:id,metric:stateMetric,periodStart:start,periodEnd:end,value:{kind:'state_event',state,validUntil:end}}));
+      const target={...proofTarget(stateMetric),mappingId:'proof-state-new'},proof=await appendProof('1','confirmed',target);
+      const done=await dispatchInputChange(adapterPool,proofPorts,proof.changeId,proofPolicy);assert.equal(done.manifest.targets[0].mappingId,'proof-state-old');assert.equal(done.manifest.jobs.length,1);
+      await finishChangeJobs(done.manifest,proofPorts);
+      const {snap,store}=await proofAggregate(target),head=await store.current(snap.plan);assert.equal(head.result.completeness,'complete');assert.equal(head.result.mappingWindows.length,2);assert.equal(head.result.value.durationMilliseconds.standby,String((1440-17)*60000));
+      await db.query("UPDATE bsmoss_integration.source_mapping SET version=2 WHERE id='proof-state-new'");
+      const stale=await appendProof('2','confirmed',target,false,{mapping_manifest_sha256:'0'.repeat(64)}),again=await dispatchInputChange(adapterPool,proofPorts,stale.changeId,proofPolicy);await finishChangeJobs(again.manifest,proofPorts);
+      assert.equal((await store.current(snap.plan)).result.completeness,'preliminary');assert.ok((await store.current(snap.plan)).result.reasons.includes('source_confirmation_stale'));
+    });
+    await t.test('proof queued from one repeatable snapshot executes against the latest revoked source evidence',async()=>{
+      const target=proofTarget(depTarget.metric),second=await appendProof('2','confirmed',target);let changed=false;
+      const injected={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);
+        if(!changed&&sql.includes('SELECT * FROM bsmoss_integration.source_completion_set WHERE workspace_id=$1 AND id=$2')){changed=true;await appendProof('3','revoked',target);}return result;},release(discard){client.release(discard);}};}};
+      const done=await dispatchInputChange(injected,proofPorts,second.changeId,proofPolicy);assert.equal(changed,true);assert.equal(done.manifest.change.revision,'2');assert.equal(done.manifest.change.status,'confirmed');
+      await finishChangeJobs(done.manifest,proofPorts);const {snap,store}=await proofAggregate(target),head=await store.current(snap.plan);assert.equal(head.result.completionEvidence.revision,'3');assert.equal(head.result.completeness,'preliminary');
+      const latest=(await db.query("SELECT c.id FROM bsmoss_metering.input_change c JOIN bsmoss_integration.source_completion_set p ON (p.workspace_id,p.id)=(c.workspace_id,c.completion_set_id) WHERE p.source_id='proof-src' AND p.metric_code=$1 AND p.revision=3",[depTarget.metric.code])).rows[0];
+      assert.ok((await pendingInputChanges(adapterPool,proofPorts,proofPolicy)).changeIds.includes(latest.id));
     });
   } finally {
     if (adapterPool) await adapterPool.end();

@@ -414,3 +414,17 @@ input-refresh提供输出指标／粒度策略和完整有限scope规范摘要�
 400单测（新增5）、107项实际PG报告测试（106子项＋父项，新增10）、双层类型／Prisma validate通过；最终生产构建／HTTP／守卫／ASCII／密钥／Git和预览SHA以工具收尾为准。新增验证覆盖原子变化捕获／只读、旧新日期和对象撤回／历史、依赖输出、质量修订、job／消费回执故障和授权过期、并发锁／重启、晚提交、全范围权限与订阅隔离、状态抑制、direct比率和缺依赖权威拒绝。旧missing-quality owner损坏夹具需先删新FK引用的质量变化再删质量，未放宽运行权限；另一失败修正为独立未消费事件，不用已消费同事件其他分量。日志tmp/input-change-{unit,db,types,build,http,prisma,guards,ascii,staged-scan}.log。PGcluster收尾停止状态以工具为准；只随机测试库，无业务库操作。
 
 下一包：I09完成／撤销证明、能力策略及映射／服务有效期变化的捕获和影响传播；变化消费的持久失败退避／隔离、登记订阅／分区种子和真实机器身份／常驻调度仍缺。不能把本批测量／质量outbox说成全部来源变更传播完成。I08瞬时持久化／跨对象权威汇总、I11/I12正式查询发布及真实来源／平台注册／环境／Beta／容量安全恢复／UAT和生产审批继续待办。无push／PR／远端CI／部署／上线。旧演示快照不代表当前全部源码，不重新执行不变的六场景UI验收。
+
+上一包收尾：测量／质量传播提交fbfd5fb，400单测／107PG／19HTTP／类型／构建／Prisma及71篇文档／35表守卫通过，8文件ASCII与staged gitleaks57.12KB无泄漏。PGcluster已stop；检查点artifacts/formal-checkpoints/input-change-dispatch.json绑定SHA／树／BUILD_ID／日志／health，63333当时session25192，版本bsmoss-local-fbfd5fb，HTTP200。后续以工具收尾为准。
+
+## I09来源完成及撤销传播（2026-11-02）
+
+上一goal turn为progress（测量／质量outbox与实际持久历史传播实现并提交），本轮继续内部进展，不标blocked；没有真实资料回复，不重复追问／联网预检。目标active，heartbeat bs-moss复用。设计199／实施360。
+
+source_completion新增数据库生成内部id及workspace/id唯一键，原复合主键不变；input_change扩展四种互斥指针，measurement_id可空，新增legacy_completion_id／completion_set_id同租户外键。source_completion及source_completion_set INSERT触发同事务捕获；运行角色仍不能写证明／变化或改删证据，捕获函数固定源表schema／pg_catalog search_path／完全限定目标，PUBLIC不能执行。Prisma标量镜像同步，仍35表，新产品空库，无旧库迁移／依赖／UI变动。
+
+planCompletionRefresh只规划同指标同粒度同周期，不将确认扩散到反向依赖或粗周期。pg-input-refresh从原账本读证明对象／period／watermark／status／revision／输入及证据摘要，全对象按对象和有效期映射valid_from/id确定定位anchor，再由可信快照核验所有映射。消费清单保存原证明信息和任务引用；两类proof与事实／质量由UNION ALL有界发现，证明按配置输出／精确粒度过滤，仍无全局偏移。授权／幂等／busy锁／RR入队消费回执沿原机制，执行重读最高证明，旧确认晚消费或入队后新撤销不能复活旧完整性。
+
+401单测（新增1纯规则）、117项实际PG报告测试（116子项＋父项，新增10）、双层类型／生产构建／Prisma validate通过。新增覆盖精确目标、确认／撤销降级与历史、旧或失效证明不复活、单段／全对象优先级、状态unknown、捕获／回执故障回滚、source／service／device／粒度拒绝、指针互斥／租户／追加、多映射17分钟状态以及消费快照之后最高撤销。最终HTTP／守卫／ASCII／密钥／Git和63333运行SHA以工具收尾为准，日志tmp/completion-change-{unit,db,types,build,http,prisma,guards,ascii,staged-scan}.log。只专用PG随机合同库，收尾cluster停止状态见工具，无业务库操作。
+
+下一步I09能力策略和映射／服务有效期变化的捕获及历史影响传播、消费失败持久退避／隔离、登记订阅／分区种子及真实机器身份／常驻worker；I08瞬时持久化／跨对象汇总、I11/I12正式查询发布仍待。真实来源／平台注册／环境／Beta／容量安全恢复／UAT和生产审批缺少，未push／PR／远端CI／真实接入／部署／上线。没有新增来源签认或代理审批功能；本批确认夹具只有测试owner写。不要重复1—3演示工作或创建自动化，也不以本地预览称正式上线。

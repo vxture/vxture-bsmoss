@@ -461,6 +461,7 @@ CREATE TABLE bsmoss_analysis.aggregate_outbox (
 -- The connector approval path is not yet enabled; runtime has SELECT only.
 CREATE TABLE bsmoss_integration.source_completion (
   workspace_id text NOT NULL,
+  id text NOT NULL DEFAULT gen_random_uuid()::text,
   source_id text NOT NULL,
   mapping_id text NOT NULL,
   station_id text NOT NULL,
@@ -478,6 +479,7 @@ CREATE TABLE bsmoss_integration.source_completion (
   recorded_by text NOT NULL CHECK(length(trim(recorded_by)) > 0),
   recorded_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY(workspace_id,source_id,mapping_id,metric_code,metric_version,grain,period_start,period_end,revision),
+  UNIQUE(workspace_id,id),
   FOREIGN KEY(workspace_id,mapping_id,station_id,source_id) REFERENCES bsmoss_integration.source_mapping(workspace_id,id,station_id,source_id),
   FOREIGN KEY(metric_code,metric_version) REFERENCES bsmoss_catalog.metric_version(code,version)
 );
@@ -570,15 +572,24 @@ CREATE TABLE bsmoss_analysis.refresh_attempt (
 CREATE TABLE bsmoss_metering.input_change (
   workspace_id text NOT NULL,
   id text NOT NULL DEFAULT gen_random_uuid()::text,
-  measurement_id text NOT NULL,
-  change_kind text NOT NULL CHECK(change_kind IN ('measurement','quality')),
+  measurement_id text,
+  legacy_completion_id text,
+  completion_set_id text,
+  change_kind text NOT NULL CHECK(change_kind IN ('measurement','quality','completion','completion_set')),
   quality_revision numeric(30,0),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   PRIMARY KEY(workspace_id,id),
-  UNIQUE NULLS NOT DISTINCT(workspace_id,measurement_id,change_kind,quality_revision),
+  UNIQUE NULLS NOT DISTINCT(workspace_id,measurement_id,change_kind,quality_revision,legacy_completion_id,completion_set_id),
+  UNIQUE(workspace_id,legacy_completion_id),
+  UNIQUE(workspace_id,completion_set_id),
   FOREIGN KEY(workspace_id,measurement_id) REFERENCES bsmoss_metering.measurement(workspace_id,id),
   FOREIGN KEY(workspace_id,measurement_id,quality_revision) REFERENCES bsmoss_metering.quality_decision(workspace_id,measurement_id,revision),
-  CHECK((change_kind='measurement' AND quality_revision IS NULL) OR (change_kind='quality' AND quality_revision IS NOT NULL AND quality_revision>0))
+  FOREIGN KEY(workspace_id,legacy_completion_id) REFERENCES bsmoss_integration.source_completion(workspace_id,id),
+  FOREIGN KEY(workspace_id,completion_set_id) REFERENCES bsmoss_integration.source_completion_set(workspace_id,id),
+  CHECK((measurement_id IS NOT NULL AND legacy_completion_id IS NULL AND completion_set_id IS NULL AND
+      ((change_kind='measurement' AND quality_revision IS NULL) OR (change_kind='quality' AND quality_revision IS NOT NULL AND quality_revision>0))) OR
+    (measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion' AND legacy_completion_id IS NOT NULL AND completion_set_id IS NULL) OR
+    (measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion_set' AND legacy_completion_id IS NULL AND completion_set_id IS NOT NULL))
 );
 CREATE INDEX input_change_pending ON bsmoss_metering.input_change(workspace_id,created_at,id);
 CREATE TABLE bsmoss_analysis.input_refresh_receipt (
@@ -604,6 +615,12 @@ BEGIN
   ELSIF TG_TABLE_NAME='quality_decision' AND TG_TABLE_SCHEMA='bsmoss_metering' THEN
     INSERT INTO bsmoss_metering.input_change(workspace_id,measurement_id,change_kind,quality_revision)
       VALUES(NEW.workspace_id,NEW.measurement_id,'quality',NEW.revision);
+  ELSIF TG_TABLE_NAME='source_completion' AND TG_TABLE_SCHEMA='bsmoss_integration' THEN
+    INSERT INTO bsmoss_metering.input_change(workspace_id,legacy_completion_id,change_kind)
+      VALUES(NEW.workspace_id,NEW.id,'completion');
+  ELSIF TG_TABLE_NAME='source_completion_set' AND TG_TABLE_SCHEMA='bsmoss_integration' THEN
+    INSERT INTO bsmoss_metering.input_change(workspace_id,completion_set_id,change_kind)
+      VALUES(NEW.workspace_id,NEW.id,'completion_set');
   ELSE RAISE EXCEPTION 'unsupported input change table'; END IF;
   RETURN NEW;
 END $$;
@@ -611,4 +628,8 @@ REVOKE ALL ON FUNCTION bsmoss_metering.capture_input_change() FROM PUBLIC;
 CREATE TRIGGER measurement_input_change AFTER INSERT ON bsmoss_metering.measurement
   FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
 CREATE TRIGGER quality_input_change AFTER INSERT ON bsmoss_metering.quality_decision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
+CREATE TRIGGER completion_input_change AFTER INSERT ON bsmoss_integration.source_completion
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
+CREATE TRIGGER completion_set_input_change AFTER INSERT ON bsmoss_integration.source_completion_set
   FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();

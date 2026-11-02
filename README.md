@@ -155,6 +155,12 @@ transaction. A scoped internal dispatcher derives historical old/new objects,
 dependency outputs and state suppression windows from persisted evidence, then
 atomically queues jobs with an immutable per-subscription consumption receipt.
 Discovery uses pending events rather than a global timestamp/sequence offset.
-Completion, capability and mapping changes, durable failure backoff, registered
-subscriptions and a production worker remain pending.
+Capability and mapping changes, durable failure backoff, registered subscriptions
+and a production worker remain pending.
 See docs/40-implementation/350-input-change-dispatch.md.
+Reviewed completion and revocation inserts are also captured transactionally.
+They queue only their exact metric/grain/object period, while execution reads
+the latest proofs and preserves unknown or missing coverage. Whole-object proofs
+can span mapping versions; stale or revoked proofs never revive older approval.
+Runtime still cannot approve sources or write completion evidence.
+See docs/40-implementation/360-completion-change-dispatch.md.

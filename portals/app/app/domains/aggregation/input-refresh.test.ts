@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Pool } from "pg";
-import { inputRefreshSubscription, planInputRefresh, type InputRefreshPolicy } from "./input-refresh.ts";
+import { inputRefreshSubscription, planInputRefresh, planCompletionRefresh, type InputRefreshPolicy } from "./input-refresh.ts";
 import { dispatchInputChange, pendingInputChanges } from "./pg-input-refresh.ts";
 import type { AccessPorts } from "../access/resolve.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
@@ -39,6 +39,16 @@ test("input history and target bounds fail closed without truncating evidence", 
   assert.throws(() => planInputRefresh(Array(1001).fill(impact), policy), /input_history_bound_exceeded/);
   assert.throws(() => planInputRefresh(Array.from({ length: 65 }, (_, i) => ({ ...impact, mappingId: "map" + i })), policy), /refresh_batch_bound_exceeded/);
   assert.throws(() => planInputRefresh([{ ...impact, period: { ...impact.period, end: impact.period.start } }], policy));
+});
+test("completion changes affect only their exact metric and grain, never dependencies or coarser periods", () => {
+  const row = { sourceId: "s", mappingId: "map", metric: up, grain: "day" as const,
+    period: { start: "2026-01-31T16:00:00Z", end: "2026-02-01T16:00:00Z" } };
+  const result = planCompletionRefresh(row, policy); assert.equal(result.length, 1); assert.equal(result[0]!.metric.code, up.code); assert.equal(result[0]!.grain, "day");
+  assert.equal(planCompletionRefresh(row, { outputs: [total], grains: ["day"] }).length, 0);
+  assert.equal(planCompletionRefresh(row, { outputs: [up], grains: ["week", "month"] }).length, 0);
+  assert.equal(planCompletionRefresh({ ...row, grain: "hour", period: { start: row.period.start, end: "2026-01-31T17:00:00Z" } }, policy).length, 0);
+  assert.throws(() => planCompletionRefresh({ ...row, period: { ...row.period, end: "2026-02-01T15:00:00Z" } }, policy), /unaligned_completion_period/);
+  assert.throws(() => planCompletionRefresh({ ...row, metric: { code: up.code, version: 0 } }, policy), /unsupported_aggregate_metric/);
 });
 test("input discovery and dispatch require current data-plane authorization before database access", async () => {
   let calls = 0;

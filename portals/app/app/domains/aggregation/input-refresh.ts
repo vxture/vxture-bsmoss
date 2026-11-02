@@ -1,8 +1,8 @@
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
-import { refKey, type MetricRef } from "../catalog/registry.ts";
+import { refKey, type MetricRef, type Grain } from "../catalog/registry.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
 import { fingerprintOf } from "./intervals.ts";
-import { bounds, type Period } from "./periods.ts";
+import { bounds, bucketFor, type Period } from "./periods.ts";
 import { refreshTargets } from "./refresh-coordination.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
 import { planRevisionRefresh, type RefreshGrain } from "./refresh-planning.ts";
@@ -11,6 +11,17 @@ export const INPUT_REFRESH_VERSION = "bsmoss-input-refresh-v1";
 // Server-owned output subscription, never a request-supplied authorization scope.
 export interface InputRefreshPolicy { outputs: readonly MetricRef[]; grains: readonly RefreshGrain[] }
 export interface InputImpact { sourceId: string; mappingId: string; metric: MetricRef; period: Period; mappingEnd: string }
+export interface CompletionImpact { sourceId: string; mappingId: string; metric: MetricRef; grain: Grain; period: Period }
+export function planCompletionRefresh(impact: CompletionImpact, policy: InputRefreshPolicy) {
+  const row = structuredClone(impact), canonical = bucketFor(row.period.start, row.grain), [start, end] = bounds(row.period);
+  if (Date.parse(canonical.start) !== start || Date.parse(canonical.end) !== end) throw Error("unaligned_completion_period");
+  const metric = FIRST_METRICS.get(row.metric);
+  if (!Number.isSafeInteger(row.metric.version) || !metric || metric.lifecycle === "retired" || !metric.grains.includes(row.grain)) throw Error("unsupported_aggregate_metric");
+  // Proofs confirm one exact target. They do not make coarser periods or
+  // dependency outputs complete and cannot be treated as fresh measurements.
+  if (!policy.grains.some(g => g === row.grain) || !policy.outputs.some(ref => refKey(ref) === refKey(row.metric))) return [];
+  return refreshTargets([{ sourceId: row.sourceId, mappingId: row.mappingId, metric: row.metric, grain: row.grain, at: canonical.start }]);
+}
 export function inputRefreshSubscription(scope: MeasurementScope, raw: InputRefreshPolicy) {
   const policy = structuredClone(raw);
   if (!policy || Object.keys(policy).some(k => !["outputs", "grains"].includes(k)) || !Array.isArray(policy.outputs) || !policy.outputs.length || policy.outputs.length > 16) throw Error("invalid_input_refresh_policy");

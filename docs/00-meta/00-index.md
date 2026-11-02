@@ -60,3 +60,4 @@
 - [授权刷新协调](../40-implementation/330-authorized-refresh-coordination.md)：全批入队、周期／历史影响规划、有限候选及并发快照修复。
 - [设备状态持久化](../40-implementation/340-device-state-persistence.md)：可信心跳有效期、未知时长、组合证明和调度原子发布。
 - [测量及质量变化传播](../40-implementation/350-input-change-dispatch.md)：事务变化记录、旧新及依赖窗口、消费清单与晚提交处理。
+- [来源完成及撤销传播](../40-implementation/360-completion-change-dispatch.md)：精确指标／周期、最高证明优先及当前结果降级。
