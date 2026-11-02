@@ -9,6 +9,7 @@ import { inputRefreshSubscription, planInputRefresh, planCompletionRefresh, INPU
 import { enqueueRefreshInTransaction } from "./refresh-enqueue.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
 import { readRefreshSnapshot } from "./refresh-snapshot.ts";
+import { authorizedAuthorityChange, authorityEvidence } from "./pg-authority-impact.ts";
 
 function objectAllowed(row: { station_id: string; service_id: string | null; device_id: string | null }, scope: MeasurementScope) {
   return scope.stationIds.includes(row.station_id) && (!row.service_id || scope.serviceIds.includes(row.service_id)) &&
@@ -17,6 +18,8 @@ function objectAllowed(row: { station_id: string; service_id: string | null; dev
 // Establish authority independently of planning limits or missing capability.
 // EXISTS checks all historical objects without returning unbounded evidence.
 async function authorizeInputChange(client: PoolClient, scope: MeasurementScope, changeId: string) {
+  const pointer = (await client.query('SELECT authority_change_id FROM bsmoss_metering.input_change WHERE workspace_id=$1 AND id=$2', [scope.workspaceId, changeId])).rows[0];
+  if (pointer?.authority_change_id) { await authorizedAuthorityChange(client, scope, changeId); return; }
   const row = (await client.query(`WITH visible AS (
     SELECT m.source_id,m.metric_code,m.metric_version,m.station_id,sm.service_id,sm.device_id,m.event_id,m.component_key
     FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id)
@@ -68,9 +71,10 @@ async function completionEvidence(client: PoolClient, scope: MeasurementScope, c
       ...(whole ? { mappingManifestSha256: proof.mapping_manifest_sha256 } : { mappingId }) },
     records: [{ completionId: proof.id, revision: proof.revision, mappingId, period }] };
 }
-async function evidenceHistory(client: PoolClient, scope: MeasurementScope, changeId: string, policy: InputRefreshPolicy) {
-  const change = (await client.query('SELECT change_kind,legacy_completion_id,completion_set_id FROM bsmoss_metering.input_change WHERE workspace_id=$1 AND id=$2', [scope.workspaceId, changeId])).rows[0];
+async function evidenceHistory(pool: Pool, client: PoolClient, scope: MeasurementScope, changeId: string, policy: InputRefreshPolicy, subscription: string, actor: string) {
+  const change = (await client.query('SELECT change_kind,legacy_completion_id,completion_set_id,authority_change_id FROM bsmoss_metering.input_change WHERE workspace_id=$1 AND id=$2', [scope.workspaceId, changeId])).rows[0];
   if (!change) throw Error("input_change_unavailable");
+  if (change.change_kind === "authority") return authorityEvidence(pool, client, scope, changeId, policy, subscription, actor);
   if (change.change_kind === "completion" || change.change_kind === "completion_set") return completionEvidence(client, scope, change, policy);
   const changed = (await client.query(`SELECT c.change_kind,c.quality_revision,m.* FROM bsmoss_metering.input_change c
     JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id)
@@ -122,8 +126,8 @@ async function executeInputChange(pool: Pool, ports: AccessPorts, rawChangeId: s
     await client.query("SAVEPOINT input_dispatch_work");
     let outcome;
     try {
-    const evidence = await evidenceHistory(client, access.scope, changeId, subscription.policy);
-    const candidates = evidence.kind === "completion" ? evidence.targets : planInputRefresh(evidence.impacts, subscription.policy), targets = [];
+    const evidence = await evidenceHistory(pool, client, access.scope, changeId, subscription.policy, subscription.sha256, access.context.sub);
+    const candidates = evidence.kind === "measurement" ? planInputRefresh(evidence.impacts, subscription.policy) : evidence.targets, targets = [];
     for (const target of candidates) {
       if (evidence.kind === "measurement" && refKey(target.metric) !== evidence.metricKey) {
         // A configured ratio may use direct parts instead of dependency counts.
@@ -137,6 +141,10 @@ async function executeInputChange(pool: Pool, ports: AccessPorts, rawChangeId: s
     }
     const triggerRef = "input:" + INPUT_REFRESH_VERSION + ":" + fingerprintOf([changeId, subscription.sha256]);
     const queued = await enqueueRefreshInTransaction(pool, client, access, now, targets, triggerRef);
+    const current = await resolveMeasurementAccess(ports, "aggregate", "data");
+    if (current.context.sub !== access.context.sub || current.context.workspaceId !== access.context.workspaceId ||
+        inputRefreshSubscription(current.scope, policy).sha256 !== subscription.sha256) throw Error("permission_denied");
+    if (current.expiresAt <= now()) throw Error("access_expired");
     const manifest = { version: INPUT_REFRESH_VERSION, changeId, subscriptionSha256: subscription.sha256,
       policy: subscription.policy, triggerRef, change: evidence.change, evidence: evidence.records,
       targets, jobs: queued.jobs.map(job => ({ id: job.id })), queueManifestSha256: queued.manifestSha256 };
@@ -217,24 +225,30 @@ export async function pendingInputChanges(pool: Pool, ports: AccessPorts, rawPol
   const subscription = inputRefreshSubscription(s, policy);
   const relevant = new Set(subscription.policy.outputs.flatMap(ref => [ref, ...FIRST_METRICS.get(ref)!.dependencies]).map(refKey));
   const rows = (await pool.query(`WITH visible AS (
-      SELECT c.id,c.created_at,m.source_id,m.metric_code,m.metric_version,m.station_id,sm.service_id,sm.device_id,NULL::text AS proof_grain,false AS is_proof
+      SELECT c.id,c.created_at,m.source_id,m.metric_code,m.metric_version,m.station_id,sm.service_id,sm.device_id,NULL::text AS proof_grain,false AS is_proof,false AS is_authority
       FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id)
       JOIN bsmoss_integration.source_mapping sm ON (sm.workspace_id,sm.id)=(m.workspace_id,m.mapping_id) WHERE c.workspace_id=$1
       UNION ALL
-      SELECT c.id,c.created_at,p.source_id,p.metric_code,p.metric_version,p.station_id,sm.service_id,sm.device_id,p.grain,true
+      SELECT c.id,c.created_at,p.source_id,p.metric_code,p.metric_version,p.station_id,sm.service_id,sm.device_id,p.grain,true,false
       FROM bsmoss_metering.input_change c JOIN bsmoss_integration.source_completion p ON (p.workspace_id,p.id)=(c.workspace_id,c.legacy_completion_id)
       JOIN bsmoss_integration.source_mapping sm ON (sm.workspace_id,sm.id)=(p.workspace_id,p.mapping_id) WHERE c.workspace_id=$1
       UNION ALL
-      SELECT c.id,c.created_at,p.source_id,p.metric_code,p.metric_version,p.station_id,p.service_id,p.device_id,p.grain,true
+      SELECT c.id,c.created_at,p.source_id,p.metric_code,p.metric_version,p.station_id,p.service_id,p.device_id,p.grain,true,false
       FROM bsmoss_metering.input_change c JOIN bsmoss_integration.source_completion_set p ON (p.workspace_id,p.id)=(c.workspace_id,c.completion_set_id) WHERE c.workspace_id=$1
+      UNION ALL
+      SELECT c.id,c.created_at,m->>'source_id',m->>'metric_code',(m->>'metric_version')::numeric,m->>'station_id',
+        CASE WHEN a.entity_kind='station_service' THEN a.entity_id ELSE m->>'service_id' END,m->>'device_id',NULL,false,true
+      FROM bsmoss_metering.input_change c JOIN bsmoss_integration.authority_change a ON (a.workspace_id,a.id)=(c.workspace_id,c.authority_change_id)
+      CROSS JOIN LATERAL (SELECT coalesce(a.after_snapshot,a.before_snapshot) AS m) snapshot WHERE c.workspace_id=$1
     ) SELECT v.id FROM visible v LEFT JOIN LATERAL (
       SELECT state,available_at FROM bsmoss_analysis.input_dispatch_event e WHERE e.workspace_id=$1 AND e.change_id=v.id AND e.subscription_sha256=$8 ORDER BY revision DESC LIMIT 1
-    ) control ON true WHERE v.source_id=ANY($2::text[])
+    ) control ON true WHERE (v.source_id=ANY($2::text[]) OR (v.is_authority AND v.source_id IS NULL AND cardinality($2::text[])>0))
     AND (control.state IS NULL OR control.state='reopened' OR (control.state='retry' AND control.available_at<=clock_timestamp()))
-    AND ((NOT v.is_proof AND v.metric_code||'@'||v.metric_version::text=ANY($3::text[])) OR
+    AND ((v.is_authority AND (v.metric_code IS NULL OR v.metric_code||'@'||v.metric_version::text=ANY($3::text[]))) OR
+      (NOT v.is_authority AND NOT v.is_proof AND v.metric_code||'@'||v.metric_version::text=ANY($3::text[])) OR
       (v.is_proof AND v.metric_code||'@'||v.metric_version::text=ANY($9::text[]) AND v.proof_grain=ANY($10::text[])))
-    AND v.station_id=ANY($4::text[]) AND (v.service_id IS NULL OR v.service_id=ANY($5::text[]))
-    AND (v.device_id IS NULL OR v.device_id=ANY($6::text[])) AND (v.service_id IS NOT NULL OR v.device_id IS NOT NULL OR $7::boolean)
+    AND ((v.is_authority AND v.station_id IS NULL) OR v.station_id=ANY($4::text[])) AND (v.service_id IS NULL OR v.service_id=ANY($5::text[]))
+    AND (v.device_id IS NULL OR v.device_id=ANY($6::text[])) AND ((v.is_authority AND v.station_id IS NULL) OR v.service_id IS NOT NULL OR v.device_id IS NOT NULL OR $7::boolean)
     AND NOT EXISTS(SELECT 1 FROM bsmoss_analysis.input_refresh_receipt r WHERE (r.workspace_id,r.change_id,r.subscription_sha256)=($1,v.id,$8))
     ORDER BY v.created_at,v.id LIMIT 64`, [s.workspaceId, s.sourceIds, s.metricKeys.filter(key => relevant.has(key)), s.stationIds, s.serviceIds, s.deviceIds,
     s.allowSiteParameters, subscription.sha256, subscription.policy.outputs.map(refKey), subscription.policy.grains])).rows;

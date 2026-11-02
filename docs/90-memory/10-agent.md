@@ -484,3 +484,14 @@ access/aggregate-query按view权限构造有限reader，读取后重查C1／C2�
 147项实际PG报告测试（146子项＋父项，新增6）、Prisma validate／37表镜像通过。新增覆盖三源全生命周期／noop／重建、30位版本／核验策略引用／UTC、SHA独立校验、捕获失败原写和同事务业务回滚、所有运行DML／函数执行拒绝／伪表白名单／TRUNCATE、租户身份形状哈希、并发修订链和未提交／回滚无幽灵。首次全DB已过，随后补运行INSERT拒绝断言后再全DB，最终结果和cluster停止以工具收尾为准。应用TS／布局未变，沿用132e76a已通过416单测／20HTTP／类型／构建，不重复无变化验收；日志tmp/authority-{db,prisma,guards,ascii,staged-scan}.log。最终文档／交付／SCA／ASCII／密钥／本地提交及运行SHA和authority-change-evidence.json以收尾为准。
 
 下一步必须补authority_change的发现、旧新来源／对象／指标全范围授权、有效期与依赖影响解析、删除或失效后的历史输出、消费回执／失败退避隔离、晚提交和原子批量入队；不得只用最新行代替旧快照或只处理现存映射。另I09登记订阅／种子／真实机器身份／常驻scheduler，I08跨对象权威去重汇总、I11正式面板与I12持久报告／异步导出未完成。真实来源／平台注册、Beta环境／11万容量3倍突发／安全恢复／UAT和生产批准仍缺。五项1–3本地完成，4–5未上线，无push／PR／远端CI／真实部署。保留费用预留、退服P2、陕西演示；heartbeat bs-moss复用。
+
+
+## I09权威变更影响与消费（2026-11-03，覆盖同类历史待办）
+
+继续既有五项active目标，当前有内部实质进展，不标blocked；没有真实资料回复，不重复追问或创建自动化。设计205／实施410。authority_change同事务追加input_change，pg-authority-impact以原快照、历史稳定对象和既有事实／发布周期规划直接与依赖影响；无全局消费高水位，晚提交可发现。权威可用则入队，不可用则追加精确旧发布修订失效，不制造零或新结果。失效／全批任务／成功回执原子，失败纳入既有退避隔离恢复；成功回执前再验身份／权益／权限／完整scope。旧RR遇新head回滚，direct比率不误受未使用的次数能力影响。
+
+38表空库／Prisma同步，无旧库迁移。稳定映射／能力／服务的对象身份禁止UPDATE或删除重建后重分配，纠错用新身份及事实修订；已有事实或任务引用映射的FK保留，用有效期停用。三语义快照绑定权威generation，精确authorityRevisions清单保存于plan／manifest／结果并纳入指纹，可复算；配置改回旧值也不复活旧complete证明。服务窗口修复：完全停用为not_applicable，实际窗口外事实不混入，最新修订先选、跨界粗粒度仍拒绝。
+
+422单测（新增6）、160项实际PG报告测试（159子项＋父项，新增13）、双层类型／生产构建／Prisma通过。最终20HTTP、编号／38表镜像／交付／SCA配置守卫、ASCII／密钥／Git及运行SHA以工具收尾和authority-impact-dispatch.json为准。日志tmp/authority-impact-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PG仅随机合同库，无业务库操作，收尾停止。无依赖或地图UI改变，不重复六场景验收。
+
+有限scope内最多1000映射／事实窗口、64目标，超限进入异常控制不截断；无事实／发布时不制造空历史日历。下一步I09登记订阅／分区及种子、真实机器身份／常驻worker；I08跨对象权威去重、I11正式面板与I12持久报告／异步导出仍待。五项1–3本地完成，4缺真实来源／平台注册，5未到Beta／11万容量3倍突发／安全恢复／UAT和生产批准。未push／PR／远端CI／真实接入／外部部署／上线；费用预留／退服P2／陕西演示不变，heartbeat bs-moss复用。

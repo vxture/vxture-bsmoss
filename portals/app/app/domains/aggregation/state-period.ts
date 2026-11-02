@@ -1,3 +1,4 @@
+import { normalizeAuthorityRevisions, type AuthorityRevision } from "./authority-revisions.ts";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type Grain, type MetricRef } from "../catalog/registry.ts";
 import { bounds, bucketFor, instant, type Period } from "./periods.ts";
@@ -8,6 +9,7 @@ import { jobIdentity } from "./refresh-jobs.ts";
 
 export const STATE_PERIOD_VERSION = "bsmoss-state-period-v1";
 export interface StatePlan {
+  authorityRevisions?: readonly AuthorityRevision[];
   semantic: "state";
   workspaceId: string; sourceId: string; subjectKey: string; authorityVersion: string;
   metric: MetricRef; grain: Grain; nativeGrain: "event"; period: Period;
@@ -46,6 +48,7 @@ export function stateMappingManifest(period: Period, raw: readonly EffectiveMapp
 // One trusted device/source, event validity supplied by a reviewed capability.
 export function aggregateStatePeriod(rawPlan: StatePlan, rawInputs: readonly StateInput[]) {
   const plan = structuredClone(rawPlan), inputs = structuredClone(rawInputs);
+  if (plan.authorityRevisions !== undefined) plan.authorityRevisions = normalizeAuthorityRevisions(plan.authorityRevisions);
   [plan.workspaceId, plan.sourceId, plan.subjectKey, plan.authorityVersion].forEach(jobIdentity);
   const metric = FIRST_METRICS.get(plan.metric);
   if (!Number.isSafeInteger(plan.metric.version) || plan.metric.version < 1 || !metric || metric.lifecycle === "retired" || metric.semantic !== "state" || !metric.grains.includes(plan.grain) || plan.semantic !== "state" || plan.nativeGrain !== "event") throw Error("unsupported_state_metric");
@@ -109,6 +112,7 @@ export function aggregateStatePeriod(rawPlan: StatePlan, rawInputs: readonly Sta
     knownTransitions: timeline.knownTransitions, gapTransitions: timeline.gapTransitions, endState: timeline.endState };
   return { aggregationVersion: STATE_PERIOD_VERSION, inputFingerprint: fingerprintOf({ version: STATE_PERIOD_VERSION, plan, selected }),
     workspaceId: plan.workspaceId, sourceId: plan.sourceId, subjectKey: plan.subjectKey, authorityVersion: plan.authorityVersion,
+    ...(plan.authorityRevisions === undefined ? {} : { authorityRevisions: structuredClone(plan.authorityRevisions) }),
     metric: { ...plan.metric }, grain: plan.grain, nativeGrain: plan.nativeGrain, period: plan.period,
     unit: metric.unit, category: metric.category, value, completeness,
     expectedMilliseconds: expected.toString(), knownMilliseconds: known.toString(), watermark: plan.watermark,

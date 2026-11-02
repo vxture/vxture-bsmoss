@@ -1,3 +1,4 @@
+import { normalizeAuthorityRevisions, type AuthorityRevision } from "./authority-revisions.ts";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type Grain, type MetricRef } from "../catalog/registry.ts";
 import { integer } from "../measurements/rules.ts";
@@ -10,6 +11,7 @@ import { jobIdentity } from "./refresh-jobs.ts";
 export const GAUGE_PERIOD_VERSION = "bsmoss-gauge-period-v1";
 export interface GaugePolicy { version: 1; authorityRef: string; mode: "sample_mean" | "time_weighted"; scale: number; durationRef?: string }
 export interface GaugePlan {
+  authorityRevisions?: readonly AuthorityRevision[];
   semantic: "gauge"; workspaceId: string; sourceId: string; subjectKey: string; authorityVersion: string;
   metric: MetricRef; grain: Grain; nativeGrain: NativeGrain; period: Period; policy: GaugePolicy;
   mappingPeriods: readonly EffectiveMapping[]; sourceComplete: boolean; watermark: string; completionEvidence?: CompletionEvidence;
@@ -36,6 +38,7 @@ export function gaugePolicy(raw: unknown): GaugePolicy {
 // sensors, attributed to operators, or held beyond a reviewed source window.
 export function aggregateGaugePeriod(rawPlan: GaugePlan, rawInputs: readonly GaugeInput[]) {
   const plan = structuredClone(rawPlan), inputs = structuredClone(rawInputs);
+  if (plan.authorityRevisions !== undefined) plan.authorityRevisions = normalizeAuthorityRevisions(plan.authorityRevisions);
   [plan.workspaceId, plan.sourceId, plan.subjectKey, plan.authorityVersion].forEach(jobIdentity);
   const metric = FIRST_METRICS.get(plan.metric);
   if (!Number.isSafeInteger(plan.metric.version) || plan.metric.version < 1 || !metric || metric.lifecycle === "retired" || metric.semantic !== "gauge" ||
@@ -105,6 +108,7 @@ export function aggregateGaugePeriod(rawPlan: GaugePlan, rawInputs: readonly Gau
   const completeness = !valid.length ? "missing" : valid.length < mappingWindows.length ? "partial" : plan.sourceComplete ? "complete" : "preliminary";
   return { aggregationVersion: GAUGE_PERIOD_VERSION, inputFingerprint: fingerprintOf({ version: GAUGE_PERIOD_VERSION, plan, selected }),
     workspaceId: plan.workspaceId, sourceId: plan.sourceId, subjectKey: plan.subjectKey, authorityVersion: plan.authorityVersion,
+    ...(plan.authorityRevisions === undefined ? {} : { authorityRevisions: structuredClone(plan.authorityRevisions) }),
     metric: { ...plan.metric }, grain: plan.grain, nativeGrain: plan.nativeGrain, period, unit: metric.unit, category: metric.category,
     value, completeness, expectedWindows: mappingWindows.length, validWindows: valid.length, coveredMilliseconds: summary.coveredMilliseconds,
     expectedMilliseconds: String(end - start), watermark: plan.watermark, policy: plan.policy, mappingWindows, reasons: [...reasons].sort(),

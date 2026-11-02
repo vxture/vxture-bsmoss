@@ -506,6 +506,7 @@ model InputChange {
   measurement_id String?
   legacy_completion_id String?
   completion_set_id String?
+  authority_change_id String?
   change_kind String
   quality_revision Decimal? @db.Decimal(30,0)
   created_at DateTime @db.Timestamptz()
@@ -524,6 +525,20 @@ model InputRefreshReceipt {
   recorded_at DateTime @db.Timestamptz()
   @@id([workspace_id,change_id,subscription_sha256])
   @@map("input_refresh_receipt")
+  @@schema("bsmoss_analysis")
+}
+
+model AggregateAuthorityInvalidation {
+  workspace_id String
+  series_id String
+  invalidated_revision Decimal @db.Decimal(30,0)
+  authority_change_id String
+  subscription_sha256 String
+  reason String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,series_id,invalidated_revision,authority_change_id,subscription_sha256])
+  @@map("aggregate_authority_invalidation")
   @@schema("bsmoss_analysis")
 }
 

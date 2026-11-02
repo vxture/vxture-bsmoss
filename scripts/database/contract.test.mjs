@@ -55,7 +55,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,37);
+      assert.equal(tables.rows[0].n,38);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -493,7 +493,8 @@ await test("empty-database PostgreSQL contract", async t => {
       await assert.rejects(snapshotReader.load(snapshotTarget),/aggregate_mapping_gap/);
       await db.query("UPDATE bsmoss_integration.source_mapping SET valid_from='2026-01-01Z' WHERE id='snapshot-map'");
       await db.query("UPDATE bsmoss_resource.station_service SET valid_from=$1 WHERE id='svc'",[snapshotTime(15)]);
-      await assert.rejects(snapshotReader.load(snapshotTarget),/unexpected_or_coarse_window/);
+      const active=await snapshotReader.load(snapshotTarget);assert.equal(active.plan.mappingWindows.length,3);
+      assert.ok(active.inputs.every(r=>Date.parse(r.period.start)>=Date.parse(snapshotTime(15))));
       await db.query("UPDATE bsmoss_resource.station_service SET valid_from='2026-01-01Z' WHERE id='svc'");
     });
     await t.test('snapshot rejects coarse/straddling evidence and missing quality instead of silently dropping it',async()=>{
@@ -1494,6 +1495,9 @@ await test("empty-database PostgreSQL contract", async t => {
     const retryScope={...scope,sourceIds:['retry-src'],serviceIds:['retry-svc'],deviceIds:[],allowSiteParameters:false,metricKeys:[upMetric.code+'@1']};
     const retryPorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:retryScope};}};
     const retryPolicy={outputs:[upMetric],grains:['day']},retrySub=inputRefreshSubscription(retryScope,retryPolicy).sha256,retryWriter=new PgMeasurementStore(adapterPool,retryScope,FIRST_METRICS);
+    // Finish reviewed setup changes before testing poison fact ordering. These
+    // have no facts/publications yet and must still get real durable receipts.
+    for(const id of (await pendingInputChanges(adapterPool,retryPorts,retryPolicy)).changeIds){const setup=await dispatchInputChange(adapterPool,retryPorts,id,retryPolicy);assert.equal(setup.manifest.jobs.length,0);}
     async function retryFact(name,day=0){const start=new Date(Date.parse('2026-03-01T16:00:00Z')+day*86400000).toISOString(),end=new Date(Date.parse(start)+86400000).toISOString();
       const saved=await retryWriter.append(draft('retry:'+name,{sourceId:'retry-src',mappingId:'retry-map',periodStart:start,periodEnd:end,value:{kind:'integer_delta',value:'100'}}));
       const changes=(await db.query('SELECT id,change_kind FROM bsmoss_metering.input_change WHERE measurement_id=$1 ORDER BY created_at,id',[saved.id])).rows;
@@ -1766,9 +1770,11 @@ await test("empty-database PostgreSQL contract", async t => {
       await gaugeWriter.append(gaugeDraft('moved',8,'1',{value:{kind:'fixed_point',unscaled:'1',scale:2}}));
       await assert.rejects(gaugeReader.load(gaugeTarget('moved',gAt(120))),/gauge_scale_mismatch/);
       await gaugeWriter.append(gaugeDraft('moved',12,'1',{periodEnd:gAt(240)}));await assert.rejects(gaugeReader.load(gaugeTarget('moved',gAt(180))),/unexpected_or_coarse_window/);
-      await db.query("UPDATE bsmoss_integration.source_mapping SET service_id='svc' WHERE id='gauge-moved-map'");
-      try{await assert.rejects(gaugeReader.load(gaugeTarget('moved')),/mapping_object_mismatch/);await assert.rejects(gaugeWriter.append(gaugeDraft('moved',16,'1')),/object_scope_denied|mapping_object_mismatch/);}
-      finally{await db.query("UPDATE bsmoss_integration.source_mapping SET service_id=NULL WHERE id='gauge-moved-map'");}
+      await assert.rejects(db.query("UPDATE bsmoss_integration.source_mapping SET service_id='svc' WHERE id='gauge-moved-map'"),/authority_object_immutable/);
+      await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,device_id,version,valid_from,valid_to)
+        VALUES ('w','gauge-bad-map','gauge-src','device','gauge-bad','st','svc','gauge-moved',1,'2026-01-01Z','2027-01-01Z')`);
+      await assert.rejects(gaugeReader.load({...gaugeTarget('moved'),mappingId:'gauge-bad-map'}),/mapping_object_mismatch/);
+      await assert.rejects(gaugeWriter.append(gaugeDraft('moved',16,'1',{mappingId:'gauge-bad-map'})),/object_scope_denied|mapping_object_mismatch/);
     });
     await t.test('gauge refresh rolls back value outbox and receipt together and preserves idempotent retry',async()=>{
       const target=gaugeTarget('big'),input={targets:[target],triggerRef:'fixture:gauge:atomic'};
@@ -1884,6 +1890,159 @@ await test("empty-database PostgreSQL contract", async t => {
       await a.query('BEGIN');try{await a.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id]);assert.equal((await authorityHistory('source_mapping',id)).length,rows.length);}finally{await a.query('ROLLBACK');}
       assert.deepEqual(await authorityHistory('source_mapping',id),rows);await db.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id=$1",[id]);
       const last=(await authorityHistory('source_mapping',id)).at(-1);assert.equal(last.revision,String(BigInt(rows.at(-1).revision)+1n));
+    });
+    await db.query(`INSERT INTO bsmoss_integration.source VALUES ('w','flow-src','AuthorityFlow','file');
+      INSERT INTO bsmoss_resource.station_service VALUES ('w','flow-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','flow-cell','st','flow-svc','cell');
+      INSERT INTO bsmoss_resource.device VALUES ('w','flow-dev','st','sensor','tower'),('w','flow-empty','st','sensor','tower');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,device_id,version,valid_from,valid_to)
+      VALUES ('w','flow-cell-map','flow-src','cell','flow-cell','st','flow-svc','flow-cell',NULL,1,'2026-01-01Z','2027-01-01Z'),
+        ('w','flow-dev-map','flow-src','device','flow-dev','st',NULL,NULL,'flow-dev',1,'2026-01-01Z','2027-01-01Z'),
+        ('w','flow-empty-map','flow-src','device','flow-empty','st',NULL,NULL,'flow-empty',1,'2026-01-01Z','2027-01-01Z')`);
+    const flowRatio={code:'status.voice.connection_rate',version:1},flowAttempt={code:'service.voice.attempt_count',version:1};
+    const flowDefs=[['up',upMetric,'day',capabilityPolicy],['down',down,'day',capabilityPolicy],['total',depTarget.metric,'day',depPolicy],['ratio',flowRatio,'day',capabilityPolicy],['attempt',flowAttempt,'day',capabilityPolicy],
+      ['state',stateMetric,'event',{stateAggregation:{version:1,authorityRef:'fixture://flow-state',maxHoldMilliseconds:86400000}}],['gauge',gaugeMetric,'day',gaugePolicy]];
+    for(const [id,ref,native,policy] of flowDefs)await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w',$1,'flow-src',$2,1,$3,'active','fixture://flow-reviewed',$4,'2026-01-01Z','2027-01-01Z')`,['flow-'+id+'-cap',ref.code,native,policy]);
+    const flowScope={...scope,sourceIds:['flow-src'],serviceIds:['flow-svc'],deviceIds:['flow-dev','flow-empty'],allowSiteParameters:false};
+    const flowPorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:flowScope};}};
+    const flowPolicy={outputs:[upMetric,depTarget.metric,flowRatio,stateMetric,gaugeMetric],grains:['day']},flowWriter=new PgMeasurementStore(adapterPool,flowScope,FIRST_METRICS);
+    const flowPeriod={start:'2026-06-01T16:00:00.000Z',end:'2026-06-02T16:00:00.000Z'};
+    const flowTarget=(ref=upMetric,map=ref.code.startsWith('runtime.')?'flow-dev-map':'flow-cell-map')=>({sourceId:'flow-src',mappingId:map,metric:ref,grain:'day',at:flowPeriod.start});
+    const flowDraft=(name,ref,value,patch={})=>draft('flow:'+name,{sourceId:'flow-src',mappingId:flowTarget(ref).mappingId,metric:ref,periodStart:flowPeriod.start,periodEnd:flowPeriod.end,value,...patch});
+    const flowView=new PgAggregateQueryReader(adapterPool,flowScope);
+    const latestFlowChange=async(kind,id)=>(await db.query(`SELECT c.id,a.id AS authority_id FROM bsmoss_metering.input_change c JOIN bsmoss_integration.authority_change a
+      ON (a.workspace_id,a.id)=(c.workspace_id,c.authority_change_id) WHERE a.workspace_id='w' AND a.entity_kind=$1 AND a.entity_id=$2 ORDER BY a.revision DESC LIMIT 1`,[kind,id])).rows[0];
+    async function publishFlow(target=flowTarget()){
+      const s=await readRefreshSnapshot(adapterPool,flowScope,target),finite={workspaceId:'w',series:[{sourceId:'flow-src',subjectKey:s.plan.subjectKey,metricKey:target.metric.code+'@1'}]},store=s.kind==='gauge'?new PgGaugeAggregateStore(adapterPool,finite):s.kind==='state'?new PgStateAggregateStore(adapterPool,finite):new PgAggregateStore(adapterPool,finite),head=await store.current(s.plan);
+      return store.publish(s.plan,s.inputs,head?.revision??null,'flow-worker');
+    }
+    for(const id of (await pendingInputChanges(adapterPool,flowPorts,flowPolicy)).changeIds){const setup=await dispatchInputChange(adapterPool,flowPorts,id,flowPolicy);assert.equal(setup.manifest.jobs.length,0);}
+    for(const [name,ref,value] of [['up',upMetric,{kind:'integer_delta',value:'100'}],['down',down,{kind:'integer_delta',value:'200'}],['ratio',flowRatio,{kind:'ratio_parts',numerator:'9',denominator:'10'}],
+      ['attempt',flowAttempt,{kind:'integer_delta',value:'10'}],['state',stateMetric,{kind:'state_event',state:'running',validUntil:flowPeriod.end}],['gauge',gaugeMetric,{kind:'fixed_point',unscaled:'25000',scale:3}]])await flowWriter.append(flowDraft(name,ref,value));
+    for(const ref of flowPolicy.outputs)await publishFlow(flowTarget(ref));
+    await publishFlow(flowTarget(gaugeMetric,'flow-empty-map'));
+    await t.test('trusted authority generations remain explicit in all persisted semantic manifests and replayable results',async()=>{
+      for(const ref of [upMetric,stateMetric,gaugeMetric]){
+        const snap=await readRefreshSnapshot(adapterPool,flowScope,flowTarget(ref));
+        assert.ok(snap.plan.authorityRevisions.length>=2);
+        const key=snap.plan.authorityRevisions.map(r=>r.kind+':'+r.id);
+        assert.equal(new Set(key).size,key.length);
+        const saved=(await db.query("SELECT r.input_manifest,r.result_payload FROM bsmoss_analysis.aggregate_revision r JOIN bsmoss_analysis.aggregate_series s ON (r.workspace_id,r.series_id)=(s.workspace_id,s.id) WHERE s.workspace_id='w' AND s.source_id='flow-src' AND s.subject_key=$1 AND s.metric_code=$2 AND s.grain='day' AND r.revision=s.current_revision",[snap.plan.subjectKey,ref.code])).rows[0];
+        assert.deepEqual(saved.input_manifest.plan.authorityRevisions,snap.plan.authorityRevisions);
+        assert.deepEqual(saved.result_payload.authorityRevisions,snap.plan.authorityRevisions);
+        const calculate=snap.kind==='state'?aggregateStatePeriod:snap.kind==='gauge'?aggregateGaugePeriod:aggregateIntervals;
+        assert.deepEqual(calculate(saved.input_manifest.plan,saved.input_manifest.inputs),saved.result_payload);
+        const reversed={...snap.plan,authorityRevisions:[...snap.plan.authorityRevisions].reverse()};
+        assert.equal(calculate(reversed,snap.inputs).inputFingerprint,calculate(snap.plan,snap.inputs).inputFingerprint);
+        const changed={...snap.plan,authorityRevisions:snap.plan.authorityRevisions.map((r,i)=>i?r:{...r,revision:(BigInt(r.revision)+1n).toString()})};
+        assert.notEqual(calculate(changed,snap.inputs).inputFingerprint,calculate(snap.plan,snap.inputs).inputFingerprint);
+      }
+    });
+    await t.test('authority generation changes and policy reversal cannot revive an older complete publication',async()=>{
+      const snap=await readRefreshSnapshot(adapterPool,flowScope,flowTarget()),base=aggregateIntervals(snap.plan,snap.inputs);
+      await db.query(`INSERT INTO bsmoss_integration.source_completion_set(workspace_id,id,source_id,station_id,service_id,network_object_id,metric_code,metric_version,grain,period_start,period_end,revision,status,input_fingerprint,mapping_manifest_sha256,watermark,evidence_ref,evidence_sha256,recorded_by)
+        VALUES ('w','flow-proof','flow-src','st','flow-svc','flow-cell',$1,1,'day',$2,$3,1,'confirmed',$4,$5,$3,'fixture://flow-proof',$6,'fixture-reviewer')`,[upMetric.code,flowPeriod.start,flowPeriod.end,base.inputFingerprint,mappingSetFingerprint(base.mappingWindows),'a'.repeat(64)]);
+      await publishFlow();const before=await flowView.read(flowTarget());assert.equal(before.result.completeness,'complete');
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-revised' WHERE id='flow-up-cap'");
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-reviewed' WHERE id='flow-up-cap'");
+      const stale=await flowView.read(flowTarget());assert.equal(stale.freshness,'stale');assert.notEqual(stale.currentInputFingerprint,before.currentInputFingerprint);
+      const event=await latestFlowChange('source_capability','flow-up-cap'),result=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);
+      assert.equal(result.manifest.jobs.length,2);assert.ok((await flowView.read(flowTarget())).reasons.includes('authority_change_invalidated_revision'));
+      assert.equal((await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy)).status,'duplicate');await finishChangeJobs(result.manifest,flowPorts);
+      const after=await flowView.read(flowTarget());assert.equal(after.freshness,'current');assert.equal(after.result.completeness,'preliminary');assert.ok(after.result.reasons.includes('source_confirmation_stale'));
+      const history=await flowView.read({...flowTarget(),revision:before.revision});assert.equal(history.result.completeness,'complete');assert.equal(history.freshness,'stale');
+    });
+    await t.test('retired capability invalidates old head and dependent totals without fabricating results and reactivation recomputes',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='retired' WHERE id='flow-up-cap'");const event=await latestFlowChange('source_capability','flow-up-cap');
+      const before=(await db.query("SELECT count(*)::int n FROM bsmoss_analysis.aggregate_revision WHERE result_payload->>'sourceId'='flow-src'")).rows[0].n;
+      const result=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);assert.equal(result.manifest.jobs.length,0);assert.equal(result.manifest.evidence.length,2);assert.ok(result.manifest.evidence.every(e=>e.outcome==='authority_unavailable'&&e.invalidated));
+      assert.equal((await db.query("SELECT count(*)::int n FROM bsmoss_analysis.aggregate_revision WHERE result_payload->>'sourceId'='flow-src'")).rows[0].n,before);
+      await assert.rejects(flowView.read(flowTarget()),/capability_unavailable/);await assert.rejects(flowView.read(flowTarget(depTarget.metric)),/capability_unavailable/);
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id='flow-up-cap'");const restore=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_capability','flow-up-cap')).id,flowPolicy);await finishChangeJobs(restore.manifest,flowPorts);
+      assert.equal((await flowView.read(flowTarget(depTarget.metric))).result.value.value,'300');assert.equal((await flowView.read(flowTarget())).freshness,'current');
+    });
+    await t.test('mapping and service validity changes cover old periods and distinguish unavailable from not applicable',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_mapping SET valid_to='2026-06-02T04:00:00Z' WHERE id='flow-cell-map'");
+      let result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_mapping','flow-cell-map')).id,flowPolicy);assert.equal(result.manifest.jobs.length,0);assert.equal(result.manifest.evidence.length,3);
+      await db.query("UPDATE bsmoss_integration.source_mapping SET valid_to='2027-01-01Z' WHERE id='flow-cell-map'");result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_mapping','flow-cell-map')).id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);
+      await db.query('UPDATE bsmoss_resource.station_service SET valid_to=$1 WHERE id=$2',[flowPeriod.start,'flow-svc']);
+      result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('station_service','flow-svc')).id,flowPolicy);assert.equal(result.manifest.jobs.length,3);await finishChangeJobs(result.manifest,flowPorts);
+      const inactive=await flowView.read(flowTarget());assert.equal(inactive.freshness,'current');assert.equal(inactive.result.completeness,'not_applicable');assert.equal(inactive.result.value,null);
+      await db.query("UPDATE bsmoss_resource.station_service SET valid_to='2027-01-01Z' WHERE id='flow-svc'");result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('station_service','flow-svc')).id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);assert.equal((await flowView.read(flowTarget())).result.value.value,'100');
+    });
+    await t.test('deleted gauge capability and empty mapping invalidate historical results and recreation preserves missing values',async()=>{
+      await db.query("DELETE FROM bsmoss_integration.source_mapping WHERE id='flow-empty-map'");let result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_mapping','flow-empty-map')).id,flowPolicy);assert.equal(result.manifest.evidence.length,1);assert.equal(result.manifest.jobs.length,0);assert.equal(result.manifest.evidence[0].outcome,'authority_unavailable');
+      await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+        VALUES ('w','flow-empty-map','flow-src','device','flow-empty','st','flow-empty',1,'2026-01-01Z','2027-01-01Z')`);
+      result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_mapping','flow-empty-map')).id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);const missing=await flowView.read(flowTarget(gaugeMetric,'flow-empty-map'));assert.equal(missing.freshness,'current');assert.equal(missing.result.value,null);assert.equal(missing.result.completeness,'missing');
+      await db.query("DELETE FROM bsmoss_integration.source_capability WHERE id='flow-gauge-cap'");result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_capability','flow-gauge-cap')).id,flowPolicy);assert.equal(result.manifest.jobs.length,0);assert.equal(result.manifest.evidence.length,2);assert.ok(result.manifest.evidence.every(e=>e.invalidated));
+      await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','flow-gauge-cap','flow-src',$1,1,'day','active','fixture://flow-reviewed',$2,'2026-01-01Z','2027-01-01Z')`,[gaugeMetric.code,gaugePolicy]);
+      result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_capability','flow-gauge-cap')).id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);assert.equal((await flowView.read(flowTarget(gaugeMetric))).freshness,'current');
+    });
+    await t.test('a direct ratio does not acquire a false dependency invalidation from count capability changes',async()=>{
+      const before=await flowView.read(flowTarget(flowRatio));await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://attempt-revised' WHERE id='flow-attempt-cap'");
+      const result=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_capability','flow-attempt-cap')).id,flowPolicy);assert.equal(result.manifest.jobs.length,0);assert.equal(result.manifest.evidence.length,0);
+      const after=await flowView.read(flowTarget(flowRatio));assert.equal(after.revision,before.revision);assert.equal(after.freshness,'current');
+    });
+    await t.test('authority invalidation jobs and receipt are atomic and supervised failures keep durable retry evidence',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-atomic' WHERE id='flow-up-cap'");const event=await latestFlowChange('source_capability','flow-up-cap');
+      const counts=async()=>(await db.query('SELECT (SELECT count(*) FROM bsmoss_analysis.aggregate_authority_invalidation) invalidations,(SELECT count(*) FROM bsmoss_analysis.refresh_job) jobs')).rows[0],before=await counts();
+      const injected={async connect(){const c=await adapterPool.connect();return {query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.input_refresh_receipt'))throw Error('fixture_authority_receipt_failure');return c.query(sql,args);},release(d){c.release(d);}};}};
+      const failed=await superviseInputChange(injected,flowPorts,event.id,flowPolicy);assert.equal(failed.status,'failure_recorded');assert.equal(failed.attempt,1);assert.deepEqual(await counts(),before);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[event.id])).rowCount,0);
+      assert.equal((await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy)).status,'deferred');await db.query("UPDATE bsmoss_analysis.input_dispatch_event SET available_at=clock_timestamp()-interval '1 second' WHERE change_id=$1",[event.id]);
+      const recovered=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);assert.equal(recovered.status,'dispatched');await finishChangeJobs(recovered.manifest,flowPorts);assert.equal((await flowView.read(flowTarget())).freshness,'current');
+      await assert.rejects(adapterPool.query('DELETE FROM bsmoss_analysis.aggregate_authority_invalidation'),e=>e.code==='42501');
+    });
+    await t.test('authority consumption scopes every affected object and dependency and cannot reuse another subscription receipt',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id='flow-cell-map'");const event=await latestFlowChange('source_mapping','flow-cell-map');
+      for(const patch of [{sourceIds:[]},{stationIds:[]},{serviceIds:[]}]){const ports={...flowPorts,async readLocalGrant(){return {...await flowPorts.readLocalGrant(),scope:{...flowScope,...patch}};}};await assert.rejects(dispatchInputChange(adapterPool,ports,event.id,flowPolicy),/scope_denied/);}
+      const restricted={...flowPorts,async readLocalGrant(){return {...await flowPorts.readLocalGrant(),scope:{...flowScope,metricKeys:flowScope.metricKeys.filter(k=>k!==down.code+'@1')}};}};
+      await assert.rejects(dispatchInputChange(adapterPool,restricted,event.id,flowPolicy),/dependency_scope_denied/);
+      const result=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);
+      const other=await dispatchInputChange(adapterPool,flowPorts,event.id,{outputs:[upMetric],grains:['day']});assert.notEqual(other.manifest.subscriptionSha256,result.manifest.subscriptionSha256);await finishChangeJobs(other.manifest,flowPorts);
+    });
+    await t.test('late authority commits remain discoverable after newer changes were consumed',async()=>{
+      const a=new Client({connectionString:target.toString()});peers.push(a);await a.connect();await a.query('BEGIN');let earlier;
+      try{await a.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-held' WHERE id='flow-up-cap'");earlier=(await a.query(`SELECT c.id FROM bsmoss_metering.input_change c JOIN bsmoss_integration.authority_change h ON (h.workspace_id,h.id)=(c.workspace_id,c.authority_change_id) WHERE h.entity_id='flow-up-cap' ORDER BY h.revision DESC LIMIT 1`)).rows[0].id;
+        assert.ok(!(await pendingInputChanges(adapterPool,flowPorts,flowPolicy)).changeIds.includes(earlier));await db.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id='flow-dev-map'");const newer=await dispatchInputChange(adapterPool,flowPorts,(await latestFlowChange('source_mapping','flow-dev-map')).id,flowPolicy);await finishChangeJobs(newer.manifest,flowPorts);
+        await a.query('COMMIT');
+      }catch(e){await a.query('ROLLBACK');throw e;}
+      assert.ok((await pendingInputChanges(adapterPool,flowPorts,flowPolicy)).changeIds.includes(earlier));const result=await dispatchInputChange(adapterPool,flowPorts,earlier,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);
+    });
+    await t.test('authority input capture failure rolls back the authority row and its audit journal together',async()=>{
+      const before=(await authorityHistory('source_mapping','flow-cell-map')).length;
+      await db.query(`CREATE FUNCTION bsmoss_metering.reject_authority_input_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.authority_change_id IS NOT NULL THEN RAISE EXCEPTION 'fixture_authority_input_failure'; END IF; RETURN NEW; END $$;
+        CREATE TRIGGER reject_authority_input_fixture BEFORE INSERT ON bsmoss_metering.input_change FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.reject_authority_input_fixture()`);
+      try{await assert.rejects(db.query("UPDATE bsmoss_integration.source_mapping SET version=version+1 WHERE id='flow-cell-map'"),/fixture_authority_input_failure/);assert.equal((await authorityHistory('source_mapping','flow-cell-map')).length,before);}
+      finally{await db.query('DROP TRIGGER reject_authority_input_fixture ON bsmoss_metering.input_change; DROP FUNCTION bsmoss_metering.reject_authority_input_fixture()');}
+    });
+    await t.test('authority reconciliation cannot invalidate a concurrently newer head from an old repeatable snapshot',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-head-race' WHERE id='flow-up-cap'");const event=await latestFlowChange('source_capability','flow-up-cap');
+      const counts=async()=>(await db.query('SELECT (SELECT count(*) FROM bsmoss_analysis.aggregate_authority_invalidation) invalidations,(SELECT count(*) FROM bsmoss_analysis.refresh_job) jobs')).rows[0],before=await counts();let corrected=false;
+      const observed={async connect(){const c=await adapterPool.connect();return {async query(sql,args){const result=await c.query(sql,args);
+        if(!corrected&&sql.includes('FROM bsmoss_analysis.aggregate_series s JOIN jsonb_to_recordset')){corrected=true;await flowWriter.append(flowDraft('up',upMetric,{kind:'integer_delta',value:'101'},{revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64)}));await publishFlow();}
+        return result;},release(d){c.release(d);}};}};
+      await assert.rejects(dispatchInputChange(observed,flowPorts,event.id,flowPolicy),e=>e.code==='40001'||/aggregate_revision_conflict/.test(e.message));assert.equal(corrected,true);assert.deepEqual(await counts(),before);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[event.id])).rowCount,0);assert.equal((await flowView.read(flowTarget())).result.value.value,'101');
+      const result=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);assert.equal((await flowView.read(flowTarget(depTarget.metric))).result.value.value,'301');
+    });
+    await t.test('authority consumption rechecks permission and complete scope before retaining invalidations jobs or receipts',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://flow-revoke' WHERE id='flow-gauge-cap'");const event=await latestFlowChange('source_capability','flow-gauge-cap');
+      const counts=async()=>(await db.query('SELECT (SELECT count(*) FROM bsmoss_analysis.aggregate_authority_invalidation) invalidations,(SELECT count(*) FROM bsmoss_analysis.refresh_job) jobs,(SELECT count(*) FROM bsmoss_analysis.input_dispatch_event) failures')).rows[0],before=await counts();
+      for(const mode of ['permission','scope']){let reads=0;const ports={...flowPorts,async readLocalGrant(){const g=await flowPorts.readLocalGrant();reads++;return reads===1?g:mode==='permission'?{...g,permissions:[]}:{...g,scope:{...flowScope,deviceIds:['flow-dev']}};}};
+        await assert.rejects(superviseInputChange(adapterPool,ports,event.id,flowPolicy),/permission_denied/);assert.deepEqual(await counts(),before);}
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[event.id])).rowCount,0);const result=await dispatchInputChange(adapterPool,flowPorts,event.id,flowPolicy);await finishChangeJobs(result.manifest,flowPorts);
+      const row=(await db.query('SELECT * FROM bsmoss_analysis.aggregate_authority_invalidation WHERE authority_change_id=$1 LIMIT 1',[event.authority_id])).rows[0];
+      await assert.rejects(adapterPool.query("UPDATE bsmoss_analysis.aggregate_authority_invalidation SET reason='awaiting_recompute' WHERE authority_change_id=$1",[event.authority_id]),e=>e.code==='42501');
+      for(const patch of [{workspace_id:'other'},{invalidated_revision:'999'},{reason:'normal'}]){const candidate={...row,subscription_sha256:'f'.repeat(64),...patch},keys=Object.keys(candidate);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.aggregate_authority_invalidation('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(candidate)),e=>['23503','23514'].includes(e.code));}
+    });
+    await t.test('historical mapping capability and service identities cannot be reassigned even after delete and recreate',async()=>{
+      await assert.rejects(db.query("UPDATE bsmoss_integration.source_mapping SET device_id='flow-empty' WHERE id='flow-dev-map'"),/authority_object_immutable/);
+      await assert.rejects(db.query("UPDATE bsmoss_integration.source_capability SET metric_code=$1 WHERE id='flow-up-cap'",[down.code]),/authority_object_immutable/);
+      await db.query("INSERT INTO bsmoss_resource.operator_entity VALUES ('w','flow-other-op','other','Other')");await assert.rejects(db.query("UPDATE bsmoss_resource.station_service SET operator_entity_id='flow-other-op' WHERE id='flow-svc'"),/authority_object_immutable/);
+      await db.query("DELETE FROM bsmoss_integration.source_mapping WHERE id='authority:source_mapping'");
+      await assert.rejects(db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+        VALUES ('w','authority:source_mapping','authority-src','station','authority:source_mapping','st','flow-dev',1,'2026-01-01Z','2027-01-01Z')`),/authority_object_immutable/);
     });
   } finally {
     if (adapterPool) await adapterPool.end();

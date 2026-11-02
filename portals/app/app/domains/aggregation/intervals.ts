@@ -1,3 +1,4 @@
+import { normalizeAuthorityRevisions, type AuthorityRevision } from "./authority-revisions.ts";
 import { createHash } from "node:crypto";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type Grain, type MetricRef, type createRegistry } from "../catalog/registry.ts";
@@ -25,6 +26,7 @@ export interface IntervalInput {
   value: { kind: "integer_delta"; value: string } | { kind: "ratio_parts"; numerator: string; denominator: string };
 }
 export interface AggregationPlan {
+  authorityRevisions?: readonly AuthorityRevision[];
   workspaceId: string;
   sourceId: string;
   subjectKey: string;
@@ -84,6 +86,7 @@ export function aggregateIntervals(
   registry: ReturnType<typeof createRegistry> = FIRST_METRICS,
 ) {
   const plan = structuredClone(rawPlan), inputs = structuredClone(rawInputs);
+  if (plan.authorityRevisions !== undefined) plan.authorityRevisions = normalizeAuthorityRevisions(plan.authorityRevisions);
   for (const value of [plan.workspaceId, plan.sourceId, plan.subjectKey, plan.authorityVersion]) identity(value);
   const [start, end] = bounds(plan.period);
   const canonical = bucketFor(plan.period.start, plan.grain);
@@ -237,6 +240,7 @@ export function aggregateIntervals(
   return {
     aggregationVersion: AGGREGATION_VERSION, inputFingerprint: fingerprint,
     workspaceId: plan.workspaceId, sourceId: plan.sourceId, subjectKey: plan.subjectKey, authorityVersion: plan.authorityVersion,
+    ...(plan.authorityRevisions === undefined ? {} : { authorityRevisions: structuredClone(plan.authorityRevisions) }),
     unit: metric.unit, category: metric.category,
     metric: { ...plan.metric }, period: { ...plan.period }, grain: plan.grain, nativeGrain: plan.nativeGrain,
     value: plan.inputMode === "dependencies" && validWindows < expected.length ? null : knownValue,

@@ -8,6 +8,7 @@ import type { AggregateTarget } from "./snapshot.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
 import { mappedSubject } from "./subjects.ts";
 import { bindGaugeCompletion, gaugePolicy, type GaugePlan, type GaugeInput } from "./gauge-period.ts";
+import { readAuthorityRevisions } from "./pg-authority-revisions.ts";
 
 export class PgGaugeSnapshotReader {
   readonly workspaceId: string;
@@ -68,8 +69,10 @@ export class PgGaugeSnapshotReader {
           mappingId: row.mapping_id, mappingVersion: versions.get(row.mapping_id)!, transformVersion: row.transform_version,
           payloadSha256: row.payload_sha256, period: { start: row.period_start.toISOString(), end: row.period_end.toISOString() }, unscaled: row.unscaled, scale: Number(row.scale) };
       });
-      const plan: GaugePlan = { semantic: "gauge", workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey,
-        authorityVersion: fingerprintOf({ version: "gauge-authority-v1", policy, capabilityId: cap.id, nativeGrain: cap.native_grain, validationRef: cap.validation_ref,
+      const authorityRevisions = await readAuthorityRevisions(client, this.workspaceId, [{ kind: "source_capability", id: cap.id },
+        { kind: "source_mapping", id: mapping.id }, ...related.map(m => ({ kind: "source_mapping" as const, id: m.id }))]);
+      const plan: GaugePlan = { semantic: "gauge", workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey, authorityRevisions,
+        authorityVersion: fingerprintOf({ version: "gauge-authority-v1", authorityRevisions, policy, capabilityId: cap.id, nativeGrain: cap.native_grain, validationRef: cap.validation_ref,
           from: cap.valid_from.toISOString(), to: cap.valid_to.toISOString(), mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })) }),
         metric: { ...target.metric }, grain: target.grain, nativeGrain: cap.native_grain as NativeGrain, period, policy,
         mappingPeriods: related.map(m => ({ mappingId: m.id, mappingVersion: m.version, period: { start: m.valid_from.toISOString(), end: m.valid_to.toISOString() } })),

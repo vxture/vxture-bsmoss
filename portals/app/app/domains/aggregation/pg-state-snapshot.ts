@@ -8,6 +8,7 @@ import type { AggregateTarget } from "./snapshot.ts";
 import { jobIdentity } from "./refresh-jobs.ts";
 import { mappedSubject } from "./subjects.ts";
 import { bindStateCompletion, stateHoldMilliseconds, type StateInput, type StatePlan } from "./state-period.ts";
+import { readAuthorityRevisions } from "./pg-authority-revisions.ts";
 
 export class PgStateSnapshotReader {
   readonly workspaceId: string;
@@ -74,8 +75,10 @@ export class PgStateSnapshotReader {
           mappingId: row.mapping_id, mappingVersion: versions.get(row.mapping_id)!, transformVersion: row.transform_version,
           payloadSha256: row.payload_sha256, at: row.period_start.toISOString(), validUntil: row.valid_until.toISOString(), state: row.state_value };
       });
-      const plan: StatePlan = { semantic: "state", workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey,
-        authorityVersion: fingerprintOf({ version: "state-authority-v1", policy, capabilityId: cap.id, validationRef: cap.validation_ref,
+      const authorityRevisions = await readAuthorityRevisions(client, this.workspaceId, [{ kind: "source_capability", id: cap.id },
+        { kind: "source_mapping", id: mapping.id }, ...related.map(m => ({ kind: "source_mapping" as const, id: m.id }))]);
+      const plan: StatePlan = { semantic: "state", workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey, authorityRevisions,
+        authorityVersion: fingerprintOf({ version: "state-authority-v1", authorityRevisions, policy, capabilityId: cap.id, validationRef: cap.validation_ref,
           from: cap.valid_from.toISOString(), to: cap.valid_to.toISOString(), mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })) }),
         metric: { ...target.metric }, grain: target.grain, nativeGrain: "event", period, maxHoldMilliseconds: hold,
         mappingPeriods: related.map(m => ({ mappingId: m.id, mappingVersion: m.version, period: { start: m.valid_from.toISOString(), end: m.valid_to.toISOString() } })),

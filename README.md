@@ -165,8 +165,9 @@ transaction. A scoped internal dispatcher derives historical old/new objects,
 dependency outputs and state suppression windows from persisted evidence, then
 atomically queues jobs with an immutable per-subscription consumption receipt.
 Discovery uses pending events rather than a global timestamp/sequence offset.
-Capability and mapping changes, registered subscriptions
-and a production worker remain pending.
+Capability, mapping and service changes also propagate from immutable authority
+history, invalidating exact old revisions when current authority is unavailable.
+Registered subscriptions and a production worker remain pending.
 See docs/40-implementation/350-input-change-dispatch.md.
 Reviewed completion and revocation inserts are also captured transactionally.
 They queue only their exact metric/grain/object period, while execution reads
@@ -187,3 +188,8 @@ recomputes publication or falls back to synthetic data. Identity and finite
 scope are checked again before returning a result. Formal panels, cross-object
 summaries and published reports remain pending.
 See docs/40-implementation/380-authorized-aggregate-query.md.
+Authority generations and their exact revision manifest bind interval, state
+and gauge publications, so reverting configuration cannot revive old completion
+proofs. Impact planning uses bounded existing facts/publications and does not
+enumerate empty province-wide periods. See
+docs/40-implementation/410-authority-impact-dispatch.md.

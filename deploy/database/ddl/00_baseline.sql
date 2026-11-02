@@ -584,29 +584,72 @@ CREATE TABLE bsmoss_analysis.refresh_attempt (
 
 -- Database-captured fact/quality changes. No global sequence cursor: receipts
 -- identify individual committed events, including late-committing transactions.
+-- Reviewed authority mutations retain their full old/new evidence in the same
+-- transaction. No live-row foreign key: deletion must not erase the history.
+CREATE TABLE bsmoss_integration.authority_change (
+  workspace_id text NOT NULL,
+  id text NOT NULL DEFAULT gen_random_uuid()::text,
+  entity_kind text NOT NULL CHECK(entity_kind IN ('source_mapping','source_capability','station_service')),
+  entity_id text NOT NULL CHECK(length(trim(entity_id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  operation text NOT NULL CHECK(operation IN ('insert','update','delete')),
+  before_snapshot jsonb,
+  after_snapshot jsonb,
+  evidence_sha256 text NOT NULL CHECK(evidence_sha256 ~ '^[a-f0-9]{64}$'),
+  database_actor text NOT NULL CHECK(length(trim(database_actor))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,entity_kind,entity_id,revision),
+  CHECK((operation='insert' AND before_snapshot IS NULL AND after_snapshot IS NOT NULL) OR
+    (operation='update' AND before_snapshot IS NOT NULL AND after_snapshot IS NOT NULL AND before_snapshot<>after_snapshot) OR
+    (operation='delete' AND before_snapshot IS NOT NULL AND after_snapshot IS NULL)),
+  CHECK(before_snapshot IS NULL OR (jsonb_typeof(before_snapshot)='object' AND
+    before_snapshot->>'workspace_id'=workspace_id AND before_snapshot->>'id'=entity_id) IS TRUE),
+  CHECK(after_snapshot IS NULL OR (jsonb_typeof(after_snapshot)='object' AND
+    after_snapshot->>'workspace_id'=workspace_id AND after_snapshot->>'id'=entity_id) IS TRUE),
+  CHECK(evidence_sha256=encode(sha256(convert_to(jsonb_build_object('before',before_snapshot,'after',after_snapshot)::text,'UTF8')),'hex'))
+);
+CREATE INDEX authority_change_pending ON bsmoss_integration.authority_change(workspace_id,recorded_at,id);
 CREATE TABLE bsmoss_metering.input_change (
   workspace_id text NOT NULL,
   id text NOT NULL DEFAULT gen_random_uuid()::text,
   measurement_id text,
   legacy_completion_id text,
   completion_set_id text,
-  change_kind text NOT NULL CHECK(change_kind IN ('measurement','quality','completion','completion_set')),
+  authority_change_id text,
+  change_kind text NOT NULL CHECK(change_kind IN ('measurement','quality','completion','completion_set','authority')),
   quality_revision numeric(30,0),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   PRIMARY KEY(workspace_id,id),
-  UNIQUE NULLS NOT DISTINCT(workspace_id,measurement_id,change_kind,quality_revision,legacy_completion_id,completion_set_id),
+  UNIQUE NULLS NOT DISTINCT(workspace_id,measurement_id,change_kind,quality_revision,legacy_completion_id,completion_set_id,authority_change_id),
   UNIQUE(workspace_id,legacy_completion_id),
   UNIQUE(workspace_id,completion_set_id),
+  UNIQUE(workspace_id,authority_change_id),
+  FOREIGN KEY(workspace_id,authority_change_id) REFERENCES bsmoss_integration.authority_change(workspace_id,id),
   FOREIGN KEY(workspace_id,measurement_id) REFERENCES bsmoss_metering.measurement(workspace_id,id),
   FOREIGN KEY(workspace_id,measurement_id,quality_revision) REFERENCES bsmoss_metering.quality_decision(workspace_id,measurement_id,revision),
   FOREIGN KEY(workspace_id,legacy_completion_id) REFERENCES bsmoss_integration.source_completion(workspace_id,id),
   FOREIGN KEY(workspace_id,completion_set_id) REFERENCES bsmoss_integration.source_completion_set(workspace_id,id),
-  CHECK((measurement_id IS NOT NULL AND legacy_completion_id IS NULL AND completion_set_id IS NULL AND
+  CHECK((authority_change_id IS NULL AND measurement_id IS NOT NULL AND legacy_completion_id IS NULL AND completion_set_id IS NULL AND
       ((change_kind='measurement' AND quality_revision IS NULL) OR (change_kind='quality' AND quality_revision IS NOT NULL AND quality_revision>0))) OR
-    (measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion' AND legacy_completion_id IS NOT NULL AND completion_set_id IS NULL) OR
-    (measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion_set' AND legacy_completion_id IS NULL AND completion_set_id IS NOT NULL))
+    (authority_change_id IS NULL AND measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion' AND legacy_completion_id IS NOT NULL AND completion_set_id IS NULL) OR
+    (authority_change_id IS NULL AND measurement_id IS NULL AND quality_revision IS NULL AND change_kind='completion_set' AND legacy_completion_id IS NULL AND completion_set_id IS NOT NULL) OR
+    (change_kind='authority' AND authority_change_id IS NOT NULL AND measurement_id IS NULL AND quality_revision IS NULL AND legacy_completion_id IS NULL AND completion_set_id IS NULL))
 );
 CREATE INDEX input_change_pending ON bsmoss_metering.input_change(workspace_id,created_at,id);
+CREATE TABLE bsmoss_analysis.aggregate_authority_invalidation (
+  workspace_id text NOT NULL,
+  series_id text NOT NULL,
+  invalidated_revision numeric(30,0) NOT NULL,
+  authority_change_id text NOT NULL,
+  subscription_sha256 text NOT NULL CHECK(subscription_sha256 ~ '^[a-f0-9]{64}$'),
+  reason text NOT NULL CHECK(reason IN ('awaiting_recompute','authority_unavailable')),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,series_id,invalidated_revision,authority_change_id,subscription_sha256),
+  FOREIGN KEY(workspace_id,series_id,invalidated_revision) REFERENCES bsmoss_analysis.aggregate_revision(workspace_id,series_id,revision),
+  FOREIGN KEY(workspace_id,authority_change_id) REFERENCES bsmoss_integration.authority_change(workspace_id,id)
+);
 CREATE TABLE bsmoss_analysis.input_refresh_receipt (
   workspace_id text NOT NULL,
   change_id text NOT NULL,
@@ -671,32 +714,6 @@ CREATE TABLE bsmoss_analysis.input_dispatch_event (
     (state='reopened' AND attempt=0 AND failure_code IS NULL AND reason_ref IS NOT NULL AND length(trim(reason_ref))>0))
 );
 
--- Reviewed authority mutations retain their full old/new evidence in the same
--- transaction. No live-row foreign key: deletion must not erase the history.
-CREATE TABLE bsmoss_integration.authority_change (
-  workspace_id text NOT NULL,
-  id text NOT NULL DEFAULT gen_random_uuid()::text,
-  entity_kind text NOT NULL CHECK(entity_kind IN ('source_mapping','source_capability','station_service')),
-  entity_id text NOT NULL CHECK(length(trim(entity_id))>0),
-  revision numeric(30,0) NOT NULL CHECK(revision>0),
-  operation text NOT NULL CHECK(operation IN ('insert','update','delete')),
-  before_snapshot jsonb,
-  after_snapshot jsonb,
-  evidence_sha256 text NOT NULL CHECK(evidence_sha256 ~ '^[a-f0-9]{64}$'),
-  database_actor text NOT NULL CHECK(length(trim(database_actor))>0),
-  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  PRIMARY KEY(workspace_id,id),
-  UNIQUE(workspace_id,entity_kind,entity_id,revision),
-  CHECK((operation='insert' AND before_snapshot IS NULL AND after_snapshot IS NOT NULL) OR
-    (operation='update' AND before_snapshot IS NOT NULL AND after_snapshot IS NOT NULL AND before_snapshot<>after_snapshot) OR
-    (operation='delete' AND before_snapshot IS NOT NULL AND after_snapshot IS NULL)),
-  CHECK(before_snapshot IS NULL OR (jsonb_typeof(before_snapshot)='object' AND
-    before_snapshot->>'workspace_id'=workspace_id AND before_snapshot->>'id'=entity_id) IS TRUE),
-  CHECK(after_snapshot IS NULL OR (jsonb_typeof(after_snapshot)='object' AND
-    after_snapshot->>'workspace_id'=workspace_id AND after_snapshot->>'id'=entity_id) IS TRUE),
-  CHECK(evidence_sha256=encode(sha256(convert_to(jsonb_build_object('before',before_snapshot,'after',after_snapshot)::text,'UTF8')),'hex'))
-);
-CREATE INDEX authority_change_pending ON bsmoss_integration.authority_change(workspace_id,recorded_at,id);
 CREATE FUNCTION bsmoss_integration.capture_authority_change() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET TimeZone='UTC' AS $$
 DECLARE
@@ -704,6 +721,10 @@ DECLARE
   next jsonb;
   anchor jsonb;
   next_revision numeric(30,0);
+  previous_identity jsonb;
+  identity_keys text[];
+  identity_key text;
+  change_id text;
 BEGIN
   IF NOT ((TG_TABLE_SCHEMA='bsmoss_integration' AND TG_TABLE_NAME IN ('source_mapping','source_capability')) OR
     (TG_TABLE_SCHEMA='bsmoss_resource' AND TG_TABLE_NAME='station_service')) THEN
@@ -727,11 +748,24 @@ BEGIN
   END IF;
   anchor=coalesce(next,prior);
   PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-authority',anchor->>'workspace_id',TG_TABLE_NAME,anchor->>'id')::text,0));
+  SELECT coalesce(after_snapshot,before_snapshot) INTO previous_identity FROM bsmoss_integration.authority_change
+    WHERE workspace_id=anchor->>'workspace_id' AND entity_kind=TG_TABLE_NAME AND entity_id=anchor->>'id' ORDER BY revision DESC LIMIT 1;
+  identity_keys=CASE TG_TABLE_NAME
+    WHEN 'source_mapping' THEN ARRAY['source_id','external_type','external_id','station_id','service_id','network_object_id','device_id']
+    WHEN 'source_capability' THEN ARRAY['source_id','metric_code','metric_version']
+    ELSE ARRAY['station_id','operator_entity_id'] END;
+  IF next IS NOT NULL AND previous_identity IS NOT NULL THEN
+    FOREACH identity_key IN ARRAY identity_keys LOOP
+      IF previous_identity->identity_key IS DISTINCT FROM next->identity_key THEN RAISE EXCEPTION 'authority_object_immutable'; END IF;
+    END LOOP;
+  END IF;
   SELECT coalesce(max(revision),0)+1 INTO next_revision FROM bsmoss_integration.authority_change
     WHERE workspace_id=anchor->>'workspace_id' AND entity_kind=TG_TABLE_NAME AND entity_id=anchor->>'id';
   INSERT INTO bsmoss_integration.authority_change(workspace_id,entity_kind,entity_id,revision,operation,before_snapshot,after_snapshot,evidence_sha256,database_actor)
     VALUES(anchor->>'workspace_id',TG_TABLE_NAME,anchor->>'id',next_revision,lower(TG_OP),prior,next,
-      encode(sha256(convert_to(jsonb_build_object('before',prior,'after',next)::text,'UTF8')),'hex'),session_user);
+      encode(sha256(convert_to(jsonb_build_object('before',prior,'after',next)::text,'UTF8')),'hex'),session_user) RETURNING id INTO change_id;
+  INSERT INTO bsmoss_metering.input_change(workspace_id,authority_change_id,change_kind)
+    VALUES(anchor->>'workspace_id',change_id,'authority');
   RETURN NULL;
 END $$;
 REVOKE ALL ON FUNCTION bsmoss_integration.capture_authority_change() FROM PUBLIC;

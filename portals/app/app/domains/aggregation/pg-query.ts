@@ -41,6 +41,8 @@ export class PgAggregateQueryReader implements AggregateQueryReader {
       const reasons: string[] = [];
       if (selected.revision !== head.revision) reasons.push("older_published_revision");
       if (result.inputFingerprint !== fresh.inputFingerprint) reasons.push("latest_input_or_authority_changed");
+      if ((await client.query(`SELECT 1 FROM bsmoss_analysis.aggregate_authority_invalidation WHERE workspace_id=$1 AND series_id=$2 AND invalidated_revision=$3 LIMIT 1`,
+        [this.workspaceId, selected.seriesId, selected.revision])).rowCount) reasons.push("authority_change_invalidated_revision");
       await client.query("COMMIT");
       return { ...selected, currentRevision: head.revision, selection: revision === undefined ? "current" : "revision",
         freshness: reasons.length ? "stale" : "current", currentInputFingerprint: fresh.inputFingerprint, reasons };

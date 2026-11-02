@@ -9,6 +9,7 @@ import type { AggregateSnapshotReader, AggregateTarget } from "./snapshot.ts";
 import {resolveIntervalInputPolicy} from './input-policy.ts';
 import { bindSourceCompletion } from "./completion.ts";
 import { mappedSubject } from "./subjects.ts";
+import { readAuthorityRevisions, type AuthorityRef } from "./pg-authority-revisions.ts";
 
 function identity(value: unknown): asserts value is string {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_aggregate_identity");
@@ -92,7 +93,12 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
       // Select latest fact BEFORE applying mapping/time/quality. A newer fact moved
       // to another object/window must retract the old fact, never revive it.
       const rows=[];
-      for(const ref of refs){const batch = (await client.query(`SELECT m.*,r.payload_sha256,q.revision AS quality_revision,q.quality
+      for(const ref of refs){
+        // Facts wholly outside an inactive service window cannot become active
+        // evidence. Latest-revision selection still precedes this time filter.
+        if (!applicability.applicablePeriods.length) break;
+        const activeFrom = applicability.applicablePeriods[0]!.start, activeTo = applicability.applicablePeriods.at(-1)!.end;
+        const batch = (await client.query(`SELECT m.*,r.payload_sha256,q.revision AS quality_revision,q.quality
         FROM bsmoss_metering.measurement m
         JOIN bsmoss_integration.raw_event r ON (r.workspace_id,r.source_id,r.event_id,r.revision)=(m.workspace_id,m.source_id,m.event_id,m.event_revision)
         LEFT JOIN LATERAL (SELECT revision,quality FROM bsmoss_metering.quality_decision
@@ -102,7 +108,7 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         AND NOT EXISTS (SELECT 1 FROM bsmoss_metering.measurement newer WHERE newer.workspace_id=m.workspace_id AND newer.source_id=m.source_id
           AND newer.event_id=m.event_id AND newer.component_key=m.component_key AND newer.metric_code=m.metric_code
           AND newer.metric_version=m.metric_version AND newer.event_revision>m.event_revision)
-        ORDER BY m.id LIMIT 100001`, [this.workspaceId, target.sourceId, mappingIds, ref.code, ref.version, period.start, period.end])).rows;
+        ORDER BY m.id LIMIT 100001`, [this.workspaceId, target.sourceId, mappingIds, ref.code, ref.version, activeFrom, activeTo])).rows;
         if(rows.length+batch.length>100000)throw Error("input_bound_exceeded");
         for(const row of batch)rows.push(row);
       }
@@ -116,8 +122,13 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
           period: { start: row.period_start.toISOString(), end: row.period_end.toISOString() },
           value: row.value_kind === "integer_delta" ? { kind: "integer_delta", value: row.integer_value } : { kind: "ratio_parts", numerator: row.numerator, denominator: row.denominator } };
       });
-      const basePlan = { workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey,
-        authorityVersion: fingerprintOf({ policy, mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })),
+      const authorityRefs: AuthorityRef[] = [{ kind: "source_capability", id: capability.id },
+        ...inputCapabilities.map(c => ({ kind: "source_capability" as const, id: c.id })),
+        ...related.map(m => ({ kind: "source_mapping" as const, id: m.id })), { kind: "source_mapping", id: mapping.id },
+        ...(mapping.service_id ? [{ kind: "station_service" as const, id: mapping.service_id }] : [])];
+      const authorityRevisions = await readAuthorityRevisions(client, this.workspaceId, authorityRefs);
+      const basePlan = { workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey, authorityRevisions,
+        authorityVersion: fingerprintOf({ authorityRevisions, policy, mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })),
           servicePeriod: mapping.service_id ? { start: mapping.service_from.toISOString(), end: mapping.service_to.toISOString() } : null,
           capabilityId: capability.id, validationRef: capability.validation_ref,
           ...(inputMode==='dependencies'?{inputCapabilities:inputCapabilities.map(c=>({ref:c.ref,id:c.id,validationRef:c.validation_ref,
