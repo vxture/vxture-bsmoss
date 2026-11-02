@@ -24,6 +24,8 @@ import { aggregateStatePeriod } from "../../portals/app/app/domains/aggregation/
 import { dispatchInputChange, pendingInputChanges, superviseInputChange, runInputRefreshStep, reopenInputChange } from "../../portals/app/app/domains/aggregation/pg-input-refresh.ts";
 import { inputRefreshSubscription } from "../../portals/app/app/domains/aggregation/input-refresh.ts";
 import { readRefreshSnapshot } from "../../portals/app/app/domains/aggregation/refresh-snapshot.ts";
+import { PgAggregateQueryReader } from "../../portals/app/app/domains/aggregation/pg-query.ts";
+import { createAuthorizedAggregateQuery } from "../../portals/app/app/domains/access/aggregate-query.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -1591,6 +1593,90 @@ await test("empty-database PostgreSQL contract", async t => {
       const again=await superviseInputChange(adapterPool,proofPorts,proof.changeId,proofPolicy);assert.equal(again.attempt,1);assert.equal(again.revision,'7');
       assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[proof.changeId])).rowCount,0);
       assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_dispatch_event WHERE change_id=$1',[proof.changeId])).rowCount,7);
+    });
+    await db.query(`INSERT INTO bsmoss_integration.source VALUES ('w','query-src','QuerySource','file');
+      INSERT INTO bsmoss_resource.station_service VALUES ('w','query-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','query-cell','st','query-svc','cell');
+      INSERT INTO bsmoss_resource.device VALUES ('w','query-device','st','power','tower');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,device_id,version,valid_from,valid_to)
+      VALUES ('w','query-map','query-src','cell','query-cell','st','query-svc','query-cell',NULL,1,'2026-01-01Z','2027-01-01Z'),
+        ('w','query-state-map','query-src','device','query-device','st',NULL,NULL,'query-device',1,'2026-01-01Z','2027-01-01Z')`);
+    await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','query-cap','query-src',$1,1,'day','active','fixture://query-reviewed',$2,'2026-01-01Z','2027-01-01Z')`,[upMetric.code,capabilityPolicy]);
+    await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','query-state-cap','query-src',$1,1,'event','active','fixture://query-state-reviewed',$2,'2026-01-01Z','2027-01-01Z')`,
+      [stateMetric.code,{stateAggregation:{version:1,authorityRef:'fixture://query-state-policy',maxHoldMilliseconds:86400000}}]);
+    const queryScope={...scope,sourceIds:['query-src'],serviceIds:['query-svc'],deviceIds:['query-device'],allowSiteParameters:false};
+    const queryPorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),permissions:['metering.view'],scope:queryScope};}};
+    const queryApi=createAuthorizedAggregateQuery(queryPorts,{create:finite=>new PgAggregateQueryReader(adapterPool,finite)},'interactive');
+    const queryTarget={sourceId:'query-src',mappingId:'query-map',metric:upMetric,grain:'day',at:'2026-04-01T16:00:00Z'},queryPeriod={start:'2026-04-01T16:00:00.000Z',end:'2026-04-02T16:00:00.000Z'};
+    const queryStateTarget={...queryTarget,mappingId:'query-state-map',metric:stateMetric};
+    const queryWriter=new PgMeasurementStore(adapterPool,queryScope,FIRST_METRICS);
+    const queryDraft=(name,patch={})=>draft('query:'+name,{sourceId:'query-src',mappingId:'query-map',periodStart:queryPeriod.start,periodEnd:queryPeriod.end,value:{kind:'integer_delta',value:'9007199254740993'},...patch});
+    async function publishQueryTarget(target=queryTarget){const snap=await readRefreshSnapshot(adapterPool,queryScope,target),s={workspaceId:'w',series:[{sourceId:target.sourceId,subjectKey:snap.plan.subjectKey,metricKey:target.metric.code+'@1'}]},
+      aggregateStore=snap.kind==='state'?new PgStateAggregateStore(adapterPool,s):new PgAggregateStore(adapterPool,s),head=await aggregateStore.current(snap.plan);
+      return aggregateStore.publish(snap.plan,snap.inputs,head?.revision??null,'query-fixture-worker');}
+    let queryFact;
+    await t.test('formal aggregate query needs only view permission and never publishes a missing revision',async()=>{
+      queryFact=await queryWriter.append(queryDraft('usage'));
+      assert.equal(await queryApi.read(queryTarget),null);
+      assert.equal((await db.query("SELECT 1 FROM bsmoss_analysis.aggregate_series WHERE source_id='query-src'")).rowCount,0);
+      await publishQueryTarget();const read=await queryApi.read(queryTarget);
+      assert.equal(read.selection,'current');assert.equal(read.freshness,'current');assert.equal(read.revision,'1');assert.equal(read.currentRevision,'1');
+      assert.equal(read.result.value.value,'9007199254740993');assert.equal(read.result.completeness,'preliminary');assert.deepEqual(read.reasons,[]);
+      assert.equal(await queryApi.read({...queryTarget,revision:'999'}),null);
+    });
+    await t.test('formal query marks input corrections stale without mutating publication and retains exact historical revisions',async()=>{
+      await queryWriter.append(queryDraft('usage',{revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64),value:{kind:'integer_delta',value:'9007199254741093'}}));
+      const stale=await queryApi.read(queryTarget);assert.equal(stale.freshness,'stale');assert.deepEqual(stale.reasons,['latest_input_or_authority_changed']);
+      assert.equal(stale.result.value.value,'9007199254740993');assert.notEqual(stale.currentInputFingerprint,stale.result.inputFingerprint);
+      assert.equal(stale.currentRevision,'1');await publishQueryTarget();
+      const latest=await queryApi.read(queryTarget);assert.equal(latest.freshness,'current');assert.equal(latest.revision,'2');assert.equal(latest.result.value.value,'9007199254741093');
+      const old=await queryApi.read({...queryTarget,revision:'1'});assert.equal(old.selection,'revision');assert.equal(old.currentRevision,'2');assert.equal(old.freshness,'stale');
+      assert.equal(old.result.value.value,'9007199254740993');assert.ok(old.reasons.includes('older_published_revision'));
+      assert.equal((await queryApi.read({...queryTarget,revision:'2'})).freshness,'current');
+    });
+    await t.test('formal query reports reviewed authority changes and completion revocation as stale until recomputed',async()=>{
+      await db.query("UPDATE bsmoss_integration.source_capability SET validation_ref='fixture://query-revalidated' WHERE id='query-cap'");
+      assert.equal((await queryApi.read(queryTarget)).freshness,'stale');await publishQueryTarget();assert.equal((await queryApi.read(queryTarget)).freshness,'current');
+      const snap=await readRefreshSnapshot(adapterPool,queryScope,queryTarget),base=aggregateIntervals(snap.plan,snap.inputs);
+      await db.query(`INSERT INTO bsmoss_integration.source_completion_set(workspace_id,id,source_id,station_id,service_id,network_object_id,metric_code,metric_version,grain,period_start,period_end,revision,status,input_fingerprint,mapping_manifest_sha256,watermark,evidence_ref,evidence_sha256,recorded_by)
+        VALUES ('w','query-proof','query-src','st','query-svc','query-cell',$1,1,'day',$2,$3,1,'confirmed',$4,$5,$3,'fixture://query-proof',$6,'fixture-reviewer')`,
+        [upMetric.code,queryPeriod.start,queryPeriod.end,base.inputFingerprint,mappingSetFingerprint(snap.plan.mappingWindows),'a'.repeat(64)]);
+      assert.equal((await queryApi.read(queryTarget)).freshness,'stale');await publishQueryTarget();assert.equal((await queryApi.read(queryTarget)).result.completeness,'complete');
+      await db.query(`INSERT INTO bsmoss_integration.source_completion_set SELECT workspace_id,'query-revoked',source_id,station_id,service_id,network_object_id,device_id,metric_code,metric_version,grain,period_start,period_end,2,'revoked',input_fingerprint,mapping_manifest_sha256,period_start,'fixture://query-revoked',evidence_sha256,recorded_by,clock_timestamp() FROM bsmoss_integration.source_completion_set WHERE id='query-proof'`);
+      const stale=await queryApi.read(queryTarget);assert.equal(stale.freshness,'stale');assert.equal(stale.result.completeness,'complete');
+      await publishQueryTarget();const revised=await queryApi.read(queryTarget);assert.equal(revised.freshness,'current');assert.equal(revised.result.completeness,'preliminary');assert.ok(revised.result.reasons.includes('source_confirmation_revoked'));
+    });
+    await t.test('formal device state query preserves unknown coverage and detects quality corrections',async()=>{
+      const saved=await queryWriter.append(queryDraft('state',{mappingId:'query-state-map',metric:stateMetric,value:{kind:'state_event',state:'running',validUntil:queryPeriod.end}}));
+      await publishQueryTarget(queryStateTarget);const current=await queryApi.read(queryStateTarget);assert.equal(current.freshness,'current');assert.equal(current.result.value.kind,'state');assert.equal(current.result.value.durationMilliseconds.running,'86400000');
+      await db.query(`INSERT INTO bsmoss_metering.quality_decision VALUES ('w','query-state-rejected',$1,2,'rejected','fixture','fixture','reviewer',clock_timestamp())`,[saved.id]);
+      assert.equal((await queryApi.read(queryStateTarget)).freshness,'stale');await publishQueryTarget(queryStateTarget);
+      const rejected=await queryApi.read(queryStateTarget);assert.equal(rejected.freshness,'current');assert.equal(rejected.result.completeness,'missing');assert.equal(rejected.result.value.durationMilliseconds.unknown,'86400000');
+    });
+    await t.test('formal query enforces tenant, source, station, service, device and dependency scope even for historical selectors',async()=>{
+      for(const patch of [{sourceIds:[]},{stationIds:[]},{serviceIds:[]},{metricKeys:[]}]){
+        const finite={...queryScope,...patch},api=createAuthorizedAggregateQuery({...queryPorts,async readLocalGrant(){return {...await queryPorts.readLocalGrant(),scope:finite};}},{create:s=>new PgAggregateQueryReader(adapterPool,s)},'interactive');
+        await assert.rejects(api.read({...queryTarget,revision:'1'}),/scope_denied|mapping_unavailable/);
+      }
+      await assert.rejects(new PgAggregateQueryReader(adapterPool,{...queryScope,deviceIds:[]}).read(queryStateTarget),/object_scope_denied/);
+      await assert.rejects(new PgAggregateQueryReader(adapterPool,{...queryScope,workspaceId:'other'}).read(queryTarget),/mapping_unavailable/);
+      const derived={...proofTarget(depTarget.metric),sourceId:proofSource};
+      await assert.rejects(new PgAggregateQueryReader(adapterPool,{...proofScope,metricKeys:[depTarget.metric.code+'@1']}).read(derived),/aggregate_dependency_scope_denied/);
+    });
+    await t.test('formal query uses one read-only snapshot for latest evidence and the published head across concurrent recomputation',async()=>{
+      const before=await queryApi.read(queryTarget);let changed=false;
+      const observed={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);
+        if(!changed&&sql.includes('FROM bsmoss_analysis.aggregate_series s JOIN')){changed=true;await queryWriter.append(queryDraft('usage',{revision:'3',previousRevision:'2',payloadSha256:'d'.repeat(64),value:{kind:'integer_delta',value:'42'}}));await publishQueryTarget();}
+        return result;},release(discard){client.release(discard);}};}};
+      const consistent=await new PgAggregateQueryReader(observed,queryScope).read(queryTarget);assert.equal(changed,true);
+      assert.equal(consistent.revision,before.revision);assert.equal(consistent.currentRevision,before.currentRevision);assert.equal(consistent.freshness,'current');assert.equal(consistent.result.value.value,'9007199254741093');
+      const after=await queryApi.read(queryTarget);assert.equal(after.result.value.value,'42');assert.equal(after.freshness,'current');assert.notEqual(after.currentRevision,before.currentRevision);
+    });
+    await t.test('formal query performs no enqueue, acknowledgment or publication writes and rejects corrupt result identity',async()=>{
+      const counts=async()=> (await db.query('SELECT (SELECT count(*) FROM bsmoss_analysis.aggregate_revision) revisions,(SELECT count(*) FROM bsmoss_analysis.refresh_job) jobs,(SELECT count(*) FROM bsmoss_analysis.input_refresh_receipt) receipts,(SELECT count(*) FROM bsmoss_analysis.aggregate_outbox) outbox')).rows[0];
+      const before=await counts();await queryApi.read(queryTarget);await queryApi.read(queryStateTarget);assert.deepEqual(await counts(),before);
+      const observed={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(sql.includes('FROM bsmoss_analysis.aggregate_series s JOIN')&&result.rows[0])result.rows[0].result_payload.sourceId='foreign';return result;},release(discard){client.release(discard);}};}};
+      await assert.rejects(new PgAggregateQueryReader(observed,queryScope).read(queryTarget),/aggregate_publication_corrupt/);
     });
   } finally {
     if (adapterPool) await adapterPool.end();

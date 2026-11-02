@@ -442,3 +442,19 @@ planCompletionRefresh只规划同指标同粒度同周期，不将确认扩散�
 405单测（新增4）、126项实际PostgreSQL报告测试（125子项＋父项，新增9）、双层类型／生产构建／Prisma验证通过。初轮失败为PG带参数多语句夹具，已拆独立语句，最终全DB通过。75篇编号文档／36表镜像／交付／SCA配置守卫通过；最终19HTTP／ASCII／密钥／本地提交／预览SHA见工具收尾。日志tmp/input-control-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PGcluster已stop，只创建删除随机合同库，无业务库操作。无依赖／UI变化，不重复六场景浏览器或在线漏洞扫描。
 
 下一包I09能力策略／映射／服务有效期变化历史传播、登记订阅／种子和真实机器身份／常驻worker；或I08瞬时值持久化／跨对象权威汇总以支撑正式I11/I12。第1—3项演示本地完成，第4项真实来源／平台注册未到位，第5项内部出口和Beta／容量／安全恢复／UAT／生产审批继续未完成。不得把本地预览、空库测试证明或内部服务称真实接入上线。未push／PR／远端CI／外部部署；heartbeat bs-moss复用，费用预留／退服P2／不扩外省演示不变。
+
+输入退避收尾：提交90da987，12文件；staged gitleaks44.84KB无泄漏，7个源码／SQL／测试ASCII通过。检查点artifacts/formal-checkpoints/input-dispatch-control.json，绑定SHA／Git树／BUILD_ID／全部日志摘要与health；当时63333为bsmoss-local-90da987，session72456。405单测／126PG／19HTTP与所有检查完成，PGcluster已stop。
+
+## I11授权周期结果读取（2026-11-03）
+
+同一用户持续任务下接着推进第二个实际切片，未等待外部资料、不重复追问或创建自动化。设计202／实施380。I11从backlog转in_progress，但未完成面板或真实来源验收。
+
+新增query严格选择器（sourceId／mappingId／metric／grain／at／revision），URL4096字符／拒绝重复键未知键与伪造身份范围，正安全整数版本和30位十进制修订，按北京时间自然周期定位。pg-query在单REPEATABLE READ READ ONLY事务读取可信当前输入／质量／能力／完成、稳定主体、当前发布指针和选定历史修订；现支持区间／派生／比率和设备状态。未发布或缺修订null，GET返回404，不造零、不发布或入队。
+
+返回持久结果、当前修订、selection／freshness和当前可信输入摘要。旧指针标older_published_revision，来源／权威／质量／签认／算法摘要改变标latest_input_or_authority_changed，均stale。旧complete原样保留在历史结果内，调用者必须同时显示stale，不当作当前签认。current只是快照一致，不等于complete。单对象摘要检查需有界读取事实，并非全省分页／汇总接口，不代表11万容量。当前能力不可核验仍拒绝历史读取，不绕过授权。
+
+access/aggregate-query按view权限构造有限reader，读取后重查C1／C2交互权益／本地授权和完整scope，主体／workspace／scope变更或两次有效期过期均丢弃结果。runtime基于实际RP cookie接GET /api/aggregates，错误受限、不回显内部信息，成功／错误no-store／nosniff／Vary Cookie（Next还会追加RSC vary项）。preview开关不能授权正式查询，无样例回退。
+
+409单测（新增4）、133项实际PG报告测试（132子项＋父项，新增7）、双层类型／生产构建、20项HTTP（新增preview不能解锁正式查询）通过。77篇文档编号／36表镜像／交付／SCA配置及9个源码／测试ASCII通过。首轮DB失败为新device夹具漏ownership，补tower后全量通过；首轮HTTP失败为测试错误地要求Vary等于Cookie而非包含，改为包含后20项通过，没有放松安全头。日志tmp/aggregate-query-{unit,db,types,build,http,guards,ascii,staged-scan}.log。无DDL／Prisma／依赖／UI变化，未重复Prisma CLI／六场景浏览器／在线漏洞扫描。专用PGcluster已stop，仅随机合同库；无真实业务库操作。
+
+最终提交／密钥扫描／63333运行SHA及检查点以工具收尾为准。后续可补I08瞬时值持久化（当前FIRST_METRICS仅11项，没有已注册gauge，需先完善字典／单位／固定精度而非冒充已接入）、跨对象权威汇总；I09能力／映射／服务变化历史传播及登记订阅／种子／真实机器身份／常驻worker，随后I11面板与I12持久报告／异步导出。五项1—3本地完成，4仍缺真实来源／平台注册，5环境／Beta／容量／安全恢复／业务UAT／生产审批未到位。目标active，不标blocked；未push／PR／远端CI／真实接入／部署／上线，费用预留／退服P2／陕西演示边界不变。

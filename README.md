@@ -170,3 +170,10 @@ rolls back before failure recording; only the successful dispatch receipt
 acknowledges consumption. Discovery skips deferred and quarantined changes.
 Planning failures are covered without weakening full historical object scope.
 See docs/40-implementation/370-input-dispatch-control.md.
+The authenticated GET /api/aggregates endpoint reads one explicit object/period
+and optional immutable revision under view permission. Its read-only snapshot
+checks current input/authority freshness and flags stale publications; it never
+recomputes publication or falls back to synthetic data. Identity and finite
+scope are checked again before returning a result. Formal panels, cross-object
+summaries and published reports remain pending.
+See docs/40-implementation/380-authorized-aggregate-query.md.

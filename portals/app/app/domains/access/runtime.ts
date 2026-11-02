@@ -12,6 +12,8 @@ import { PgAggregateSnapshotReader } from "../aggregation/pg-snapshot";
 import { PgAggregateStore } from "../aggregation/pg-store";
 import type { AccessPorts, LocalGrant, VerifiedIdentity } from "./resolve";
 import { readPgGrant } from "./pg-grants";
+import { createAuthorizedAggregateQuery } from "./aggregate-query";
+import { PgAggregateQueryReader } from "../aggregation/pg-query";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -48,6 +50,11 @@ function sessionAccessPorts(rpsid: string): AccessPorts {
 export function measurementsForSession(rpsid: string) {
   return createAuthorizedMeasurements(sessionAccessPorts(rpsid), {
     create: scope => new PgMeasurementStore(getPool(), scope, FIRST_METRICS),
+  }, "interactive");
+}
+export function aggregateQueryForSession(rpsid: string) {
+  return createAuthorizedAggregateQuery(sessionAccessPorts(rpsid), {
+    create: scope => new PgAggregateQueryReader(getPool(), scope),
   }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.
