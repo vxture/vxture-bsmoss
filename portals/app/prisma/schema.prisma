@@ -441,3 +441,40 @@ model SourceCompletionSet {
   @@map("source_completion_set")
   @@schema("bsmoss_integration")
 }
+
+model RefreshJob {
+  workspace_id String
+  id String
+  dedupe_key String
+  source_id String
+  subject_key String
+  metric_key String
+  mapping_id String
+  trigger_ref String
+  target Json
+  max_attempts Decimal @db.Decimal(30,0)
+  attempt Decimal @db.Decimal(30,0)
+  status String
+  lease_token String? @db.Uuid
+  lease_until DateTime? @db.Timestamptz()
+  available_at DateTime @db.Timestamptz()
+  created_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("refresh_job")
+  @@schema("bsmoss_analysis")
+}
+
+model RefreshAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  lease_token String @db.Uuid
+  outcome String
+  failure_code String?
+  result_ref String?
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("refresh_attempt")
+  @@schema("bsmoss_analysis")
+}

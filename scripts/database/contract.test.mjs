@@ -13,6 +13,9 @@ import { PgAggregateStore } from "../../portals/app/app/domains/aggregation/pg-s
 import { aggregateIntervals, mappingSetFingerprint } from "../../portals/app/app/domains/aggregation/intervals.ts";
 import { PgAggregateSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-snapshot.ts";
 import { createAuthorizedAggregates } from "../../portals/app/app/domains/access/aggregates.ts";
+import { planRefreshJob } from "../../portals/app/app/domains/aggregation/refresh-jobs.ts";
+import { PgRefreshJobs } from "../../portals/app/app/domains/aggregation/pg-refresh-jobs.ts";
+import { executeRefreshLease } from "../../portals/app/app/domains/aggregation/refresh-execution.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -39,7 +42,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,31);
+      assert.equal(tables.rows[0].n,33);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -832,6 +835,137 @@ await test("empty-database PostgreSQL contract", async t => {
       assert.equal(partial.value,null);assert.equal(partial.completeness,'partial');assert.equal(partial.validWindows,3);assert.ok(partial.reasons.includes('source_confirmation_stale'));
       const denied=new PgAggregateSnapshotReader(adapterPool,{...scope,metricKeys:scope.metricKeys.filter(k=>k!=='service.data.downlink_bytes@1')});
       await assert.rejects(denied.load(target),/dependency_scope_denied/);
+    });
+    const refreshSnapshot=await snapshotReader.load(rollTarget);
+    const refreshScope={workspaceId:'w',series:[{sourceId:'src',subjectKey:refreshSnapshot.plan.subjectKey,metricKey:'service.data.uplink_bytes@1'}]};
+    const queue=new PgRefreshJobs(adapterPool,refreshScope);
+    const jobFor=trigger=>planRefreshJob(refreshSnapshot,rollTarget,trigger);
+    let completedJob;
+    const forceReady=id=>db.query("UPDATE bsmoss_analysis.refresh_job SET available_at=clock_timestamp()-interval '1 second' WHERE workspace_id='w' AND id=$1",[id]);
+    const expire=id=>db.query("UPDATE bsmoss_analysis.refresh_job SET lease_until=clock_timestamp()-interval '1 second' WHERE workspace_id='w' AND id=$1",[id]);
+    await t.test('durable refresh jobs dedupe concurrent triggers and compatible mapping anchors without resurrecting completed work',async()=>{
+      const job=jobFor('fixture:revision:one');
+      const outcomes=await Promise.all([queue.enqueue(job),queue.enqueue(job)]);
+      assert.deepEqual(outcomes.map(r=>r.status).sort(),['duplicate','inserted']);assert.equal(new Set(outcomes.map(r=>r.id)).size,1);
+      const alternate=planRefreshJob(refreshSnapshot,{...rollTarget,mappingId:'roll-new'},job.triggerRef);
+      assert.equal((await queue.enqueue(alternate)).status,'duplicate');
+      const lease=await queue.claim();completedJob=lease.id;assert.equal(lease.attempt,1);assert.deepEqual(lease.job,job);
+      assert.equal(await queue.claim(),null);
+      const renewed=await queue.renew(lease,120);assert.ok(Date.parse(renewed.leaseUntil)>=Date.parse(lease.leaseUntil));
+      await queue.succeed(renewed,'fixture://aggregate/'+rollSeries+'/3');
+      await assert.rejects(queue.succeed(lease,'fixture://duplicate'),/refresh_lease_lost/);
+      assert.equal((await queue.enqueue(job)).status,'duplicate');assert.equal(await queue.claim(),null);
+      const receipts=(await db.query('SELECT attempt,outcome,result_ref FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rows;
+      assert.deepEqual(receipts,[{attempt:'1',outcome:'succeeded',result_ref:'fixture://aggregate/'+rollSeries+'/3'}]);
+      await assert.rejects(queue.enqueue(job,2),/conflicting_refresh_replay/);
+    });
+    await t.test('competing queue workers claim different rows and foreign scopes cannot claim or finish leases',async()=>{
+      for(const trigger of ['fixture:parallel:a','fixture:parallel:b'])await queue.enqueue(jobFor(trigger));
+      const [a,b]=await Promise.all([queue.claim(),new PgRefreshJobs(adapterPool,refreshScope).claim()]);assert.ok(a&&b);assert.notEqual(a.id,b.id);assert.notEqual(a.token,b.token);
+      const denied=new PgRefreshJobs(adapterPool,{workspaceId:'other',series:refreshScope.series});assert.equal(await denied.claim(),null);
+      await assert.rejects(denied.succeed(a,'fixture://foreign'),/refresh_scope_denied/);
+      const wrongSubject=new PgRefreshJobs(adapterPool,{workspaceId:'w',series:[{...refreshScope.series[0],subjectKey:'foreign'}]});assert.equal(await wrongSubject.claim(),null);
+      await assert.rejects(wrongSubject.enqueue(jobFor('fixture:denied')),/refresh_scope_denied/);
+      await queue.succeed(a,'fixture://parallel-a');await queue.succeed(b,'fixture://parallel-b');
+    });
+    await t.test('refresh failure records bounded retries and reaches terminal dead without leaking raw errors',async()=>{
+      const request=await queue.enqueue(jobFor('fixture:retry'),2);
+      let lease=await queue.claim();assert.equal(lease.id,request.id);
+      await assert.rejects(queue.fail(lease,'Error: secret=value'),/invalid_refresh_failure_code/);
+      await queue.fail(lease,'source_unavailable');assert.equal(await queue.claim(),null);
+      const pending=(await db.query('SELECT status,available_at>clock_timestamp() AS delayed FROM bsmoss_analysis.refresh_job WHERE id=$1',[lease.id])).rows[0];
+      assert.deepEqual(pending,{status:'pending',delayed:true});await forceReady(lease.id);
+      lease=await new PgRefreshJobs(adapterPool,refreshScope).claim();assert.equal(lease.attempt,2);
+      await queue.fail(lease,'source_unavailable');assert.equal(await queue.claim(),null);
+      const receipts=(await db.query('SELECT attempt,outcome,failure_code FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1 ORDER BY attempt',[lease.id])).rows;
+      assert.deepEqual(receipts,[{attempt:'1',outcome:'retry',failure_code:'source_unavailable'},{attempt:'2',outcome:'dead',failure_code:'source_unavailable'}]);
+      assert.equal((await queue.enqueue(jobFor('fixture:retry'),2)).status,'duplicate');
+    });
+    await t.test('expired refresh leases are fenced and reclaimed after adapter restart with append-only expiration receipts',async()=>{
+      await queue.enqueue(jobFor('fixture:expired'),2);const old=await queue.claim();await expire(old.id);
+      await assert.rejects(queue.renew(old),/refresh_lease_lost/);await assert.rejects(queue.succeed(old,'fixture://stale'),/refresh_lease_lost/);
+      const replacement=await new PgRefreshJobs(adapterPool,refreshScope).claim();assert.equal(replacement.id,old.id);assert.equal(replacement.attempt,2);assert.notEqual(replacement.token,old.token);
+      await assert.rejects(queue.fail(old,'late_failure'),/refresh_lease_lost/);await assert.rejects(queue.succeed({...replacement,token:old.token},'fixture://forged'),/refresh_lease_lost/);
+      await queue.succeed(replacement,'fixture://recovered');
+      const receipts=(await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1 ORDER BY attempt',[old.id])).rows;
+      assert.deepEqual(receipts,[{outcome:'expired'},{outcome:'succeeded'}]);
+      await queue.enqueue(jobFor('fixture:expired-final'),1);const final=await queue.claim();await expire(final.id);
+      assert.equal(await queue.claim(),null);assert.equal((await db.query('SELECT status FROM bsmoss_analysis.refresh_job WHERE id=$1',[final.id])).rows[0].status,'dead');
+      assert.equal((await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[final.id])).rows[0].outcome,'expired');
+    });
+    await t.test('refresh queue locks identity columns and preserves attempt evidence under runtime grants',async()=>{
+      for(const sql of ["UPDATE bsmoss_analysis.refresh_job SET subject_key='forged'","UPDATE bsmoss_analysis.refresh_job SET max_attempts=8",
+        "UPDATE bsmoss_analysis.refresh_job SET target='{}'",'DELETE FROM bsmoss_analysis.refresh_job','TRUNCATE bsmoss_analysis.refresh_job CASCADE',
+        "UPDATE bsmoss_analysis.refresh_attempt SET outcome='succeeded'",'DELETE FROM bsmoss_analysis.refresh_attempt','TRUNCATE bsmoss_analysis.refresh_attempt']) await assert.rejects(adapterPool.query(sql),e=>e.code==='42501');
+      await assert.rejects(db.query("INSERT INTO bsmoss_analysis.refresh_attempt(workspace_id,job_id,attempt,lease_token,outcome,result_ref) VALUES ('other',$1,1,$2,'succeeded','fixture://foreign')",[completedJob,randomUUID()]),e=>e.code==='23503');
+      await assert.rejects(db.query("UPDATE bsmoss_analysis.refresh_job SET status='leased' WHERE id=$1",[completedJob]),e=>e.code==='23514');
+      await assert.rejects(db.query("UPDATE bsmoss_analysis.refresh_job SET attempt=9 WHERE id=$1",[completedJob]),e=>e.code==='23514');
+    });
+    await t.test('authorized refresh execution commits aggregate revision, outbox and success receipt atomically',async()=>{
+      await queue.enqueue(jobFor('fixture:execute:one'));const lease=await queue.claim();
+      const result=await executeRefreshLease(adapterPool,snapshotPorts,lease);assert.equal(result.status,'inserted');
+      const receipt=(await db.query('SELECT outcome,result_ref FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rows[0];
+      assert.deepEqual(receipt,{outcome:'succeeded',result_ref:JSON.stringify(['bsmoss-aggregate',result.seriesId,result.revision])});
+      assert.equal((await db.query('SELECT status FROM bsmoss_analysis.refresh_job WHERE id=$1',[lease.id])).rows[0].status,'succeeded');
+      const count=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[result.seriesId])).rows[0].n;
+      await queue.enqueue(jobFor('fixture:execute:replay'));const replay=await queue.claim();
+      assert.equal((await executeRefreshLease(adapterPool,snapshotPorts,replay)).status,'duplicate');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[result.seriesId])).rows[0].n,count);
+      assert.equal((await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[replay.id])).rows[0].outcome,'succeeded');
+    });
+    await t.test('expired or foreign refresh lease cannot publish or acknowledge any result',async()=>{
+      await queue.enqueue(jobFor('fixture:execute:expired'));const lease=await queue.claim();await expire(lease.id);
+      const count=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_revision')).rows[0].n;
+      await assert.rejects(executeRefreshLease(adapterPool,snapshotPorts,lease),/refresh_lease_lost/);
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_revision')).rows[0].n,count);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const next=await queue.claim();assert.equal(next.id,lease.id);
+      const denied={...snapshotPorts,async readLocalGrant(){return null;}};
+      await assert.rejects(executeRefreshLease(adapterPool,denied,next),/permission_denied/);
+      const wrong={...next,job:planRefreshJob({...refreshSnapshot,plan:{...refreshSnapshot.plan,subjectKey:'foreign'}},rollTarget,'fixture:foreign')};
+      await assert.rejects(executeRefreshLease(adapterPool,snapshotPorts,wrong),/refresh_snapshot_mismatch/);
+      await queue.fail(next,'authorization_denied');
+      await forceReady(next.id);const last=await queue.claim();await queue.succeed(last,'fixture://cancelled-test');
+    });
+    await t.test('failure while recording refresh success rolls back aggregate, head and outbox',async()=>{
+      await store.append(draft('roll-0',{mappingId:'roll-old',revision:'4',previousRevision:'3',payloadSha256:'d'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'40'}}));
+      await queue.enqueue(jobFor('fixture:execute:rollback'));const lease=await queue.claim();
+      const before=(await db.query('SELECT current_revision FROM bsmoss_analysis.aggregate_series WHERE id=$1',[rollSeries])).rows[0].current_revision;
+      const outbox=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[rollSeries])).rows[0].n;
+      const injected={async connect(){const client=await adapterPool.connect();return {async query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.refresh_attempt'))throw Error('fixture_receipt_failure');return client.query(sql,args);},release(discard){client.release(discard);}};},query(...args){return adapterPool.query(...args);}};
+      await assert.rejects(executeRefreshLease(injected,snapshotPorts,lease),/fixture_receipt_failure/);
+      assert.equal((await db.query('SELECT current_revision FROM bsmoss_analysis.aggregate_series WHERE id=$1',[rollSeries])).rows[0].current_revision,before);
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[rollSeries])).rows[0].n,Number(before));
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[rollSeries])).rows[0].n,outbox);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const recovered=await executeRefreshLease(adapterPool,snapshotPorts,lease);assert.equal(recovered.status,'inserted');assert.equal(recovered.revision,String(Number(before)+1));
+    });
+    await t.test('refresh expected-head conflict keeps its lease retryable and never overwrites a newer correction',async()=>{
+      await store.append(draft('roll-0',{mappingId:'roll-old',revision:'5',previousRevision:'4',payloadSha256:'e'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'50'}}));
+      await queue.enqueue(jobFor('fixture:execute:head-conflict'));const lease=await queue.claim();let changed=false;
+      const intercepted={connect(){return adapterPool.connect();},async query(sql,args){const result=await adapterPool.query(sql,args);
+        if(!changed&&sql.includes('SELECT s.id,r.revision')){changed=true;
+          await store.append(draft('roll-0',{mappingId:'roll-old',revision:'6',previousRevision:'5',payloadSha256:'f'.repeat(64),periodStart:snapshotTime(0),periodEnd:snapshotTime(15),value:{kind:'integer_delta',value:'60'}}));
+          await snapshotApi.recompute({...rollTarget,expectedRevision:result.rows[0].revision});
+        }return result;}};
+      await assert.rejects(executeRefreshLease(intercepted,snapshotPorts,lease),/aggregate_revision_conflict/);assert.equal(changed,true);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const current=(await db.query('SELECT r.integer_value FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r ON (r.workspace_id,r.series_id,r.revision)=(s.workspace_id,s.id,s.current_revision) WHERE s.id=$1',[rollSeries])).rows[0];
+      assert.equal(current.integer_value,'90');
+      const retry=await executeRefreshLease(adapterPool,snapshotPorts,lease);assert.equal(retry.status,'duplicate');
+      assert.equal((await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rows[0].outcome,'succeeded');
+    });
+    await t.test('lease completion checks database expiry after waiting for a row lock',async()=>{
+      await queue.enqueue(jobFor('fixture:execute:lock-wait'));const lease=await queue.claim();
+      const holder=new Client({connectionString:target.toString()});await holder.connect();
+      try {
+        await holder.query('BEGIN');await holder.query("SELECT 1 FROM bsmoss_analysis.refresh_job WHERE workspace_id='w' AND id=$1 FOR UPDATE",[lease.id]);
+        const outcome=queue.succeed(lease,'fixture://wait-expired').then(()=>({ok:true}),error=>({ok:false,error}));
+        await holder.query("UPDATE bsmoss_analysis.refresh_job SET lease_until=clock_timestamp()-interval '1 second' WHERE workspace_id='w' AND id=$1",[lease.id]);
+        await holder.query('COMMIT');const result=await outcome;assert.equal(result.ok,false);assert.match(result.error.message,/refresh_lease_lost/);
+        assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+        const retry=await queue.claim();await queue.succeed(retry,'fixture://after-wait');
+      } finally {await holder.query('ROLLBACK');await holder.end();}
     });
   } finally {
     if (adapterPool) await adapterPool.end();

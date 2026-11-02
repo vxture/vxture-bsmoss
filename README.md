@@ -137,4 +137,8 @@ creates a content-addressed recoverable source snapshot and evidence manifest.
 printing configuration values. Missing prerequisites exit with code 2.
 These checks do not publish code, register environments or claim production launch.
 See docs/50-deployment/40-live-prerequisites.md for remaining real-source and
-deployment inputs. The refresh-window planner is internal, not a running worker.
+deployment inputs. The internal refresh-window planner and durable scoped queue
+support bounded leases/retries and a single authorized refresh step with atomic
+result/outbox/receipt commits. No production scheduler, background identity or
+source revision dispatcher is enabled. See
+docs/40-implementation/320-durable-refresh-queue.md.

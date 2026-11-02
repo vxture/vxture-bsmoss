@@ -20,8 +20,8 @@ Reproducible checks: pnpm test:db (requires TEST_DATABASE_ADMIN_URL for a local
 test cluster), pnpm prisma:validate and pnpm lint:schema-mirror.
 See docs/40-implementation/20-database-contract.md for evidence and limits.
 
-The current baseline contains 31 tables: 15 original domain tables, 3 aggregate
-tables, 2 source completion ledgers, 10 neutral platform tables
+The current baseline contains 33 tables: 15 original domain tables, 3 aggregate
+tables, 2 source completion ledgers, 2 refresh queue tables, 10 neutral platform tables
 (vx_provision/local_authz/local_usage), and explicit local_authz.data_scope.
 DDL files intentionally do not commit independently; the initializer owns the
 transaction and refuses a database with existing product schemas.
@@ -45,3 +45,8 @@ versions, with exact mapping-manifest and input fingerprints. Latest set revisio
 win before fingerprint matching, including revocation; runtime has SELECT only.
 NULLS NOT DISTINCT uniqueness requires PostgreSQL 15+ (deployment targets 18).
 See docs/40-implementation/310-composite-completion.md.
+
+refresh_job permits state/lease/scheduling-column updates only; refresh_attempt
+is append-only. A fenced aggregate publication can commit result, outbox, job
+success and its receipt together. No scheduler or machine identity is enabled.
+See docs/40-implementation/320-durable-refresh-queue.md.

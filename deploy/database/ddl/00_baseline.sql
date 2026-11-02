@@ -503,3 +503,49 @@ CREATE TABLE bsmoss_integration.source_completion_set (
   CHECK(network_object_id IS NULL OR service_id IS NOT NULL),
   CHECK(network_object_id IS NULL OR device_id IS NULL)
 );
+
+-- Internal durable refresh requests and append-only attempt receipts.
+CREATE TABLE bsmoss_analysis.refresh_job (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  dedupe_key text NOT NULL CHECK(dedupe_key ~ '^[a-f0-9]{64}$'),
+  source_id text NOT NULL,
+  subject_key text NOT NULL CHECK(length(trim(subject_key)) > 0),
+  metric_key text NOT NULL CHECK(length(trim(metric_key)) > 0),
+  mapping_id text NOT NULL,
+  trigger_ref text NOT NULL CHECK(length(trim(trigger_ref)) > 0),
+  target jsonb NOT NULL CHECK(jsonb_typeof(target)='object'),
+  max_attempts numeric(30,0) NOT NULL CHECK(max_attempts BETWEEN 1 AND 8),
+  attempt numeric(30,0) NOT NULL DEFAULT 0 CHECK(attempt BETWEEN 0 AND max_attempts),
+  status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','leased','succeeded','dead')),
+  lease_token uuid,
+  lease_until timestamptz,
+  available_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,dedupe_key),
+  FOREIGN KEY(workspace_id,source_id) REFERENCES bsmoss_integration.source(workspace_id,id),
+  FOREIGN KEY(workspace_id,mapping_id) REFERENCES bsmoss_integration.source_mapping(workspace_id,id),
+  CHECK((target->>'sourceId') IS NOT DISTINCT FROM source_id),
+  CHECK((target->>'mappingId') IS NOT DISTINCT FROM mapping_id),
+  CHECK((target->'metric'->>'code') || '@' || (target->'metric'->>'version') IS NOT DISTINCT FROM metric_key),
+  CHECK((status='leased' AND lease_token IS NOT NULL AND lease_until IS NOT NULL AND attempt>0) OR
+    (status<>'leased' AND lease_token IS NULL AND lease_until IS NULL))
+);
+CREATE INDEX refresh_job_ready ON bsmoss_analysis.refresh_job(workspace_id,available_at,created_at,id) WHERE status IN ('pending','leased');
+CREATE TABLE bsmoss_analysis.refresh_attempt (
+  workspace_id text NOT NULL,
+  job_id text NOT NULL,
+  attempt numeric(30,0) NOT NULL CHECK(attempt BETWEEN 1 AND 8),
+  lease_token uuid NOT NULL,
+  outcome text NOT NULL CHECK(outcome IN ('succeeded','retry','dead','expired')),
+  failure_code text,
+  result_ref text,
+  recorded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(workspace_id,job_id,attempt),
+  UNIQUE(workspace_id,lease_token),
+  FOREIGN KEY(workspace_id,job_id) REFERENCES bsmoss_analysis.refresh_job(workspace_id,id),
+  CHECK((outcome='succeeded' AND result_ref IS NOT NULL AND length(trim(result_ref))>0 AND failure_code IS NULL) OR
+    (outcome<>'succeeded' AND result_ref IS NULL AND failure_code IS NOT NULL AND failure_code ~ '^[a-z][a-z0-9_]{0,63}$'))
+);

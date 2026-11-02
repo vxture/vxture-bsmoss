@@ -5,6 +5,8 @@ import { timestamp } from "../measurements/rules.ts";
 import { aggregateIntervals, positiveRevision, type AggregationPlan, type IntervalInput } from "./intervals.ts";
 import { bucketFor } from "./periods.ts";
 import type { AggregateKey, AggregateScope, AggregateStore, StoredAggregate } from "./store.ts";
+import { completeRefreshLease, lockRefreshLease, type RefreshLease } from "./pg-refresh-jobs.ts";
+import { validateRefreshJob } from "./refresh-jobs.ts";
 
 const identity = (value: string) => {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_aggregate_identity");
@@ -14,13 +16,18 @@ const scopeKey = (sourceId: string, subjectKey: string, metricKey: string) => JS
 export class PgAggregateStore implements AggregateStore {
   readonly workspaceId: string;
   private readonly allowed: ReadonlySet<string>;
-  constructor(private readonly pool: Pool, scope: AggregateScope) {
+  private readonly lease?: RefreshLease;
+  constructor(private readonly pool: Pool, scope: AggregateScope, lease?: RefreshLease) {
     identity(scope.workspaceId); this.workspaceId = scope.workspaceId;
     if (!Array.isArray(scope.series) || scope.series.length > 10000) throw new Error("invalid_aggregate_scope");
     this.allowed = new Set(scope.series.map(row => {
       for (const value of [row.sourceId, row.subjectKey, row.metricKey]) identity(value);
       return scopeKey(row.sourceId, row.subjectKey, row.metricKey);
     }));
+    if (lease) {
+      this.lease = structuredClone(lease); validateRefreshJob(this.lease.job);
+      if (this.lease.job.workspaceId !== this.workspaceId || !this.allowed.has(scopeKey(this.lease.job.sourceId, this.lease.job.subjectKey, this.lease.job.metricKey))) throw Error("refresh_scope_denied");
+    }
   }
   private normalizeKey(input: AggregateKey): AggregateKey {
     const key = structuredClone(input);
@@ -42,11 +49,17 @@ export class PgAggregateStore implements AggregateStore {
     const key = this.normalizeKey({ sourceId: plan.sourceId, subjectKey: plan.subjectKey, metric: plan.metric, grain: plan.grain, period: plan.period });
     if (expectedRevision !== null) positiveRevision(expectedRevision);
     const result = aggregateIntervals(plan, inputs);
+    if (this.lease) {
+      const job = this.lease.job, period = bucketFor(job.target.at, job.target.grain);
+      if (job.sourceId !== key.sourceId || job.subjectKey !== key.subjectKey || job.metricKey !== refKey(key.metric) || job.target.grain !== key.grain ||
+          period.start !== key.period.start || period.end !== key.period.end) throw Error("refresh_snapshot_mismatch");
+    }
     const args = this.args(key);
     const manifest = { plan, inputs };
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      if (this.lease) await lockRefreshLease(client, this.lease);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["bsmoss-aggregate", ...args])]);
       await client.query(`INSERT INTO bsmoss_analysis.aggregate_series(workspace_id,source_id,subject_key,metric_code,metric_version,grain,period_start,period_end,id)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(workspace_id,source_id,subject_key,metric_code,metric_version,grain,period_start,period_end) DO NOTHING`, [...args, randomUUID()]);
@@ -56,6 +69,7 @@ export class PgAggregateStore implements AggregateStore {
         WHERE workspace_id=$1 AND series_id=$2 AND input_fingerprint=$3`, [this.workspaceId, head.id, result.inputFingerprint, JSON.stringify(result)])).rows[0];
       if (duplicate) {
         if (!duplicate.same) throw new Error("conflicting_aggregate_replay");
+        if (this.lease) await completeRefreshLease(client, this.lease, JSON.stringify(["bsmoss-aggregate", head.id, duplicate.revision]));
         await client.query("COMMIT");
         return { status: "duplicate" as const, seriesId: head.id, revision: duplicate.revision as string, currentRevision: head.current_revision as string };
       }
@@ -70,6 +84,7 @@ export class PgAggregateStore implements AggregateStore {
         value?.kind === "ratio" ? value.denominator : null, JSON.stringify(result), JSON.stringify(manifest), publishedBy]);
       await client.query("UPDATE bsmoss_analysis.aggregate_series SET current_revision=$3 WHERE workspace_id=$1 AND id=$2", [this.workspaceId, head.id, revision]);
       await client.query("INSERT INTO bsmoss_analysis.aggregate_outbox(workspace_id,id,series_id,revision,event_type) VALUES($1,$2,$3,$4,'aggregate.revised')", [this.workspaceId, randomUUID(), head.id, revision]);
+      if (this.lease) await completeRefreshLease(client, this.lease, JSON.stringify(["bsmoss-aggregate", head.id, revision]));
       await client.query("COMMIT");
       return { status: "inserted" as const, seriesId: head.id, revision, currentRevision: revision };
     } catch (error) { await client.query("ROLLBACK"); throw error; }

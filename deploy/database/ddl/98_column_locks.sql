@@ -6,3 +6,4 @@ GRANT UPDATE(status,updated_at,provisioned_at) ON vx_provision.app_instance TO b
 GRANT UPDATE(last_seq,updated_at) ON vx_provision.provision_seq TO bsmoss_svc;
 
 GRANT UPDATE(current_revision) ON bsmoss_analysis.aggregate_series TO bsmoss_svc;
+GRANT UPDATE(attempt,status,lease_token,lease_until,available_at,updated_at) ON bsmoss_analysis.refresh_job TO bsmoss_svc;
