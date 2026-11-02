@@ -58,3 +58,4 @@
 - [跨映射组合完成证明](../40-implementation/310-composite-completion.md)：全对象周期确认、最高撤销和不可变证据。
 - [持久刷新队列](../40-implementation/320-durable-refresh-queue.md)：租约抢占、失败重试与结果／回执原子提交。
 - [授权刷新协调](../40-implementation/330-authorized-refresh-coordination.md)：全批入队、周期／历史影响规划、有限候选及并发快照修复。
+- [设备状态持久化](../40-implementation/340-device-state-persistence.md)：可信心跳有效期、未知时长、组合证明和调度原子发布。

@@ -1,7 +1,9 @@
 import type { Pool } from "pg";
 import { resolveMeasurementAccess, type AccessPorts } from "../access/resolve.ts";
 import { refKey } from "../catalog/registry.ts";
-import { PgAggregateSnapshotReader } from "./pg-snapshot.ts";
+import { readRefreshSnapshot } from "./refresh-snapshot.ts";
+import { PgStateAggregateStore } from "./pg-state-store.ts";
+import { publishStateAggregate } from "./state-service.ts";
 import { PgAggregateStore } from "./pg-store.ts";
 import type { RefreshLease } from "./pg-refresh-jobs.ts";
 import { validateRefreshJob } from "./refresh-jobs.ts";
@@ -21,13 +23,20 @@ export async function executeRefreshLease(pool: Pool, ports: AccessPorts, raw: R
     // A concurrently changed head causes serialization failure, never adoption
     // of a new head paired with old inputs. The coordinator retries the job.
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-    const snapshot = await new PgAggregateSnapshotReader(pool, access.scope).load(lease.job.target, client);
+    const snapshot = await readRefreshSnapshot(pool, access.scope, lease.job.target, client);
     const plan = snapshot.plan;
     if (plan.subjectKey !== lease.job.subjectKey || plan.sourceId !== lease.job.sourceId || refKey(plan.metric) !== lease.job.metricKey) throw Error("refresh_snapshot_mismatch");
-    const store = new PgAggregateStore(pool, { workspaceId: access.context.workspaceId, series: [{ sourceId: plan.sourceId, subjectKey: plan.subjectKey, metricKey: refKey(plan.metric) }] }, lease, client);
-    const head = await store.current(plan);
-    if (access.expiresAt <= now()) throw Error("access_expired");
-    const result = await publishIntervalAggregate(access.context, store, plan, snapshot.inputs, head?.revision ?? null);
+    const scope = { workspaceId: access.context.workspaceId, series: [{ sourceId: plan.sourceId, subjectKey: plan.subjectKey, metricKey: refKey(plan.metric) }] };
+    let result;
+    if (snapshot.kind === "state") {
+      const store = new PgStateAggregateStore(pool, scope, lease, client), head = await store.current(snapshot.plan);
+      if (access.expiresAt <= now()) throw Error("access_expired");
+      result = await publishStateAggregate(access.context, store, snapshot.plan, snapshot.inputs, head?.revision ?? null);
+    } else {
+      const store = new PgAggregateStore(pool, scope, lease, client), head = await store.current(snapshot.plan);
+      if (access.expiresAt <= now()) throw Error("access_expired");
+      result = await publishIntervalAggregate(access.context, store, snapshot.plan, snapshot.inputs, head?.revision ?? null);
+    }
     await client.query("COMMIT");
     return result;
   } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }

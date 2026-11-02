@@ -386,3 +386,15 @@ BUG-001 P1内部缺陷已实证修复：旧代码先读事实后单独读到新h
 388单测（新增4项）、87项实际PG报告测试（86子项＋父项，新增9项）、19HTTP、双层类型／最终生产构建通过；67篇文档编号／33表静态镜像／交付／SCA配置守卫通过。PG适配器仍SET ROLE bsmoss_svc，随机bsmoss_contract库已删除，专用cluster已stop。日志tmp/coordinator-{unit,db,types,build,http,guards,preflight}.log。无DDL／依赖／UI变动，未重跑不变六场景浏览器／Prisma CLI／在线漏洞扫描。最终密钥／ASCII／Git提交及63333预览句柄以工具及后续记录为准。
 
 下一步：I09输入事务outbox、从持久证据解析旧／新对象与依赖影响及消费进度；或先补I08状态／瞬时结果持久化与跨对象权威汇总以支撑I11/I12。当前impact调用者输入仅内部可信契约，不等于自动修订传播完成。真实机器身份、常驻scheduler／worker和环境仍未启用。五项1—3本地完成，4仍缺真实来源／平台注册，5仍缺上述内部出口、正式查询发布、Beta、11万容量／3倍突发、安全恢复／UAT和生产批准。未push、没有PR／远端CI／Beta／生产上线，不重复创建自动化。
+
+## I08设备状态可信持久化（2026-11-02）
+
+本轮持续五项目标，有内部实质进展，不标blocked；没有真实来源／环境资料回复，不重复追问。上一包提交62085f5，当前新增197设计／340实施。state-period纯规则绑定设备／来源／核验event能力、1秒至24小时保持策略、完整有效映射、事实／质量／转换／载荷摘要和全对象组合证明。回看max(周期开始-hold,能力valid_from)；未核验／过期事件保留以阻断更早状态。同刻冲突、心跳失效和无证据保持unknown；最高事实修订先选再按对象／时间过滤，移设备／移窗撤回旧值。17分钟等非网格映射切换合法，事件不得跨映射有效期。
+
+新增pg-state-snapshot／state-service／state-store／pg-state-store，物理设备不按运营商归属，有限设备范围＋平台metering＋aggregate/view两道门。pg-repository抽取已有interval CAS／幂等／租约／结果outbox事务，两薄适配器拒绝彼此语义。refresh-snapshot依字典选择可信读取器与计算器，enqueue和execute支持state，所有事实／证明／head／结果／回执共享RR事务。原有BUG-001区间回归保持，新状态并发回归也证明旧快照不覆盖新head；回执故障整体回滚。
+
+DDL aggregate_revision新增state_value JSON，六态十进制整数字符串时长、非负整数转换数、合法末态和数值列互斥，result_payload.value一致；Prisma标量镜像同步，共33表。新产品空库基线，无旧库迁移。无依赖或UI变化，不重复六场景浏览器验收。
+
+395单测（新增7）、97项实际PostgreSQL报告测试（96子项＋父项，新增10）、双层类型／生产构建／Prisma validate通过；69篇文档编号／33表镜像／交付／SCA配置初检通过，最终HTTP／源码ASCII／密钥扫描及本地提交／运行SHA以工具收尾为准。日志tmp/state-{unit,db,types,build,prisma,http,guards}.log。PG专用cluster已stop，仅随机bsmoss_contract库测试，无业务库操作。
+
+I08设备状态内部切片完成，仍缺瞬时结果持久化、跨对象权威汇总；没有state HTTP查询或真实设备连接器。I09仍缺输入事务outbox、持久证据旧／新影响解析与消费进度、登记分区／种子与真实机器身份／常驻进程。随后I11/I12正式查询发布。第4／5项真实资料及Beta、11万容量、安全恢复、业务UAT和生产审批未到位；未push／远端CI／真实接入／部署／上线。目标active、heartbeat bs-moss已存在，勿重复创建。旧演示快照不代表当前全部源码；外部前置最新核验仍以40-live-prerequisites及先前preflight为准，本轮未重复联网核验。

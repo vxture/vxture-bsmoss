@@ -104,7 +104,7 @@ direct counters/ratios, reviewed directional/rate dependency inputs and session
 composition; no aggregate route or scheduler
 is enabled. Reviewed source completion/revocation evidence is bound to the exact
 input snapshot; stale evidence cannot approve later revisions. Live confirmation
-ingestion and gauge/state persistence remain pending. Target and dependency
+ingestion and gauge persistence remain pending. Target and dependency
 metric grants/capabilities are all required, with one shared native frequency.
 See docs/40-implementation/300-trusted-derived-inputs.md.
 Adjacent mappings of one stable subject are planned per native window; service
@@ -113,6 +113,12 @@ boundaries fail closed. A reviewed whole-object completion ledger binds the exac
 mapping set and complete input snapshot. Latest revocations/stale proofs never
 fall back to older or single-segment confirmations; missing inputs remain partial.
 See docs/40-implementation/310-composite-completion.md.
+Device state now has a reviewed heartbeat policy, bounded carry-in, exact state
+durations, unknown gaps, object completion proofs and immutable PostgreSQL
+revisions. State refresh jobs use the same scoped atomic execution path; state
+and interval adapters reject each other's metric semantics. There is no public
+state query route or live device connector yet.
+See docs/40-implementation/340-device-state-persistence.md.
 
 ## Cumulative source normalization (I07, in progress)
 

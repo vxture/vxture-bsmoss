@@ -405,10 +405,11 @@ CREATE TABLE bsmoss_analysis.aggregate_revision (
   aggregation_version text NOT NULL CHECK(length(aggregation_version) > 0),
   watermark timestamptz NOT NULL,
   completeness text NOT NULL CHECK(completeness IN ('complete','preliminary','partial','missing','not_applicable')),
-  value_kind text NOT NULL CHECK(value_kind IN ('none','integer','ratio')),
+  value_kind text NOT NULL CHECK(value_kind IN ('none','integer','ratio','state')),
   integer_value numeric(30,0),
   numerator numeric(30,0),
   denominator numeric(30,0),
+  state_value jsonb,
   result_payload jsonb NOT NULL CHECK(jsonb_typeof(result_payload)='object'),
   input_manifest jsonb NOT NULL CHECK(jsonb_typeof(input_manifest)='object'),
   published_by text NOT NULL CHECK(length(published_by) > 0),
@@ -416,12 +417,26 @@ CREATE TABLE bsmoss_analysis.aggregate_revision (
   PRIMARY KEY(workspace_id,series_id,revision),
   UNIQUE(workspace_id,series_id,input_fingerprint),
   FOREIGN KEY(workspace_id,series_id) REFERENCES bsmoss_analysis.aggregate_series(workspace_id,id),
-  CHECK((value_kind='none' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL) OR
-        (value_kind='integer' AND integer_value IS NOT NULL AND integer_value >= 0 AND numerator IS NULL AND denominator IS NULL) OR
-        (value_kind='ratio' AND integer_value IS NULL AND numerator IS NOT NULL AND denominator IS NOT NULL AND numerator >= 0 AND denominator > 0 AND numerator <= denominator)),
+  CHECK((value_kind='none' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL) OR
+        (value_kind='integer' AND integer_value IS NOT NULL AND integer_value >= 0 AND numerator IS NULL AND denominator IS NULL AND state_value IS NULL) OR
+        (value_kind='ratio' AND integer_value IS NULL AND numerator IS NOT NULL AND denominator IS NOT NULL AND numerator >= 0 AND denominator > 0 AND numerator <= denominator AND state_value IS NULL) OR
+        (value_kind='state' AND integer_value IS NULL AND numerator IS NULL AND denominator IS NULL AND state_value IS NOT NULL AND jsonb_typeof(state_value)='object' AND state_value->>'kind' IS NOT DISTINCT FROM 'state')),
+  CHECK(value_kind <> 'state' OR (
+    jsonb_typeof(state_value->'durationMilliseconds')='object' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'running')='string' AND (state_value->'durationMilliseconds'->>'running') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'standby')='string' AND (state_value->'durationMilliseconds'->>'standby') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'fault')='string' AND (state_value->'durationMilliseconds'->>'fault') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'offline')='string' AND (state_value->'durationMilliseconds'->>'offline') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'maintenance')='string' AND (state_value->'durationMilliseconds'->>'maintenance') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'durationMilliseconds'->'unknown')='string' AND (state_value->'durationMilliseconds'->>'unknown') ~ '^(0|[1-9][0-9]{0,29})$' AND
+    jsonb_typeof(state_value->'knownTransitions')='number' AND (state_value->>'knownTransitions') ~ '^(0|[1-9][0-9]*)$' AND
+    jsonb_typeof(state_value->'gapTransitions')='number' AND (state_value->>'gapTransitions') ~ '^(0|[1-9][0-9]*)$' AND
+    state_value->>'endState' IN ('running','standby','fault','offline','maintenance','unknown')
+  ) IS TRUE),
   CHECK(result_payload ? 'value' AND result_payload->'value' = CASE value_kind
     WHEN 'none' THEN 'null'::jsonb
     WHEN 'integer' THEN jsonb_build_object('kind','integer','value',integer_value::text)
+    WHEN 'state' THEN state_value
     ELSE jsonb_build_object('kind','ratio','numerator',numerator::text,'denominator',denominator::text) END),
   CHECK(result_payload->>'inputFingerprint' IS NOT DISTINCT FROM input_fingerprint),
   CHECK(result_payload->>'aggregationVersion' IS NOT DISTINCT FROM aggregation_version),

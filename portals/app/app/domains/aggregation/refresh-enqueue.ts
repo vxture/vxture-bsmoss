@@ -3,7 +3,7 @@ import { resolveMeasurementAccess, type AccessPorts, type MeasurementAccess } fr
 import { fingerprintOf } from "./intervals.ts";
 import { planPeriodicBatch, planRevisionBatch, refreshTargets, type RefreshSeed, type RevisionImpact } from "./refresh-coordination.ts";
 import { PgRefreshJobs } from "./pg-refresh-jobs.ts";
-import { PgAggregateSnapshotReader } from "./pg-snapshot.ts";
+import { readRefreshSnapshot } from "./refresh-snapshot.ts";
 import { jobIdentity, planRefreshJob } from "./refresh-jobs.ts";
 import type { AggregateTarget } from "./snapshot.ts";
 
@@ -14,10 +14,10 @@ async function enqueueResolved(pool: Pool, access: MeasurementAccess, now: () =>
   const client = await pool.connect(); let discard = false;
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-    const reader = new PgAggregateSnapshotReader(pool, access.scope), jobs = [];
+    const jobs = [];
     for (const target of targets) {
       if (access.expiresAt <= now()) throw Error("access_expired");
-      const snapshot = await reader.load(target, client);
+      const snapshot = await readRefreshSnapshot(pool, access.scope, target, client);
       jobs.push(planRefreshJob(snapshot, target, triggerRef));
     }
     const unique = [...new Map(jobs.map(job => [job.dedupeKey, job])).values()].sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey));

@@ -18,6 +18,9 @@ import { PgRefreshJobs } from "../../portals/app/app/domains/aggregation/pg-refr
 import { executeRefreshLease } from "../../portals/app/app/domains/aggregation/refresh-execution.ts";
 import { enqueueAuthorizedRefresh, enqueuePeriodicRefresh, enqueueRevisionRefresh } from "../../portals/app/app/domains/aggregation/refresh-enqueue.ts";
 import { claimAuthorizedRefresh, runRefreshStep } from "../../portals/app/app/domains/aggregation/refresh-supervision.ts";
+import { PgStateSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-state-snapshot.ts";
+import { PgStateAggregateStore } from "../../portals/app/app/domains/aggregation/pg-state-store.ts";
+import { aggregateStatePeriod } from "../../portals/app/app/domains/aggregation/state-period.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -1070,6 +1073,136 @@ await test("empty-database PostgreSQL contract", async t => {
       const result=await runRefreshStep(adapterPool,supervisePorts);assert.equal(result.status,'succeeded');assert.equal(result.jobId,valid.jobs[0].id);
       assert.equal((await db.query('SELECT status FROM bsmoss_analysis.refresh_job WHERE id=$1',[malformed.id])).rows[0].status,'pending');
       assert.equal((await runRefreshStep(adapterPool,supervisePorts)).status,'idle');
+    });
+    const stateMetric={code:'runtime.device.state',version:1};
+    const stateScope={...scope,serviceIds:[],deviceIds:['state-device','whole-device','switch-device','moved-device'],allowSiteParameters:false};
+    const stateReader=new PgStateSnapshotReader(adapterPool,stateScope),stateMeasurements=new PgMeasurementStore(adapterPool,stateScope,FIRST_METRICS);
+    const statePolicy={stateAggregation:{version:1,authorityRef:'fixture://reviewed-heartbeat',maxHoldMilliseconds:3600000}};
+    await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','state-cap','src','runtime.device.state',1,'event','active','fixture://state-validation',$1,'2026-01-01Z','2027-01-01Z')`,[statePolicy]);
+    for(const name of ['state','whole','switch','moved']) {
+      await db.query("INSERT INTO bsmoss_resource.device VALUES ('w',$1,'st','controller','tower')",[name+'-device']);
+      if(name!=='switch')await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+        VALUES ('w',$1,'src','device',$1,'st',$2,1,'2026-01-01Z','2027-01-01Z')`,[name+'-map',name+'-device']);
+    }
+    const stateTarget=(name='state')=>({sourceId:'src',mappingId:name+'-map',metric:stateMetric,grain:'hour',at:snapshotTime(0)});
+    const stateDraft=(id,at,until,state,patch={})=>draft('state:'+id,{metric:stateMetric,componentKey:'status',mappingId:'state-map',periodStart:snapshotTime(at),periodEnd:snapshotTime(until),value:{kind:'state_event',state,validUntil:snapshotTime(until)},...patch});
+    const stateResult=async(target=stateTarget())=>{const s=await stateReader.load(target);return {snapshot:s,result:aggregateStatePeriod(s.plan,s.inputs)};};
+    async function stateAttest(revision,status='confirmed',target=stateTarget('whole'),patch={}) {
+      const s=await stateReader.load(target),plan={...s.plan,sourceComplete:false,watermark:s.plan.period.start};delete plan.completionEvidence;
+      const base=aggregateStatePeriod(plan,s.inputs),object=(await db.query('SELECT station_id,service_id,network_object_id,device_id FROM bsmoss_integration.source_mapping WHERE workspace_id=$1 AND id=$2',['w',target.mappingId])).rows[0];
+      const row={workspace_id:'w',id:randomUUID(),source_id:'src',...object,metric_code:stateMetric.code,metric_version:1,grain:'hour',period_start:plan.period.start,period_end:plan.period.end,revision,status,
+        input_fingerprint:base.inputFingerprint,mapping_manifest_sha256:mappingSetFingerprint(base.mappingWindows),watermark:status==='confirmed'?plan.period.end:plan.period.start,
+        evidence_ref:'fixture://state-proof/'+revision,evidence_sha256:'e'.repeat(64),recorded_by:'reviewed-import',...patch};
+      const keys=Object.keys(row);await db.query('INSERT INTO bsmoss_integration.source_completion_set('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row));
+    }
+    await t.test('state snapshots retain carry-in, heartbeat expiry, pending blockers and exact durations',async()=>{
+      await stateMeasurements.append(stateDraft('carry',-10,20,'running'));
+      await stateMeasurements.append(stateDraft('fault',10,35,'fault'));
+      await stateMeasurements.append(stateDraft('return',45,60,'running'));
+      let {result}=await stateResult();assert.equal(result.value.durationMilliseconds.running,'1500000');assert.equal(result.value.durationMilliseconds.fault,'1500000');assert.equal(result.value.durationMilliseconds.unknown,'600000');assert.equal(result.completeness,'partial');
+      await stateAttest('1','confirmed',stateTarget());({result}=await stateResult());assert.equal(result.completeness,'partial');assert.ok(!result.reasons.includes('source_unconfirmed'));
+      await stateMeasurements.append(stateDraft('blocker',-5,-1,'standby',{quality:{status:'pending',reason:'fixture',ruleVersion:'1',decidedBy:'worker'}}));
+      ({result}=await stateResult());assert.equal(result.value.durationMilliseconds.running,'900000');assert.equal(result.value.durationMilliseconds.unknown,'1200000');assert.ok(result.reasons.includes('pending_quality'));assert.ok(result.reasons.includes('source_confirmation_stale'));
+    });
+    let stateAggregateStore,stateKey,stateSeries;
+    await t.test('state values persist, replay and reconstruct from append-only manifests under runtime role',async()=>{
+      await stateMeasurements.append(stateDraft('whole',0,60,'running',{mappingId:'whole-map'}));
+      const {snapshot,result}=await stateResult(stateTarget('whole'));stateKey=snapshot.plan;
+      stateAggregateStore=new PgStateAggregateStore(adapterPool,{workspaceId:'w',series:[{sourceId:'src',subjectKey:stateKey.subjectKey,metricKey:'runtime.device.state@1'}]});
+      const first=await stateAggregateStore.publish(snapshot.plan,snapshot.inputs,null,'state-worker');stateSeries=first.seriesId;assert.equal(first.status,'inserted');
+      assert.equal((await stateAggregateStore.publish(snapshot.plan,snapshot.inputs,null,'state-worker')).status,'duplicate');
+      const row=(await db.query('SELECT * FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[stateSeries])).rows[0];
+      assert.equal(row.value_kind,'state');assert.equal(row.integer_value,null);assert.deepEqual(row.state_value,result.value);assert.deepEqual(aggregateStatePeriod(row.input_manifest.plan,row.input_manifest.inputs),row.result_payload);
+      assert.deepEqual((await stateAggregateStore.current(stateKey)).result,result);
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[stateSeries])).rows[0].n,1);
+      await assert.rejects(adapterPool.query("UPDATE bsmoss_analysis.aggregate_revision SET state_value='{}' WHERE series_id=$1",[stateSeries]),e=>e.code==='42501');
+    });
+    await t.test('state completion binds exact authority and latest object proof with no revoked fallback',async()=>{
+      await stateAttest('1');let s=await stateReader.load(stateTarget('whole'));assert.equal(aggregateStatePeriod(s.plan,s.inputs).completeness,'complete');
+      await stateAggregateStore.publish(s.plan,s.inputs,'1','state-worker');
+      await stateAttest('2','revoked');s=await stateReader.load(stateTarget('whole'));assert.equal(s.plan.sourceComplete,false);assert.ok(aggregateStatePeriod(s.plan,s.inputs).reasons.includes('source_confirmation_revoked'));
+      await stateAttest('3');s=await stateReader.load(stateTarget('whole'));assert.equal(s.plan.sourceComplete,true);
+      await stateAttest('4','confirmed',stateTarget('whole'),{mapping_manifest_sha256:'0'.repeat(64)});s=await stateReader.load(stateTarget('whole'));assert.equal(s.plan.sourceComplete,false);assert.equal(s.plan.completionEvidence.revision,'4');
+      await stateAttest('5');await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[{stateAggregation:{...statePolicy.stateAggregation,authorityRef:'fixture://new-authority'}},'state-cap']);
+      s=await stateReader.load(stateTarget('whole'));assert.ok(aggregateStatePeriod(s.plan,s.inputs).reasons.includes('source_confirmation_stale'));
+      await db.query('UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id=$2',[statePolicy,'state-cap']);
+      await stateAttest('6');const id=(await db.query("SELECT id FROM bsmoss_metering.measurement WHERE event_id='state:whole'")).rows[0].id;
+      await db.query("INSERT INTO bsmoss_metering.quality_decision(workspace_id,id,measurement_id,revision,quality,rule_version,reason,decided_by) VALUES ('w',$1,$2,2,'pending','2','review','reviewer')",[randomUUID(),id]);
+      s=await stateReader.load(stateTarget('whole'));assert.equal(aggregateStatePeriod(s.plan,s.inputs).completeness,'missing');assert.equal(s.plan.sourceComplete,false);
+      await stateAggregateStore.publish(s.plan,s.inputs,'2','state-worker');assert.equal((await stateAggregateStore.readRevision(stateKey,'1')).result.value.durationMilliseconds.running,'3600000');
+    });
+    await t.test('state source proof reads the same repeatable snapshot as its events',async()=>{
+      let inserted=false;const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(!inserted&&sql.includes('SELECT m.*,r.payload_sha256')){inserted=true;await stateAttest('7');}return result;},release(discard){client.release(discard);}};}};
+      const before=await new PgStateSnapshotReader(intercepted,stateScope).load(stateTarget('whole')),after=await stateReader.load(stateTarget('whole'));
+      assert.equal(inserted,true);assert.equal(before.plan.completionEvidence.revision,'6');assert.equal(after.plan.completionEvidence.revision,'7');assert.equal(after.plan.sourceComplete,true);assert.equal(aggregateStatePeriod(after.plan,after.inputs).completeness,'missing');
+    });
+    await t.test('state mappings may switch off grid but cannot carry across a mapping boundary',async()=>{
+      for(const [name,version,start,end] of [['switch-old',1,'2026-01-01T00:00:00Z',snapshotTime(17)],['switch-map',2,snapshotTime(17),'2027-01-01T00:00:00Z']])
+        await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,device_id,version,valid_from,valid_to)
+          VALUES ('w',$1,'src','device','switch-external','st','switch-device',$2,$3,$4)`,[name,version,start,end]);
+      await stateMeasurements.append(stateDraft('switch-old',0,17,'running',{mappingId:'switch-old'}));
+      let {result}=await stateResult(stateTarget('switch'));assert.equal(result.value.durationMilliseconds.unknown,String(43*60000));
+      await stateMeasurements.append(stateDraft('switch-new',17,60,'standby',{mappingId:'switch-map'}));await stateAttest('1','confirmed',stateTarget('switch'));
+      ({result}=await stateResult(stateTarget('switch')));assert.equal(result.completeness,'complete');assert.equal(result.mappingWindows.length,2);assert.equal(result.value.durationMilliseconds.standby,String(43*60000));
+      assert.deepEqual((await stateResult({...stateTarget('switch'),mappingId:'switch-old'})).result,result);
+    });
+    await t.test('latest state event revision retracts old time and device before snapshot filtering',async()=>{
+      await stateMeasurements.append(stateDraft('move',0,60,'offline',{mappingId:'moved-map'}));assert.equal((await stateResult(stateTarget('moved'))).result.knownMilliseconds,'3600000');
+      await stateMeasurements.append(stateDraft('move',60,120,'offline',{mappingId:'moved-map',revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64)}));
+      assert.equal((await stateResult(stateTarget('moved'))).result.knownMilliseconds,'0');
+      await stateMeasurements.append(stateDraft('move',0,60,'fault',{mappingId:'whole-map',revision:'3',previousRevision:'2',payloadSha256:'d'.repeat(64)}));
+      const old=await stateResult(stateTarget('moved'));assert.equal(old.snapshot.inputs.length,0);assert.equal(old.result.completeness,'missing');
+      assert.ok((await stateReader.load(stateTarget('whole'))).inputs.some(i=>i.eventId==='state:move'&&i.revision==='3'));
+    });
+    await t.test('state reader requires reviewed policy, physical device scope and bounded authority carry-in',async()=>{
+      await assert.rejects(new PgStateSnapshotReader(adapterPool,{...stateScope,deviceIds:[]}).load(stateTarget()),/object_scope_denied/);
+      await assert.rejects(stateReader.load({...stateTarget(),mappingId:'snapshot-map'}),/object_scope_denied/);
+      const prior=(await db.query("SELECT * FROM bsmoss_integration.source_capability WHERE id='state-cap'")).rows[0];
+      for(const [field,value,error] of [['native_grain','15m',/state_policy_required/],['rules',{},/state_policy_required/],['rules',{stateAggregation:{...statePolicy.stateAggregation,maxHoldMilliseconds:0}},/invalid_state_hold_policy/],['status','planned',/aggregate_capability_unavailable/]]) {
+        try{await db.query('UPDATE bsmoss_integration.source_capability SET '+field+'=$1 WHERE id=$2',[value,'state-cap']);await assert.rejects(stateReader.load(stateTarget()),error);}
+        finally{await db.query('UPDATE bsmoss_integration.source_capability SET '+field+'=$1 WHERE id=$2',[prior[field],'state-cap']);}
+      }
+      try{await db.query("UPDATE bsmoss_integration.source_capability SET valid_from=$1 WHERE id='state-cap'",[snapshotTime(0)]);
+        const s=await stateReader.load(stateTarget());assert.ok(s.inputs.every(i=>i.at>=snapshotTime(0)));assert.equal(aggregateStatePeriod(s.plan,s.inputs).value.durationMilliseconds.unknown,String(20*60000));
+      }finally{await db.query("UPDATE bsmoss_integration.source_capability SET valid_from=$1 WHERE id='state-cap'",[prior.valid_from]);}
+    });
+    await t.test('authorized state refresh atomically publishes typed value, outbox and receipt and replays',async()=>{
+      const ports={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:stateScope};}};
+      const input={targets:[stateTarget('switch')],triggerRef:'fixture:state:queue'};
+      const queued=await enqueueAuthorizedRefresh(adapterPool,ports,input),lease=await claimAuthorizedRefresh(adapterPool,ports);assert.equal(lease.id,queued.jobs[0].id);
+      const injected={async connect(){const client=await adapterPool.connect();return {async query(sql,args){if(sql.includes('INSERT INTO bsmoss_analysis.refresh_attempt'))throw Error('fixture_state_receipt_failure');return client.query(sql,args);},release(discard){client.release(discard);}};}};
+      await assert.rejects(executeRefreshLease(injected,ports,lease),/fixture_state_receipt_failure/);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.aggregate_series WHERE subject_key=$1',[lease.job.subjectKey])).rowCount,0);
+      const done=await executeRefreshLease(adapterPool,ports,lease);assert.equal(done.status,'inserted');
+      const typed=(await db.query('SELECT value_kind,state_value FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1',[done.seriesId])).rows[0];assert.equal(typed.value_kind,'state');assert.equal(typed.state_value.durationMilliseconds.standby,String(43*60000));
+      assert.equal((await db.query('SELECT outcome FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rows[0].outcome,'succeeded');
+      await enqueueAuthorizedRefresh(adapterPool,ports,{...input,triggerRef:'fixture:state:queue-replay'});assert.equal((await runRefreshStep(adapterPool,ports)).result.status,'duplicate');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.aggregate_outbox WHERE series_id=$1',[done.seriesId])).rows[0].n,1);
+    });
+    await t.test('state refresh cannot pair an old event snapshot with a newer published head',async()=>{
+      const ports={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:stateScope};}};
+      await stateMeasurements.append(stateDraft('switch-new',17,60,'offline',{mappingId:'switch-map',revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64)}));
+      await enqueueAuthorizedRefresh(adapterPool,ports,{targets:[stateTarget('switch')],triggerRef:'fixture:state:race'});
+      const lease=await claimAuthorizedRefresh(adapterPool,ports);let changed=false;
+      const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);
+        if(!changed&&sql.includes('SELECT m.*,r.payload_sha256')){changed=true;
+          await stateMeasurements.append(stateDraft('switch-new',17,60,'fault',{mappingId:'switch-map',revision:'3',previousRevision:'2',payloadSha256:'d'.repeat(64)}));
+          const fresh=await stateReader.load(stateTarget('switch')),store=new PgStateAggregateStore(adapterPool,{workspaceId:'w',series:[{sourceId:'src',subjectKey:fresh.plan.subjectKey,metricKey:'runtime.device.state@1'}]});
+          const head=await store.current(fresh.plan);await store.publish(fresh.plan,fresh.inputs,head.revision,'state-worker');
+        }return result;},release(discard){client.release(discard);}};}};
+      await assert.rejects(executeRefreshLease(intercepted,ports,lease),e=>e.code==='40001'||/aggregate_revision_conflict/.test(e.message));assert.equal(changed,true);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.refresh_attempt WHERE job_id=$1',[lease.id])).rowCount,0);
+      const fresh=await stateReader.load(stateTarget('switch')),store=new PgStateAggregateStore(adapterPool,{workspaceId:'w',series:[{sourceId:'src',subjectKey:fresh.plan.subjectKey,metricKey:'runtime.device.state@1'}]});
+      assert.equal((await store.current(fresh.plan)).result.value.durationMilliseconds.fault,String(43*60000));
+      assert.equal((await executeRefreshLease(adapterPool,ports,lease)).status,'duplicate');
+    });
+    await t.test('state revision SQL rejects incomplete, negative and mixed typed values',async()=>{
+      const row=(await db.query('SELECT * FROM bsmoss_analysis.aggregate_revision WHERE series_id=$1 AND revision=1',[stateSeries])).rows[0];
+      for(const patch of [{state_value:{kind:'state'}},{state_value:{...row.state_value,durationMilliseconds:{...row.state_value.durationMilliseconds,unknown:'-1'}}},{state_value:{...row.state_value,knownTransitions:0.1}},{integer_value:'1'},{value_kind:'integer',integer_value:'1'}]) {
+        const candidate={...row,revision:'99',input_fingerprint:'f'.repeat(64),...patch};candidate.result_payload={...row.result_payload,inputFingerprint:candidate.input_fingerprint,value:candidate.state_value};
+        const keys=Object.keys(candidate);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.aggregate_revision('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(candidate)),e=>e.code==='23514');
+      }
     });
   } finally {
     if (adapterPool) await adapterPool.end();

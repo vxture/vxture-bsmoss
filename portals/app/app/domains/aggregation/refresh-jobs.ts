@@ -1,7 +1,8 @@
 import { refKey } from "../catalog/registry.ts";
 import { fingerprintOf } from "./intervals.ts";
 import { bucketFor } from "./periods.ts";
-import type { AggregateSnapshot, AggregateTarget } from "./snapshot.ts";
+import type { AggregateTarget } from "./snapshot.ts";
+import type { AggregateKey } from "./store.ts";
 
 export const REFRESH_JOB_VERSION = "bsmoss-refresh-job-v1";
 export interface RefreshJob {
@@ -22,7 +23,7 @@ function targetFields(target: AggregateTarget) {
 }
 // Only trusted, already-authorized snapshots may construct queue requests.
 // The mapping anchor is a locator, not part of stable-object job identity.
-export function planRefreshJob(snapshot: AggregateSnapshot, rawTarget: AggregateTarget, triggerRef: string): RefreshJob {
+export function planRefreshJob(snapshot: { plan: AggregateKey & { workspaceId: string } }, rawTarget: AggregateTarget, triggerRef: string): RefreshJob {
   const plan = structuredClone(snapshot.plan), target = structuredClone(rawTarget);
   targetFields(target);
   for (const value of [plan.workspaceId, plan.sourceId, plan.subjectKey, target.mappingId, triggerRef]) jobIdentity(value);
