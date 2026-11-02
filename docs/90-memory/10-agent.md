@@ -613,3 +613,17 @@ Browser QA使用CUA隐藏临时页、桌面及390×844viewport，手机内容和
 新增1PG场景覆盖前置拒绝、写后撤旧范围全回滚、完整权限成功、原footprint重放、明确撤回／新命令和无关后续head。首轮新夹具的rate对象不是原引用导致displayUnit误count，显式%修正后，修复前准确得到Missing expected rejection；修复后239PG，补无关head断言再全PG239均通过，cluster已stop。465单测、类型／生产构建／20HTTP也通过。日志tmp/publication-replacement-{unit,db,types,build,http,guards,ascii,staged-scan}.log，修复前证据tmp/publication-replacement-regression.log；最终守卫／扫描／提交与63333版本见publication-replacement-scope检查点。
 
 下一项仍为登记报告调度／机器身份与常驻worker或I11正式面板。真实接入、平台注册、Beta环境、11万3倍突发、安全恢复／UAT和生产批准仍缺，没有push／PR／远端CI／外部部署或上线；五项目标active、1–3本地完成、4–5未完成，bs-moss heartbeat复用。
+
+## I12登记报告周期生成（2026-11-03）
+
+接续1e1705a，恢复时已有未提交日历／SQL实现，本turn完成测试与交付。实质progress，不标blocked／complete，不重建goal或heartbeat，不主动subagent。设计213／实施490。
+
+reports/schedule纯规则绑定固定subject、完整有限scope、受审template SHA、day／week／month、北京时间notBefore、延迟0–10080分钟和回看1–168小时。建议日480／周540／月2040分钟、回看72小时。只生成闭合且到期周期；小时扫描不可变清单／每次最多16窗，重复小时返回原清单，竞争busy。新小时重排回看内周期，报告指纹幂等或补齐后新修订。自定义分钟到期可能等下一小时；中断超回看或72小时外变化不承诺自动报告补跑。
+
+pg-schedule内部scan／pending／run无HTTP／真实机器provider／常驻循环。每阶段resolve data-plane generate、固定主体与全登记scope、末次再验；不是只校验当前模板使用范围。pending只列明确授权登记的当前修订due pending、最多25。RR＋head共享锁串行暂停／换版，旧RR等待后40001。FOR UPDATE SKIP LOCKED防重复；SAVEPOINT生成核心、失败分类与DB时间5／10／20／40秒退避，第5dead。未知／权限／42501／40001／40P01全回滚不消耗次数；无事务外IO，进程中断任务仍pending。成功绑定报告历史revision与当时currentRevision，不能把旧指纹重放冒充最新；不会自动发布。
+
+抽generateReportInTransaction，交互PgReportStore行为不改。5新表为report_schedule_revision／head、report_schedule_scan、report_generation_job／attempt，55表空库及Prisma一致，无迁移。SQL捕获session_user与JSON摘要、连续配置head，固定schema SECURITY DEFINER共享锁函数PUBLIC不可执行，runtime不能配置写／head推进／证据改删。成功job精确延迟FK到成功attempt，attempt精确report revision／SHA与currentRevision历史FK。只放行job状态列更新。
+
+468单测／双层类型／Prisma／生产构建通过；254实际PG（253子项＋父项，新增15）全过。旧239回归最初只有50→55表计数断言需更新；新增owner TRUNCATE被FK先拦，改TRUNCATE CASCADE测试不可变触发器，未放宽runtime。并发暂停实测使用pg_blocking_pids确认真实阻塞，runtime无权读其他session语句的pg_stat_activity不能用于此断言。覆盖日周月／缺数／回补／不发布、全部阶段撤权／范围／租户／主体、模板漂移与新版隔离、旧report与current分离、损坏证据、worker／scanner并发、中断／回执双故障、5次dead、序列化权限不计次、共享锁及旧RR、精确成功FK。最终HTTP／守卫／ASCII／密钥／SHA／63333版本见工具收尾与registered-report-calendar.json。日志tmp/report-schedule-{unit,db,types,prisma,build,http,guards,ascii,staged-scan}.log。
+
+无UI改动，不重复稳定地图或报告视觉QA。为构建已核验并停止本仓63333 Next PID21480，收尾需恢复新SHA；PG专用58874 aggregate-data仍需收尾stop，只有随机合同库。下一项真实机器身份／常驻worker、监控与受审dead恢复、历史报告变化传播，或I11正式配置面板；I08对象分布／分层规模仍待。真实来源／平台注册／Beta、11万3倍突发、安全恢复／UAT与生产批准仍缺，未push／PR／远端CI／真实接入／外部部署或上线，五项1–3本地完成、4–5active，陕西／费用预留／退服P2不变。

@@ -131,6 +131,39 @@ export async function readReportInTransaction(pool: Pool, scope: MeasurementScop
   return { ...record, freshness: reasons.length ? "stale" as const : "current" as const, reasons: [...new Set(reasons)].sort() };
 }
 
+export async function generateReportInTransaction(pool: Pool, scope: MeasurementScope, raw: GenerateReport, actor: string, client: PoolClient) {
+  const query = normalizeGenerateReport(raw); jobIdentity(actor);
+  const template = (await client.query(`SELECT definition FROM bsmoss_views.template_version
+    WHERE workspace_id=$1 AND code=$2 AND version=$3 AND template_kind='report'`, [scope.workspaceId, query.templateCode, query.templateVersion])).rows[0];
+  if (!template) throw Error("report_template_unavailable");
+  const observations = await observe(pool, client, scope, template.definition, query.at);
+  const manifest = reportManifest(scope.workspaceId, query.templateCode, query.templateVersion, template.definition, query.at, observations);
+  assertReportScope(scope, manifest.requiredScope);
+  const sha256 = fingerprintOf(manifest), args = [scope.workspaceId, query.templateCode, query.templateVersion, manifest.grain, manifest.period.start, manifest.period.end];
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["bsmoss-report", ...args])]);
+  await client.query(`INSERT INTO bsmoss_analysis.report_series(workspace_id,template_code,template_version,grain,period_start,period_end,id)
+    VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(workspace_id,template_code,template_version,grain,period_start,period_end) DO NOTHING`, [...args, randomUUID()]);
+  const head = (await client.query(`SELECT * FROM bsmoss_analysis.report_series WHERE workspace_id=$1 AND template_code=$2 AND template_version=$3
+    AND grain=$4 AND period_start=$5 AND period_end=$6 FOR UPDATE`, args)).rows[0];
+  const duplicate = (await client.query(`SELECT *,manifest=$4::jsonb AS same FROM bsmoss_analysis.report_revision
+    WHERE workspace_id=$1 AND report_id=$2 AND manifest_sha256=$3`, [scope.workspaceId, head.id, sha256, JSON.stringify(manifest)])).rows[0];
+  let row, status: "inserted" | "duplicate";
+  if (duplicate) {
+    if (!duplicate.same) throw Error("conflicting_report_replay");
+    row = duplicate; status = "duplicate";
+  } else {
+    if (head.current_revision !== query.expectedRevision) throw Error("report_revision_conflict");
+    const revision = (BigInt(head.current_revision ?? "0") + 1n).toString(); positiveRevision(revision);
+    row = (await client.query(`INSERT INTO bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256,manifest,generated_by)
+      VALUES($1,$2,$3,$4,$5,$6) RETURNING *`, [scope.workspaceId, head.id, revision, sha256, JSON.stringify(manifest), actor])).rows[0];
+    await client.query("UPDATE bsmoss_analysis.report_series SET current_revision=$3 WHERE workspace_id=$1 AND id=$2", [scope.workspaceId, head.id, revision]);
+    await client.query(`INSERT INTO bsmoss_analysis.report_outbox(workspace_id,id,report_id,revision,event_type) VALUES($1,$2,$3,$4,'report.generated')`, [scope.workspaceId, randomUUID(), head.id, revision]);
+    head.current_revision = revision; status = "inserted";
+  }
+  const record = recordOf({ ...head, ...row, current_revision: head.current_revision }, scope);
+  return { status, record };
+}
+
 export class PgReportStore implements ReportStore {
   readonly workspaceId: string;
   private readonly scope: MeasurementScope;
@@ -171,34 +204,7 @@ export class PgReportStore implements ReportStore {
     const client = await this.pool.connect(); let discard = false;
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-      const template = (await client.query(`SELECT definition FROM bsmoss_views.template_version
-        WHERE workspace_id=$1 AND code=$2 AND version=$3 AND template_kind='report'`, [this.workspaceId, query.templateCode, query.templateVersion])).rows[0];
-      if (!template) throw Error("report_template_unavailable");
-      const observations = await observe(this.pool, client, this.scope, template.definition, query.at);
-      const manifest = reportManifest(this.workspaceId, query.templateCode, query.templateVersion, template.definition, query.at, observations);
-      assertReportScope(this.scope, manifest.requiredScope);
-      const sha256 = fingerprintOf(manifest), args = [this.workspaceId, query.templateCode, query.templateVersion, manifest.grain, manifest.period.start, manifest.period.end];
-      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["bsmoss-report", ...args])]);
-      await client.query(`INSERT INTO bsmoss_analysis.report_series(workspace_id,template_code,template_version,grain,period_start,period_end,id)
-        VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(workspace_id,template_code,template_version,grain,period_start,period_end) DO NOTHING`, [...args, randomUUID()]);
-      const head = (await client.query(`SELECT * FROM bsmoss_analysis.report_series WHERE workspace_id=$1 AND template_code=$2 AND template_version=$3
-        AND grain=$4 AND period_start=$5 AND period_end=$6 FOR UPDATE`, args)).rows[0];
-      const duplicate = (await client.query(`SELECT *,manifest=$4::jsonb AS same FROM bsmoss_analysis.report_revision
-        WHERE workspace_id=$1 AND report_id=$2 AND manifest_sha256=$3`, [this.workspaceId, head.id, sha256, JSON.stringify(manifest)])).rows[0];
-      let row, status: "inserted" | "duplicate";
-      if (duplicate) {
-        if (!duplicate.same) throw Error("conflicting_report_replay");
-        row = duplicate; status = "duplicate";
-      } else {
-        if (head.current_revision !== query.expectedRevision) throw Error("report_revision_conflict");
-        const revision = (BigInt(head.current_revision ?? "0") + 1n).toString(); positiveRevision(revision);
-        row = (await client.query(`INSERT INTO bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256,manifest,generated_by)
-          VALUES($1,$2,$3,$4,$5,$6) RETURNING *`, [this.workspaceId, head.id, revision, sha256, JSON.stringify(manifest), actor])).rows[0];
-        await client.query("UPDATE bsmoss_analysis.report_series SET current_revision=$3 WHERE workspace_id=$1 AND id=$2", [this.workspaceId, head.id, revision]);
-        await client.query(`INSERT INTO bsmoss_analysis.report_outbox(workspace_id,id,report_id,revision,event_type) VALUES($1,$2,$3,$4,'report.generated')`, [this.workspaceId, randomUUID(), head.id, revision]);
-        head.current_revision = revision; status = "inserted";
-      }
-      const record = recordOf({ ...head, ...row, current_revision: head.current_revision }, this.scope);
+      const { status, record } = await generateReportInTransaction(this.pool, this.scope, query, actor, client);
       await revalidate(record.manifest.requiredScope);
       await client.query("COMMIT"); return { status, record };
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }

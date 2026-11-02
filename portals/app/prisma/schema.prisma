@@ -731,3 +731,88 @@ model ReportExportAttempt {
   @@map("report_export_attempt")
   @@schema("bsmoss_analysis")
 }
+
+model ReportScheduleRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  config Json
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  grain String
+  config_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("report_schedule_revision")
+  @@schema("bsmoss_integration")
+}
+
+model ReportScheduleHead {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("report_schedule_head")
+  @@schema("bsmoss_integration")
+}
+
+model ReportScheduleScan {
+  workspace_id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  scan_hour DateTime @db.Timestamptz()
+  manifest Json
+  manifest_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,schedule_id,schedule_revision,scan_hour])
+  @@map("report_schedule_scan")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationJob {
+  workspace_id String
+  id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  schedule_sha256 String
+  scan_hour DateTime @db.Timestamptz()
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  due_at DateTime @db.Timestamptz()
+  requested_by String
+  requested_at DateTime @db.Timestamptz()
+  status String
+  attempt Decimal @db.Decimal(30,0)
+  available_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  result_report_id String?
+  result_report_revision Decimal? @db.Decimal(30,0)
+  result_current_revision Decimal? @db.Decimal(30,0)
+  result_manifest_sha256 String?
+  result_outcome String
+  @@id([workspace_id,id])
+  @@map("report_generation_job")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  generation_status String?
+  report_id String?
+  report_revision Decimal? @db.Decimal(30,0)
+  report_current_revision Decimal? @db.Decimal(30,0)
+  manifest_sha256 String?
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("report_generation_attempt")
+  @@schema("bsmoss_analysis")
+}

@@ -1058,3 +1058,144 @@ CREATE TABLE bsmoss_analysis.report_export_attempt (
   FOREIGN KEY(workspace_id,job_id,artifact_sha256) REFERENCES bsmoss_analysis.report_export_artifact(workspace_id,job_id,content_sha256)
     DEFERRABLE INITIALLY DEFERRED
 );
+
+-- Reviewed report calendars and durable generation. Runtime cannot create
+-- delegation or advance the reviewed configuration head.
+CREATE TABLE bsmoss_integration.report_schedule_revision (
+  workspace_id text NOT NULL CHECK(length(trim(workspace_id))>0),
+  id text NOT NULL CHECK(length(trim(id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  config jsonb NOT NULL CHECK(jsonb_typeof(config)='object' AND
+    config ?& ARRAY['subject','status','scope','templateCode','templateVersion','templateSha256','grain','notBefore','delayMinutes','lookbackHours'] AND
+    config-ARRAY['subject','status','scope','templateCode','templateVersion','templateSha256','grain','notBefore','delayMinutes','lookbackHours']='{}'::jsonb AND
+    (jsonb_typeof(config->'subject')='string' AND length(trim(config->>'subject'))>0 AND config->>'status' IN ('active','paused') AND
+      jsonb_typeof(config->'scope')='object' AND config->'scope'->>'workspaceId'=workspace_id AND config->>'templateSha256' ~ '^[a-f0-9]{64}$' AND
+      config->>'grain' IN ('day','week','month') AND jsonb_typeof(config->'templateVersion')='number' AND
+      jsonb_typeof(config->'delayMinutes')='number' AND jsonb_typeof(config->'lookbackHours')='number') IS TRUE),
+  template_code text NOT NULL DEFAULT '',
+  template_version numeric(30,0) NOT NULL DEFAULT 1,
+  grain text NOT NULL DEFAULT '' CHECK(grain IN ('day','week','month')),
+  config_sha256 text NOT NULL DEFAULT '' CHECK(config_sha256=encode(sha256(convert_to(config::text,'UTF8')),'hex')),
+  review_ref text NOT NULL CHECK(length(trim(review_ref))>0),
+  database_actor text NOT NULL DEFAULT session_user CHECK(length(trim(database_actor))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id,revision),
+  UNIQUE(workspace_id,id,revision,grain),
+  CHECK((template_code=config->>'templateCode' AND template_version::text=config->>'templateVersion' AND grain=config->>'grain') IS TRUE),
+  FOREIGN KEY(workspace_id,template_code,template_version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
+);
+CREATE TABLE bsmoss_integration.report_schedule_head (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  revision numeric(30,0) NOT NULL,
+  PRIMARY KEY(workspace_id,id),
+  FOREIGN KEY(workspace_id,id,revision) REFERENCES bsmoss_integration.report_schedule_revision(workspace_id,id,revision) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE FUNCTION bsmoss_integration.lock_report_schedule(text,text) RETURNS numeric
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+  SELECT revision FROM bsmoss_integration.report_schedule_head WHERE workspace_id=$1 AND id=$2 FOR SHARE
+$$;
+REVOKE ALL ON FUNCTION bsmoss_integration.lock_report_schedule(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_report_schedule(text,text) TO bsmoss_svc;
+CREATE FUNCTION bsmoss_integration.advance_report_schedule() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE current_revision numeric(30,0);
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_integration' OR TG_TABLE_NAME<>'report_schedule_revision' THEN RAISE EXCEPTION 'invalid_report_schedule_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'report_schedule_append_only'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-report-schedule',NEW.workspace_id,NEW.id)::text,0));
+  SELECT revision INTO current_revision FROM bsmoss_integration.report_schedule_head WHERE workspace_id=NEW.workspace_id AND id=NEW.id FOR UPDATE;
+  IF NEW.revision<>coalesce(current_revision,0)+1 THEN RAISE EXCEPTION 'report_schedule_revision_conflict'; END IF;
+  NEW.template_code=NEW.config->>'templateCode'; NEW.template_version=(NEW.config->>'templateVersion')::numeric; NEW.grain=NEW.config->>'grain';
+  NEW.config_sha256=encode(sha256(convert_to(NEW.config::text,'UTF8')),'hex'); NEW.database_actor=session_user;
+  INSERT INTO bsmoss_integration.report_schedule_head(workspace_id,id,revision) VALUES(NEW.workspace_id,NEW.id,NEW.revision)
+    ON CONFLICT(workspace_id,id) DO UPDATE SET revision=excluded.revision;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.advance_report_schedule() FROM PUBLIC;
+CREATE TRIGGER report_schedule_revision_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.report_schedule_revision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.advance_report_schedule();
+CREATE TRIGGER report_schedule_revision_no_truncate BEFORE TRUNCATE ON bsmoss_integration.report_schedule_revision
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.advance_report_schedule();
+CREATE TABLE bsmoss_analysis.report_schedule_scan (
+  workspace_id text NOT NULL,
+  schedule_id text NOT NULL,
+  schedule_revision numeric(30,0) NOT NULL,
+  scan_hour timestamptz NOT NULL CHECK(scan_hour=date_trunc('hour',scan_hour AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object' AND
+    (manifest->>'version'='bsmoss-report-calendar-v1' AND manifest->>'scheduleId'=schedule_id AND manifest->>'scheduleRevision'=schedule_revision::text AND
+      jsonb_typeof(manifest->'jobs')='array' AND jsonb_array_length(manifest->'jobs')<=16) IS TRUE),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,schedule_id,schedule_revision,scan_hour),
+  FOREIGN KEY(workspace_id,schedule_id,schedule_revision) REFERENCES bsmoss_integration.report_schedule_revision(workspace_id,id,revision)
+);
+CREATE TABLE bsmoss_analysis.report_generation_job (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  schedule_id text NOT NULL,
+  schedule_revision numeric(30,0) NOT NULL,
+  schedule_sha256 text NOT NULL CHECK(schedule_sha256 ~ '^[a-f0-9]{64}$'),
+  scan_hour timestamptz NOT NULL CHECK(scan_hour=date_trunc('hour',scan_hour AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),
+  grain text NOT NULL CHECK(grain IN ('day','week','month')),
+  period_start timestamptz NOT NULL,
+  period_end timestamptz NOT NULL,
+  due_at timestamptz NOT NULL CHECK(due_at>=period_end),
+  requested_by text NOT NULL CHECK(length(trim(requested_by))>0),
+  requested_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','succeeded','dead')),
+  attempt numeric(30,0) NOT NULL DEFAULT 0 CHECK(attempt BETWEEN 0 AND 5),
+  available_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  result_report_id text,
+  result_report_revision numeric(30,0),
+  result_current_revision numeric(30,0),
+  result_manifest_sha256 text,
+  result_outcome text NOT NULL DEFAULT 'succeeded' CHECK(result_outcome='succeeded'),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,schedule_id,schedule_revision,scan_hour,period_start),
+  CHECK(period_start=date_trunc(grain,period_start AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' AND
+    period_end=((period_start AT TIME ZONE 'Asia/Shanghai')+CASE grain WHEN 'day' THEN interval '1 day' WHEN 'week' THEN interval '1 week' ELSE interval '1 month' END) AT TIME ZONE 'Asia/Shanghai'),
+  CHECK((status='succeeded' AND attempt>0 AND result_report_id IS NOT NULL AND result_report_revision IS NOT NULL AND result_current_revision IS NOT NULL AND result_manifest_sha256 IS NOT NULL) OR
+    (status<>'succeeded' AND result_report_id IS NULL AND result_report_revision IS NULL AND result_current_revision IS NULL AND result_manifest_sha256 IS NULL)),
+  CHECK(status<>'dead' OR attempt>0),
+  FOREIGN KEY(workspace_id,schedule_id,schedule_revision,grain) REFERENCES bsmoss_integration.report_schedule_revision(workspace_id,id,revision,grain),
+  FOREIGN KEY(workspace_id,schedule_id,schedule_revision,scan_hour) REFERENCES bsmoss_analysis.report_schedule_scan(workspace_id,schedule_id,schedule_revision,scan_hour) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE INDEX report_generation_due ON bsmoss_analysis.report_generation_job(workspace_id,schedule_id,schedule_revision,available_at,id) WHERE status='pending';
+CREATE TABLE bsmoss_analysis.report_generation_attempt (
+  workspace_id text NOT NULL,
+  job_id text NOT NULL,
+  attempt numeric(30,0) NOT NULL CHECK(attempt BETWEEN 1 AND 5),
+  outcome text NOT NULL CHECK(outcome IN ('succeeded','retry','dead')),
+  failure_code text CHECK(failure_code IN ('storage_failed','report_binding_unavailable')),
+  generation_status text CHECK(generation_status IN ('inserted','duplicate')),
+  report_id text,
+  report_revision numeric(30,0),
+  report_current_revision numeric(30,0),
+  manifest_sha256 text,
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,job_id,attempt),
+  UNIQUE(workspace_id,job_id,attempt,outcome,report_id,report_revision,report_current_revision,manifest_sha256),
+  CHECK((outcome='succeeded' AND failure_code IS NULL AND generation_status IS NOT NULL AND report_id IS NOT NULL AND report_revision IS NOT NULL AND report_current_revision IS NOT NULL AND manifest_sha256 IS NOT NULL) OR
+    (outcome<>'succeeded' AND failure_code IS NOT NULL AND generation_status IS NULL AND report_id IS NULL AND report_revision IS NULL AND report_current_revision IS NULL AND manifest_sha256 IS NULL)),
+  FOREIGN KEY(workspace_id,job_id) REFERENCES bsmoss_analysis.report_generation_job(workspace_id,id),
+  FOREIGN KEY(workspace_id,report_id,report_revision,manifest_sha256) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256),
+  FOREIGN KEY(workspace_id,report_id,report_current_revision) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision)
+);
+ALTER TABLE bsmoss_analysis.report_generation_job ADD FOREIGN KEY(workspace_id,id,attempt,result_outcome,result_report_id,result_report_revision,result_current_revision,result_manifest_sha256)
+  REFERENCES bsmoss_analysis.report_generation_attempt(workspace_id,job_id,attempt,outcome,report_id,report_revision,report_current_revision,manifest_sha256) DEFERRABLE INITIALLY DEFERRED;
+CREATE FUNCTION bsmoss_analysis.protect_report_schedule_evidence() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME NOT IN ('report_schedule_scan','report_generation_attempt') THEN RAISE EXCEPTION 'invalid_report_schedule_evidence_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'report_schedule_evidence_append_only'; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.protect_report_schedule_evidence() FROM PUBLIC;
+CREATE TRIGGER report_scan_evidence_lock BEFORE UPDATE OR DELETE ON bsmoss_analysis.report_schedule_scan FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
+CREATE TRIGGER report_scan_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_schedule_scan FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
+CREATE TRIGGER report_attempt_evidence_lock BEFORE UPDATE OR DELETE ON bsmoss_analysis.report_generation_attempt FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
+CREATE TRIGGER report_attempt_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_generation_attempt FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
