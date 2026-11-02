@@ -816,3 +816,22 @@ model ReportGenerationAttempt {
   @@map("report_generation_attempt")
   @@schema("bsmoss_analysis")
 }
+
+model RefreshRecovery {
+  workspace_id String
+  command_id String
+  original_job_id String
+  original_attempt Decimal @db.Decimal(30,0)
+  original_outcome String
+  replacement_job_id String
+  reason_ref String
+  requested_by String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,command_id])
+  @@map("refresh_recovery")
+  @@schema("bsmoss_analysis")
+}

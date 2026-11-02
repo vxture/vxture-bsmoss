@@ -22,6 +22,8 @@ import { createAuthorizedObjectRollup } from "./object-rollup";
 import { PgObjectRollupReader } from "../aggregation/pg-object-rollup";
 import { createAuthorizedReports } from "./reports";
 import { PgReportStore } from "../reports/pg-store";
+import { createAuthorizedAggregateJobs } from "./aggregate-jobs";
+import { PgAggregateJobStore } from "../supervision/pg-jobs";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -80,6 +82,9 @@ export function reportPublicationForSession(rpsid: string) {
 }
 export function reportExportsForSession(rpsid: string) {
   return createAuthorizedReportExports(sessionAccessPorts(rpsid), { create: scope => new PgReportExportStore(getPool(), scope) }, "interactive");
+}
+export function aggregateJobsForSession(rpsid: string) {
+  return createAuthorizedAggregateJobs(sessionAccessPorts(rpsid), { create: scope => new PgAggregateJobStore(getPool(), scope) }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.
 export function aggregatesForSession(rpsid: string) {

@@ -64,3 +64,4 @@
 - [正式报告工作区](../40-implementation/480-formal-report-workspace.md)：授权分页、历史回看、生成发布撤回和异步导出操作。
 - [登记报告周期生成](../40-implementation/490-registered-report-calendar.md)：北京时间日周月日历、持久作业、原子回执和有限重试。
 - [报告worker循环](../40-implementation/500-report-worker-loop.md)：授权导出待办、轮转限额、独立退避与事务停机恢复。
+- [聚合任务工作台与受审恢复](../40-implementation/530-aggregate-job-supervision.md)：授权任务历史、不可变恢复链、同命令重试与末次验权。

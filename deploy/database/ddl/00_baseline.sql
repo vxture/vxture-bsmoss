@@ -376,7 +376,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('metering.jobs.view','Inspect scoped aggregate jobs'),('metering.jobs.recover','Review and replace terminal aggregate jobs'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
@@ -1199,3 +1199,55 @@ CREATE TRIGGER report_scan_evidence_lock BEFORE UPDATE OR DELETE ON bsmoss_analy
 CREATE TRIGGER report_scan_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_schedule_scan FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
 CREATE TRIGGER report_attempt_evidence_lock BEFORE UPDATE OR DELETE ON bsmoss_analysis.report_generation_attempt FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
 CREATE TRIGGER report_attempt_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_generation_attempt FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.protect_report_schedule_evidence();
+
+-- Reviewed recovery creates a new job. Never reset terminal attempt history.
+CREATE INDEX refresh_job_history ON bsmoss_analysis.refresh_job(workspace_id,created_at DESC,id COLLATE "C" DESC);
+CREATE INDEX refresh_job_state_history ON bsmoss_analysis.refresh_job(workspace_id,status,created_at DESC,id COLLATE "C" DESC);
+ALTER TABLE bsmoss_analysis.refresh_attempt ADD UNIQUE(workspace_id,job_id,attempt,outcome);
+CREATE TABLE bsmoss_analysis.refresh_recovery (
+  workspace_id text NOT NULL,
+  command_id text NOT NULL CHECK(length(trim(command_id))>0),
+  original_job_id text NOT NULL,
+  original_attempt numeric(30,0) NOT NULL CHECK(original_attempt BETWEEN 1 AND 8),
+  original_outcome text NOT NULL CHECK(original_outcome IN ('dead','expired')),
+  replacement_job_id text NOT NULL,
+  reason_ref text NOT NULL CHECK(length(trim(reason_ref))>0),
+  requested_by text NOT NULL CHECK(length(trim(requested_by))>0),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL,
+  database_actor text NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,command_id),
+  UNIQUE(workspace_id,original_job_id),
+  UNIQUE(workspace_id,replacement_job_id),
+  CHECK(original_job_id<>replacement_job_id),
+  FOREIGN KEY(workspace_id,original_job_id,original_attempt,original_outcome) REFERENCES bsmoss_analysis.refresh_attempt(workspace_id,job_id,attempt,outcome),
+  FOREIGN KEY(workspace_id,replacement_job_id) REFERENCES bsmoss_analysis.refresh_job(workspace_id,id)
+);
+CREATE FUNCTION bsmoss_analysis.capture_refresh_recovery() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+DECLARE p bsmoss_analysis.refresh_job%ROWTYPE; n bsmoss_analysis.refresh_job%ROWTYPE; m jsonb;
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME<>'refresh_recovery' THEN RAISE EXCEPTION 'invalid_refresh_recovery_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'refresh_recovery_append_only'; END IF;
+  SELECT * INTO p FROM bsmoss_analysis.refresh_job WHERE workspace_id=NEW.workspace_id AND id=NEW.original_job_id FOR SHARE;
+  SELECT * INTO n FROM bsmoss_analysis.refresh_job WHERE workspace_id=NEW.workspace_id AND id=NEW.replacement_job_id FOR SHARE;
+  m:=NEW.manifest;
+  IF p.id IS NULL OR n.id IS NULL OR p.status<>'dead' OR p.attempt<>NEW.original_attempt OR n.status<>'pending' OR n.attempt<>0 OR n.max_attempts<>p.max_attempts OR
+    (p.source_id,p.subject_key,p.metric_key,p.mapping_id,p.target) IS DISTINCT FROM (n.source_id,n.subject_key,n.metric_key,n.mapping_id,n.target) OR
+    m->>'version' IS DISTINCT FROM 'aggregate-recovery-v1' OR m->>'workspaceId' IS DISTINCT FROM NEW.workspace_id OR
+    m->>'commandId' IS DISTINCT FROM NEW.command_id OR m->>'reasonRef' IS DISTINCT FROM NEW.reason_ref OR m->>'requestedBy' IS DISTINCT FROM NEW.requested_by OR
+    m->'original'->>'id' IS DISTINCT FROM NEW.original_job_id OR m->'original'->'attempt' IS DISTINCT FROM to_jsonb(NEW.original_attempt) OR
+    m->'original'->'maxAttempts' IS DISTINCT FROM to_jsonb(p.max_attempts) OR m->'original'->'terminal'->>'outcome' IS DISTINCT FROM NEW.original_outcome OR
+    m->'original'->'terminal'->'attempt' IS DISTINCT FROM to_jsonb(NEW.original_attempt) OR m->'replacement'->>'id' IS DISTINCT FROM NEW.replacement_job_id OR
+    m->'original'->'job' IS DISTINCT FROM jsonb_build_object('workspaceId',p.workspace_id,'sourceId',p.source_id,'subjectKey',p.subject_key,'metricKey',p.metric_key,'target',p.target,'triggerRef',p.trigger_ref,'dedupeKey',p.dedupe_key) OR
+    m->'replacement'->'job' IS DISTINCT FROM jsonb_build_object('workspaceId',n.workspace_id,'sourceId',n.source_id,'subjectKey',n.subject_key,'metricKey',n.metric_key,'target',n.target,'triggerRef',n.trigger_ref,'dedupeKey',n.dedupe_key) OR
+    m->'requiredScope'->>'workspaceId' IS DISTINCT FROM NEW.workspace_id THEN RAISE EXCEPTION 'invalid_refresh_recovery_binding';
+  END IF;
+  NEW.database_sha256:=encode(sha256(convert_to(m::text,'UTF8')),'hex'); NEW.database_actor:=session_user; NEW.recorded_at:=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.capture_refresh_recovery() FROM PUBLIC;
+CREATE TRIGGER refresh_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.refresh_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_refresh_recovery();
+CREATE TRIGGER refresh_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.refresh_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_refresh_recovery();

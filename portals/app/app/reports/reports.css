@@ -26,3 +26,4 @@
 @media(max-width:700px) { .reports-header { height:76px; padding:0 16px; }.reports-header>span { display:none; }.reports-brand>strong { font-size:26px; }.reports-brand b { font-size:18px; }.reports-workspace { display:block; }.reports-library { border-right:0; border-bottom:1px solid #d9e2e7; }.reports-list { max-height:340px; overflow-y:auto; }.reports-detail { margin:12px; padding:16px; }.reports-detail h2 { font-size:22px; }.reports-facts strong { font-size:16px; }.reports-value { font-size:18px; }.reports-detail-toolbar { gap:7px; }.reports-empty { padding:45px 20px; } }
 
 .reports-export>small { display:block; margin-top:8px; }
+.reports-page-nav { display:flex; gap:22px; align-items:center; font-size:13px; }.reports-page-nav a { color:#a8c8d4; text-decoration:none; }@media(max-width:700px) { .reports-page-nav { display:none; } }

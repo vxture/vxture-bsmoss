@@ -665,3 +665,15 @@ ReportExportStore与授权门面新增pending(limit1–25)，仅reports.export.e
 最终476单测／268实际PG（新增2）／双层类型通过；PG扩展四种值语义身份／权益／过期／目标范围及失败SQL故障，包含max_attempts=1最终dead边界、原claim保留／同token恢复，以及缺capability和无关scope收缩仍可真实dead。读取SQL夹具先核对state/gauge使用无别名FROM后统一匹配实际共同表名。生产build／20HTTP和105篇编号／55表／交付／SCA、4文件ASCII／staged密钥与最终SHA/预览以工具收尾、aggregate-failure-authorization检查点为准。日志tmp/aggregate-failure-{unit,db,types,build,http,guards,ascii,staged-scan}.log；为build已核验本仓PID3108并停63333，需恢复新SHA；专用58874 aggregate-data收尾stop，仅随机合同库。
 
 215所列失败回执审计已关闭。下一项真实机器provider／进程托管、持久监控与受审恢复、历史报告变化传播，或I11正式配置面板／I08分布和分层规模。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT／生产批准仍缺，无push／PR／远端CI／外部部署或上线，原五项全部active、1–3本地完成／4–5未完成，bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。
+
+## 聚合任务工作台与受审恢复（2026-11-03）
+
+接续8336a94，当前goal turn有实质实施及完整本地验证，不标blocked／complete、不重建goal／heartbeat、不主动spawn。设计217／实施530。新supervision规则／PgAggregateJobStore／授权门面、实际RP组合根、三个API及/operations/aggregation工作台；独立显式metering.jobs.view／recover只入种子不自动授予，owner无隐含。SQL完整对象范围先过滤后limit，六位微秒created_at加C排序ID键集分页，lookahead亦末次验权；详情最多8次连续尝试、DB时钟readiness，无租约token。固定原与当前主体／租户／有效期，读写末次再验权。
+
+dead恢复保留原任务与attempt，另建同对象／指标／周期的新pending，沿原maxAttempts，每原任务一条恢复；恢复链可在新任务dead后另行审阅。新任务／不可变审计／末次授权同RR原子。当前真实policy首次复核，实际inputMode依赖及物理站参数独立范围；缺数仍可恢复并执行missing，不补零。审计存inputPolicy与requiredScope，精确同command／actor／reason／attempt重放只核验历史足迹，不重新套今天capability。新增第56表refresh_recovery、原终态attempt精确FK、旧新任务绑定／SQL provenance与不可变触发器；PrismaCLI通过，空库无迁移。
+
+正式工作台无默认任务、状态筛选／宽详情／执行记录／父子链和复核依据。503或网络不确定保留原command重试并锁表单；明确4xx移除旧详情要求刷新复核。恢复POST配置origin、实际流16KiB及JSON／路径严格校验，no-store／nosniff／Vary Cookie；无预览授权或测试RP后门。实际React合成63334测试首次已提交返回503，第二次完全同command duplicate，仅一条replacement，父子导航／筛选正常。1440及390×844实际clientWidth375无横向溢出，浏览器无warn／error，artifacts/job-workspace-qa含desktop.png、mobile.png、state.json；viewport已reset、临时tab8已close。没有操作主地图。
+
+最终483单测／277实际PG（276子项＋父项，新增9）／双层类型／生产build／Prisma／20HTTP、107篇文档／56表镜像／交付／SCA、23文件ASCII全通过。测试含微秒同时间分页、授权先limit、当前policy缺失、三语义／直接比率／实际派生依赖／站级电耗未知、历史重放policy变化、写后撤权及SQL故障／并发唯一性／不可变审计及跨租户FK。日志tmp/job-recovery-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,browser}.log；最终扫描／提交与运行SHA见aggregate-job-supervision检查点。为构建已核验并停本仓63333 Next PID1848；PG专用58874和合成63334服务收尾需核验停止，仅随机合同库。
+
+I09聚合队列监控恢复子项已完；报告生成／导出队列监控恢复、历史报告传播、真实机器provider／宿主、I11配置及I08对象分布／分层规模仍待，不能称全部调度上线。下一包可推进报告任务监控或配置面板。真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT与生产批准仍缺，五项1–3本地完成、4–5active；没有push／PR／远端CI／真实接入／外部部署或上线，bs-moss复用，陕西／费用预留／退服P2不变。

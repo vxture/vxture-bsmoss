@@ -41,6 +41,9 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');
       }
       const reportsPage=await fetch(url+'/reports');assert.equal(reportsPage.status,200);assert.ok((await reportsPage.text()).includes('\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e'));
+      for(const path of ['/api/aggregate-jobs','/api/aggregate-jobs/untrusted']){const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');}
+      assert.equal((await fetch(url+'/api/aggregate-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
+      const jobsPage=await fetch(url+'/operations/aggregation');assert.equal(jobsPage.status,200);assert.ok((await jobsPage.text()).includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e'));
       assert.equal((await fetch(url+"/api/webhooks/vxture",{method:"POST",body:"{}"})).status,503);
       assert.equal((await fetch(url+"/auth/login")).status,404);
       assert.equal((await fetch(url+"/auth/session")).status,200);
@@ -73,6 +76,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const report=await fetch(url+'/api/reports/demo-report?revision=1');assert.equal(report.status,401);assert.equal(report.headers.get('x-content-type-options'),'nosniff');assert.ok(report.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await report.json()).code,'AUTH_REQUIRED');
       const publication=await fetch(url+'/api/reports/demo-report/publication');assert.equal(publication.status,401);assert.equal(publication.headers.get('x-content-type-options'),'nosniff');assert.ok(publication.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await publication.json()).code,'AUTH_REQUIRED');
       const exported=await fetch(url+'/api/report-exports/demo-job?format=html');assert.equal(exported.status,401);assert.equal(exported.headers.get('x-content-type-options'),'nosniff');assert.ok(exported.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await exported.json()).code,'AUTH_REQUIRED');
+      assert.equal((await fetch(url+'/api/aggregate-jobs?status=dead')).status,401);assert.equal((await fetch(url+'/api/aggregate-jobs/demo-job/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
     });
     await t.test("sample page renders and the root redirects to it",async()=>{
       const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,307);
