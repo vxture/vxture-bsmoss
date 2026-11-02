@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { resolveMeasurementAccess, type AccessPorts, type MeasurementAccess } from "../access/resolve.ts";
 import { fingerprintOf } from "./intervals.ts";
 import { planPeriodicBatch, planRevisionBatch, refreshTargets, type RefreshSeed, type RevisionImpact } from "./refresh-coordination.ts";
@@ -9,25 +9,30 @@ import type { AggregateTarget } from "./snapshot.ts";
 
 // Internal finite-batch orchestration. No client-supplied identity/scope or
 // external event acknowledgment; every target is resolved under current grants.
-async function enqueueResolved(pool: Pool, access: MeasurementAccess, now: () => number, targets: readonly AggregateTarget[], triggerRef: string) {
+export async function enqueueRefreshInTransaction(pool: Pool, client: PoolClient, access: MeasurementAccess, now: () => number, raw: readonly AggregateTarget[], triggerRef: string) {
+  const targets = refreshTargets(raw); jobIdentity(triggerRef);
   if (access.expiresAt <= now()) throw Error("access_expired");
+  const jobs = [];
+  for (const target of targets) {
+    if (access.expiresAt <= now()) throw Error("access_expired");
+    const snapshot = await readRefreshSnapshot(pool, access.scope, target, client);
+    jobs.push(planRefreshJob(snapshot, target, triggerRef));
+  }
+  const unique = [...new Map(jobs.map(job => [job.dedupeKey, job])).values()].sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey));
+  const queue = new PgRefreshJobs(pool, { workspaceId: access.context.workspaceId,
+    series: unique.map(job => ({ sourceId: job.sourceId, subjectKey: job.subjectKey, metricKey: job.metricKey })) }, client);
+  const results = await queue.enqueueBatch(unique);
+  if (access.expiresAt <= now()) throw Error("access_expired");
+  return { triggerRef, requestedTargets: targets.length, jobs: results,
+    manifestSha256: fingerprintOf({ version: "refresh-enqueue-v1", workspaceId: access.context.workspaceId, keys: unique.map(job => job.dedupeKey) }) };
+}
+async function enqueueResolved(pool: Pool, access: MeasurementAccess, now: () => number, targets: readonly AggregateTarget[], triggerRef: string) {
   const client = await pool.connect(); let discard = false;
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
-    const jobs = [];
-    for (const target of targets) {
-      if (access.expiresAt <= now()) throw Error("access_expired");
-      const snapshot = await readRefreshSnapshot(pool, access.scope, target, client);
-      jobs.push(planRefreshJob(snapshot, target, triggerRef));
-    }
-    const unique = [...new Map(jobs.map(job => [job.dedupeKey, job])).values()].sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey));
-    const queue = new PgRefreshJobs(pool, { workspaceId: access.context.workspaceId,
-      series: unique.map(job => ({ sourceId: job.sourceId, subjectKey: job.subjectKey, metricKey: job.metricKey })) }, client);
-    const results = await queue.enqueueBatch(unique);
-    if (access.expiresAt <= now()) throw Error("access_expired");
+    const result = await enqueueRefreshInTransaction(pool, client, access, now, targets, triggerRef);
     await client.query("COMMIT");
-    return { triggerRef, requestedTargets: targets.length, jobs: results,
-      manifestSha256: fingerprintOf({ version: "refresh-enqueue-v1", workspaceId: access.context.workspaceId, keys: unique.map(job => job.dedupeKey) }) };
+    return result;
   } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
   finally { client.release(discard); }
 }

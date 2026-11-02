@@ -564,3 +564,51 @@ CREATE TABLE bsmoss_analysis.refresh_attempt (
   CHECK((outcome='succeeded' AND result_ref IS NOT NULL AND length(trim(result_ref))>0 AND failure_code IS NULL) OR
     (outcome<>'succeeded' AND result_ref IS NULL AND failure_code IS NOT NULL AND failure_code ~ '^[a-z][a-z0-9_]{0,63}$'))
 );
+
+-- Database-captured fact/quality changes. No global sequence cursor: receipts
+-- identify individual committed events, including late-committing transactions.
+CREATE TABLE bsmoss_metering.input_change (
+  workspace_id text NOT NULL,
+  id text NOT NULL DEFAULT gen_random_uuid()::text,
+  measurement_id text NOT NULL,
+  change_kind text NOT NULL CHECK(change_kind IN ('measurement','quality')),
+  quality_revision numeric(30,0),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE NULLS NOT DISTINCT(workspace_id,measurement_id,change_kind,quality_revision),
+  FOREIGN KEY(workspace_id,measurement_id) REFERENCES bsmoss_metering.measurement(workspace_id,id),
+  FOREIGN KEY(workspace_id,measurement_id,quality_revision) REFERENCES bsmoss_metering.quality_decision(workspace_id,measurement_id,revision),
+  CHECK((change_kind='measurement' AND quality_revision IS NULL) OR (change_kind='quality' AND quality_revision IS NOT NULL AND quality_revision>0))
+);
+CREATE INDEX input_change_pending ON bsmoss_metering.input_change(workspace_id,created_at,id);
+CREATE TABLE bsmoss_analysis.input_refresh_receipt (
+  workspace_id text NOT NULL,
+  change_id text NOT NULL,
+  subscription_sha256 text NOT NULL CHECK(subscription_sha256 ~ '^[a-f0-9]{64}$'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,change_id,subscription_sha256),
+  FOREIGN KEY(workspace_id,change_id) REFERENCES bsmoss_metering.input_change(workspace_id,id),
+  CHECK(manifest->>'subscriptionSha256' IS NOT DISTINCT FROM subscription_sha256),
+  CHECK(manifest->>'changeId' IS NOT DISTINCT FROM change_id)
+);
+-- Runtime cannot inject changes outside these fixed triggers.
+CREATE FUNCTION bsmoss_metering.capture_input_change() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN
+  IF TG_TABLE_NAME='measurement' AND TG_TABLE_SCHEMA='bsmoss_metering' THEN
+    INSERT INTO bsmoss_metering.input_change(workspace_id,measurement_id,change_kind)
+      VALUES(NEW.workspace_id,NEW.id,'measurement');
+  ELSIF TG_TABLE_NAME='quality_decision' AND TG_TABLE_SCHEMA='bsmoss_metering' THEN
+    INSERT INTO bsmoss_metering.input_change(workspace_id,measurement_id,change_kind,quality_revision)
+      VALUES(NEW.workspace_id,NEW.measurement_id,'quality',NEW.revision);
+  ELSE RAISE EXCEPTION 'unsupported input change table'; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_metering.capture_input_change() FROM PUBLIC;
+CREATE TRIGGER measurement_input_change AFTER INSERT ON bsmoss_metering.measurement
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
+CREATE TRIGGER quality_input_change AFTER INSERT ON bsmoss_metering.quality_decision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();

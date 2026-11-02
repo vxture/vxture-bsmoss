@@ -398,3 +398,19 @@ DDL aggregate_revision新增state_value JSON，六态十进制整数字符串时
 395单测（新增7）、97项实际PostgreSQL报告测试（96子项＋父项，新增10）、双层类型／生产构建／Prisma validate通过；69篇文档编号／33表镜像／交付／SCA配置初检通过，最终HTTP／源码ASCII／密钥扫描及本地提交／运行SHA以工具收尾为准。日志tmp/state-{unit,db,types,build,prisma,http,guards}.log。PG专用cluster已stop，仅随机bsmoss_contract库测试，无业务库操作。
 
 I08设备状态内部切片完成，仍缺瞬时结果持久化、跨对象权威汇总；没有state HTTP查询或真实设备连接器。I09仍缺输入事务outbox、持久证据旧／新影响解析与消费进度、登记分区／种子与真实机器身份／常驻进程。随后I11/I12正式查询发布。第4／5项真实资料及Beta、11万容量、安全恢复、业务UAT和生产审批未到位；未push／远端CI／真实接入／部署／上线。目标active、heartbeat bs-moss已存在，勿重复创建。旧演示快照不代表当前全部源码；外部前置最新核验仍以40-live-prerequisites及先前preflight为准，本轮未重复联网核验。
+
+上一包收尾：设备状态提交6b84b92，19HTTP／16文件ASCII／staged gitleaks77.40KB通过；检查点artifacts/formal-checkpoints/device-state-persistence.json绑定SHA／树／BUILD_ID和日志。63333当时session11284，health=bsmoss-local-6b84b92，首页HTTP200；下一包以工具收尾为准。
+
+## I09测量及质量事务变化传播（2026-11-02）
+
+上一goal turn分类progress（状态持久化实际实现、验证并提交），本轮继续内部实质进展，不标blocked。没有真实来源或环境资料回复，未重复追问／联网预检。目标active，bs-moss heartbeat已存在不重复创建。
+
+设计198／实施350。input_change由measurement和quality_decision AFTER INSERT触发器同事务写入，运行时只读，SECURITY DEFINER固定pg_catalog路径／限定源表／完全限定目标表／PUBLIC无执行。冲突重放不产生新变化，捕获失败使原载荷／测量／质量全回滚。input_refresh_receipt追加消费清单，空库共35表，Prisma标量同步，无旧库迁移／依赖／UI变化。
+
+input-refresh提供输出指标／粒度策略和完整有限scope规范摘要，支持不同配置分区重放。pg-input-refresh只有pendingInputChanges与dispatchInputChange内部函数，没有HTTP或生产机器身份。changeId从持久测量解析同来源／事件／分量／指标的全部修订（最多1000），旧新对象必须全授权；从字典找直接／依赖输出，核验direct比率不受次数变化影响。区间按真实半开时间；状态按产品最大保持24h保守扩展并截到映射有效期，防短TTL／pending事件失效后仍抑制旧状态的漏算。目标去重后最多64，不静默截断。refresh-enqueue新增外层绑定事务函数，全部目标可信快照＋job＋消费清单同RR事务；故障或授权过期全回滚。事务try advisory lock防同事件同订阅并发，忙返回busy；重放回执先验当前范围与清单摘要，不新增job。队列执行仍另行按原可靠租约事务完成，消费不冒充聚合成功。
+
+发现器以单事件回执NOT EXISTS查最多64项，不推进created_at或ID高水位。实际PG证明较早事务晚提交，在新事件已消费后仍可发现。当前无变化失败持久退避／隔离，持续失败旧事件可能占满发现页，需要后续正式worker处理。订阅来自服务器受控配置契约，尚无生产登记表；scope或输出改变产生新摘要，不抹掉旧订阅进度。
+
+400单测（新增5）、107项实际PG报告测试（106子项＋父项，新增10）、双层类型／Prisma validate通过；最终生产构建／HTTP／守卫／ASCII／密钥／Git和预览SHA以工具收尾为准。新增验证覆盖原子变化捕获／只读、旧新日期和对象撤回／历史、依赖输出、质量修订、job／消费回执故障和授权过期、并发锁／重启、晚提交、全范围权限与订阅隔离、状态抑制、direct比率和缺依赖权威拒绝。旧missing-quality owner损坏夹具需先删新FK引用的质量变化再删质量，未放宽运行权限；另一失败修正为独立未消费事件，不用已消费同事件其他分量。日志tmp/input-change-{unit,db,types,build,http,prisma,guards,ascii,staged-scan}.log。PGcluster收尾停止状态以工具为准；只随机测试库，无业务库操作。
+
+下一包：I09完成／撤销证明、能力策略及映射／服务有效期变化的捕获和影响传播；变化消费的持久失败退避／隔离、登记订阅／分区种子和真实机器身份／常驻调度仍缺。不能把本批测量／质量outbox说成全部来源变更传播完成。I08瞬时持久化／跨对象权威汇总、I11/I12正式查询发布及真实来源／平台注册／环境／Beta／容量安全恢复／UAT和生产审批继续待办。无push／PR／远端CI／部署／上线。旧演示快照不代表当前全部源码，不重新执行不变的六场景UI验收。

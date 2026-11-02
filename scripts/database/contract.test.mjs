@@ -21,6 +21,8 @@ import { claimAuthorizedRefresh, runRefreshStep } from "../../portals/app/app/do
 import { PgStateSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-state-snapshot.ts";
 import { PgStateAggregateStore } from "../../portals/app/app/domains/aggregation/pg-state-store.ts";
 import { aggregateStatePeriod } from "../../portals/app/app/domains/aggregation/state-period.ts";
+import { dispatchInputChange, pendingInputChanges } from "../../portals/app/app/domains/aggregation/pg-input-refresh.ts";
+import { inputRefreshSubscription } from "../../portals/app/app/domains/aggregation/input-refresh.ts";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -47,7 +49,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,33);
+      assert.equal(tables.rows[0].n,35);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -492,6 +494,9 @@ await test("empty-database PostgreSQL contract", async t => {
       await store.append(snapshotDraft(3,{revision:'3',previousRevision:'2',payloadSha256:'d'.repeat(64),periodStart:snapshotTime(50),periodEnd:snapshotTime(65)}));
       await assert.rejects(snapshotReader.load(snapshotTarget),/unexpected_or_coarse_window/);
       await store.append(snapshotDraft(3,{revision:'4',previousRevision:'3',payloadSha256:'e'.repeat(64)}));
+      // Deliberate owner-only corruption fixture; runtime cannot delete either
+      // the captured change or its quality evidence.
+      await db.query("DELETE FROM bsmoss_metering.input_change WHERE change_kind='quality' AND measurement_id IN (SELECT id FROM bsmoss_metering.measurement WHERE event_id='snapshot-3' AND event_revision=4)");
       await db.query("DELETE FROM bsmoss_metering.quality_decision WHERE measurement_id IN (SELECT id FROM bsmoss_metering.measurement WHERE event_id='snapshot-3' AND event_revision=4)");
       await assert.rejects(snapshotReader.load(snapshotTarget),/quality_decision_required/);
     });
@@ -1203,6 +1208,142 @@ await test("empty-database PostgreSQL contract", async t => {
         const candidate={...row,revision:'99',input_fingerprint:'f'.repeat(64),...patch};candidate.result_payload={...row.result_payload,inputFingerprint:candidate.input_fingerprint,value:candidate.state_value};
         const keys=Object.keys(candidate);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.aggregate_revision('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(candidate)),e=>e.code==='23514');
       }
+    });
+    await db.query(`INSERT INTO bsmoss_resource.station_service VALUES ('w','change-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','change-old-cell','st','change-svc','cell'),('w','change-new-cell','st','change-svc','cell');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,version,valid_from,valid_to)
+      VALUES ('w','change-old','src','cell','change-old-external','st','change-svc','change-old-cell',1,'2026-01-01Z','2027-01-01Z'),
+      ('w','change-new','src','cell','change-new-external','st','change-svc','change-new-cell',1,'2026-01-01Z','2027-01-01Z')`);
+    const changeScope={...scope,serviceIds:['change-svc'],deviceIds:[],allowSiteParameters:false,metricKeys:['service.data.uplink_bytes@1','service.data.downlink_bytes@1','service.data.total_bytes@1']};
+    const changePorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:changeScope};}};
+    const changeStore=new PgMeasurementStore(adapterPool,changeScope,FIRST_METRICS),upMetric=snapshotTarget.metric;
+    const changePolicy={outputs:[upMetric,depTarget.metric],grains:['day','week','month']};
+    const changeDraft=(id,patch={})=>draft('change:'+id,{mappingId:'change-old',...patch});
+    const changesFor=async(id)=> (await db.query("SELECT c.* FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id) WHERE m.event_id=$1 ORDER BY m.event_revision,c.change_kind",['change:'+id])).rows;
+    async function finishChangeJobs(manifest,ports=changePorts){
+      const expected=new Set(manifest.jobs.map(job=>job.id));
+      for(const job of manifest.jobs){const result=await runRefreshStep(adapterPool,ports);assert.equal(result.status,'succeeded');assert.ok(expected.delete(result.jobId));}
+      assert.equal(expected.size,0);
+    }
+    let initialChange,firstDispatch;
+    await t.test('fact and quality outbox capture is atomic, duplicate-safe and read-only to runtime',async()=>{
+      const first=await changeStore.append(changeDraft('input'));initialChange=(await changesFor('input'))[0].id;
+      assert.equal((await changesFor('input')).length,2);assert.equal((await changeStore.append(changeDraft('input'))).status,'duplicate');assert.equal((await changesFor('input')).length,2);
+      await assert.rejects(adapterPool.query("INSERT INTO bsmoss_metering.input_change(workspace_id,measurement_id,change_kind) VALUES ('w',$1,'measurement')",[first.id]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query("DELETE FROM bsmoss_metering.input_change WHERE id=$1",[initialChange]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query("UPDATE bsmoss_metering.input_change SET measurement_id=$1 WHERE id=$2",[first.id,initialChange]),e=>e.code==='42501');
+      await db.query(`CREATE FUNCTION public.fixture_outbox_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture_outbox_failure'; END $$;
+        CREATE TRIGGER fixture_outbox_fail BEFORE INSERT ON bsmoss_metering.input_change FOR EACH ROW EXECUTE FUNCTION public.fixture_outbox_fail()`);
+      try{await assert.rejects(changeStore.append(changeDraft('rollback')),/fixture_outbox_failure/);assert.equal((await db.query("SELECT 1 FROM bsmoss_integration.raw_event WHERE event_id='change:rollback'")).rowCount,0);assert.equal((await changesFor('rollback')).length,0);}
+      finally{await db.query('DROP TRIGGER fixture_outbox_fail ON bsmoss_metering.input_change; DROP FUNCTION public.fixture_outbox_fail()');}
+    });
+    await t.test('durable fact dispatcher derives direct and dependent natural periods and replays its receipt',async()=>{
+      await changeStore.append(changeDraft('down',{metric:down,value:{kind:'integer_delta',value:'7'}}));
+      firstDispatch=await dispatchInputChange(adapterPool,changePorts,initialChange,changePolicy);assert.equal(firstDispatch.status,'dispatched');assert.equal(firstDispatch.manifest.jobs.length,6);
+      assert.equal(firstDispatch.manifest.targets.filter(t=>t.metric.code===depTarget.metric.code).length,3);
+      const replay=await dispatchInputChange(adapterPool,changePorts,initialChange,{outputs:[depTarget.metric,upMetric],grains:['month','day','week']});assert.equal(replay.status,'duplicate');assert.deepEqual(replay.manifest,firstDispatch.manifest);
+      await assert.rejects(adapterPool.query("UPDATE bsmoss_analysis.input_refresh_receipt SET manifest='{}' WHERE change_id=$1",[initialChange]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query('DELETE FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[initialChange]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query(`INSERT INTO bsmoss_analysis.input_refresh_receipt(workspace_id,change_id,subscription_sha256,manifest_sha256,manifest,recorded_by)
+        VALUES('other',$1,$2,$3,$4,'fixture')`,[initialChange,firstDispatch.manifest.subscriptionSha256,firstDispatch.manifestSha256,firstDispatch.manifest]),e=>e.code==='23503');
+      await finishChangeJobs(firstDispatch.manifest);
+      const target={...snapshotTarget,mappingId:'change-old',grain:'day'},s=await new PgAggregateSnapshotReader(adapterPool,changeScope).load(target);
+      const stored=new PgAggregateStore(adapterPool,{workspaceId:'w',series:[{sourceId:'src',subjectKey:s.plan.subjectKey,metricKey:upMetric.code+'@1'}]});
+      assert.deepEqual((await stored.current(s.plan)).result.knownValue,{kind:'integer',value:'100'});
+      const discovery=await pendingInputChanges(adapterPool,changePorts,changePolicy);assert.ok(!discovery.changeIds.includes(initialChange));assert.ok(discovery.changeIds.includes((await changesFor('input'))[1].id));
+    });
+    await t.test('persisted correction moves retract old object and period while scheduling both output metrics',async()=>{
+      await changeStore.append(changeDraft('input',{mappingId:'change-new',periodStart:snapshotTime(1440),periodEnd:snapshotTime(1455),revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64),value:{kind:'integer_delta',value:'130'}}));
+      await changeStore.append(changeDraft('down-new',{mappingId:'change-new',metric:down,periodStart:snapshotTime(1440),periodEnd:snapshotTime(1455),value:{kind:'integer_delta',value:'9'}}));
+      const change=(await changesFor('input')).find(c=>c.measurement_id!==firstDispatch.manifest.change.measurementId&&c.change_kind==='measurement');
+      const dispatched=await dispatchInputChange(adapterPool,changePorts,change.id,changePolicy);assert.equal(dispatched.manifest.jobs.length,12);assert.equal(dispatched.manifest.evidence.length,2);
+      await finishChangeJobs(dispatched.manifest);
+      const stored=(await db.query(`SELECT s.subject_key,s.period_start,r.result_payload FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r
+        ON (r.workspace_id,r.series_id,r.revision)=(s.workspace_id,s.id,s.current_revision) WHERE s.metric_code='service.data.uplink_bytes' AND s.grain='day' AND s.subject_key LIKE '%change-svc%'`)).rows;
+      const old=stored.find(row=>row.subject_key.includes('change-old-cell')),next=stored.find(row=>row.subject_key.includes('change-new-cell'));
+      assert.equal(old.result_payload.completeness,'missing');assert.equal(next.result_payload.knownValue.value,'130');
+      const prior=(await db.query(`SELECT r.result_payload FROM bsmoss_analysis.aggregate_revision r JOIN bsmoss_analysis.aggregate_series s ON (s.workspace_id,s.id)=(r.workspace_id,r.series_id)
+        WHERE s.subject_key=$1 AND s.metric_code=$2 AND s.grain='day' AND r.revision=1`,[old.subject_key,upMetric.code])).rows[0];assert.equal(prior.result_payload.knownValue.value,'100');
+    });
+    await t.test('quality revisions produce their own changes and requeue direct and derived results',async()=>{
+      const fact=(await db.query("SELECT * FROM bsmoss_metering.measurement WHERE event_id='change:input' AND event_revision=2")).rows[0];
+      await db.query("INSERT INTO bsmoss_metering.quality_decision(workspace_id,id,measurement_id,revision,quality,rule_version,reason,decided_by) VALUES ('w',$1,$2,2,'rejected','2','review','reviewer')",[randomUUID(),fact.id]);
+      const change=(await changesFor('input')).find(c=>c.quality_revision==='2'),result=await dispatchInputChange(adapterPool,changePorts,change.id,changePolicy);assert.equal(result.manifest.change.kind,'quality');assert.equal(result.manifest.change.qualityRevision,'2');
+      await finishChangeJobs(result.manifest);
+      const current=(await db.query(`SELECT r.result_payload FROM bsmoss_analysis.aggregate_series s JOIN bsmoss_analysis.aggregate_revision r
+        ON (r.workspace_id,r.series_id,r.revision)=(s.workspace_id,s.id,s.current_revision) WHERE s.subject_key LIKE '%change-new-cell%' AND s.metric_code=$1 AND s.grain='day'`,[depTarget.metric.code])).rows[0];assert.equal(current.result_payload.knownValue,null);assert.ok(current.result_payload.reasons.includes('rejected_quality'));
+    });
+    await t.test('dispatcher job or receipt failure and expired grants roll back all enqueue and consumption progress',async()=>{
+      await changeStore.append(changeDraft('atomic'));const id=(await changesFor('atomic'))[0].id;
+      for(const fragment of ['INSERT INTO bsmoss_analysis.refresh_job','INSERT INTO bsmoss_analysis.input_refresh_receipt']) {
+        const intercepted={async connect(){const client=await adapterPool.connect();return {async query(sql,args){if(sql.includes(fragment))throw Error('fixture_dispatch_failure');return client.query(sql,args);},release(discard){client.release(discard);}};}};
+        const before=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n;
+        await assert.rejects(dispatchInputChange(intercepted,changePorts,id,changePolicy),/fixture_dispatch_failure/);
+        assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n,before);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[id])).rowCount,0);
+      }
+      let clock=Date.now();const timed={...changePorts,now:()=>clock};
+      const delayed={async connect(){const client=await adapterPool.connect();return {async query(sql,args){const result=await client.query(sql,args);if(sql.includes('INSERT INTO bsmoss_analysis.input_refresh_receipt'))clock+=120000;return result;},release(discard){client.release(discard);}};}};
+      await assert.rejects(dispatchInputChange(delayed,timed,id,changePolicy),/access_expired/);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[id])).rowCount,0);
+      const recovered=await dispatchInputChange(adapterPool,changePorts,id,changePolicy);assert.equal(recovered.status,'dispatched');await finishChangeJobs(recovered.manifest);
+    });
+    await t.test('concurrent dispatch uses a fenced event subscription lock with restart-safe receipts',async()=>{
+      const id=(await changesFor('down'))[0].id,sub=inputRefreshSubscription(changeScope,changePolicy).sha256;
+      await db.query('BEGIN');await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[JSON.stringify(['bsmoss-input-refresh-v1','w',id,sub])]);
+      try{assert.equal((await dispatchInputChange(adapterPool,changePorts,id,changePolicy)).status,'busy');}
+      finally{await db.query('ROLLBACK');}
+      const results=await Promise.allSettled([dispatchInputChange(adapterPool,changePorts,id,changePolicy),dispatchInputChange(adapterPool,changePorts,id,changePolicy)]);
+      assert.equal(results.filter(r=>r.status==='fulfilled'&&r.value.status==='dispatched').length,1);
+      assert.ok(results.every(r=>r.status==='fulfilled'||['40001','23505'].includes(r.reason.code)));
+      assert.equal((await dispatchInputChange(adapterPool,changePorts,id,changePolicy)).status,'duplicate');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1 AND subscription_sha256=$2',[id,sub])).rows[0].n,1);
+      await finishChangeJobs(results.find(r=>r.status==='fulfilled'&&r.value.status==='dispatched').value.manifest);
+    });
+    await t.test('late-committing input is discoverable after newer changes were consumed without a global offset',async()=>{
+      const prior=(await db.query("SELECT * FROM bsmoss_metering.measurement WHERE event_id='change:atomic'")).rows[0];
+      const keys=Object.keys(prior),next={...prior,id:randomUUID(),component_key:'late-component',period_start:snapshotTime(30),period_end:snapshotTime(45)};
+      await db.query('BEGIN');await db.query('INSERT INTO bsmoss_metering.measurement('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',keys.map(k=>next[k]));
+      await db.query("INSERT INTO bsmoss_metering.quality_decision(workspace_id,id,measurement_id,revision,quality,rule_version,reason,decided_by) VALUES ('w',$1,$2,1,'verified','1','late','reviewer')",[randomUUID(),next.id]);
+      const hidden=(await db.query('SELECT id FROM bsmoss_metering.input_change WHERE measurement_id=$1 AND change_kind=$2',[next.id,'measurement'])).rows[0].id;
+      assert.ok(!(await pendingInputChanges(adapterPool,changePorts,changePolicy)).changeIds.includes(hidden));
+      await changeStore.append(changeDraft('later-commit',{periodStart:snapshotTime(60),periodEnd:snapshotTime(75)}));const later=(await changesFor('later-commit'))[0].id;
+      const newer=await dispatchInputChange(adapterPool,changePorts,later,changePolicy);await db.query('COMMIT');
+      assert.ok((await pendingInputChanges(adapterPool,changePorts,changePolicy)).changeIds.includes(hidden));
+      const old=await dispatchInputChange(adapterPool,changePorts,hidden,changePolicy);assert.equal(old.status,'dispatched');await finishChangeJobs(newer.manifest);await finishChangeJobs(old.manifest);
+    });
+    await t.test('old and new object grants are both required, and subscription changes cannot erase another scope backlog',async()=>{
+      await changeStore.append(changeDraft('denied',{mappingId:'change-new'}));
+      const writer=new PgMeasurementStore(adapterPool,{...changeScope,serviceIds:['change-svc','svc']},FIRST_METRICS);
+      await writer.append(changeDraft('denied',{mappingId:'snapshot-map',revision:'2',previousRevision:'1',payloadSha256:'c'.repeat(64)}));
+      const id=(await changesFor('denied'))[0].id;
+      await assert.rejects(dispatchInputChange(adapterPool,changePorts,id,changePolicy),/object_scope_denied/);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[id])).rowCount,0);
+      const smaller={outputs:[upMetric],grains:['day']},other=await dispatchInputChange(adapterPool,changePorts,initialChange,smaller);assert.equal(other.status,'dispatched');assert.equal(other.manifest.jobs.length,2);
+      assert.notEqual(other.manifest.subscriptionSha256,firstDispatch.manifest.subscriptionSha256);await finishChangeJobs(other.manifest);
+      const denied={...changePorts,async readLocalGrant(){return null;}};await assert.rejects(dispatchInputChange(adapterPool,denied,initialChange,changePolicy),/permission_denied/);
+      await assert.rejects(dispatchInputChange(adapterPool,changePorts,'foreign-change',changePolicy),/input_change_unavailable/);
+    });
+    await t.test('state outbox dispatcher propagates expired and pending suppression beyond its own validity',async()=>{
+      const ports={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:{...stateScope,deviceIds:['moved-device']}};}};
+      const store=new PgMeasurementStore(adapterPool,{...stateScope,deviceIds:['moved-device']},FIRST_METRICS),p={outputs:[stateMetric],grains:['day']};
+      const saved=await store.append(stateDraft('outbox-short',955,956,'fault',{mappingId:'moved-map',quality:{status:'pending',reason:'fixture',ruleVersion:'1',decidedBy:'worker'}}));
+      const id=(await db.query('SELECT id FROM bsmoss_metering.input_change WHERE measurement_id=$1 AND change_kind=$2',[saved.id,'measurement'])).rows[0].id;
+      const result=await dispatchInputChange(adapterPool,ports,id,p);assert.equal(result.manifest.jobs.length,2);assert.ok(result.manifest.targets.some(t=>t.at==='2026-02-01T16:00:00.000Z'));
+      await finishChangeJobs(result.manifest,ports);
+    });
+    await t.test('dispatcher obeys reviewed ratio input mode and never acknowledges missing dependency authority',async()=>{
+      const grant={...changeScope,metricKeys:scope.metricKeys},ports={...changePorts,async readLocalGrant(){return {...await changePorts.readLocalGrant(),scope:grant};}};
+      const writer=new PgMeasurementStore(adapterPool,grant,FIRST_METRICS),connected={code:'service.voice.connected_count',version:1};
+      const value=await writer.append(changeDraft('count',{metric:connected,value:{kind:'integer_delta',value:'1'}})),p={outputs:[depRate.metric],grains:['day']};
+      const id=(await db.query('SELECT id FROM bsmoss_metering.input_change WHERE measurement_id=$1 AND change_kind=$2',[value.id,'measurement'])).rows[0].id;
+      await db.query("UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id='snapshot-ratio-cap'",[capabilityPolicy]);
+      try{const result=await dispatchInputChange(adapterPool,ports,id,p);assert.equal(result.status,'dispatched');assert.equal(result.manifest.jobs.length,0);}
+      finally{await db.query("UPDATE bsmoss_integration.source_capability SET rules=$1 WHERE id='snapshot-ratio-cap'",[depPolicy]);}
+      // A new policy partition is needed to replay under an authority change;
+      // capability-change events will be a separate dispatcher extension.
+      await changeStore.append(changeDraft('missing-authority',{periodStart:snapshotTime(120),periodEnd:snapshotTime(135)}));
+      const missing={outputs:[upMetric,depTarget.metric],grains:['day']},change=(await changesFor('missing-authority'))[0].id;
+      await db.query("UPDATE bsmoss_integration.source_capability SET status='planned' WHERE id='dependency-down-cap'");
+      try{await assert.rejects(dispatchInputChange(adapterPool,changePorts,change,missing),/aggregate_capability_unavailable/);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[change])).rowCount,0);}
+      finally{await db.query("UPDATE bsmoss_integration.source_capability SET status='active' WHERE id='dependency-down-cap'");}
     });
   } finally {
     if (adapterPool) await adapterPool.end();

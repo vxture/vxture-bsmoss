@@ -479,3 +479,28 @@ model RefreshAttempt {
   @@map("refresh_attempt")
   @@schema("bsmoss_analysis")
 }
+
+model InputChange {
+  workspace_id String
+  id String
+  measurement_id String
+  change_kind String
+  quality_revision Decimal? @db.Decimal(30,0)
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("input_change")
+  @@schema("bsmoss_metering")
+}
+
+model InputRefreshReceipt {
+  workspace_id String
+  change_id String
+  subscription_sha256 String
+  manifest_sha256 String
+  manifest Json
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,change_id,subscription_sha256])
+  @@map("input_refresh_receipt")
+  @@schema("bsmoss_analysis")
+}

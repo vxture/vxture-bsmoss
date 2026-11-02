@@ -148,5 +148,13 @@ support bounded leases/retries and a single authorized refresh step with atomic
 result/outbox/receipt commits. Authorized bounded batches connect calendar and
 trusted revision-impact planning to the queue; candidate IDs are scoped before
 claim and facts/head/publication share one repeatable-read transaction. No
-production scheduler, background identity or persisted source-change dispatcher
-is enabled. See docs/40-implementation/330-authorized-refresh-coordination.md.
+production scheduler or background identity is enabled.
+See docs/40-implementation/330-authorized-refresh-coordination.md.
+Database triggers now capture measurement and quality inserts in the source
+transaction. A scoped internal dispatcher derives historical old/new objects,
+dependency outputs and state suppression windows from persisted evidence, then
+atomically queues jobs with an immutable per-subscription consumption receipt.
+Discovery uses pending events rather than a global timestamp/sequence offset.
+Completion, capability and mapping changes, durable failure backoff, registered
+subscriptions and a production worker remain pending.
+See docs/40-implementation/350-input-change-dispatch.md.
