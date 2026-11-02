@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { reportGenerationRecoveryCases } from './report-generation-recovery.cases.mjs';
+import { reportHistoryCases } from './report-history.cases.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { PgMeasurementStore } from '../../portals/app/app/domains/measurements/pg-store.ts';
 import { FIRST_METRICS } from '../../portals/app/app/domains/catalog/first-metrics.ts';
@@ -212,4 +213,5 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   await jobRecoveryCases(t,{db,adapterPool,access,scope,up,rate,state,gauge,period,target,intercept});
   await reportJobMonitorCases(t,{db,adapterPool,access,scope,up,period,putTemplate,single,intercept});
   await reportGenerationRecoveryCases(t,{db,adapterPool,access,scope,up,period,putTemplate,single,intercept});
+  await reportHistoryCases(t,{db,adapterPool,access,scope,api,up,period,write,publish,putTemplate,single,intercept});
 }

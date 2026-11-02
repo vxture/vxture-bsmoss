@@ -875,3 +875,27 @@ model ReportGenerationRecovery {
   @@map("report_generation_recovery")
   @@schema("bsmoss_analysis")
 }
+
+model ReportHistoryCheck {
+  workspace_id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  scan_hour DateTime @db.Timestamptz()
+  report_id String
+  original_revision Decimal @db.Decimal(30,0)
+  original_sha256 String
+  result_revision Decimal @db.Decimal(30,0)
+  result_sha256 String
+  result_current_revision Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,schedule_id,schedule_revision,scan_hour,report_id])
+  @@map("report_history_check")
+  @@schema("bsmoss_analysis")
+}

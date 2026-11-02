@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 历史报告周期核验（2026-11-03，最新入口）
+
+接续01ea8ac，本goal turn实质progress，保持active，不重建goal／heartbeat、不spawn。设计221／实施570。新增reports/history、pg-history；export registeredTransaction复用当前登记共享锁、active／subject／全scope／原templateSHA及真实generate和末次授权。已有到期报告不受72小时lookback限制；scope先SQL过滤再LIMIT，每步一份，小时回执排除本小时已核验，先never再最久checked再period/id，无全局watermark，跨小时积压不饥饿，晚提交更早周期可见。
+
+current记unchanged，stale调用原生成核心记inserted/duplicate，结果可仍stale或不完整；精确原revision／结果revision／当时head分开，旧报告和发布不变、不自动发布。已知mapping／rollup缺失／paused／覆盖或ratio basis不可用记blocked，原值保留，其他报告继续；SQL／授权／损坏／序列化／未知异常回滚，报告／head／outbox／check及末次注册全scope授权同RR。原始身份过期也不借当前续期延长。
+
+第59表report_history_check和Prisma标量镜像，无迁移，原／结果SHA和head同租户FK，history_last_check索引；invoker固定search_path触发器核验当前登记subject／template／window／head和scope并集，捕获DB SHA／actor／时间并禁改删清空。读回精确历史登记与旧新报告重建manifest、双SHA／真实列验证，后续head前进不改receipt。WorkerConfig显式reconcileHistory=true增独立lane，32登记×2＋export最多65；未开64登记保持，无真机器provider／宿主伪实现。
+
+最终498单测／316实际PG（新增14）／双层types／Prisma／生产build／20HTTP通过。覆盖数月外、周月逐日、晚提交更早／跨小时公平、物理flag／全scope／owner／末次撤权及SQL／receipt故障、blocked不阻塞、登记pause／旧RR／同worker并发、真实宿主中断恢复、原指纹历史重复不退head、SHA／scope／result／schedule／hour损坏及不可变DB actor。首轮fixture未来clock沿用即期身份被拒，改模拟expiry；误删测量引用mapping被FK拒，改无测量专用mapping后清理；captured stale只能duplicate，不能断言unchanged。无产品放宽。公平性排序追加后全PG／build再次通过。
+
+日志tmp/report-history-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,preflight}.log；115篇／59表、最终SHA／本地63333、专用PG停止见report-history-reconciliation检查点，无UI变化不重复地图QA。只读上线预检仍prerequisites_missing。下一项I11正式配置面板、I08分布／分层规模；需真实来源协议样例与签认、平台注册C1/C2/C3、机器provider权威契约、私有app.env／stack.env及Linux／域名／TLS／registry／DB／远端CI／Beta/prod，11万3倍突发／安全恢复／UAT和生产批准未完成。无push／PR／远端CI／真实接入／外部部署／上线；五项1–3本地完成、4–5active，复用bs-moss，陕西／费用预留／退服P2不变。
+
 ## 生成任务受审恢复（2026-11-03，最新入口）
 
 接续cff5450，本goal turn有实质progress，保持active，不重建goal／heartbeat、不spawn。设计220／实施560。一般ReportRecoveryStore／RecoverReportJob替代仅export接口，HTTP显式generation|export；独立reports.jobs.recover无自动赋role。生成首次恢复锁原dead／连续终态，原scope先SQL过滤，当前登记共享锁必须active／同revision／原模板有效，requested_by保持原登记subject、审计另记reviewer，新pending与不可变审计和末次真实授权同RR。

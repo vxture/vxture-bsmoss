@@ -81,7 +81,7 @@ export async function validateGenerationProvenance(client: PoolClient, binding: 
   }
   return job;
 }
-async function registeredTransaction<T>(pool: Pool, ports: AccessPorts, id: string,
+export async function registeredTransaction<T>(pool: Pool, ports: AccessPorts, id: string,
   work: (client: PoolClient, binding: ScheduleBinding) => Promise<T>): Promise<T> {
   jobIdentity(id); const initial = await resolveMeasurementAccess(ports, "report_generate", "data"), now = ports.now ?? Date.now;
   const client = await pool.connect(); let discard = false;

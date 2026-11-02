@@ -4,6 +4,7 @@ import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 export interface WorkerOptions { maxStepsPerTick: number; pollMilliseconds: number }
 export interface ReportWorkerConfig extends WorkerOptions {
   workspaceId: string; subject: string; scheduleIds: readonly string[]; executeExports: boolean;
+  reconcileHistory?: boolean;
 }
 export interface AggregateWorkerConfig extends WorkerOptions {
   workspaceId: string; subject: string; partitionIds: readonly string[]; executeResults: boolean;
@@ -24,9 +25,10 @@ export function workerOptions(raw: WorkerOptions): WorkerOptions {
   return structuredClone(raw);
 }
 export function reportWorkerConfig(raw: ReportWorkerConfig): ReportWorkerConfig {
-  fields(raw, ["workspaceId", "subject", "scheduleIds", "executeExports", "maxStepsPerTick", "pollMilliseconds"]);
+  fields(raw, ["workspaceId", "subject", "scheduleIds", "executeExports", "reconcileHistory", "maxStepsPerTick", "pollMilliseconds"]);
   jobIdentity(raw.workspaceId); jobIdentity(raw.subject);
-  if (!Array.isArray(raw.scheduleIds) || raw.scheduleIds.length > 64 || typeof raw.executeExports !== "boolean" ||
+  if (raw.reconcileHistory !== undefined && typeof raw.reconcileHistory !== "boolean") throw Error("invalid_report_worker_config");
+  if (!Array.isArray(raw.scheduleIds) || raw.scheduleIds.length > (raw.reconcileHistory ? 32 : 64) || typeof raw.executeExports !== "boolean" ||
     new Set(raw.scheduleIds).size !== raw.scheduleIds.length || (!raw.scheduleIds.length && !raw.executeExports)) throw Error("invalid_report_worker_config");
   raw.scheduleIds.forEach(jobIdentity);
   return { ...structuredClone(raw), ...workerOptions({ maxStepsPerTick: raw.maxStepsPerTick, pollMilliseconds: raw.pollMilliseconds }) };

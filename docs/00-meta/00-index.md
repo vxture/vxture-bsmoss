@@ -68,3 +68,4 @@
 - [报告任务监控](../40-implementation/540-report-job-inspection.md)：生成／导出历史、原登记和精确修订跳转。
 - [导出受审恢复](../40-implementation/550-report-export-recovery.md)：保留失败证据、精确发布复核、关联任务和恢复链。
 - [生成受审恢复](../40-implementation/560-report-generation-recovery.md)：原扫描来源、登记主体、精确终态和不可变复核链。
+- [历史报告核验](../40-implementation/570-report-history-reconciliation.md)：近期回看范围以外的周期修订、公平选择和不可变核验回执。

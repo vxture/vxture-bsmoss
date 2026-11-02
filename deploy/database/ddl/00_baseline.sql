@@ -1377,3 +1377,76 @@ END $$;
 REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_generation_recovery() FROM PUBLIC;
 CREATE TRIGGER report_generation_recovery_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_generation_recovery FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_generation_recovery();
 CREATE TRIGGER report_generation_recovery_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_generation_recovery FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_generation_recovery();
+
+CREATE TABLE bsmoss_analysis.report_history_check (
+  workspace_id text NOT NULL,
+  schedule_id text NOT NULL,
+  schedule_revision numeric(30,0) NOT NULL,
+  scan_hour timestamptz NOT NULL CHECK(scan_hour=date_trunc('hour',scan_hour AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),
+  report_id text NOT NULL,
+  original_revision numeric(30,0) NOT NULL,
+  original_sha256 text NOT NULL,
+  result_revision numeric(30,0) NOT NULL,
+  result_sha256 text NOT NULL,
+  result_current_revision numeric(30,0) NOT NULL,
+  outcome text NOT NULL CHECK(outcome IN ('unchanged','inserted','duplicate','blocked')),
+  failure_code text CHECK(failure_code='report_binding_unavailable'),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL,
+  database_actor text NOT NULL,
+  recorded_by text NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,schedule_id,schedule_revision,scan_hour,report_id),
+  CHECK((outcome='blocked')=(failure_code IS NOT NULL)),
+  CHECK(outcome NOT IN ('unchanged','blocked') OR (original_revision,original_sha256,original_revision)=(result_revision,result_sha256,result_current_revision)),
+  CHECK(outcome<>'inserted' OR (result_revision=original_revision+1 AND result_current_revision=result_revision)),
+  CHECK(outcome<>'duplicate' OR (result_current_revision=original_revision AND result_revision<=original_revision)),
+  FOREIGN KEY(workspace_id,schedule_id,schedule_revision) REFERENCES bsmoss_integration.report_schedule_revision(workspace_id,id,revision),
+  FOREIGN KEY(workspace_id,report_id,original_revision,original_sha256) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256),
+  FOREIGN KEY(workspace_id,report_id,result_revision,result_sha256) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256),
+  FOREIGN KEY(workspace_id,report_id,result_current_revision) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision)
+);
+CREATE INDEX report_history_last_check ON bsmoss_analysis.report_history_check(workspace_id,schedule_id,schedule_revision,report_id,scan_hour DESC);
+CREATE FUNCTION bsmoss_analysis.capture_report_history_check() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+DECLARE c bsmoss_integration.report_schedule_revision%ROWTYPE; s bsmoss_analysis.report_series%ROWTYPE;
+  p jsonb; n jsonb; m jsonb; required jsonb; k text;
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_analysis' OR TG_TABLE_NAME<>'report_history_check' THEN RAISE EXCEPTION 'invalid_report_history_trigger'; END IF;
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'report_history_append_only'; END IF;
+  SELECT r.* INTO c FROM bsmoss_integration.report_schedule_revision r JOIN bsmoss_integration.report_schedule_head h
+    ON (h.workspace_id,h.id,h.revision)=(r.workspace_id,r.id,r.revision) WHERE (r.workspace_id,r.id,r.revision)=(NEW.workspace_id,NEW.schedule_id,NEW.schedule_revision);
+  SELECT * INTO s FROM bsmoss_analysis.report_series WHERE workspace_id=NEW.workspace_id AND id=NEW.report_id FOR SHARE;
+  SELECT manifest INTO p FROM bsmoss_analysis.report_revision WHERE (workspace_id,report_id,revision,manifest_sha256)=(NEW.workspace_id,NEW.report_id,NEW.original_revision,NEW.original_sha256);
+  SELECT manifest INTO n FROM bsmoss_analysis.report_revision WHERE (workspace_id,report_id,revision,manifest_sha256)=(NEW.workspace_id,NEW.report_id,NEW.result_revision,NEW.result_sha256);
+  m:=NEW.manifest; required:=m->'requiredScope';
+  IF c.id IS NULL OR s.id IS NULL OR p IS NULL OR n IS NULL OR c.config->>'status'<>'active' OR NEW.recorded_by IS DISTINCT FROM c.config->>'subject' OR
+    (s.template_code,s.template_version,s.grain) IS DISTINCT FROM (c.template_code,c.template_version,c.grain) OR s.current_revision<>NEW.result_current_revision OR
+    s.period_start<(c.config->>'notBefore')::timestamptz OR s.period_end+make_interval(mins=>(c.config->>'delayMinutes')::int)>(m->>'scanAt')::timestamptz OR
+    date_trunc('hour',(m->>'scanAt')::timestamptz AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' IS DISTINCT FROM NEW.scan_hour OR
+    (m->'before'->>'freshness' IN ('current','stale','unavailable') AND jsonb_typeof(m->'before'->'reasons')='array') IS DISTINCT FROM TRUE OR
+    ((m->'before'->>'freshness'='current')=(jsonb_array_length(m->'before'->'reasons')=0)) IS DISTINCT FROM TRUE OR
+    (NEW.outcome='unchanged') IS DISTINCT FROM (m->'before'->>'freshness'='current') OR
+    (NEW.outcome<>'blocked' AND m->'before'->>'freshness'='unavailable') OR
+    required->>'workspaceId' IS DISTINCT FROM NEW.workspace_id OR
+    (required->>'allowSiteParameters')::boolean IS DISTINCT FROM ((p->'requiredScope'->>'allowSiteParameters')::boolean OR (n->'requiredScope'->>'allowSiteParameters')::boolean) OR
+    m IS DISTINCT FROM jsonb_build_object('version','bsmoss-report-history-v1','workspaceId',NEW.workspace_id,'scheduleId',NEW.schedule_id,'scheduleRevision',NEW.schedule_revision::text,
+      'scheduleSha256',m->>'scheduleSha256','configSha256',c.config_sha256,'scanAt',m->>'scanAt','scanHour',to_char(NEW.scan_hour AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      'requestedBy',NEW.recorded_by,'reportId',NEW.report_id,'grain',s.grain,'period',p->'period',
+      'original',jsonb_build_object('revision',NEW.original_revision::text,'manifestSha256',NEW.original_sha256),
+      'before',m->'before','outcome',NEW.outcome,'failureCode',NEW.failure_code,
+      'result',jsonb_build_object('revision',NEW.result_revision::text,'currentRevision',NEW.result_current_revision::text,'manifestSha256',NEW.result_sha256),'requiredScope',required)
+    THEN RAISE EXCEPTION 'invalid_report_history_binding'; END IF;
+  FOREACH k IN ARRAY ARRAY['sourceIds','stationIds','serviceIds','deviceIds','metricKeys'] LOOP
+    IF (jsonb_typeof(required->k)='array' AND ((required->k) @> (p->'requiredScope'->k)) AND ((required->k) @> (n->'requiredScope'->k)) AND
+      (((p->'requiredScope'->k) || (n->'requiredScope'->k)) @> (required->k)) AND ((c.config->'scope'->k) @> (required->k))) IS DISTINCT FROM TRUE
+      THEN RAISE EXCEPTION 'invalid_report_history_scope'; END IF;
+  END LOOP;
+  IF (required->>'allowSiteParameters')::boolean AND NOT (c.config->'scope'->>'allowSiteParameters')::boolean THEN RAISE EXCEPTION 'invalid_report_history_scope'; END IF;
+  NEW.database_sha256:=encode(sha256(convert_to(m::text,'UTF8')),'hex'); NEW.database_actor:=session_user; NEW.recorded_at:=clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_history_check() FROM PUBLIC;
+CREATE TRIGGER report_history_check_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_history_check FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_history_check();
+CREATE TRIGGER report_history_check_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_history_check FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_history_check();

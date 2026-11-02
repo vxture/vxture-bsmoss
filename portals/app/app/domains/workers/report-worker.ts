@@ -3,6 +3,7 @@ import type { AccessPorts } from "../access/resolve.ts";
 import { createAuthorizedReportExports } from "../access/report-exports.ts";
 import { PgReportExportStore } from "../reports/pg-exports.ts";
 import { scanRegisteredReports, pendingRegisteredReports, runRegisteredReport } from "../reports/pg-schedule.ts";
+import { reconcileRegisteredReport } from "../reports/pg-history.ts";
 import { createWorkerLoop, type WorkerLane } from "./loop.ts";
 import { reportWorkerConfig, type ReportWorkerConfig } from "./rules.ts";
 
@@ -14,7 +15,7 @@ export function createReportWorker(pool: Pool, ports: AccessPorts, raw: ReportWo
     const identity = await ports.readVerifiedIdentity();
     return identity?.activeWorkspace === config.workspaceId && identity.sub === config.subject ? identity : null;
   } };
-  const lanes: WorkerLane[] = config.scheduleIds.map(id => ({ async step(signal) {
+  const lanes: WorkerLane[] = config.scheduleIds.flatMap(id => [{ async step(signal?: AbortSignal) {
     const scan = await scanRegisteredReports(pool, pinned, id);
     if (scan.status === "busy") return { status: "busy" as const };
     if (signal?.aborted) return { status: "idle" as const };
@@ -22,7 +23,10 @@ export function createReportWorker(pool: Pool, ports: AccessPorts, raw: ReportWo
     if (!job || signal?.aborted) return { status: "idle" as const };
     const result = await runRegisteredReport(pool, pinned, id, job);
     return { status: result.status === "busy_or_unavailable" ? "busy" as const : result.status };
-  } }));
+  } }, ...(config.reconcileHistory ? [{ async step() {
+    const result = await reconcileRegisteredReport(pool, pinned, id);
+    return { status: result.status === "checked" ? "succeeded" as const : result.status };
+  } }] : [])]);
   if (config.executeExports) {
     const exports = createAuthorizedReportExports(pinned, { create: scope => new PgReportExportStore(pool, scope) }, "data");
     lanes.push({ async step(signal) {

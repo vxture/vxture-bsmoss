@@ -18,6 +18,15 @@ test("report worker configuration cannot inject scope tokens runtime identity or
   assert.deepEqual(reportWorkerConfig(config), config);
   for (const patch of [{ scope: {} }, { token: "private" }, { scheduleIds: ["one", "one"] }, { scheduleIds: ["*"] }, { scheduleIds: Array.from({ length: 65 }, (_, i) => String(i)) }, { scheduleIds: [], executeExports: false }, { maxStepsPerTick: 26 }, { pollMilliseconds: 999 }, { pollMilliseconds: 60001 }]) assert.throws(() => reportWorkerConfig({ ...config, ...patch }));
 });
+
+test("history reconciliation is an explicit bounded independent report worker lane", () => {
+  const config = { ...options, workspaceId: "w", subject: "worker", scheduleIds: ["one"], executeExports: true, reconcileHistory: true };
+  assert.deepEqual(reportWorkerConfig(config), config);
+  assert.throws(() => reportWorkerConfig({ ...config, reconcileHistory: "yes" as never }));
+  assert.throws(() => reportWorkerConfig({ ...config, scheduleIds: Array.from({ length: 33 }, (_, i) => "s" + i) }));
+  assert.equal(reportWorkerConfig({ ...config, scheduleIds: Array.from({ length: 32 }, (_, i) => "s" + i) }).scheduleIds.length, 32);
+  assert.equal(reportWorkerConfig({ ...config, reconcileHistory: false, scheduleIds: Array.from({ length: 64 }, (_, i) => "s" + i) }).scheduleIds.length, 64);
+});
 test("worker cycles rotate a bounded fair subset and never mutate returned health snapshots", async () => {
   const calls: number[] = [], loop = createWorkerLoop([0, 1, 2].map(id => ({ async step() { calls.push(id); return { status: "succeeded" as const }; } })), options);
   for (let n = 0; n < 7; n++) assert.equal((await loop.tick()).events.length, 1);
