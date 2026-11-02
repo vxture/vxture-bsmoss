@@ -120,4 +120,5 @@ export async function reportPublicationCases(t,{db,adapterPool,access,scope,api,
     await assert.rejects(adapterPool.query('SELECT bsmoss_analysis.capture_report_publication()'),e=>e.code==='42501');
     assert.equal((await db.query("SELECT 1 FROM local_authz.permission WHERE perm_code='reports.publish'")).rowCount,1);assert.equal((await db.query("SELECT 1 FROM local_authz.role_permission rp JOIN local_authz.permission p ON p.id=rp.permission_id WHERE p.perm_code='reports.publish'")).rowCount,0);
   });
+  return { publisher, pub, issue, confirm, ready, lastEvent };
 }

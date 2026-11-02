@@ -376,7 +376,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
@@ -913,6 +913,7 @@ CREATE TABLE bsmoss_analysis.report_series (
   period_start timestamptz NOT NULL,
   period_end timestamptz NOT NULL CHECK(period_end>period_start),
   current_revision numeric(30,0) CHECK(current_revision>0),
+  current_publication_revision numeric(30,0) CHECK(current_publication_revision>0),
   PRIMARY KEY(workspace_id,id),
   UNIQUE(workspace_id,template_code,template_version,grain,period_start,period_end),
   FOREIGN KEY(workspace_id,template_code,template_version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
@@ -963,10 +964,13 @@ CREATE TABLE bsmoss_analysis.report_publication_event (
   PRIMARY KEY(workspace_id,report_id,event_revision),
   UNIQUE(workspace_id,report_id,command_id),
   UNIQUE(workspace_id,report_id,event_revision,action),
+  UNIQUE(workspace_id,report_id,event_revision,report_revision,manifest_sha256,action),
   CHECK((CASE WHEN event_revision=1 THEN previous_event_revision IS NULL ELSE previous_event_revision=event_revision-1 END) IS TRUE),
   FOREIGN KEY(workspace_id,report_id,report_revision,manifest_sha256) REFERENCES bsmoss_analysis.report_revision(workspace_id,report_id,revision,manifest_sha256),
   FOREIGN KEY(workspace_id,report_id,previous_event_revision) REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision)
 );
+ALTER TABLE bsmoss_analysis.report_series ADD FOREIGN KEY(workspace_id,id,current_publication_revision)
+  REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision) DEFERRABLE INITIALLY DEFERRED;
 CREATE FUNCTION bsmoss_analysis.capture_report_publication() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE prior bsmoss_analysis.report_publication_event%ROWTYPE;
@@ -978,6 +982,7 @@ BEGIN
   IF NEW.event_revision<>coalesce(prior.event_revision,0)+1 OR NEW.previous_event_revision IS DISTINCT FROM prior.event_revision THEN RAISE EXCEPTION 'publication_revision_conflict'; END IF;
   IF NEW.action='withdrawn' AND (prior.action IS DISTINCT FROM 'published' OR NEW.report_revision IS DISTINCT FROM prior.report_revision OR NEW.manifest_sha256 IS DISTINCT FROM prior.manifest_sha256) THEN RAISE EXCEPTION 'publication_withdrawal_conflict'; END IF;
   IF NEW.action='published' AND prior.action='published' AND NEW.report_revision=prior.report_revision THEN RAISE EXCEPTION 'report_already_published'; END IF;
+  UPDATE bsmoss_analysis.report_series SET current_publication_revision=NEW.event_revision WHERE workspace_id=NEW.workspace_id AND id=NEW.report_id;
   NEW.recorded_at=clock_timestamp();
   RETURN NEW;
 END $$;
@@ -996,4 +1001,60 @@ CREATE TABLE bsmoss_analysis.report_publication_outbox (
   PRIMARY KEY(workspace_id,id),
   UNIQUE(workspace_id,report_id,event_revision),
   FOREIGN KEY(workspace_id,report_id,event_revision,action) REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision,action)
+);
+
+CREATE TABLE bsmoss_analysis.report_export_job (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  report_id text NOT NULL,
+  publication_revision numeric(30,0) NOT NULL,
+  publication_action text NOT NULL DEFAULT 'published' CHECK(publication_action='published'),
+  report_revision numeric(30,0) NOT NULL,
+  manifest_sha256 text NOT NULL,
+  renderer_version text NOT NULL CHECK(length(trim(renderer_version))>0),
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 2048),
+  requested_by text NOT NULL CHECK(length(trim(requested_by)) BETWEEN 1 AND 2048),
+  requested_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','succeeded','dead')),
+  attempt numeric(30,0) NOT NULL DEFAULT 0 CHECK(attempt BETWEEN 0 AND 5),
+  available_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  artifact_sha256 text,
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,command_id),
+  UNIQUE(workspace_id,id,renderer_version),
+  CHECK((status='succeeded' AND artifact_sha256 IS NOT NULL AND attempt>0) OR (status<>'succeeded' AND artifact_sha256 IS NULL)),
+  CHECK(status<>'dead' OR attempt>0),
+  FOREIGN KEY(workspace_id,report_id,publication_revision,report_revision,manifest_sha256,publication_action)
+    REFERENCES bsmoss_analysis.report_publication_event(workspace_id,report_id,event_revision,report_revision,manifest_sha256,action)
+);
+CREATE INDEX report_export_due ON bsmoss_analysis.report_export_job(workspace_id,available_at,id) WHERE status='pending';
+CREATE TABLE bsmoss_analysis.report_export_artifact (
+  workspace_id text NOT NULL,
+  job_id text NOT NULL,
+  renderer_version text NOT NULL,
+  html text NOT NULL CHECK(octet_length(html) BETWEEN 1 AND 2097152),
+  content_sha256 text NOT NULL CHECK(content_sha256=encode(sha256(convert_to(html,'UTF8')),'hex')),
+  created_by text NOT NULL CHECK(length(trim(created_by))>0),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,job_id),
+  UNIQUE(workspace_id,job_id,content_sha256),
+  FOREIGN KEY(workspace_id,job_id,renderer_version) REFERENCES bsmoss_analysis.report_export_job(workspace_id,id,renderer_version)
+);
+ALTER TABLE bsmoss_analysis.report_export_job ADD FOREIGN KEY(workspace_id,id,artifact_sha256)
+  REFERENCES bsmoss_analysis.report_export_artifact(workspace_id,job_id,content_sha256) DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE bsmoss_analysis.report_export_attempt (
+  workspace_id text NOT NULL,
+  job_id text NOT NULL,
+  attempt numeric(30,0) NOT NULL CHECK(attempt BETWEEN 1 AND 5),
+  outcome text NOT NULL CHECK(outcome IN ('succeeded','retry','dead')),
+  failure_code text CHECK(failure_code IN ('report_not_active','report_stale','report_incomplete','export_too_large','export_renderer_unavailable','render_failed','storage_failed')),
+  artifact_sha256 text,
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,job_id,attempt),
+  CHECK((outcome='succeeded' AND failure_code IS NULL AND artifact_sha256 IS NOT NULL) OR (outcome<>'succeeded' AND failure_code IS NOT NULL AND artifact_sha256 IS NULL)),
+  FOREIGN KEY(workspace_id,job_id) REFERENCES bsmoss_analysis.report_export_job(workspace_id,id),
+  FOREIGN KEY(workspace_id,job_id,artifact_sha256) REFERENCES bsmoss_analysis.report_export_artifact(workspace_id,job_id,content_sha256)
+    DEFERRABLE INITIALLY DEFERRED
 );

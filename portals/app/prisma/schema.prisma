@@ -623,6 +623,7 @@ model ReportSeries {
   period_start DateTime @db.Timestamptz()
   period_end DateTime @db.Timestamptz()
   current_revision Decimal? @db.Decimal(30,0)
+  current_publication_revision Decimal? @db.Decimal(30,0)
   @@id([workspace_id,id])
   @@map("report_series")
   @@schema("bsmoss_analysis")
@@ -679,5 +680,54 @@ model ReportPublicationOutbox {
   created_at DateTime @db.Timestamptz()
   @@id([workspace_id,id])
   @@map("report_publication_outbox")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportJob {
+  workspace_id String
+  id String
+  report_id String
+  publication_revision Decimal @db.Decimal(30,0)
+  publication_action String
+  report_revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  renderer_version String
+  command_id String
+  requested_by String
+  requested_at DateTime @db.Timestamptz()
+  status String
+  attempt Decimal @db.Decimal(30,0)
+  available_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  artifact_sha256 String?
+  @@id([workspace_id,id])
+  @@map("report_export_job")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportArtifact {
+  workspace_id String
+  job_id String
+  renderer_version String
+  html String
+  content_sha256 String
+  created_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id])
+  @@map("report_export_artifact")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  artifact_sha256 String?
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("report_export_attempt")
   @@schema("bsmoss_analysis")
 }

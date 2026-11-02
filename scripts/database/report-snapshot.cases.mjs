@@ -14,6 +14,7 @@ import { bucketFor, nativeWindows } from '../../portals/app/app/domains/aggregat
 import { PgReportStore } from '../../portals/app/app/domains/reports/pg-store.ts';
 import { createAuthorizedReports } from '../../portals/app/app/domains/access/reports.ts';
 import { reportPublicationCases } from './report-publication.cases.mjs';
+import { reportExportCases } from './report-export.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -197,5 +198,6 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
     await assert.rejects(makeApi(access,broken).read({reportId:first.record.reportId}),e=>e.code==='42P01');
     await assert.rejects(api.generate({...command('report-single'),workspaceId:'forged'}),/invalid_report_fields/);
   });
-  await reportPublicationCases(t,{db,adapterPool,access,scope,api,up,sms,period,target,write,publish,putTemplate,single,panel,command,intercept});
+  const publicationContext=await reportPublicationCases(t,{db,adapterPool,access,scope,api,up,sms,period,target,write,publish,putTemplate,single,panel,command,intercept});
+  await reportExportCases(t,{db,adapterPool,scope,api,up,rate,state,gauge,period,target,write,publish,putTemplate,single,panel,command,intercept,publicationContext});
 }

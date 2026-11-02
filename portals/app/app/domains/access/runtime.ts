@@ -7,6 +7,8 @@ import { getPool } from "../../lib/db";
 import { FIRST_METRICS } from "../catalog/first-metrics";
 import { createAuthorizedReportPublication } from "./report-publication";
 import { PgReportPublicationStore } from "../reports/pg-publication";
+import { createAuthorizedReportExports } from "./report-exports";
+import { PgReportExportStore } from "../reports/pg-exports";
 import { PgMeasurementStore } from "../measurements/pg-store";
 import { createAuthorizedMeasurements } from "./measurements";
 import { createAuthorizedAggregates } from "./aggregates";
@@ -75,6 +77,9 @@ export function reportsForSession(rpsid: string) {
 }
 export function reportPublicationForSession(rpsid: string) {
   return createAuthorizedReportPublication(sessionAccessPorts(rpsid), { create: scope => new PgReportPublicationStore(getPool(), scope) }, "interactive");
+}
+export function reportExportsForSession(rpsid: string) {
+  return createAuthorizedReportExports(sessionAccessPorts(rpsid), { create: scope => new PgReportExportStore(getPool(), scope) }, "interactive");
 }
 // Internal session composition only; no route or background identity is enabled.
 export function aggregatesForSession(rpsid: string) {

@@ -565,3 +565,23 @@ authority generation变更和改回旧值不复活旧审阅；需新配置修订
 下一项异步HTML导出＋下载时重新验当前发布／scope／权限，随后正式报告页面／生成发布命令／登记调度。I12保持in_progress，I11面板、I08状态／温度对象分布和分层规模汇总、I09真实机器身份／常驻scheduler／worker未完。没有外部outbox投递／真实来源／平台注册／Beta环境、11万容量3倍突发、安全恢复、UAT或生产批准；未push／PR／远端CI／外部部署或上线。五项1–3本地完成，4–5继续active；heartbeat bs-moss复用，费用预留／退服P2／陕西演示不变。
 
 发布包最终本地验证补记：220实际PG在加强回执／动作FK后再全量通过，cluster已stop；双层类型／生产构建／Prisma／20HTTP／93篇文档／47表及交付／SCA配置守卫、16文件ASCII全部通过。最终Git／staged密钥和63333 SHA见后续工具收尾。
+
+发布包收尾：f6dfcfe提交，staged gitleaks60.54KB无泄漏、clean；report-publication-events.json绑定SHA／Git树／BUILD_ID及所有日志，63333当时session79929、bsmoss-local-f6dfcfe，首页200／正式发布匿名401。当前turn为构建已核验并停止Next PID23008，后续预览以收尾工具为准。
+
+## I12正式异步HTML导出（2026-11-03）
+
+上一goal turn为实质progress（f27d9a1持久快照、f6dfcfe发布／撤回两包实际提交），本轮继续实质progress，不标blocked、不重复外部追问或创建heartbeat。设计211／实施470。exports纯规则／ReportExportStore／PgReportExportStore／renderPublishedReport／独立授权服务与实际session组合根；公开GET /api/report-exports/{id}状态及?format=html下载，request／run仍内部调用。reports.export与reports.export.execute显式本地权限仅入种子不赋role，owner／view／generate／publish不隐含。
+
+新增report_export_job／artifact／attempt，共50表空库／Prisma，无旧库迁移。命令reportId／publicationRevision／commandId绑定主体及精确报告修订／SHA／rendererVersion，不存token、不重绑定旧发布。持久pending任务只按明确jobId处理，FOR UPDATE SKIP LOCKED＋RR＋SAVEPOINT内可信发布／新鲜度与纯渲染／追加制品，成功回执／任务状态及末次全scope验权同事务；无事务外IO，进程中断全回滚到pending，无悬挂租约。固定分类失败退避5／10／20／40秒，最多5次或terminal，授权／scope／SQL权限和序列化故障全回滚。机器身份当前grant验权，不冒充真实provider或常驻调度。
+
+series新增current_publication_revision，由发布触发器维护且精确FK、runtime不能直接更新。发布／撤回／请求／执行锁同一series，新发布更新行版本，旧RR执行等待后40001全回滚，不能旧快照生成已撤回制品。readPublicationInTransaction抽取共用核心，原GET行为不变。制品2MiB界限、实际UTF8 SHA SQL核验、成功任务及回执精确制品FK，只状态列runtime可改；HTML／尝试不可改删。没有外部文件地址／签名URL或样例回退。
+
+HTML中文三类、模板收起可展开、BigInt转换与原始精确值／单位、比率分子分母及0/0未知、状态秒／期末单设备分布及原毫秒、温度口径／极值时间、逐日依赖和原证据；动态内容全转义、无脚本／外链。主时间改北京时间，原证据UTC。每次下载独立重验RP／权益／export权限／全部原scope／精确活跃发布／完整当前输入，按固定renderer重渲染核对实际SHA；撤回／替换／新生成／数据过期均阻断，历史成功不代表还能下载。no-store／nosniff／Vary Cookie／CSP sandbox／安全attachment文件名。RR只承诺一次快照，不回收已交付离线副本。
+
+460单测（新增7）／233实际PG报告测试（232子项＋父项，新增13）通过；最初GiB断言手写小数错误，独立BigInt整除余数核对后修正夹具为83886080000000010.463006692，原90071992547409931234567890完整保留，未放宽产品规则。首轮231PG，补输入并发／非默认单位／零分母后233；浏览器发现UTC主时间后修正，再执行最终单测／PG／类型／构建和20HTTP，结果见工具。验证三类真实完成、全阶段撤权、主体绑定／CAS、双worker、任务中断、5次退避／dead、制品／回执故障、篡改有效SQL摘要仍拒绝、撤回／重发不复活旧任务、旧RR发布fence、完整历史范围／租户、运行权限／FK／摘要及渲染中来源修订后下载stale。日志tmp/report-export-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。PG只专用随机合同库，无业务库操作，收尾stop。
+
+Browser QA使用CUA隐藏临时页、桌面及390×844viewport，手机内容和视窗clientWidth均375、无横向溢出，标题／长数值／隐藏面板展开与证据入口可读。临时viewport已reset、QA tab7已close，合成artifact artifacts/report-export-qa/report.html；临时63334服务收尾应核验停止。没有操作用户主地图页、没有重复六场景地图验收。最终95篇文档／50表守卫、ASCII／密钥／Git及63333 SHA以收尾和async-report-exports.json为准。
+
+下一项正式报告页面和生成／发布／导出命令，再接登记报告调度／真实机器身份及常驻worker。I12保持in_progress，I11面板、I08对象分布和分层规模汇总、I09常驻调度仍待。真实来源／平台注册／Beta环境、11万3倍突发、安全恢复、UAT及生产批准未到位；未push／PR／远端CI／真实接入／外部部署或上线。五项1–3本地完成，4–5继续active；bs-moss heartbeat复用，陕西演示／费用预留／退服P2不变。
+
+导出包最终验证补记：北京时间渲染修正后的460单测／233实际PG／类型／生产构建／Prisma／20HTTP和95篇文档／50表／交付／SCA守卫、20文件ASCII全部通过。PGcluster已stop；63334 QA服务已核验停止，63333也暂无listener（待新SHA预览重启）。最终Git／密钥／检查点与预览以工具收尾为准。

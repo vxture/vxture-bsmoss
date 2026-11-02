@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { fingerprintOf, positiveRevision } from "../aggregation/intervals.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
@@ -21,6 +21,18 @@ function eventOf(row: Record<string, any>): PublicationEvent {
 function commandOf(event: PublicationEvent): PublicationCommand {
   return { reportId: event.reportId, reportRevision: event.reportRevision, manifestSha256: event.manifestSha256,
     expectedEventRevision: event.previousEventRevision, commandId: event.commandId, action: event.action, reasonRef: event.reasonRef };
+}
+
+export async function readPublicationInTransaction(pool: Pool, scope: MeasurementScope, raw: PublicationQuery, client: PoolClient) {
+  const query = normalizePublicationQuery(raw);
+  const head = (await client.query(`SELECT event_revision FROM bsmoss_analysis.report_publication_event
+    WHERE workspace_id=$1 AND report_id=$2 ORDER BY event_revision DESC LIMIT 1`, [scope.workspaceId, query.reportId])).rows[0];
+  const row = head ? (await client.query(`SELECT * FROM bsmoss_analysis.report_publication_event
+    WHERE workspace_id=$1 AND report_id=$2 AND event_revision=$3`, [scope.workspaceId, query.reportId, query.eventRevision ?? head.event_revision])).rows[0] : null;
+  if (!row) return null;
+  const event = eventOf(row), report = await readReportInTransaction(pool, scope, { reportId: query.reportId, revision: event.reportRevision }, client);
+  if (!report || report.manifestSha256 !== event.manifestSha256) throw Error("invalid_publication_record");
+  return { event, currentEventRevision: head.event_revision as string, isActive: event.eventRevision === head.event_revision && event.action === "published", report };
 }
 
 export class PgReportPublicationStore implements ReportPublicationStore {
@@ -76,18 +88,9 @@ export class PgReportPublicationStore implements ReportPublicationStore {
     const query = normalizePublicationQuery(raw), client = await this.pool.connect(); let discard = false;
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
-      const head = (await client.query(`SELECT event_revision FROM bsmoss_analysis.report_publication_event
-        WHERE workspace_id=$1 AND report_id=$2 ORDER BY event_revision DESC LIMIT 1`, [this.workspaceId, query.reportId])).rows[0];
-      const row = head ? (await client.query(`SELECT * FROM bsmoss_analysis.report_publication_event
-        WHERE workspace_id=$1 AND report_id=$2 AND event_revision=$3`, [this.workspaceId, query.reportId, query.eventRevision ?? head.event_revision])).rows[0] : null;
-      if (!row) {
-        await revalidate(reportScope({ ...this.scope, sourceIds: [], stationIds: [], serviceIds: [], deviceIds: [], metricKeys: [], allowSiteParameters: false }));
-        await client.query("COMMIT"); return null;
-      }
-      const event = eventOf(row), report = await readReportInTransaction(this.pool, this.scope, { reportId: query.reportId, revision: event.reportRevision }, client);
-      if (!report || report.manifestSha256 !== event.manifestSha256) throw Error("invalid_publication_record");
-      await revalidate(report.manifest.requiredScope); await client.query("COMMIT");
-      return { event, currentEventRevision: head.event_revision as string, isActive: event.eventRevision === head.event_revision && event.action === "published", report };
+      const state = await readPublicationInTransaction(this.pool, this.scope, query, client);
+      await revalidate(state?.report.manifest.requiredScope ?? reportScope({ ...this.scope, sourceIds: [], stationIds: [], serviceIds: [], deviceIds: [], metricKeys: [], allowSiteParameters: false }));
+      await client.query("COMMIT"); return state;
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
   }

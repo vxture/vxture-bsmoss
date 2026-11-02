@@ -34,6 +34,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const rollup=await fetch(url+'/api/aggregates/rollups?workspaceId=forged');assert.equal(rollup.status,401);assert.equal(rollup.headers.get('cache-control'),'no-store');
       const report=await fetch(url+'/api/reports/forged?workspaceId=forged');assert.equal(report.status,401);assert.equal(report.headers.get('cache-control'),'no-store');
       const publication=await fetch(url+'/api/reports/forged/publication?eventRevision=1');assert.equal(publication.status,401);assert.equal(publication.headers.get('cache-control'),'no-store');
+      const download=await fetch(url+'/api/report-exports/forged?format=html');assert.equal(download.status,401);assert.equal(download.headers.get('cache-control'),'no-store');
       assert.equal((await fetch(url+"/api/webhooks/vxture",{method:"POST",body:"{}"})).status,503);
       assert.equal((await fetch(url+"/auth/login")).status,404);
       assert.equal((await fetch(url+"/auth/session")).status,200);
@@ -64,6 +65,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const rollup=await fetch(url+'/api/aggregates/rollups?rollupId=fixture&grain=day&at=2026-10-25T00%3A00%3A00Z');assert.equal(rollup.status,401);assert.equal(rollup.headers.get('x-content-type-options'),'nosniff');assert.ok(rollup.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await rollup.json()).code,'AUTH_REQUIRED');
       const report=await fetch(url+'/api/reports/demo-report?revision=1');assert.equal(report.status,401);assert.equal(report.headers.get('x-content-type-options'),'nosniff');assert.ok(report.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await report.json()).code,'AUTH_REQUIRED');
       const publication=await fetch(url+'/api/reports/demo-report/publication');assert.equal(publication.status,401);assert.equal(publication.headers.get('x-content-type-options'),'nosniff');assert.ok(publication.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await publication.json()).code,'AUTH_REQUIRED');
+      const exported=await fetch(url+'/api/report-exports/demo-job?format=html');assert.equal(exported.status,401);assert.equal(exported.headers.get('x-content-type-options'),'nosniff');assert.ok(exported.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await exported.json()).code,'AUTH_REQUIRED');
     });
     await t.test("sample page renders and the root redirects to it",async()=>{
       const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,307);
