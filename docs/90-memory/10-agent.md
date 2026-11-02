@@ -428,3 +428,17 @@ planCompletionRefresh只规划同指标同粒度同周期，不将确认扩散�
 401单测（新增1纯规则）、117项实际PG报告测试（116子项＋父项，新增10）、双层类型／生产构建／Prisma validate通过。新增覆盖精确目标、确认／撤销降级与历史、旧或失效证明不复活、单段／全对象优先级、状态unknown、捕获／回执故障回滚、source／service／device／粒度拒绝、指针互斥／租户／追加、多映射17分钟状态以及消费快照之后最高撤销。最终HTTP／守卫／ASCII／密钥／Git和63333运行SHA以工具收尾为准，日志tmp/completion-change-{unit,db,types,build,http,prisma,guards,ascii,staged-scan}.log。只专用PG随机合同库，收尾cluster停止状态见工具，无业务库操作。
 
 下一步I09能力策略和映射／服务有效期变化的捕获及历史影响传播、消费失败持久退避／隔离、登记订阅／分区种子及真实机器身份／常驻worker；I08瞬时持久化／跨对象汇总、I11/I12正式查询发布仍待。真实来源／平台注册／环境／Beta／容量安全恢复／UAT和生产审批缺少，未push／PR／远端CI／真实接入／部署／上线。没有新增来源签认或代理审批功能；本批确认夹具只有测试owner写。不要重复1—3演示工作或创建自动化，也不以本地预览称正式上线。
+
+## I09输入消费退避／隔离与恢复（2026-11-02）
+
+本轮继续既有五项active目标。恢复时已有input-dispatch-control／pg-input-refresh／DDL／Prisma及DB测试未提交改动，已接续并完成验证。上一轮有完成／撤销传播实际进展，本轮也有内部实质进展，不标blocked；没有真实资料回复，不重复追问或建立自动化。
+
+设计201／实施370：新增input_dispatch_event追加历史，共36表空库基线／Prisma标量。第1–4次延迟5/10/20/40秒，第5次隔离，DB clock_timestamp生成及判断due。同事件／完整scope和输出配置摘要try advisory lock；工作SAVEPOINT包住规划、可信快照、全批入队和消费回执，失败先回滚再写固定分类，失败记录写错／授权过期／scope变更全部回滚。失败前重新验身份／data面权益／metering.aggregate／完整scope，不存异常原文。数据库连接已断等事务无法继续时不能保证写失败，事件保持未消费待监督恢复。
+
+发现页排除未到期／隔离，runInputRefreshStep处理一个可用事件，后续正常变化可继续；dispatchInputChange直接内部调用也服从退避。reopenInputChange只可恢复quarantined，expectedRevision CAS和reasonRef幂等，追加attempt=0／reopened而不覆盖5次原失败，恢复不等于来源已修复或签认。成功仍只认input_refresh_receipt。
+
+收尾发现并修复原草稿的规划错误漏洞：evidenceHistory在SAVEPOINT外，超长历史／缺映射会逃过退避。新增独立authorizeInputChange：稳定对象验权、EXISTS检查所有历史对象范围（不被1000条返回边界截断），再在SAVEPOINT内读有界证据并规划。重放／隔离／恢复均不能绕过当前范围；缺历史映射仍可按证明稳定对象记录失败和显式恢复。新增DB回归覆盖1001修订末条越权及缺映射证明隔离／恢复／历史保留。
+
+405单测（新增4）、126项实际PostgreSQL报告测试（125子项＋父项，新增9）、双层类型／生产构建／Prisma验证通过。初轮失败为PG带参数多语句夹具，已拆独立语句，最终全DB通过。75篇编号文档／36表镜像／交付／SCA配置守卫通过；最终19HTTP／ASCII／密钥／本地提交／预览SHA见工具收尾。日志tmp/input-control-{unit,db,types,build,prisma,http,guards,ascii,staged-scan}.log。专用PGcluster已stop，只创建删除随机合同库，无业务库操作。无依赖／UI变化，不重复六场景浏览器或在线漏洞扫描。
+
+下一包I09能力策略／映射／服务有效期变化历史传播、登记订阅／种子和真实机器身份／常驻worker；或I08瞬时值持久化／跨对象权威汇总以支撑正式I11/I12。第1—3项演示本地完成，第4项真实来源／平台注册未到位，第5项内部出口和Beta／容量／安全恢复／UAT／生产审批继续未完成。不得把本地预览、空库测试证明或内部服务称真实接入上线。未push／PR／远端CI／外部部署；heartbeat bs-moss复用，费用预留／退服P2／不扩外省演示不变。

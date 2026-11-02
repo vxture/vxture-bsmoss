@@ -21,7 +21,7 @@ import { claimAuthorizedRefresh, runRefreshStep } from "../../portals/app/app/do
 import { PgStateSnapshotReader } from "../../portals/app/app/domains/aggregation/pg-state-snapshot.ts";
 import { PgStateAggregateStore } from "../../portals/app/app/domains/aggregation/pg-state-store.ts";
 import { aggregateStatePeriod } from "../../portals/app/app/domains/aggregation/state-period.ts";
-import { dispatchInputChange, pendingInputChanges } from "../../portals/app/app/domains/aggregation/pg-input-refresh.ts";
+import { dispatchInputChange, pendingInputChanges, superviseInputChange, runInputRefreshStep, reopenInputChange } from "../../portals/app/app/domains/aggregation/pg-input-refresh.ts";
 import { inputRefreshSubscription } from "../../portals/app/app/domains/aggregation/input-refresh.ts";
 import { readRefreshSnapshot } from "../../portals/app/app/domains/aggregation/refresh-snapshot.ts";
 const { Client } = pg;
@@ -50,7 +50,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,35);
+      assert.equal(tables.rows[0].n,36);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -1479,6 +1479,118 @@ await test("empty-database PostgreSQL contract", async t => {
       await finishChangeJobs(done.manifest,proofPorts);const {snap,store}=await proofAggregate(target),head=await store.current(snap.plan);assert.equal(head.result.completionEvidence.revision,'3');assert.equal(head.result.completeness,'preliminary');
       const latest=(await db.query("SELECT c.id FROM bsmoss_metering.input_change c JOIN bsmoss_integration.source_completion_set p ON (p.workspace_id,p.id)=(c.workspace_id,c.completion_set_id) WHERE p.source_id='proof-src' AND p.metric_code=$1 AND p.revision=3",[depTarget.metric.code])).rows[0];
       assert.ok((await pendingInputChanges(adapterPool,proofPorts,proofPolicy)).changeIds.includes(latest.id));
+    });
+    await db.query(`INSERT INTO bsmoss_integration.source VALUES ('w','retry-src','RetrySource','file');
+      INSERT INTO bsmoss_resource.station_service VALUES ('w','retry-svc','st','op','2026-01-01Z','2027-01-01Z');
+      INSERT INTO bsmoss_resource.network_object VALUES ('w','retry-cell','st','retry-svc','cell');
+      INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,version,valid_from,valid_to)
+      VALUES ('w','retry-map','retry-src','cell','retry-external','st','retry-svc','retry-cell',1,'2026-01-01Z','2027-01-01Z')`);
+    await db.query(`INSERT INTO bsmoss_integration.source_capability VALUES ('w','retry-cap','retry-src','service.data.uplink_bytes',1,'day','active','fixture://retry-reviewed',$1,'2026-01-01Z','2027-01-01Z')`,[capabilityPolicy]);
+    const retryScope={...scope,sourceIds:['retry-src'],serviceIds:['retry-svc'],deviceIds:[],allowSiteParameters:false,metricKeys:[upMetric.code+'@1']};
+    const retryPorts={...snapshotPorts,async readLocalGrant(){return {...await snapshotPorts.readLocalGrant(),scope:retryScope};}};
+    const retryPolicy={outputs:[upMetric],grains:['day']},retrySub=inputRefreshSubscription(retryScope,retryPolicy).sha256,retryWriter=new PgMeasurementStore(adapterPool,retryScope,FIRST_METRICS);
+    async function retryFact(name,day=0){const start=new Date(Date.parse('2026-03-01T16:00:00Z')+day*86400000).toISOString(),end=new Date(Date.parse(start)+86400000).toISOString();
+      const saved=await retryWriter.append(draft('retry:'+name,{sourceId:'retry-src',mappingId:'retry-map',periodStart:start,periodEnd:end,value:{kind:'integer_delta',value:'100'}}));
+      const changes=(await db.query('SELECT id,change_kind FROM bsmoss_metering.input_change WHERE measurement_id=$1 ORDER BY created_at,id',[saved.id])).rows;
+      return {id:changes.find(c=>c.change_kind==='measurement').id,qualityId:changes.find(c=>c.change_kind==='quality').id};}
+    const retryEvents=async id=>(await db.query('SELECT * FROM bsmoss_analysis.input_dispatch_event WHERE change_id=$1 AND subscription_sha256=$2 ORDER BY revision',[id,retrySub])).rows;
+    // Deterministic due-time fixture: only this test pool removes the positive
+    // delay at INSERT; real PostgreSQL still owns the gate clock and evidence.
+    function retryPool({failWork=false,ready=false,failControl=false,afterControl}={}){return {async connect(){const client=await adapterPool.connect();return {async query(sql,args){
+      if(failWork&&sql.includes('INSERT INTO bsmoss_analysis.refresh_job'))throw Error('fixture_private_customer_payload');
+      if(sql.includes('INSERT INTO bsmoss_analysis.input_dispatch_event')){if(failControl)throw Error('fixture_control_write_failure');if(ready)sql=sql.replace("clock_timestamp()+$8::int*interval '1 second'","clock_timestamp()+LEAST($8::int,0)*interval '1 second'");}
+      const result=await client.query(sql,args);if(afterControl&&sql.includes('INSERT INTO bsmoss_analysis.input_dispatch_event'))afterControl();return result;},release(discard){client.release(discard);}};},query(...args){return adapterPool.query(...args);}};}
+    let poison;
+    await t.test('supervised input failure rolls back jobs and receipt and durably delays just that subscription',async()=>{
+      poison=await retryFact('poison');const before=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n;
+      const result=await superviseInputChange(retryPool({failWork:true}),retryPorts,poison.id,retryPolicy);assert.equal(result.status,'failure_recorded');assert.equal(result.attempt,1);assert.equal(result.code,'evidence_invalid');
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n,before);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[poison.id])).rowCount,0);
+      const event=(await retryEvents(poison.id))[0];assert.equal(event.attempt,'1');assert.equal(event.state,'retry');assert.ok(!JSON.stringify(event).includes('fixture_private_customer_payload'));
+      assert.equal((await dispatchInputChange(adapterPool,retryPorts,poison.id,retryPolicy)).status,'deferred');assert.ok(!(await pendingInputChanges(adapterPool,retryPorts,retryPolicy)).changeIds.includes(poison.id));
+      const other=await pendingInputChanges(adapterPool,retryPorts,{outputs:[upMetric],grains:['day','month']});assert.ok(other.changeIds.includes(poison.id));
+    });
+    await t.test('input failure exhaustion quarantines without consuming evidence and an explicit reopen resets attempts',async()=>{
+      // Owner-only fixture expires the first wait, without a runtime update API.
+      await db.query("UPDATE bsmoss_analysis.input_dispatch_event SET available_at=clock_timestamp()-interval '1 second' WHERE change_id=$1",[poison.id]);
+      for(let i=2;i<=5;i++){const result=await superviseInputChange(retryPool({failWork:true,ready:true}),retryPorts,poison.id,retryPolicy);assert.equal(result.attempt,i);assert.equal(result.state,i===5?'quarantined':'retry');}
+      assert.equal((await retryEvents(poison.id)).length,5);assert.equal((await superviseInputChange(adapterPool,retryPorts,poison.id,retryPolicy)).status,'quarantined');
+      assert.ok(!(await pendingInputChanges(adapterPool,retryPorts,retryPolicy)).changeIds.includes(poison.id));assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[poison.id])).rowCount,0);
+      await assert.rejects(reopenInputChange(adapterPool,retryPorts,{changeId:poison.id,policy:retryPolicy,expectedRevision:'4',reasonRef:'review:fix'}),/input_dispatch_revision_conflict/);
+      const request={changeId:poison.id,policy:retryPolicy,expectedRevision:'5',reasonRef:'review:fix'},reopened=await reopenInputChange(adapterPool,retryPorts,request);assert.equal(reopened.status,'reopened');assert.equal(reopened.revision,'6');
+      assert.equal((await reopenInputChange(adapterPool,retryPorts,request)).status,'duplicate');await assert.rejects(reopenInputChange(adapterPool,retryPorts,{...request,expectedRevision:'4'}),/conflicting_input_reopen_replay/);
+      const failed=await superviseInputChange(retryPool({failWork:true,ready:true}),retryPorts,poison.id,retryPolicy);assert.equal(failed.attempt,1);assert.equal(failed.revision,'7');
+      const recovered=await superviseInputChange(adapterPool,retryPorts,poison.id,retryPolicy);assert.equal(recovered.status,'dispatched');await finishChangeJobs(recovered.manifest,retryPorts);
+      assert.equal((await retryEvents(poison.id)).length,7);assert.equal((await dispatchInputChange(adapterPool,retryPorts,poison.id,retryPolicy)).status,'duplicate');
+      await assert.rejects(reopenInputChange(adapterPool,retryPorts,{...request,expectedRevision:'7',reasonRef:'review:another'}),/input_already_dispatched/);
+    });
+    await t.test('delayed poison changes do not block later authorized input refresh steps',async()=>{
+      const bad=await retryFact('blocked',1),good=await retryFact('healthy',2);
+      await superviseInputChange(retryPool({failWork:true}),retryPorts,bad.id,retryPolicy);await superviseInputChange(retryPool({failWork:true}),retryPorts,bad.qualityId,retryPolicy);
+      // Clear the original poison's initial quality change first, as its
+      // independent evidence is also legitimately pending.
+      const quality=await superviseInputChange(adapterPool,retryPorts,poison.qualityId,retryPolicy);await finishChangeJobs(quality.manifest,retryPorts);
+      const step=await runInputRefreshStep(adapterPool,retryPorts,retryPolicy);assert.equal(step.status,'dispatched');assert.equal(step.changeId,good.id);await finishChangeJobs(step.manifest,retryPorts);
+      const last=await runInputRefreshStep(adapterPool,retryPorts,retryPolicy);assert.equal(last.changeId,good.qualityId);await finishChangeJobs(last.manifest,retryPorts);assert.equal((await runInputRefreshStep(adapterPool,retryPorts,retryPolicy)).status,'idle');
+    });
+    await t.test('failure recording and reopening recheck permissions and never persist after revocation or expiry',async()=>{
+      const fact=await retryFact('revoked',3);let reads=0;
+      const revoked={...retryPorts,async readLocalGrant(){return ++reads===1?await retryPorts.readLocalGrant():null;}};
+      await assert.rejects(superviseInputChange(retryPool({failWork:true}),revoked,fact.id,retryPolicy),/permission_denied/);assert.equal((await retryEvents(fact.id)).length,0);
+      let clock=Date.now();const timed={...retryPorts,now:()=>clock};await assert.rejects(superviseInputChange(retryPool({failWork:true,afterControl(){clock+=120000;}}),timed,fact.id,retryPolicy),/access_expired/);assert.equal((await retryEvents(fact.id)).length,0);
+      const changed={...retryPorts,async readLocalGrant(){reads++;return {...await retryPorts.readLocalGrant(),scope:reads===1?retryScope:{...retryScope,allowSiteParameters:true}};}};reads=0;
+      await assert.rejects(superviseInputChange(retryPool({failWork:true}),changed,fact.id,retryPolicy),/permission_denied/);assert.equal((await retryEvents(fact.id)).length,0);
+      const denied={...retryPorts,async readLocalGrant(){return null;}};await assert.rejects(reopenInputChange(adapterPool,denied,{changeId:poison.id,expectedRevision:'5',reasonRef:'unauthorized',policy:retryPolicy}),/permission_denied/);
+    });
+    await t.test('failure ledger write faults preserve retryability without partial jobs or false consumption',async()=>{
+      const fact=await retryFact('control-rollback',4),before=(await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n;
+      await assert.rejects(superviseInputChange(retryPool({failWork:true,failControl:true}),retryPorts,fact.id,retryPolicy),/fixture_control_write_failure/);assert.equal((await retryEvents(fact.id)).length,0);
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM bsmoss_analysis.refresh_job')).rows[0].n,before);assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[fact.id])).rowCount,0);
+      const result=await superviseInputChange(adapterPool,retryPorts,fact.id,retryPolicy);assert.equal(result.status,'dispatched');await finishChangeJobs(result.manifest,retryPorts);
+    });
+    await t.test('concurrent failing consumers append only one counted attempt under the event fence',async()=>{
+      const fact=await retryFact('race',5);
+      const outcomes=await Promise.allSettled([superviseInputChange(retryPool({failWork:true}),retryPorts,fact.id,retryPolicy),superviseInputChange(retryPool({failWork:true}),retryPorts,fact.id,retryPolicy)]);
+      assert.equal(outcomes.filter(r=>r.status==='fulfilled'&&r.value.status==='failure_recorded').length,1);
+      assert.ok(outcomes.every(r=>r.status==='fulfilled'||['40001','23505'].includes(r.reason.code)));assert.equal((await retryEvents(fact.id)).length,1);
+      assert.equal((await superviseInputChange(adapterPool,retryPorts,fact.id,retryPolicy)).status,'deferred');
+    });
+    await t.test('input control history rejects cross-tenant links and bad states and is immutable to runtime',async()=>{
+      const sample=(await retryEvents(poison.id))[0];
+      await assert.rejects(adapterPool.query('UPDATE bsmoss_analysis.input_dispatch_event SET attempt=0 WHERE change_id=$1',[poison.id]),e=>e.code==='42501');
+      await assert.rejects(adapterPool.query('DELETE FROM bsmoss_analysis.input_dispatch_event WHERE change_id=$1',[poison.id]),e=>e.code==='42501');
+      for(const patch of [{state:'retry',attempt:'5'},{state:'quarantined',attempt:'4'},{state:'reopened',attempt:'0',failure_code:null,reason_ref:null},{failure_code:'private endpoint'}]) {
+        const row={...sample,revision:'99',...patch},keys=Object.keys(row);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.input_dispatch_event('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(row)),e=>e.code==='23514');
+      }
+      const foreign={...sample,workspace_id:'other'},keys=Object.keys(foreign);await assert.rejects(db.query('INSERT INTO bsmoss_analysis.input_dispatch_event('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+')',Object.values(foreign)),e=>e.code==='23503');
+    });
+    await t.test('planning failures before enqueue are delayed and quarantined without recording forbidden evidence',async()=>{
+      const fact=await retryFact('history-limit',6);
+      const original=(await db.query('SELECT m.* FROM bsmoss_metering.input_change c JOIN bsmoss_metering.measurement m ON (m.workspace_id,m.id)=(c.workspace_id,c.measurement_id) WHERE c.id=$1',[fact.id])).rows[0];
+      await db.query(`INSERT INTO bsmoss_integration.raw_event(workspace_id,source_id,event_id,revision,payload_sha256,payload_uri,occurred_at)
+        SELECT 'w','retry-src',$1,n,repeat('a',64),'fixture://history',clock_timestamp() FROM generate_series(2,1001) n`,[original.event_id]);
+      await db.query(`INSERT INTO bsmoss_metering.measurement(workspace_id,id,source_id,event_id,event_revision,metric_code,metric_version,component_key,station_id,mapping_id,transform_version,period_start,period_end,value_kind,integer_value)
+        SELECT 'w','retry-history:'||n,'retry-src',$1,n,$2,1,$3,'st','retry-map','1',$4,$5,'integer_delta',100 FROM generate_series(2,1001) n`,
+        [original.event_id,upMetric.code,original.component_key,original.period_start,original.period_end]);
+      const limited=await superviseInputChange(adapterPool,retryPorts,fact.id,retryPolicy);assert.equal(limited.status,'failure_recorded');assert.equal(limited.code,'capacity_limit');
+      // A restricted caller must be rejected even when a forbidden historical
+      // revision lies beyond the evidence planner's 1000-row return bound.
+      await db.query(`INSERT INTO bsmoss_integration.source_mapping(workspace_id,id,source_id,external_type,external_id,station_id,service_id,network_object_id,version,valid_from,valid_to)
+        VALUES ('w','retry-denied-map','retry-src','cell','retry-denied','st','svc','cell',1,'2026-01-01Z','2027-01-01Z')`);
+      await db.query("UPDATE bsmoss_metering.measurement SET mapping_id='retry-denied-map' WHERE id='retry-history:1001'");
+      await assert.rejects(superviseInputChange(adapterPool,retryPorts,fact.id,retryPolicy),/object_scope_denied/);assert.equal((await retryEvents(fact.id)).length,1);
+      await assert.rejects(reopenInputChange(adapterPool,retryPorts,{changeId:fact.id,expectedRevision:'1',reasonRef:'review:denied-history',policy:retryPolicy}),/object_scope_denied/);
+    });
+    await t.test('completion with no mapping can be quarantined and reopened while the full original failure history survives',async()=>{
+      const proof=await appendProof('1','confirmed',proofTarget(),false,{period_start:'2025-03-01T16:00:00Z',period_end:'2025-03-02T16:00:00Z',watermark:'2025-03-02T16:00:00Z'});
+      // No reviewed mapping exists for this historical window. Authorization
+      // still resolves from the proof's stable object, independently of it.
+      const first=await superviseInputChange(adapterPool,proofPorts,proof.changeId,proofPolicy);assert.equal(first.code,'source_unavailable');
+      await db.query("UPDATE bsmoss_analysis.input_dispatch_event SET available_at=clock_timestamp()-interval '1 second' WHERE change_id=$1",[proof.changeId]);
+      for(let i=2;i<=5;i++)assert.equal((await superviseInputChange(retryPool({ready:true}),proofPorts,proof.changeId,proofPolicy)).attempt,i);
+      const reopened=await reopenInputChange(adapterPool,proofPorts,{changeId:proof.changeId,expectedRevision:'5',reasonRef:'review:mapping-pending',policy:proofPolicy});assert.equal(reopened.status,'reopened');
+      const again=await superviseInputChange(adapterPool,proofPorts,proof.changeId,proofPolicy);assert.equal(again.attempt,1);assert.equal(again.revision,'7');
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_refresh_receipt WHERE change_id=$1',[proof.changeId])).rowCount,0);
+      assert.equal((await db.query('SELECT 1 FROM bsmoss_analysis.input_dispatch_event WHERE change_id=$1',[proof.changeId])).rowCount,7);
     });
   } finally {
     if (adapterPool) await adapterPool.end();

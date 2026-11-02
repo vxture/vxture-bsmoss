@@ -633,3 +633,25 @@ CREATE TRIGGER completion_input_change AFTER INSERT ON bsmoss_integration.source
   FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
 CREATE TRIGGER completion_set_input_change AFTER INSERT ON bsmoss_integration.source_completion_set
   FOR EACH ROW EXECUTE FUNCTION bsmoss_metering.capture_input_change();
+
+-- Append-only consumption retry/quarantine/reopen history. A receipt, not a
+-- retry state, is the sole evidence that changes were durably dispatched.
+CREATE TABLE bsmoss_analysis.input_dispatch_event (
+  workspace_id text NOT NULL,
+  change_id text NOT NULL,
+  subscription_sha256 text NOT NULL CHECK(subscription_sha256 ~ '^[a-f0-9]{64}$'),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  attempt numeric(30,0) NOT NULL CHECK(attempt BETWEEN 0 AND 5),
+  state text NOT NULL CHECK(state IN ('retry','quarantined','reopened')),
+  failure_code text CHECK(failure_code IN ('serialization_conflict','database_unavailable','capacity_limit','source_unavailable','evidence_invalid')),
+  reason_ref text,
+  available_at timestamptz NOT NULL,
+  recorded_by text NOT NULL CHECK(length(trim(recorded_by))>0),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,change_id,subscription_sha256,revision),
+  UNIQUE(workspace_id,change_id,subscription_sha256,reason_ref),
+  FOREIGN KEY(workspace_id,change_id) REFERENCES bsmoss_metering.input_change(workspace_id,id),
+  CHECK((state='retry' AND attempt BETWEEN 1 AND 4 AND failure_code IS NOT NULL AND reason_ref IS NULL) OR
+    (state='quarantined' AND attempt=5 AND failure_code IS NOT NULL AND reason_ref IS NULL) OR
+    (state='reopened' AND attempt=0 AND failure_code IS NULL AND reason_ref IS NOT NULL AND length(trim(reason_ref))>0))
+);
