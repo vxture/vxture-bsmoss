@@ -1,8 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, DataTable, EmptyState, FilterBar, Icon, Input,
-  ListCard, MetricGrid, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, FilterBar, Icon, Input,
+  ListCard, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, statusNames } from "./labels";
@@ -10,6 +10,7 @@ import "./sites.css";
 export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
   const router = useRouter(), q = demo.query;
   const [pending, start] = useTransition(), [search, setSearch] = useState(q.search), [expanded, setExpanded] = useState<readonly string[]>([]);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
   const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
   const columns: DataTableColumn<SiteRecord>[] = [
@@ -49,21 +50,21 @@ export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
         <p className="border-t border-border p-md text-body-small text-muted-foreground">{"\u533a\u57df\u6570\u5b57\u4e3a\u6f14\u793a\u8d44\u6e90\u603b\u6570"}</p>
       </aside>
       <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md p-lg">
-        <div className="flex shrink-0 items-center justify-between gap-sm">
-          <span className="truncate text-body-small text-muted-foreground" title={regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}>{regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}</span>
-          <Button asChild variant="secondary"><a href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button>
+        <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
+        <div className="flex items-center justify-between gap-sm">
+          <span className="min-w-0 flex-1 truncate text-body-small text-muted-foreground" title={regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}>{regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}</span>
+          <div className="flex shrink-0 items-center gap-xs">
+            <CollapsibleTrigger asChild><Button variant="ghost" aria-label={"\u8d44\u6e90\u6982\u51b5"}><span><span className="hidden sm:inline">{"\u8d44\u6e90"}</span>{"\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" /></Button></CollapsibleTrigger>
+            <Button asChild variant="secondary"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden sm:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>
+          </div>
         </div>
-        <div className="shrink-0"><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"} items={[
-          { id: "sites", icon: "building", label: "\u7269\u7406\u7ad9\u5740", value: n(demo.summary.sites), description: "\u5ea7" },
-          { id: "relations", icon: "users", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: n(demo.summary.relations), description: "\u6761" },
-          { id: "shared", icon: "stack", label: "\u5171\u4eab\u7ad9\u5740", value: n(demo.summary.shared), description: "\u4e24\u5bb6\u53ca\u4ee5\u4e0a\u8fd0\u8425\u5546" },
-          { id: "attention", icon: "gauge", label: "\u8fd0\u884c\u5173\u6ce8", value: n(demo.summary.attention), description: "\u5173\u6ce8\u53ca\u5f02\u5e38\u7ad9\u5740" },
-        ]} /></div><MetricListCard className="sm:hidden" title={"\u5f53\u524d\u8d44\u6e90"} icon="building" metrics={[
-          { key: "sites", label: "\u7ad9\u5740 / \u5ea7", value: n(demo.summary.sites) },
-          { key: "relations", label: "\u5173\u7cfb / \u6761", value: n(demo.summary.relations) },
-          { key: "shared", label: "\u5171\u4eab / \u5ea7", value: n(demo.summary.shared) },
-          { key: "attention", label: "\u5173\u6ce8 / \u5ea7", value: n(demo.summary.attention) },
-        ]} /></div>
+        <CollapsibleContent><div className="pt-sm" role="group" aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"}><MetricListCard title={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90"} icon="building" metrics={[
+          { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(demo.summary.sites) + " \u5ea7" },
+          { key: "relations", label: "\u670d\u52a1\u5173\u7cfb", value: n(demo.summary.relations) + " \u6761" },
+          { key: "shared", label: "\u5171\u4eab\u7ad9\u5740", value: n(demo.summary.shared) + " \u5ea7" },
+          { key: "attention", label: "\u8fd0\u884c\u5173\u6ce8", value: n(demo.summary.attention) + " \u5ea7" },
+        ]} /></div></CollapsibleContent>
+        </Collapsible>
         <form className="shrink-0" role="search" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
           <FilterBar count={n(demo.count) + (q.view === "sites" ? " \u5ea7\u7ad9\u5740" : " \u6761\u5173\u7cfb")}
             resetLabel={"\u91cd\u7f6e\u7b5b\u9009"} scope={<SegmentedControl size="sm" ariaLabel={"\u8d44\u6e90\u4e1a\u52a1\u89c6\u56fe"} value={q.view} onChange={view => navigate({ view })}
