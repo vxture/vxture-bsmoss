@@ -81,6 +81,13 @@ product client, require explicit finite local ACLs and cannot publish or downloa
 reports. Live self-audience token acceptance and production daemon hosting remain
 pending. See docs/40-implementation/620-worker-service-identity.md.
 
+Opt-in background process packaging and Compose delivery are implemented. Run
+pnpm build:worker and pnpm test:worker-host to check the standalone artifact.
+Production deployment must explicitly select workers=on or workers=off and use
+reviewed private worker configuration; startup never creates grants or schedules.
+Linux image/signal acceptance and live deployment remain pending. See
+docs/50-deployment/50-worker-host-runbook.md.
+
 ## Local sample portal (I10)
 
     pnpm build

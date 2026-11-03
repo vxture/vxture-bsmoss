@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "kind": "report",
+  "workspaceId": "00000000-0000-0000-0000-000000000000",
+  "scheduleIds": [],
+  "executeExports": true,
+  "reconcileHistory": false,
+  "maxStepsPerTick": 1,
+  "pollMilliseconds": 5000,
+  "healthTimeoutMilliseconds": 180000,
+  "shutdownMilliseconds": 90000
+}

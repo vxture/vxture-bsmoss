@@ -15,6 +15,9 @@ on:
         options:
           - app
           - stack
+          - worker
+          - aggregate-worker
+          - report-worker
 permissions:
   contents: read
 concurrency:
@@ -56,7 +59,7 @@ jobs:
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |-
           set -euo pipefail
-          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml
+          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml docker-compose.workers.yml
           ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
           scp -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
           ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
@@ -82,6 +85,25 @@ jobs:
           set -euo pipefail
           printf "%s\n" "$RUNTIME_ENV_FILE" | ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "CONFIG_KIND='$CONFIG_KIND' STACK_ROOT='$STACK_ROOT' bash '$STACK_ROOT/deploy/env-update.sh'"
         if: ${{ inputs.config_kind == 'stack' }}
+      - name: Run worker configuration update
+        if: ${{ inputs.config_kind == 'worker' || inputs.config_kind == 'aggregate-worker' || inputs.config_kind == 'report-worker' }}
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          CONFIG_KIND: ${{ inputs.config_kind }}
+          WORKER_ENV_FILE: ${{ secrets.WORKER_ENV_FILE }}
+          AGGREGATE_WORKER_CONFIG: ${{ secrets.AGGREGATE_WORKER_CONFIG }}
+          REPORT_WORKER_CONFIG: ${{ secrets.REPORT_WORKER_CONFIG }}
+        run: |-
+          set -euo pipefail
+          case "$CONFIG_KIND" in
+            worker) content="$WORKER_ENV_FILE" ;;
+            aggregate-worker) content="$AGGREGATE_WORKER_CONFIG" ;;
+            report-worker) content="$REPORT_WORKER_CONFIG" ;;
+            *) exit 1 ;;
+          esac
+          printf "%s\n" "$content" | ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "CONFIG_KIND='$CONFIG_KIND' STACK_ROOT='$STACK_ROOT' bash '$STACK_ROOT/deploy/env-update.sh'"
       - name: Remove runner SSH key
         if: ${{ always() }}
         run: rm -f ~/.ssh/id_ed25519

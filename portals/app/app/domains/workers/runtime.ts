@@ -12,7 +12,8 @@ function ports(workspaceId: string) {
     meteringEnabled: () => process.env.BSMOSS_METERING_ENABLED === "on",
   });
 }
-// Trusted host entry points only. No daemon, route or implicit grant is enabled.
+// Trusted host factories only. The separate process entry must explicitly run
+// these loops; imports never start a daemon, route or implicit grant.
 export function aggregateWorkerForWorkspace(config: AggregateWorkerConfig) {
   if (config.subject !== "s2s:bsmoss") throw Error("worker_identity_invalid");
   return createAggregateWorker(getPool(), ports(config.workspaceId), config);

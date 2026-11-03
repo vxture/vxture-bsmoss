@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "kind": "aggregate",
+  "workspaceId": "00000000-0000-0000-0000-000000000000",
+  "partitionIds": [],
+  "executeResults": true,
+  "maxStepsPerTick": 1,
+  "pollMilliseconds": 5000,
+  "healthTimeoutMilliseconds": 180000,
+  "shutdownMilliseconds": 90000
+}

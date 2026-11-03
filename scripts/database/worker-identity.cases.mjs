@@ -21,6 +21,9 @@ import { PgReportPublicationStore } from '../../portals/app/app/domains/reports/
 import { createAuthorizedReportExports } from '../../portals/app/app/domains/access/report-exports.ts';
 import { PgReportExportStore } from '../../portals/app/app/domains/reports/pg-exports.ts';
 import { TIERS } from '../../portals/app/app/entitlement/types.ts';
+import pg from 'pg';
+import { workerHostConfig } from '../../portals/app/app/domains/workers/host-config.ts';
+import { runHostedWorker } from '../../portals/app/app/domains/workers/host.ts';
 
 // Entirely synthetic signed IdP and explicit DBA-reviewed fixture ACL. No live account.
 export async function workerIdentityCases(t, { db, adapterPool }) {
@@ -198,5 +201,27 @@ export async function workerIdentityCases(t, { db, adapterPool }) {
     assert.equal((await exports.download({ jobId: job.jobId })).sha256, artifact.content_sha256);
     const machineExports = createAuthorizedReportExports(ports, { create: s => new PgReportExportStore(adapterPool, s) }, 'data');
     await assert.rejects(machineExports.download({ jobId: job.jobId }), /permission_denied/);
+  });
+  await t.test('host abort during a real PostgreSQL result write waits for commit before closing its owned pool and starts no next lane', async () => {
+    const job = await enqueue(), controller = new AbortController(), health = [], events = [];
+    const owned = new pg.Pool({ ...adapterPool.options, max: 2 }); let closed = false, interrupted = false;
+    const hostedPorts = workerAccessPorts(ws, provider, { ...dependencies, pool: () => owned });
+    const pool = { query: (...args) => owned.query(...args), async connect() {
+      const client = await owned.connect(); return { async query(sql, args) {
+        const result = await client.query(sql, args);
+        if (sql.includes("SET status='succeeded',lease_token=NULL")) { interrupted = true; controller.abort(); }
+        return result;
+      }, release: discard => client.release(discard) };
+    } };
+    const config = workerHostConfig({ version: 1, kind: 'aggregate', workspaceId: ws, partitionIds: [], executeResults: true, maxStepsPerTick: 1, pollMilliseconds: 1000 });
+    try {
+      await runHostedWorker(config, createAggregateWorker(pool, hostedPorts, config.worker), {
+        signal: controller.signal, configSha256: 'a'.repeat(64), pid: process.pid, gitSha: 'fixture',
+        writeHealth: async value => { health.push(value.status); }, log: value => events.push(value.event),
+        close: async () => { assert.equal((await row(job.id)).status, 'succeeded'); await owned.end(); closed = true; },
+      });
+      assert.equal(interrupted, true); assert.equal(closed, true); assert.equal(health.at(-1), 'stopped');
+      assert.ok(health.includes('stopping')); assert.equal(events.filter(event => event === 'worker_cycle').length, 1);
+    } finally { if (!closed) await owned.end(); }
   });
 }

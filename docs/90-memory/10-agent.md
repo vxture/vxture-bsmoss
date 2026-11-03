@@ -799,3 +799,23 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 日志tmp/report-job-monitor-{unit,db,types,build,http,guards,ascii,staged-scan,browser}.log；最终SHA／扫描／运行版本见report-job-inspection检查点。构建前已核验并停本仓63333 Next PID24172，收尾恢复新SHA。报告队列受审恢复、历史报告变化传播、I11配置和I08分布规模仍待，不能称全部正式调度或上线。平台token-exchange service模式无用户sub，再确认aud=vxture通道token不能充当产品测量C1；真实机器provider／宿主需权威契约。
 
 真实来源／平台注册／Beta／11万3倍突发／安全恢复／UAT及生产批准仍缺；原五项全部范围active，1–3本地完成、4–5未完成。没有push／PR／远端CI／真实接入／外部部署或上线，bs-moss复用，陕西演示／费用仅预留／退服P2不变。
+
+## 用量报告周期切换位置统一（2026-11-03）
+
+用户插入UI优化：日／周／月按钮组在三个报告页面位置不同。仅为日报与周月报上下文增加共享mw-report-context，固定范围minmax(0,1fr)／周期auto／运营商100px三列，避免原auto margin与calendar flex差异；窄屏范围独占一行，按钮固定下一行左侧。报告header操作区最小28px，下载链接异步加载不再推动按钮。没有业务计数／接口／DDL改变，原未提交worker-host包保留且尚未收尾，不宣称整包已交付。
+
+生产构建、双层类型与20HTTP通过，3个UI源文件ASCII、diff check通过。CUA在63333真实React页面切换三周期：桌面1280x720三个按钮组均x1009/y171.6667/w76.3333/h23.3333；390x844均x63.6667/y206.6667，document宽390、scroll宽390。周报加载前后坐标不变。artifacts/report-control-alignment-qa含desktop.png、mobile.png、alignment.json；临时tab17已关闭、viewport已reset，未改用户主tab筛选。日志tmp/report-control-alignment-{build,types,http}.log。63333当前session68634，APP_VERSION=bsmoss-local-report-alignment，基于3c573c8加当前工作区构建，不能冒充clean commit。无远端push／部署／正式上线；原五项目标及worker宿主收尾继续保留。
+
+补充UI要求：周／月报日期区间已合并到区域名称之后，移除报告独立mw-calendar-window行；usage模式保留原有日期展示。周报“陕西省 · 2026-10-19 — 2026-10-25”、月报“陕西省 · 2026-10-01 — 2026-10-31”，同一span不换行且title可查看完整范围。最新生产构建通过，CUA周／月实际单行均12px高、独立日期行0；390宽文本client/scroll均302px且nowrap，无裁剪／换行。证据inline-window-{desktop,mobile}.png及inline-window.json在既有QA目录；临时tab19已close／viewport reset（tab18被外部移除后按真实空清单重开），63333 session84030恢复，版本bsmoss-local-report-inline-window；当前仍工作区构建，未提交／未部署。
+
+后台宿主收尾独立进展：显式--no-deps排除DB/Redis依赖重建、env-update将既有etc也收紧0700，补up失败不推进指针测试；重建bundle后5制品/脚本冒烟全过，128篇／61表／交付／SCA守卫过。540单测、354实际PG为先前同包日志，专用PG58874已经stop。2026-11-03T01:51只读远端预检仍缺源码、build/beta/prod环境及私有配置，本机无Linux Docker；未远端变更。前一goal turn是报告对齐实质progress，本turn有上述交付修复及日期UI实质progress，不标blocked/complete。宿主文档/清单/扫描/提交/检查点尚待收尾。
+
+## 当前交付包收尾（2026-11-03，用户指定执行第1步）
+
+用户只授权当前包收尾，不恢复已清除goal或已删除bs-moss heartbeat。18bc61f为已提交报告布局，后台宿主包在此继续审阅。对比原失败日志：Git Bash脚本30秒到期、降级观察10秒到期；并发单测/类型复核虽未再次失败，但相同脚本约5秒升到19秒。保持产品10秒身份请求截止，测试观察改performance单调30秒并检查进程提前退出，外层45秒；合成shell等待60秒、外层75秒。TCP即时resetAndDestroy与静默连接分别验证，静默分支实际约10.7秒后degraded；失败计数>=1且成功步0，不将观察恰好首轮当业务保证。
+
+修改后并行540单测／双层类型／6制品及脚本冒烟通过（tmp/worker-host-final-{unit,types,smoke,bundle}.log）；脚本负载下21.6秒。354实际PG再次全通过，含结果写入abort到COMMIT后pool关闭，日志worker-host-final-db；专用58874随机合同库cluster已stop。128篇编号／61表静态镜像／交付／SCA配置守卫通过；无DDL／Prisma变化，不重复未变PrismaCLI。生产构建／20HTTP／ASCII／staged密钥／Git提交和运行SHA以收尾工具及artifacts/formal-checkpoints/worker-process-host.json为准。
+
+宿主严格UUID/固定机器subject/有限lane/绝对路径（validate也核health路径），原子健康、全部lane观察后才running、失败退避不假绿、SIGTERM等待在途事务再关pool。独立CJS及同digest可选Compose、凭据分离、etc0700/JSON0644、on候选validate、off仅两个命名worker、--no-deps不连带重建DB/Redis，up失败不推进指针。无自动赋权、来源补造或报告自动发布。Linux镜像/Compose/POSIX信号仍未实测，不将Windows强制清理算优雅信号通过。
+
+台账补当前收尾与I09/I12托管代码状态，实际平台注册/自受众live签发、机器ACL/登记和目标Linux运行、真实来源、Beta/容量恢复/UAT/生产批准继续未完成；第2步新版六场景验收不自动扩展本次范围。不push/PR/远端CI/外部部署或上线，陕西演示/费用预留/退役P2不变。最终commit/checkpoint可直接读取，无需再改源码以回填SHA。

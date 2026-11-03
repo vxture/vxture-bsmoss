@@ -12,6 +12,12 @@ on:
         description: Registered bsmoss-app repository plus @sha256 digest
         type: string
         required: true
+      workers:
+        description: Explicitly enable or drain both reviewed background workers
+        type: choice
+        required: true
+        default: "off"
+        options: ["off", "on"]
 permissions:
   contents: read
 concurrency:
@@ -57,7 +63,7 @@ jobs:
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |-
           set -euo pipefail
-          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml
+          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml docker-compose.workers.yml
           ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
           scp -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
           ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
@@ -67,9 +73,11 @@ jobs:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           IMAGE_REF: ${{ inputs.image_ref }}
+          WORKERS: ${{ inputs.workers }}
         run: |-
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/deploy.sh'"
+          [[ "$WORKERS" == on || "$WORKERS" == off ]]
+          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "BSMOSS_DEPLOY_WORKERS='$WORKERS' STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/deploy.sh'"
       - name: Remove runner SSH key
         if: ${{ always() }}
         run: rm -f ~/.ssh/id_ed25519

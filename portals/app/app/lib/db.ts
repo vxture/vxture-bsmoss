@@ -1,6 +1,11 @@
 import { Pool } from "pg";
 
 let pool: Pool | undefined;
+// A dedicated worker host calls this only after its current lane has settled.
+export async function closePool(): Promise<void> {
+  const current = pool; pool = undefined;
+  await current?.end();
+}
 export function getPool(): Pool {
   if (pool) return pool;
   const connectionString = process.env.DATABASE_URL?.trim();
