@@ -86,3 +86,7 @@ CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；�
 ## 地域标题与统一收放图标（2026-11-03）
 
 省级资源总数由原树首行移至标题右侧；左侧map-pin＋陕西·资源，树移除陕西省按钮，不再出现默认选中省级行。计数仍为全部地市资源总数，与筛选结果数分开。配置域官方ShellSidebarNav使用ShellIconButton的sidebar图标，本站址域复用同一组件、非active，替换单向chevron；保留aria-expanded／controls及键盘收放。基础按钮对aria-expanded=true有底色，站址局部site-region-toggle仅覆盖非hover／非focus-visible的背景为透明，保留官方交互反馈。全省范围可从既有面包屑返回。生产构建含类型及浏览器验证记录在tmp/site-region-heading-build.log与artifacts/site-region-heading-qa，未改规则或权限。
+
+## 隐藏滚动条保留滚动（2026-11-03）
+
+地域树增加site-region-scroll，台账原site-table-scroll与DataTable内部overflow-x-auto统一使用scrollbar-width:none和WebKit伪元素隐藏，移除旧stable gutter，保留原overflow。树和列表增加tabIndex=0／命名region及局部focus-visible轮廓，支持键盘滚动；不隐藏其他业务页滚动条，不用overflow:hidden或脚本模拟滚动。生产build与浏览器证据见tmp/site-scroll-build.log和artifacts/site-scroll-qa。

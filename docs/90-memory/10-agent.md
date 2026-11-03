@@ -972,3 +972,9 @@ CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392�
 用户批注陕西省未对齐且无需选择态，改面板标题map-pin＋陕西·资源＋右对齐1080全省总数，删除树中重复省级Button，直接从地市开始；全省返回保留内容面包屑／筛选入口，地域数字含义不变。收放改官方ShellIconButton／sidebar，与配置域ShellSidebarNav相同；非active。实测基础按钮对aria-expanded=true仍填底色，局部site-region-toggle仅在非hover且非focus-visible覆盖透明，保留键盘环和交互反馈，不改全局token或DS包。
 
 生产build含类型通过（tmp/site-region-heading-build.log）、140编号／源码ASCII／diff检查；CUA1042展开与收起常态均rgba(0,0,0,0)，鼠标及Enter／Space收放、刷新保持通过；选西安后标题仍1080，面包屑实际返回/sites。artifacts/site-region-heading-qa含desktop.png／checks.json，warn/error空、viewport reset、临时tab47关闭。设计233／实施690同步，无数据／权限／DDL／依赖变化，纯布局未重复业务单测、HTTP或PG。最终Git／63333以health为准，无push或外部部署。
+
+## 站址域隐藏滚动条（2026-11-03）
+
+用户要求地域树隐藏滚动条、列表隐藏或极细，统一隐藏原生条。site-region-scroll／台账site-table-scroll／内部DataTable overflow-x-auto使用scrollbar-width:none＋WebKit伪元素display:none；移除stable gutter，保持原overflow及横向滚动。树和列表新增命名region、tabIndex=0与官方border-width-medium／ring的focus-visible轮廓，键盘可达；仅台账局部，不影响档案或全局。
+
+生产build含类型（tmp/site-scroll-build.log）、140编号、源码ASCII／diff通过。CUA1042两区scrollbarWidth none／webkit none、gutter auto／overflow auto；树653高内容1027，列表655高内容1894，表格内宽714内容961保持横向空间。树PageDown到374且列表0，列表PageDown到573.33且树374，Home两者归0；文档宽1042无溢出。artifacts/site-scroll-qa含desktop.png／checks，warn/error空、viewport reset、临时tab48关闭。纯布局不重复业务／HTTP／PG，设计233／实施690同步，无依赖／DDL／权限变化。最终commit及63333以Git／health为准，无push或外部部署。

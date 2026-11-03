@@ -56,7 +56,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
     <div className="flex min-h-0 flex-1 gap-lg p-lg">
       <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="map-pin" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-md">
+        <div className="site-region-scroll min-h-0 flex-1 overflow-y-auto p-md" tabIndex={0} role="region" aria-label={"\u5730\u57df\u6811\u6eda\u52a8\u533a"}>
           <Accordion type="single" collapsible value={q.city === "all" ? "" : q.city} onValueChange={city => navigate({ city: city || "all", county: "all" })}>
             {demo.regions.cities.map(city => <AccordionItem key={city.id} value={city.id}>
               <AccordionTrigger className="min-h-control-xl px-sm py-sm text-body font-medium no-underline hover:no-underline"><span className="flex flex-1 justify-between gap-sm"><span>{city.name}</span><span className="tabular-nums text-muted-foreground">{n(city.count)}</span></span></AccordionTrigger>
@@ -115,7 +115,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
             <Button variant="ghost" size="icon-md" aria-label={"\u91cd\u7f6e\u7b5b\u9009"} onClick={() => start(() => router.push(siteListHref(DEFAULT_SITE_QUERY)))}><Icon name="refresh" size="sm" /></Button>
           </div>
         </form>
-        <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>
+        <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto" tabIndex={0} role="region" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>
           <div className="flex flex-col gap-md p-md sm:hidden">
             {q.view === "sites" ? demo.rows.map(s => <ListCard key={s.id} title={s.name} icon="building" description={s.id}
               onTitleClick={() => router.push(detail(s))} actions={actions(s)}
