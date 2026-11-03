@@ -75,6 +75,12 @@ advanced JSON edits invalidate prior validation; publishing still uses the same
 server authorization, immutable version and exact retry commands. See
 docs/40-implementation/610-visual-template-authoring.md.
 
+Background aggregate and report loops now have a separate signed service-identity
+provider and production authorization composition. They reuse the registered
+product client, require explicit finite local ACLs and cannot publish or download
+reports. Live self-audience token acceptance and production daemon hosting remain
+pending. See docs/40-implementation/620-worker-service-identity.md.
+
 ## Local sample portal (I10)
 
     pnpm build

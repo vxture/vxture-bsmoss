@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 后台任务服务身份适配（2026-11-03，最新入口）
+
+接续20a89ac，恢复时clean；原五项active goal和bs-moss hourly heartbeat复用，不新建、不spawn。本turn有实质progress。设计226／实施620：平台治理仓D:/MyWebSite/vxture/vxture-platform现可读！已读AGENTS／memory／product_210 §2／§3／token-exchange真实签发与服务context／注册runbook；原产品接入通则Claude原件仍登录门槛，未登录／改平台／注册。product_210明确后台Job／周期同步用既有产品confidential client、service无sub、RS256 kid/JWKS、单目标aud／act.sub／workspace_id／scope／300秒exp iat jti。本产品适配不另写跨产品标准；自受众aud=bsmoss实际签发和平台联调仍待，aud=vxture既有channel用途不改。
+
+新增platform/worker-identity：固定workspace与产品client换票，严格签名profile／UUID／实际expiry／TTL≤300／单受众／调用方／scope，无用户sub；32KiB流／16KiB票据／10s／无redirect／既有出口检查，错误固定不泄body或token，单实例singleflight和30秒提前刷新／失败无旧票回退，有效期min(JWT,请求开始+expires_in)，只缓存无token proof。VerifiedIdentity显式user/service；本地ACL审计键s2s:bsmoss源于验签act，不是平台用户或第二套凭据，人用身份禁止s2s:前缀。service仅data plane aggregate／report_generate／report_export_execute，无owner baseline／自动member或role／全范围；禁止人工发布／模板／恢复／下载。
+
+production-ports抽取原RP共用C3／C2／PG grants／feature policy且保留lazy pool；worker-access与workers/runtime提供内部生产组合根，无新HTTP／生产daemon。聚合supervisor将机器identity错误作authorization_denied，不消耗业务重试。无DDL／Prisma／依赖变化，61表空库，无迁移。
+
+534单测（新增9）、353实际PG（新增6）与双层types通过；最终clean-commit build／20HTTP／125篇编号／61表镜像／交付／SCA／ASCII／密钥扫描、SHA及63333版本以worker-service-identity检查点和tmp/worker-identity-{unit,db,types,build,http,guards,ascii,staged-scan}.log收尾为准。本包PG实际空库镜像已比对，无schema变化不重复PrismaCLI。真实RS256／本地HTTP单测含所有claim反例、流上界／响应期限／并发刷新无旧票／固定错误／redirect；PG独立UUID租户经真实签名provider→生产C3和显式PG ACL→聚合／报告／导出循环，缺数不补零，写后DB撤权及provider失败回滚结果／attempt／artifact、聚合独立租约保留、报告pending保留；人工审阅fixture与service独立，service不可发布下载。新增fixture首轮模块路径、TTL跨秒反例及human interactive不能借bundled被正确拒，修测试输入无产品放宽。无UI变化，不重复地图CUA。
+
+下一包优先生产daemon托管（当前runtime只是组合根，不能声称正在生产运行；需审查Docker standalone中worker独立构建／依赖／进程停机、固定受审宿主配置），或I08分层规模／I11角色层级。实际平台注册／aud=bsmoss签发／受审机器ACL和周期登记仍需验收。真实来源签认样例、私有app.env／stack.env、Linux域名TLSregistryDB／远端源码及build-beta-prod、11万3倍突发／安全恢复／UAT／生产批准仍缺；现有只读preflight仍prerequisites_missing／productionLaunch=false，未重复无变化外部轮询。五项1–3本地完成，4–5active，无push／PR／远端CI／真实来源／外部部署或上线。临时PG58874已启用于随机测试库，收尾应stop；63333旧本仓Next PID3840为build需核验停后恢复新SHA。已有自动任务保持ACTIVE，勿重建。
+
 ## 受审模板可视化编辑（2026-11-03，最新入口）
 
 接续841f444，恢复时clean；既有五项active目标与bs-moss heartbeat复用，无spawn。本turn有内部实质progress，勿标blocked／complete。设计225／实施610，/settings/templates 新增editor-model浏览器纯转换、实际React表单和6项测试；标题／三类字典指标／合法组件单位粒度精度／显隐／排序增删／单对象或受审rollup显式ID绑定。稳定ID同步绑定顺序，最多16／至少1面板；指标变更清旧绑定，报告日周月同步所有面板，状态设备数／时长转table。字典选项不代表来源已验收或授予权限；新草稿三类全部not_connected，无合成值。

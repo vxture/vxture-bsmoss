@@ -2,7 +2,6 @@ import { getOidcConfig } from "../../auth/lib/config";
 import { accessTokenFor } from "../../auth/lib/login-state";
 import { verifyToken } from "../../auth/lib/oidc";
 import { getEntitlementResolver } from "../../entitlement/resolver";
-import { TIERS } from "../../entitlement/types";
 import { getPool } from "../../lib/db";
 import { FIRST_METRICS } from "../catalog/first-metrics";
 import { createAuthorizedReportPublication } from "./report-publication";
@@ -14,8 +13,8 @@ import { createAuthorizedMeasurements } from "./measurements";
 import { createAuthorizedAggregates } from "./aggregates";
 import { PgAggregateSnapshotReader } from "../aggregation/pg-snapshot";
 import { PgAggregateStore } from "../aggregation/pg-store";
-import type { AccessPorts, LocalGrant, VerifiedIdentity } from "./resolve";
-import { readPgGrant } from "./pg-grants";
+import type { AccessPorts, VerifiedIdentity } from "./resolve";
+import { productionAccessPorts } from "./production-ports";
 import { createAuthorizedAggregateQuery } from "./aggregate-query";
 import { PgAggregateQueryReader } from "../aggregation/pg-query";
 import { createAuthorizedObjectRollup } from "./object-rollup";
@@ -34,35 +33,21 @@ import { PgTemplateStore } from "../views/pg-templates";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
-  const ports: AccessPorts = {
-    async readVerifiedIdentity(): Promise<VerifiedIdentity | null> {
-      const cfg = getOidcConfig();
-      if (!cfg.enabled || !rpsid) return null;
-      const token = await accessTokenFor(cfg, rpsid);
-      if (!token) return null;
-      const claims = await verifyToken(token, cfg);
-      return {
-        sub: claims.sub!, activeWorkspace: typeof claims.active_workspace === "string" ? claims.active_workspace : null,
-        accountStatus: typeof claims.account_status === "string" ? claims.account_status : null,
-        governanceRoles: Array.isArray(claims.roles) ? claims.roles : [], expiresAt: Number(claims.exp) * 1000,
-      };
-    },
-    async readCoverage(workspaceId) {
-      // A local archive is an immediate deny, even while C2 has an unexpired entry.
-      const instance = await getPool().query("SELECT status FROM vx_provision.app_instance WHERE workspace_id=$1 AND product_code='bsmoss'", [workspaceId]);
-      const ent = await getEntitlementResolver().resolve(workspaceId);
-      const ready = instance.rows[0]?.status === "provisioned";
-      return { workspaceId, product: "bsmoss", tier: ready ? ent.tier : null, bundled: ready && ent.bundled, expiresAt: Date.now() + 1000 };
-    },
-    async readLocalGrant({ workspaceId, sub }): Promise<LocalGrant | null> {
-      return readPgGrant(getPool(), workspaceId, sub);
-    },
-    featuresFor(coverage, plane) {
-      const covered = coverage.tier !== null && (TIERS as readonly string[]).includes(coverage.tier) || plane === "data" && coverage.bundled;
-      return process.env.BSMOSS_METERING_ENABLED === "on" && covered ? ["metering"] : [];
-    },
-  };
-  return ports;
+  return productionAccessPorts(async (): Promise<VerifiedIdentity | null> => {
+    const cfg = getOidcConfig();
+    if (!cfg.enabled || !rpsid) return null;
+    const token = await accessTokenFor(cfg, rpsid);
+    if (!token) return null;
+    const claims = await verifyToken(token, cfg);
+    return {
+      sub: claims.sub!, activeWorkspace: typeof claims.active_workspace === "string" ? claims.active_workspace : null,
+      accountStatus: typeof claims.account_status === "string" ? claims.account_status : null,
+      governanceRoles: Array.isArray(claims.roles) ? claims.roles : [], expiresAt: Number(claims.exp) * 1000,
+    };
+  }, {
+    pool: getPool, coverage: workspaceId => getEntitlementResolver().resolve(workspaceId),
+    meteringEnabled: () => process.env.BSMOSS_METERING_ENABLED === "on",
+  });
 }
 export function measurementsForSession(rpsid: string) {
   return createAuthorizedMeasurements(sessionAccessPorts(rpsid), {

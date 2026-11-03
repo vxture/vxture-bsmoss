@@ -36,6 +36,7 @@ export function reportWorkerConfig(raw: ReportWorkerConfig): ReportWorkerConfig 
 export type WorkerFailure = "authorization_denied" | "configuration_unavailable" | "storage_unavailable" | "serialization_conflict" | "execution_failed";
 export function workerFailure(error: unknown): WorkerFailure {
   const message = error instanceof Error ? error.message : "", code = error && typeof error === "object" && "code" in error ? error.code : null;
+  if (["worker_identity_invalid", "worker_identity_unconfigured", "worker_identity_unavailable"].includes(message)) return "authorization_denied";
   if (["40001", "40P01"].includes(String(code)) || ["report_revision_conflict", "aggregate_revision_conflict"].includes(message)) return "serialization_conflict";
   if (["identity_required", "feature_denied", "permission_denied", "access_expired", "invalid_coverage", "report_scope_denied", "report_schedule_subject_denied", "workspace_mismatch", "aggregate_scope_denied", "aggregate_dependency_scope_denied", "object_scope_denied", "registered_partition_subject_denied", "registered_partition_scope_denied"].includes(message) || code === "42501") return "authorization_denied";
   if (["report_schedule_unavailable", "report_schedule_paused", "report_schedule_template_changed", "registered_partition_unavailable", "registered_partition_paused"].includes(message)) return "configuration_unavailable";

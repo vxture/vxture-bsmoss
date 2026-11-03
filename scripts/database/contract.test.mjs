@@ -33,6 +33,7 @@ import { registeredPeriodicCases } from "./registered-periodic.cases.mjs";
 import { registeredInputCases } from "./registered-input.cases.mjs";
 import { objectRollupCases } from "./object-rollup.cases.mjs";
 import { reportSnapshotCases } from "./report-snapshot.cases.mjs";
+import { workerIdentityCases } from "./worker-identity.cases.mjs";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -2053,6 +2054,7 @@ await test("empty-database PostgreSQL contract", async t => {
     await registeredInputCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,writer:flowWriter,draft:flowDraft,finishChangeJobs});
     await objectRollupCases(t,{db,adapterPool,ports:flowPorts});
     await reportSnapshotCases(t,{db,adapterPool,ports:flowPorts});
+    await workerIdentityCases(t,{db,adapterPool});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

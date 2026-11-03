@@ -33,6 +33,7 @@ export async function claimAuthorizedRefresh(pool: Pool, ports: AccessPorts, ttl
 }
 function classified(error: unknown) {
   const e = error as { code?: string; message?: string };
+  if (["worker_identity_invalid", "worker_identity_unconfigured", "worker_identity_unavailable"].includes(e?.message ?? "")) return "authorization_denied";
   if (e?.code === "40001" || e?.code === "40P01" || e?.message === "aggregate_revision_conflict") return "serialization_conflict";
   if (["ECONNRESET", "ETIMEDOUT", "57P01", "53300"].includes(e?.code ?? "")) return "database_unavailable";
   if (e?.code === "42501" || ["identity_required", "permission_denied", "feature_denied", "invalid_coverage", "access_expired", "workspace_mismatch", "aggregate_scope_denied", "aggregate_dependency_scope_denied", "object_scope_denied"].includes(e?.message ?? "")) return "authorization_denied";

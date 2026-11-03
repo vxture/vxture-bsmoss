@@ -3,13 +3,23 @@ import type { MeasurementScope } from "../measurements/store.ts";
 
 // Internal ports, not platform wire schemas. Only an RP that has verified the
 // signature, issuer, audience, lifetime and server session may implement C1.
-export interface VerifiedIdentity {
+export interface VerifiedUserIdentity {
+  kind?: "user";
   sub: string;
   activeWorkspace: string | null;
   accountStatus: string | null;
   governanceRoles: readonly string[];
   expiresAt: number;
 }
+export interface VerifiedServiceIdentity {
+  kind: "service";
+  sub: "s2s:bsmoss";
+  callerProduct: "bsmoss";
+  activeWorkspace: string;
+  expiresAt: number;
+  tokenId: string;
+}
+export type VerifiedIdentity = VerifiedUserIdentity | VerifiedServiceIdentity;
 export interface Coverage {
   workspaceId: string;
   product: string;
@@ -145,12 +155,19 @@ export async function resolveMeasurementAccess(
     !identity ||
     !required(identity.sub) ||
     !required(identity.activeWorkspace) ||
-    identity.accountStatus !== "active" ||
-    !fresh(identity.expiresAt, now()) ||
-    !Array.isArray(identity.governanceRoles) ||
-    !identity.governanceRoles.every(required)
+    !fresh(identity.expiresAt, now())
   )
     throw new Error("identity_required");
+  const service = identity.kind === "service";
+  if (service) {
+    if (identity.sub !== "s2s:bsmoss" || identity.callerProduct !== "bsmoss" || !required(identity.tokenId))
+      throw new Error("identity_required");
+    if (plane !== "data" || !["aggregate", "report_generate", "report_export_execute"].includes(operation))
+      throw new Error("permission_denied");
+  } else if ((identity.kind !== undefined && identity.kind !== "user") || identity.sub.startsWith("s2s:") ||
+    identity.accountStatus !== "active" || !Array.isArray(identity.governanceRoles) || !identity.governanceRoles.every(required)) {
+    throw new Error("identity_required");
+  }
   const workspaceId = identity.activeWorkspace;
   const coverage = structuredClone(await ports.readCoverage(workspaceId));
   if (
@@ -170,7 +187,7 @@ export async function resolveMeasurementAccess(
     ports.featuresFor(Object.freeze(coverage), plane),
   );
   if (!features.has("metering")) throw new Error("feature_denied");
-  const workspaceOwner = identity.governanceRoles.includes("workspace:owner");
+  const workspaceOwner = !service && identity.governanceRoles.includes("workspace:owner");
   const rawGrant = await ports.readLocalGrant(
     Object.freeze({
       workspaceId,
