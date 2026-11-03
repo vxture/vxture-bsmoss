@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellHeaderTitle, ShellHeaderTools, ShellPanelRow, ShellPanelSection,
+import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellProductTitle, ShellHeaderTools, ShellPanelRow, ShellPanelSection,
   ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
 import { portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher, { portalIcons as icons } from "./launcher";
@@ -23,8 +23,8 @@ export default function ProductChrome({ active, preview, children, identity, log
       <ProductLauncher active={active} preview={preview} />
       <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u95e8\u6237\u9996\u9875"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
-          <ShellHeaderTitle><span className="text-display-xs">{"\u89c2\u6f9c"}</span></ShellHeaderTitle></span>
-        <span className="hidden truncate font-brand text-heading-1 text-muted-foreground sm:block">{"\u57fa\u7ad9\u591a\u57df\u8fd0\u884c\u76d1\u7ba1\u5e73\u53f0"}</span>
+          <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
+        <span className="hidden truncate font-brand text-heading-1 text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
       </a>
       <div className="hidden min-w-0 items-center gap-md md:flex">
         <ShellHeaderDivider />

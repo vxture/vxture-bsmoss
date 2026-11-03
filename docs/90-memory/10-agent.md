@@ -856,3 +856,7 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 按用户浏览器批注：页面名及演示标签从右端移入左槽，以ShellHeaderDivider分隔完整品牌区；观澜放大为DS display-xs，系统名称单行heading-1，删除顶栏BS-MOSS。未在品牌内部增加竖线，右侧官方操作组及用户面板保持。787×871实际观澜30px／系统名18px，配置中心x393／演示x457，品牌区末端x368、分隔符x376；390与1280文档宽等于scrollWidth，无横向溢出，浏览器warn／error为空。手机继续隐藏系统名称及页面上下文以保留操作空间，viewport已reset、临时tab24已关闭。
 
 生产构建／双层类型／21HTTP通过，tmp/header-sizing-{build,types,http}.log与artifacts/header-sizing-qa留证；仅排版未重复单测／PG／worker。设计230和实施660同步；最终提交及63333运行身份见artifacts/formal-checkpoints/product-header-sizing.json。无外部部署、依赖、DDL或授权变化。
+
+## 品牌字号收敛与系统名称（2026-11-03）
+
+用户认为观澜30px过大，改用官方ShellProductTitle的20px产品标题；系统名称18px保留。新名称明确为“站址多域运营监管”，同步门户、两个预览页面和共享BRAND.displayName及产品定义；代码bsmoss／BS-MOSS及英文全称未变。生产构建含类型检查通过，tmp/header-brand-size-build.log。CUA787×871核验实际20px、新名称准确、文档宽／scrollWidth均787；截图artifacts/header-sizing-qa/brand-name-final.png，viewport reset、临时tab25关闭。仅字号和名称，未重复业务单测或数据库。无外部部署。最终提交及本地运行以实际Git／health为准。

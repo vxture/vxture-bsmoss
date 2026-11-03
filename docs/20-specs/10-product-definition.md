@@ -1,4 +1,4 @@
-# 观澜·基站多域运行监管平台
+# 观澜·站址多域运营监管
 
 **BS-MOSS — Base Station Multi-domain Operation and Supervision System**
 

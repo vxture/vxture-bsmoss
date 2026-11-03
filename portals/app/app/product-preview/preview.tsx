@@ -313,7 +313,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
               <span>BS-MOSS</span>
             </strong>
             <small>
-              {"\u57fa\u7ad9\u591a\u57df\u8fd0\u884c\u76d1\u7ba1\u5e73\u53f0"}
+              {"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}
             </small>
           </div>
         </div>
