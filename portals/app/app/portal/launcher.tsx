@@ -50,7 +50,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
         <Separator />
         <section aria-label={"\u4e1a\u52a1\u677f\u5757"} className="grid gap-xl sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {portalBusinessGroups(preview).map(group => <div key={group.key} className="flex min-w-0 flex-col gap-lg">
-            <ShellPanelRow icon={group.icon as IconName} label={group.title} description={group.description} className="text-muted-foreground" />
+            <ShellPanelRow icon={group.icon as IconName} label={group.title} className="text-muted-foreground" />
             <ShellPanelSection divided={false} className="gap-md">
               {group.modules.map(item => item.planned ?
                 <ShellPanelRow key={item.key} icon={item.icon as IconName} label={item.label} description={item.description} value={"\u89c4\u5212\u4e2d"} disabled className="py-sm" /> :

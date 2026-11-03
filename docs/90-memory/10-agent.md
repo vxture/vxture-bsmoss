@@ -894,3 +894,5 @@ P01a本地首版完成，P02站址台账／档案下一批、P03经营独立视�
 ## 顶层入口尺寸统一（2026-11-03）
 
 用户认可层级，要求门户首页／决策大屏不再放大。业务顶行改用与下方相同响应网格，p-md替代大内距／手机竖排卡片；独立层级和分割线保留。CUA1440所有入口约217.6×77.2px、390均310.7×77.2px，无横溢，证据artifacts/launcher-global-size-qa。生产构建含类型通过，tmp/launcher-global-size-build.log；纯布局不重复业务单测、HTTP及PG，设计232／实施680同步。viewport reset、临时tab32关闭。最终Git与本地health为准，无外部部署，P02仍下一批。
+
+五分组标题精简：用户要求无描述介绍，业务launcher分组标题行移除description，仅图标与站址资源／运行监管／经营分析／异常核验／报告中心名称，功能入口副文保留。生产构建含类型通过（tmp/launcher-group-title-build.log），CUA1440核对五行文本仅名称，截图artifacts/launcher-group-title-qa/desktop.png；viewport reset、tab33关闭。设计232同步，纯文案展示未重复业务测试，无外部部署。
