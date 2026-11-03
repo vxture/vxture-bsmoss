@@ -20,8 +20,8 @@ export default function ProductChrome({ active, preview, children, identity, log
     { title: "\u914d\u7f6e\u7ba1\u7406", items: items.filter(item => ["settings", "templates"].includes(item.id)) },
     { title: "\u4efb\u52a1\u7ba1\u7406", dividerBefore: true, items: items.filter(item => ["aggregation", "report-jobs"].includes(item.id)) },
     { title: "\u4e1a\u52a1\u5e94\u7528", dividerBefore: true, items: [{ id: "return-business", label: "\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528", href: "/", icon: "arrow-left" as const }] },
-  ] : [{ title: "\u4e1a\u52a1\u5e94\u7528", items }];
-  return <ShellViewport sidebarMode={mobile ? "hidden" : collapsed ? "collapsed" : "expanded"}
+  ] : [];
+  return <ShellViewport sidebarMode={!management || mobile ? "hidden" : collapsed ? "collapsed" : "expanded"}
     header={<ShellHeader leading={<>
       <ProductLauncher active={active} preview={preview} />
       <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u95e8\u6237\u9996\u9875"}>
@@ -42,11 +42,11 @@ export default function ProductChrome({ active, preview, children, identity, log
           children: <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p> }} />
       <ProductAccount identity={identity} loginEnabled={loginEnabled} preview={preview} consoleHref={consoleHref} />
     </>} />}
-    sidebar={<div className="hidden h-full min-h-0 md:flex md:flex-col">
+    sidebar={management ? <div className="hidden h-full min-h-0 md:flex md:flex-col">
       <ShellSidebarNav sections={sections} collapsed={collapsed} onToggleCollapsed={() => setCollapsed(value => !value)}
         isActive={href => href === current?.href} storageKeyPrefix={"bsmoss-" + domain}
         labels={{ expandNav: "\u5c55\u5f00\u5bfc\u822a", collapseNav: "\u6536\u8d77\u5bfc\u822a", expandAllGroups: "\u5c55\u5f00\u5206\u7ec4", collapseAllGroups: "\u6536\u8d77\u5206\u7ec4" }} />
-    </div>}>
+    </div> : null}>
     {children}
   </ShellViewport>;
 }

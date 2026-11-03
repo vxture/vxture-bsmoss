@@ -16,3 +16,5 @@
 新增导航互斥与路径归属单测、独立路由／旧链接／业务导航HTTP检查。原API授权回归继续执行；没有DDL／Prisma／依赖／服务权限变化，不重复PG与worker制品测试。未新增未实现的管理页面、未接真实来源或执行外部部署。
 
 实际541单测、双层类型、Next生产构建和22HTTP通过。CUA1280×900从业务launcher确认只含业务入口，齿轮进入独立管理侧栏，聚合任务／模板切换成功；390×844管理launcher包含全部管理入口，点击报告任务关闭面板、返回业务应用实际URL为 `/`。390与787文档宽均等于scrollWidth，浏览器warn／error为空，viewport已恢复，临时tab26／27关闭。正式管理页面本地仍按未接平台的状态显示，没有伪造授权数据或真实验收。
+
+后续用户要求业务页面不用统一导航：业务域ShellViewport固定sidebarMode=hidden且sidebar=null，不挂载侧栏或保留空白占位；全局板块全部由launcher提供。管理域仍保留原专属侧栏，地图独立布局保持。此项为布局调整，不重复业务单测／PG；构建与HTTP日志为tmp/business-launcher-{build,http}.log，实际页面证据位于artifacts/business-launcher-qa。

@@ -56,7 +56,7 @@
 
 ## 导航、路由与权限
 
-产品分为“业务应用”和“配置管理”两个独立体验域。业务launcher与侧栏只提供门户首页、站网地图（演示开启时）、周期分析、报告中心。header按钮区的配置管理icon为进入管理域的统一入口，不在业务launcher／侧栏混排管理功能，也不从消息抽屉额外提供管理快捷入口。
+产品分为“业务应用”和“配置管理”两个独立体验域。业务页面不设置统一侧栏，门户首页、站网地图（演示开启时）、周期分析、报告中心的全局入口全部收进header的业务launcher，各工作区使用自己的业务布局。header按钮区的配置管理icon为进入管理域的统一入口，不在业务launcher混排管理功能，也不从消息抽屉额外提供管理快捷入口。
 
 配置管理域统一采用 `/settings` 路由前缀与独立导航：管理总览 `/settings`、指标与模板 `/settings/templates`、聚合任务 `/settings/operations/aggregation`、报告任务 `/settings/operations/reports`。域内launcher与侧栏只展示管理功能，并提供“返回业务应用”。旧 `/operations/aggregation` 和 `/operations/reports` 仅重定向兼容旧链接。此处“域”是应用内功能／路由域，不新增网络域名或部署服务。
 

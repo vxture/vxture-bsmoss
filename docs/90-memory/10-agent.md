@@ -868,3 +868,9 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 541单测（新增导航两域互斥）、双层类型、生产build、22HTTP通过（新增管理前缀／旧307／业务导航隔离），tmp/management-domain-{unit,types,build,http}.log。浏览器1280业务launcher／齿轮进入／独立侧栏／模板任务切换、390管理launcher／报告任务点击关闭／返回业务实际URL / 通过，390与787无横向溢出，warn/error空；artifacts/management-domain-qa，viewport reset、临时tab26/27关闭。无DDL／依赖／授权规则变化，不重复PG或worker测试。初次类型检查发现ShellNavSection要求title，为返回区加业务应用标题后通过；浏览器初次同名按钮定位冲突以aria交集消歧，无产品缺陷。
 
 文档／交付／静态schema／SCA、ASCII／密钥扫描与最终commit／63333运行身份以收尾工具和artifacts/formal-checkpoints/management-domain.json为准。无push／外部部署或生产上线；P02和真实来源／环境／UAT等原依赖继续保留，不恢复goal／heartbeat。
+
+## 业务板块统一收进launcher（2026-11-03）
+
+用户要求业务页面不使用统一导航，板块全部收集launcher。业务域sidebarMode固定hidden、sidebar=null，真正卸载业务侧栏及其占位；首页／地图／分析／报告全局入口继续在业务launcher。配置管理域保留专属侧栏、launcher与齿轮入口。信息结构V0.5、设计231和实施670同步。未改地图独立布局、业务接口或权限。
+
+生产构建（含类型检查）及22HTTP通过，tmp/business-launcher-{build,http}.log。CUA1280实际launcher进入分析／报告均成功、业务mainX=0/mainWidth=1280且nav数0；齿轮进入管理域mainX=256、导航存在，返回业务成功。artifacts/business-launcher-qa含首页／launcher截图及checks.json，viewport reset、临时tab28关闭。此项仅布局不重复单测／PG。最终Git提交及运行health可核对；无外部部署。
