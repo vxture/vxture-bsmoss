@@ -1,4 +1,4 @@
-export type PortalPage = "home" | "board" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -14,6 +14,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
   const entries: PortalEntry[] = [
     { id: "home", label: "\u95e8\u6237\u9996\u9875", href: "/", group: "business" },
     { id: "board", label: "\u51b3\u7b56\u5927\u5c4f", href: "/board", group: "business" },
+    { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
     ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
     { id: "analysis", label: "\u5468\u671f\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
@@ -34,8 +35,8 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
     ({ key, label, icon, description, planned: true });
   return [
     { key: "resources", title: "\u7ad9\u5740\u8d44\u6e90", icon: "building", description: "\u6863\u6848\u4e0e\u670d\u52a1\u5173\u7cfb", modules: [
-      planned("site-register", "\u7ad9\u5740\u53f0\u8d26", "table", "\u68c0\u7d22\u4e0e\u7edf\u4e00\u6863\u6848"),
-      planned("service-relations", "\u670d\u52a1\u5173\u7cfb", "users", "\u8fd0\u8425\u5546\u4e0e\u8bbe\u5907\u8d44\u6e90"),
+      ...page("sites", "building", "\u53f0\u8d26\u3001\u8d44\u6e90\u4e0e\u7edf\u4e00\u6863\u6848"),
+      { key: "service-relations", label: "\u670d\u52a1\u5173\u7cfb", icon: "users", description: "\u8fd0\u8425\u5546\u4e0e\u8bbe\u5907\u8d44\u6e90", href: "/sites?view=relations" },
     ] },
     { key: "supervision", title: "\u8fd0\u884c\u76d1\u7ba1", icon: "gauge", description: "\u72b6\u6001\u3001\u8d28\u91cf\u4e0e\u80fd\u6548", modules: [
       ...page("map", "map-pin", "\u7a7a\u95f4\u5b9a\u4f4d\u4e0e\u5355\u7ad9\u8c03\u67e5"),

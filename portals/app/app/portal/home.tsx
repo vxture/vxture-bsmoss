@@ -16,7 +16,7 @@ type Metric = typeof metrics[number]["value"];
 
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
   const [metric, setMetric] = useState<Metric>("bytes");
-  if (!demo) return <ShellPageContainer className="gap-lg">
+  if (!demo) return <ShellPageContainer className="max-w-none gap-lg">
     <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701"} />
     <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
@@ -34,7 +34,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   const unit = metric === "bytes" ? "TiB" : metric === "voiceSeconds" ? "\u4e07\u5206\u949f" : "\u4e07\u6761";
   const fmt = (value: number) => number(metric === "bytes" ? value / 1099511627776 : metric === "voiceSeconds" ? value / 600000 : value / 10000, 2);
   const series = usage.series.map(point => ({ key: String(point.hour), label: String(point.hour).padStart(2, "0"), value: point.rows.reduce((sum, row) => sum + row[metric], 0) }));
-  return <ShellPageContainer className="gap-lg">
+  return <ShellPageContainer className="max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
         secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}
@@ -98,7 +98,8 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           ]} />
         </PanelCard>
       </div>
-      <section className="grid gap-md lg:grid-cols-3" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
+      <section className="grid gap-md sm:grid-cols-2 xl:grid-cols-4" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
+        <EntryCard href="/sites" icon="building" title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u53f0\u8d26\u3001\u6863\u6848\u3001\u8d44\u6e90\u4e0e\u670d\u52a1\u5173\u7cfb"} />
         <EntryCard href="/product-preview?hour=18" icon="map-pin" title={"\u7ad9\u7f51\u5730\u56fe"} description={"\u7a7a\u95f4\u5b9a\u4f4d\u3001\u9009\u533a\u5bf9\u6bd4\u4e0e\u5355\u7ad9\u5206\u6790"} />
         <EntryCard href="/product-preview?report=day&hour=18" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
         <EntryCard href="/analysis" icon="chart-line-up" title={"\u6b63\u5f0f\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />

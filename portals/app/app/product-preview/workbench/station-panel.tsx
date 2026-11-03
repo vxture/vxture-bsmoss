@@ -1,6 +1,7 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useCallback } from 'react';
+import { Button } from '@vxture/design-system';
 import StationPeriodPanel from './station-period-panel.tsx';
 import { X, ArrowUpRight, Maximize2, Minimize2, RadioTower, Zap, Activity, ShieldCheck, AlertTriangle, ArrowRight, BatteryCharging, Thermometer, Phone, MessageSquare, Database, ChevronRight, CircleCheck, Info } from 'lucide-react';
 import type { StationDetail, Operator } from '../../domains/map-demo/types.ts';
@@ -30,7 +31,9 @@ export default function StationPanel({detail,loading,error,kind,onRetry}:{kind:A
     <div className="mw-detail-top"><span className="mw-section-kicker">{title}</span><div><button className="mw-add-comparison" disabled={!state.compareIds.includes(site.id)&&state.compareIds.length>=4} onClick={()=>state.addComparison(site.id)}>{state.compareIds.includes(site.id)?'\u67e5\u770b\u5bf9\u6bd4':'\u52a0\u5165\u5bf9\u6bd4'}</button><button className="mw-icon-button" title={expanded?'\u6536\u8d77\u5206\u6790':'\u5c55\u5f00\u5206\u6790'} aria-label={(expanded?'\u6536\u8d77':'\u653e\u5927')+title} onClick={()=>state.expandPanel(kind)}>{expanded?<Minimize2 size={15}/>:<Maximize2 size={15}/>}</button><button className="mw-icon-button" aria-label={'\u5173\u95ed'+title} onClick={()=>state.closePanel(kind)}><X size={17}/></button></div></div>
     {state.returnToReport&&<button className="mw-return-report" onClick={()=>state.set({reportOpen:true,returnToReport:false,selectedId:null})}>{'\u8fd4\u56de\u5468\u671f\u62a5\u544a'}<ArrowUpRight size={12}/></button>}
     <div className="mw-site-heading"><div className="mw-site-symbol"><RadioTower size={24}/></div><div><h2>{site.name}</h2><p>{site.id}<span>{PROFILES[site.profile]}</span></p></div></div>
-    <div className="mw-site-tags"><span className={'mw-status '+current.status}><i/>{status}</span><span>{site.operators.length+' \u5bb6\u8fd0\u8425\u5546\u5171\u4eab'}</span><span>{'\u865a\u6784\u7ad9\u5740'}</span></div>
+    <div className="mw-site-tags"><span className={'mw-status '+current.status}><i/>{status}</span><span>{site.operators.length+' \u5bb6\u8fd0\u8425\u5546\u5171\u4eab'}</span><span>{'\u865a\u6784\u7ad9\u5740'}</span>
+      <Button asChild size="sm" variant="ghost"><a href={'/sites/'+encodeURIComponent(site.id)+'?city='+site.cityId+'&county='+site.countyId+'&hour='+state.hour}>{'\u7edf\u4e00\u7ad9\u5740\u6863\u6848'}</a></Button>
+    </div>
     <div className="mw-panel-actions"><button onClick={()=>state.openPanel(other,true)}>{'\u5207\u6362\u81f3'+(other==='runtime'?'\u8fd0\u884c\u68c0\u67e5':'\u7ecf\u8425\u7edf\u8ba1')}<ArrowRight size={12}/></button><button disabled={other==='runtime'?state.runtimeOpen:state.businessOpen} onClick={()=>state.openPanel(other)}>{other==='runtime'&&state.runtimeOpen||other==='business'&&state.businessOpen?'\u5df2\u5e76\u6392':'\u5e76\u6392\u6253\u5f00'}{other==='runtime'?<Activity size={12}/>:<Database size={12}/>}</button></div>
     <div className="mw-station-period-picker"><span>{'\u5206\u6790\u5468\u671f'}</span><div role="group" aria-label={title+'\u5206\u6790\u5468\u671f'}>{([{key:'snapshot',label:'\u65f6\u6bb5'},{key:'day',label:'\u65e5'},{key:'week',label:'\u5468'},{key:'month',label:'\u6708'}] as const).map(p=><button key={p.key} aria-pressed={period===p.key} onClick={()=>{state.set({stationPeriods:{...state.stationPeriods,[kind]:p.key},playing:false});}}>{p.label}</button>)}</div></div>
     {period!=='snapshot'?<div className="mw-detail-body mw-station-period-body"><StationPeriodPanel site={site} period={period}/></div>:<div className={'mw-detail-body '+(loading?'mw-refreshing':'')}>

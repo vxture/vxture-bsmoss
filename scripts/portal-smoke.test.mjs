@@ -97,6 +97,13 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const formalHome=await formalRoot.text();assert.ok(formalHome.includes('\u8fd0\u884c\u603b\u89c8'));
       for(const sample of ['data-portal-mode','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!formalHome.includes(sample));
     });
+    await t.test('site registry and dossiers never expose synthetic assets with preview disabled',async()=>{
+      for(const path of ['/sites','/sites?view=relations','/sites/SX-DEMO-001?tab=resources']) {
+        const response=await fetch(url+path);assert.equal(response.status,200);
+        const html=await response.text();assert.ok(html.includes('\u5c1a\u672a\u5f00\u653e'));
+        for(const sample of ['data-sites-mode="demo"','data-site-dossier-mode="demo"','TT-SX-DEMO-','bsmoss-site-registry-demo-v1']) assert.ok(!html.includes(sample));
+      }
+    });
     await t.test('decision board fails closed with preview disabled',async()=>{
       const response=await fetch(url+'/board');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('\u51b3\u7b56\u5927\u5c4f\u5c1a\u672a\u5f00\u653e'));
@@ -104,6 +111,22 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('site business pages support geographic relations and six dossier layers without formal access',async()=>{
+      const list=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
+      assert.ok(list.includes('data-sites-mode="demo"'));assert.ok(list.includes('/sites/SX-DEMO-001'));
+      const relations=await (await fetch(url+'/sites?view=relations&search=SX-DEMO-001')).text();
+      assert.ok(relations.includes('SX-DEMO-001-mobile'));assert.ok(relations.includes('SX-DEMO-001-telecom'));
+      for(const tab of ['overview','resources','services','runtime','business','sources']) {
+        const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&period=month');assert.equal(response.status,200);
+        const html=await response.text();assert.ok(html.includes('data-site-dossier-mode="demo"'));assert.ok(html.includes('SX-DEMO-001'));
+      }
+      assert.equal((await fetch(url+'/sites/unknown')).status,404);
+      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24']) {
+        const html=await (await fetch(url+'/sites?'+query)).text();
+        assert.ok(!html.includes('data-sites-mode="demo"'));assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));
+      }
+      assert.equal((await fetch(url+'/api/measurements')).status,401);
+    });
     await t.test('synthetic preview never grants formal aggregate access or falls back to sample results',async()=>{
       assert.equal((await fetch(url+'/api/templates?code=qa-page')).status,401);
       assert.equal((await fetch(url+'/api/analysis?at=2026-11-03T00%3A00%3A00Z')).status,401);

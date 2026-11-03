@@ -1,0 +1,9 @@
+.site-workspace { overflow: hidden; }
+.site-table-scroll { scrollbar-gutter: stable; }
+.site-dossier-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+@media (min-width: 1280px) {
+  .site-dossier-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
+@media (max-width: 639px) {
+  .site-workspace { height: auto; min-height: 100%; overflow: visible; }
+}
