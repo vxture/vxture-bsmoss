@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 门户首页与产品结构（2026-11-03，最新用户指令）
+
+用户指出地图之外缺少完整业务入口，要求从门户首页梳理补齐。设计228／实施640，50信息结构已更新V0.4并盘点目标8个入口与实际代码差距；台账新增P01–P08。本轮P01首页及导航完成，下一批P02站址台账与完整档案，再P03独立三类分析／贡献与P04异常核验；P05来源质量、P06正式摘要、P07角色审计及P08验收上线仍待。不要把全部规划计为完成，也不恢复已清除goal或bs-moss heartbeat。
+
+首页/直接200不再重定向。显式preview on才动态读map-demo同一规则，固定2026-10-25；1080模拟站址／3902服务关系／全日经营与物理电耗、18点运营状态和地市排名分开标注。无地图引擎、虚构完整率／待办／发布数或11万真实接入宣称。preview off无合成读模型和数字，仅公开入口与登录／未开放状态。正式授权首页汇总待P06。
+
+新增共享ProductHeader和纯公共路由目录，5个正式页面统一首页／分析／报告及管理菜单；目录不是授权结论，实际RP／权益／权限和scope独立不变。地图保留全幅布局、旧深链和默认不选站；顶部可见品牌返回门户。初查发现rail品牌被HUD隐藏，已实际改为顶部可见入口；手机管理菜单原右溢，修为相对header右侧定位。
+
+540单测／双层类型／生产构建与20HTTP通过，最终日志tmp/portal-home-{unit,types,build,http}.log。CUA1280默认client1265及390手机client375均无横溢；菜单右358.67<375，首页无mapcanvas，已核对管理入口／正式未开放提示及首页→无site地图→可见返回首页，最终warn/error为空。截图和checks在artifacts/portal-home-qa；最后运行SHA／BUILD_ID以formal-checkpoints/portal-product-structure.json收尾为准。
+
+无服务契约、DDL、Prisma或依赖变化，不重复实际PG／worker测试，不将静态守卫冒充在线SCA。来源授权／平台／环境／Linux／11万容量恢复／UAT与生产批准仍待，无远端push／PR／CI／外部部署或上线。陕西演示／费用预留／退役P2／新产品无旧库迁移保持。
+
 ## 后台任务服务身份适配（2026-11-03，最新入口）
 
 接续20a89ac，恢复时clean；原五项active goal和bs-moss hourly heartbeat复用，不新建、不spawn。本turn有实质progress。设计226／实施620：平台治理仓D:/MyWebSite/vxture/vxture-platform现可读！已读AGENTS／memory／product_210 §2／§3／token-exchange真实签发与服务context／注册runbook；原产品接入通则Claude原件仍登录门槛，未登录／改平台／注册。product_210明确后台Job／周期同步用既有产品confidential client、service无sub、RS256 kid/JWKS、单目标aud／act.sub／workspace_id／scope／300秒exp iat jti。本产品适配不另写跨产品标准；自受众aud=bsmoss实际签发和平台联调仍待，aud=vxture既有channel用途不改。

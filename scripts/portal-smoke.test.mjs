@@ -70,7 +70,9 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview/station/SX-DEMO-001/period/report?format=html")).status,404);
       assert.equal((await fetch(url+"/api/product-preview",{method:"POST",body:JSON.stringify(request)})).status,404);
       const root=await fetch(url);assert.equal(root.status,200);assert.ok(!(await root.text()).includes("fixture-hourly-v1"));
-      const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,307);assert.equal(formalRoot.headers.get('location'),'/analysis');
+      const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,200);
+      const formalHome=await formalRoot.text();assert.ok(formalHome.includes('BS-MOSS / OVERVIEW'));
+      for(const sample of ['data-portal-mode','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!formalHome.includes(sample));
     });
   });
   await withServer(true,async url=>{
@@ -86,8 +88,10 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const exported=await fetch(url+'/api/report-exports/demo-job?format=html');assert.equal(exported.status,401);assert.equal(exported.headers.get('x-content-type-options'),'nosniff');assert.ok(exported.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await exported.json()).code,'AUTH_REQUIRED');
       for(const path of ['/api/report-jobs?kind=export','/api/report-jobs/untrusted?kind=generation'])assert.equal((await fetch(url+path)).status,401);assert.equal((await fetch(url+'/operations/reports')).status,200);assert.equal((await fetch(url+'/api/aggregate-jobs?status=dead')).status,401);assert.equal((await fetch(url+'/api/aggregate-jobs/demo-job/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
     });
-    await t.test("sample page renders and the root redirects to it",async()=>{
-      const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,307);
+    await t.test("portal home summarizes synthetic data and links to the separately gated map",async()=>{
+      const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,200);
+      const home=await root.text();assert.ok(home.includes('data-portal-mode="demo"'));assert.ok(home.includes('2026-10-25'));
+      assert.ok(home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
       const page=await fetch(url+"/product-preview");assert.equal(page.status,200);
       const html=await page.text();assert.ok(html.includes("SX-DEMO-001"));assert.ok(html.includes("shaanxi-scenario-v1"));
     });
