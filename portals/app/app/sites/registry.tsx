@@ -1,11 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, FilterBar, Icon, Input,
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, Input,
   ListCard, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, statusNames } from "./labels";
+import SiteFilters from "./filters";
 import "./sites.css";
 export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
   const router = useRouter(), q = demo.query;
@@ -52,9 +53,14 @@ export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
       <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md p-lg">
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
         <div className="flex items-center justify-between gap-sm">
-          <span className="min-w-0 flex-1 truncate text-body-small text-muted-foreground" title={regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}>{regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-xs">
+            <span className="truncate text-body-small text-muted-foreground" title={regionLabel + " \u00b7 " + demo.date}>{regionLabel + " \u00b7 " + demo.date}</span>
+            <NativeSelect aria-label={"\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto shrink-0" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>
+              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}
+            </NativeSelect>
+          </div>
           <div className="flex shrink-0 items-center gap-xs">
-            <CollapsibleTrigger asChild><Button variant="ghost" aria-label={"\u8d44\u6e90\u6982\u51b5"}><span><span className="hidden sm:inline">{"\u8d44\u6e90"}</span>{"\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" /></Button></CollapsibleTrigger>
+            <CollapsibleTrigger asChild><Button variant="ghost" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="secondary"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden sm:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>
           </div>
         </div>
@@ -65,37 +71,19 @@ export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
           { key: "attention", label: "\u8fd0\u884c\u5173\u6ce8", value: n(demo.summary.attention) + " \u5ea7" },
         ]} /></div></CollapsibleContent>
         </Collapsible>
-        <form className="shrink-0" role="search" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
-          <FilterBar count={n(demo.count) + (q.view === "sites" ? " \u5ea7\u7ad9\u5740" : " \u6761\u5173\u7cfb")}
-            resetLabel={"\u91cd\u7f6e\u7b5b\u9009"} scope={<SegmentedControl size="sm" ariaLabel={"\u8d44\u6e90\u4e1a\u52a1\u89c6\u56fe"} value={q.view} onChange={view => navigate({ view })}
-              items={[{ value: "sites", label: "\u7ad9\u5740\u53f0\u8d26" }, { value: "relations", label: "\u670d\u52a1\u5173\u7cfb" }]} />}
-            search={<Input aria-label={"\u68c0\u7d22\u7ad9\u5740"} placeholder={"\u7ad9\u540d / \u7f16\u7801 / \u5730\u5740"} value={search} onChange={e => setSearch(e.target.value)} />}
-            onReset={() => start(() => router.push(siteListHref(DEFAULT_SITE_QUERY)))}
-            actions={<Button size="sm" type="submit" variant="secondary"><Icon name="search" size="sm" />{"\u67e5\u8be2"}</Button>}>
-            <NativeSelect aria-label={"\u5730\u5e02\u7b5b\u9009"} wrapperClassName="w-auto" value={q.city} onChange={e => navigate({ city: e.target.value, county: "all" })}>
-              <option value="all">{"\u5168\u90e8\u5730\u5e02"}</option>{demo.regions.cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </NativeSelect>
-            <NativeSelect aria-label={"\u533a\u53bf\u7b5b\u9009"} wrapperClassName="w-auto" value={q.county} disabled={q.city === "all"} onChange={e => navigate({ county: e.target.value })}>
-              <option value="all">{"\u5168\u90e8\u533a\u53bf"}</option>{demo.regions.counties.filter(c => c.cityId === q.city).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </NativeSelect>
+        <form className="site-registry-tools shrink-0" role="search" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
+          <div className="site-registry-view"><SegmentedControl ariaLabel={"\u8d44\u6e90\u4e1a\u52a1\u89c6\u56fe"} value={q.view} onChange={view => navigate({ view })}
+            items={[{ value: "sites", label: "\u7ad9\u5740\u53f0\u8d26" }, { value: "relations", label: "\u670d\u52a1\u5173\u7cfb" }]} /></div>
+          <div className="site-registry-search flex min-w-0 items-center gap-xs">
+            <Input aria-label={"\u68c0\u7d22\u7ad9\u5740"} placeholder={"\u7ad9\u540d / \u7f16\u7801 / \u5730\u5740"} value={search} onChange={e => setSearch(e.target.value)} />
+            <Button size="icon-md" type="submit" variant="secondary" aria-label={"\u67e5\u8be2"}><Icon name="search" size="sm" /></Button>
+          </div>
+          <div className="site-registry-actions flex items-center gap-xs">
             <NativeSelect aria-label={"\u8fd0\u8425\u5546\u7b5b\u9009"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value })}>
               {["all", "mobile", "telecom", "unicom", "broadcast", "other"].map(code => <option key={code} value={code}>{operatorNames[code]}</option>)}
             </NativeSelect>
-          </FilterBar>
-          <div className="flex flex-wrap items-center gap-sm pt-sm">
-            <NativeSelect aria-label={"\u5171\u4eab\u65b9\u5f0f"} wrapperClassName="w-auto" value={q.sharing} onChange={e => navigate({ sharing: e.target.value })}>
-              <option value="all">{"\u5168\u90e8\u5171\u4eab\u65b9\u5f0f"}</option><option value="single">{"\u72ec\u4eab\u7ad9\u5740"}</option><option value="shared">{"\u4e24\u5bb6\u53ca\u4ee5\u4e0a"}</option><option value="multi">{"\u4e09\u5bb6\u53ca\u4ee5\u4e0a"}</option>
-            </NativeSelect>
-            <NativeSelect aria-label={"\u4e1a\u52a1\u573a\u666f"} wrapperClassName="w-auto" value={q.scene} onChange={e => navigate({ scene: e.target.value })}>
-              <option value="all">{"\u5168\u90e8\u4e1a\u52a1\u573a\u666f"}</option>{Object.entries(sceneNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </NativeSelect>
-            <NativeSelect aria-label={"\u8fd0\u884c\u72b6\u6001\u7b5b\u9009"} wrapperClassName="w-auto" value={q.status} onChange={e => navigate({ status: e.target.value })}>
-              <option value="all">{"\u5168\u90e8\u8fd0\u884c\u72b6\u6001"}</option>{Object.entries(statusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </NativeSelect>
-            <NativeSelect aria-label={"\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>
-              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}
-            </NativeSelect>
-            <span className="ml-auto text-body-small text-muted-foreground">{pending ? "\u66f4\u65b0\u4e2d\u2026" : "\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53 \u00b7 \u4e2d\u56fd\u94c1\u5854"}</span>
+            <SiteFilters query={q} regions={demo.regions} onApply={patch => navigate(patch)} />
+            <Button variant="ghost" size="icon-md" aria-label={"\u91cd\u7f6e\u7b5b\u9009"} onClick={() => start(() => router.push(siteListHref(DEFAULT_SITE_QUERY)))}><Icon name="refresh" size="sm" /></Button>
           </div>
         </form>
         <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-border bg-card" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>

@@ -27,7 +27,7 @@ export default function ProductChrome({ active, preview, children, identity, log
       <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u95e8\u6237\u9996\u9875"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
           <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
-        <span className="hidden truncate font-brand text-heading-1 text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
+        <span className="hidden truncate text-heading-2 font-semibold text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
       </a>
       <div className="flex min-w-0 items-center gap-sm">
         <ShellHeaderDivider />

@@ -918,3 +918,9 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 用户认为四张统计卡无需常驻。/sites使用官方Collapsible默认收起，触发按钮与日期／地图同行；展开以MetricListCard紧凑显示四项。单位放数值旁，完整四字名称避免手机省略；手机地图入口保留可访问名称的图标。查询key重挂载后收起，不新增存储偏好；范围计数不变。
 
 最终build含类型、26HTTP、140编号、源码ASCII／diff通过；tmp/site-summary-{build,http,docs}.log。1042表格顶部412.44→258.09，增加154.34px；787／390无横溢，鼠标／Enter／Space开合及省市统计一致。移动初轮长标签截断，缩短名称并将单位放数值后实际完整；筛选导航后首次操作遇到浏览器目标失效，读取新DOM再操作成功，非产品错误。artifacts/site-summary-qa收起展开桌面手机截图及checks；viewport reset、tab37关闭、warn/error空。设计233／实施690同步，无业务／PG重复测试、依赖／DDL／权限变化或外部部署。不恢复goal／自动任务。
+
+## 系统字号统一与站址工具行整理（2026-11-03）
+
+用户批注系统名应同功能域字号、列表头乱且高。chrome系统名改heading-2 16px／semibold（去font-brand），功能域同档，观澜20px保留。台账头部上下文行地域日期＋小时／概况／地图；业务行切换＋搜索＋运营商＋筛选／重置，数量只留分页，删除主体说明。SiteFilters使用官方Popover和单选NativeSelect组装草稿，五维一次应用，换市清县，Escape取消后重开恢复；清空草稿需应用。手机三行业务工具，概况与地图图标，日期完整。新增文件filters.tsx，未引新依赖或基础原语。
+
+最终build含类型、26HTTP、140编号、四源码ASCII／diff通过，tmp/site-toolbar-{build,http,docs}.log。CUA1042工具24.23px、列表顶258.09→152.23；两名称实测16px，配置域同档；787／390无横溢。组合筛选、取消、清空、搜索、重置及小时／运营商／关系切换保留通过；自动UI初轮连续操作未等待路由导致观察旧状态，已逐步等待精确URL确认，无产品逻辑变化。手机city/county/scene一次应用保留telecom／relations／hour17，日期113px无裁切。artifacts/site-toolbar-qa桌面手机／筛选截图与checks，warn/error空、viewport reset／tab38关闭。首轮构建重置图标拼错被类型拦截，改官方refresh后通过。Python别名不可用，改原生PowerShell文件编辑；没有安装工具。设计230／233及实施690更新，最终Git／health以收尾工具为准；无push／外部部署，不恢复goal或自动任务。

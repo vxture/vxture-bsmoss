@@ -1,5 +1,12 @@
 .site-workspace { overflow: hidden; }
 .site-table-scroll { scrollbar-gutter: stable; }
+.site-registry-tools { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-sm); align-items: center; }
+.site-registry-view { min-width: 0; }
+@media (max-width: 639px) {
+  .site-registry-tools { grid-template-columns: minmax(0, 1fr); }
+  .site-registry-search { grid-row: 2; }
+  .site-registry-actions { justify-content: space-between; }
+}
 .site-dossier-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
 @media (min-width: 1280px) {
   .site-dossier-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
