@@ -10,6 +10,7 @@ function record(site: DemoSite, hour: number): SiteRecord {
   const cityName = DEMO_REGION.cities.find(c => c.id === site.cityId)!.name;
   const countyName = DEMO_REGION.counties.find(c => c.id === site.countyId)!.name;
   return { ...site, cityName, countyName, current: siteHour(site, hour),
+    siteType: site.profile === "urban" ? "rooftop" : "ground",
     towerType: site.profile === "urban" ? "\u697c\u9762\u62b1\u6746" : site.profile === "mountain" ? "\u89d2\u94a2\u5854" : "\u5355\u7ba1\u5854",
     heightMeters: site.profile === "urban" ? 18 + site.seed % 8 : 30 + site.seed % 26,
     roomType: site.seed % 3 === 0 ? "\u4e00\u4f53\u5316\u673a\u67dc" : "\u6807\u51c6\u673a\u623f",

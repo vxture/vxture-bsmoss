@@ -6,7 +6,7 @@ import { BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, M
 import type { DossierDemo } from "../domains/site-registry/demo-store";
 import { changeLabel, windowLabel } from "../domains/map-demo/period-comparison-display";
 import { SITE_TABS, siteDetailHref, siteListHref, type SiteQuery } from "../domains/site-registry/rules";
-import { n, operatorNames, pct, sceneNames, statusNames, tabNames } from "./labels";
+import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames, tabNames } from "./labels";
 import "./sites.css";
 const metricOptions = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSeconds", label: "\u901a\u8bdd" }, { value: "sms", label: "\u77ed\u4fe1" }] as const;
 type UsageMetric = typeof metricOptions[number]["value"];
@@ -45,7 +45,8 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     <DetailRow label={"\u7ad9\u5740\u7f16\u7801"}>{s.id}</DetailRow><DetailRow label={"\u94c1\u5854\u8d44\u4ea7\u7f16\u7801"}>{s.assetCode}</DetailRow>
     <DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u5f52\u5c5e\u533a\u57df"}>{s.cityName + " / " + s.countyName}</DetailRow>
     <DetailRow label={"\u4e1a\u52a1\u573a\u666f"}>{sceneNames[s.profile]}</DetailRow><DetailRow label={"\u5854\u578b / \u5854\u9ad8"}>{s.towerType + " / " + s.heightMeters + " m"}</DetailRow>
-    <DetailRow label={"\u673a\u623f\u5f62\u6001"}>{s.roomType}</DetailRow><DetailRow label={"\u6295\u8fd0\u65e5\u671f"}>{s.commissioned}</DetailRow>
+    <DetailRow label={"\u7ad9\u70b9\u7c7b\u578b"}>{siteTypeNames[s.siteType]}</DetailRow><DetailRow label={"\u673a\u623f\u5f62\u6001"}>{s.roomType}</DetailRow>
+    <DetailRow label={"\u6295\u8fd0\u65e5\u671f"}>{s.commissioned}</DetailRow>
     <DetailRow label={"\u5730\u7406\u5750\u6807"}>{s.lng.toFixed(6) + ", " + s.lat.toFixed(6)}</DetailRow><DetailRow label={"\u6863\u6848\u7248\u672c"}>{demo.version}</DetailRow>
     <DetailRow label={"\u4f4d\u7f6e\u63cf\u8ff0"}>{s.address}</DetailRow><DetailRow label={"\u6570\u636e\u5c5e\u6027"}>{"\u5408\u6210\u6863\u6848 \u00b7 \u7528\u4e8e\u4e1a\u52a1\u6f14\u793a"}</DetailRow>
   </DetailList></PanelCard>;

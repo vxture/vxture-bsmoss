@@ -924,3 +924,11 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 用户批注系统名应同功能域字号、列表头乱且高。chrome系统名改heading-2 16px／semibold（去font-brand），功能域同档，观澜20px保留。台账头部上下文行地域日期＋小时／概况／地图；业务行切换＋搜索＋运营商＋筛选／重置，数量只留分页，删除主体说明。SiteFilters使用官方Popover和单选NativeSelect组装草稿，五维一次应用，换市清县，Escape取消后重开恢复；清空草稿需应用。手机三行业务工具，概况与地图图标，日期完整。新增文件filters.tsx，未引新依赖或基础原语。
 
 最终build含类型、26HTTP、140编号、四源码ASCII／diff通过，tmp/site-toolbar-{build,http,docs}.log。CUA1042工具24.23px、列表顶258.09→152.23；两名称实测16px，配置域同档；787／390无横溢。组合筛选、取消、清空、搜索、重置及小时／运营商／关系切换保留通过；自动UI初轮连续操作未等待路由导致观察旧状态，已逐步等待精确URL确认，无产品逻辑变化。手机city/county/scene一次应用保留telecom／relations／hour17，日期113px无裁切。artifacts/site-toolbar-qa桌面手机／筛选截图与checks，warn/error空、viewport reset／tab38关闭。首轮构建重置图标拼错被类型拦截，改官方refresh后通过。Python别名不可用，改原生PowerShell文件编辑；没有安装工具。设计230／233及实施690更新，最终Git／health以收尾工具为准；无push／外部部署，不恢复goal或自动任务。
+
+## 站址检索、站点类型与刷新（2026-11-03）
+
+用户要求先分析后三条批注落地。采用官方InputGroup／Addon／Input，查询放大镜在框内可点击，回车同form；桌面公开overlay-md宽度token实测224px，手机整行。SiteQuery／SiteRecord增加siteType严格枚举all／ground／rooftop，地面站／楼面站与已有塔房模型一致，不捏造室分或微站；与业务场景分维，参与站址／关系交集、计数、分页、链接，档案总览显示。外放运营商移入六条件筛选弹层，草稿一次应用／取消／清空原语义保留。
+
+原小时是2026-10-25合成运行快照，不是同步时刻。台账移除小时下拉，只读源时点；手动刷新通过router.refresh重新请求模型，页面层读取后生成readAt并按北京时间显示，不在客户端点击即报成功，不改变源日期，不触发或宣称上游采集。旧hour深链兼容、地图和档案保留历史分析。刷新保留当前类型／地市／运营商／page2和搜索草稿，实测readAt从12:31:21.599Z更新到12:31:21.812Z。
+
+10项相关单测、双层类型、最终生产构建、26HTTP和140文档编号通过，tmp/site-controls-{unit,types,build,http,docs}.log。CUA1042／787搜索224px、无横溢，390原数据时点被挤压，收紧官方图标Button手机内距后日期client／scrollWidth均148完整显示。类型与运营商交集、手机4关系过滤为电信1关系、ground检索楼面站为空、Enter和框内按钮查询、档案类型及返回上下文／重置通过。artifacts/site-controls-qa含桌面／中屏／手机／筛选截图和checks，warn/error空；viewport reset、临时tab39关闭。无DDL／依赖／权限／真实接入变化，不重复PG合同；设计233／实施690／信息结构同步。最终commit与63333运行身份以Git及health为准，无push／外部部署或自动任务。

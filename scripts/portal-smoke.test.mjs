@@ -114,6 +114,14 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test('site business pages support geographic relations and six dossier layers without formal access',async()=>{
       const list=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
       assert.ok(list.includes('data-sites-mode="demo"'));assert.ok(list.includes('/sites/SX-DEMO-001'));
+      assert.ok(list.includes('data-slot="input-group"'));assert.ok(!list.includes('aria-label="\u72b6\u6001\u65f6\u6bb5"'));
+      const firstRead=list.match(/<time dateTime="([^"]+)"/)[1];assert.ok(Number.isFinite(Date.parse(firstRead)));
+      const reread=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
+      assert.ok(Date.parse(reread.match(/<time dateTime="([^"]+)"/)[1])>Date.parse(firstRead));
+      const rooftop=await (await fetch(url+'/sites?siteType=rooftop&search=SX-DEMO-001&hour=17')).text();
+      assert.ok(rooftop.includes('/sites/SX-DEMO-001'));assert.ok(rooftop.includes('2026-10-25 17:00'));
+      const ground=await (await fetch(url+'/sites?siteType=ground&search=SX-DEMO-001')).text();
+      assert.ok(!ground.includes('href="/sites/SX-DEMO-001'));
       const relations=await (await fetch(url+'/sites?view=relations&search=SX-DEMO-001')).text();
       assert.ok(relations.includes('SX-DEMO-001-mobile'));assert.ok(relations.includes('SX-DEMO-001-telecom'));
       for(const tab of ['overview','resources','services','runtime','business','sources']) {
@@ -121,7 +129,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const html=await response.text();assert.ok(html.includes('data-site-dossier-mode="demo"'));assert.ok(html.includes('SX-DEMO-001'));
       }
       assert.equal((await fetch(url+'/sites/unknown')).status,404);
-      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24']) {
+      for(const query of ['siteType=indoor','siteType=ground&siteType=rooftop','city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24']) {
         const html=await (await fetch(url+'/sites?'+query)).text();
         assert.ok(!html.includes('data-sites-mode="demo"'));assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));
       }

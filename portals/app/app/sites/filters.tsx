@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Button, Icon, Label, NativeSelect, Popover, PopoverContent, PopoverTrigger } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, type SiteQuery } from "../domains/site-registry/rules";
-import { sceneNames, statusNames } from "./labels";
+import { operatorNames, sceneNames, statusNames } from "./labels";
 
-type Filters = Pick<SiteQuery, "city" | "county" | "sharing" | "scene" | "status">;
-const values = (q: Filters): Filters => ({ city: q.city, county: q.county, sharing: q.sharing, scene: q.scene, status: q.status });
+type Filters = Pick<SiteQuery, "city" | "county" | "operator" | "sharing" | "scene" | "status">;
+const values = (q: Filters): Filters => ({ city: q.city, county: q.county, operator: q.operator, sharing: q.sharing, scene: q.scene, status: q.status });
 export default function SiteFilters({ query, regions, onApply }: {
   query: SiteQuery; regions: RegistryDemo["regions"]; onApply: (patch: Filters) => void;
 }) {
@@ -36,7 +36,11 @@ export default function SiteFilters({ query, regions, onApply }: {
             <NativeSelect id="site-filter-scene" aria-label={"\u4e1a\u52a1\u573a\u666f"} value={draft.scene} onChange={e => setDraft({ ...draft, scene: e.target.value })}>
               <option value="all">{"\u5168\u90e8"}</option>{Object.entries(sceneNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </NativeSelect></div>
-          <div className="col-span-2 flex flex-col gap-xs"><Label htmlFor="site-filter-status">{"\u8fd0\u884c\u72b6\u6001"}</Label>
+          <div className="flex flex-col gap-xs"><Label htmlFor="site-filter-operator">{"\u8fd0\u8425\u5546"}</Label>
+            <NativeSelect id="site-filter-operator" aria-label={"\u8fd0\u8425\u5546\u7b5b\u9009"} value={draft.operator} onChange={e => setDraft({ ...draft, operator: e.target.value })}>
+              {["all", "mobile", "telecom", "unicom", "broadcast", "other"].map(code => <option key={code} value={code}>{operatorNames[code]}</option>)}
+            </NativeSelect></div>
+          <div className="flex flex-col gap-xs"><Label htmlFor="site-filter-status">{"\u8fd0\u884c\u72b6\u6001"}</Label>
             <NativeSelect id="site-filter-status" aria-label={"\u8fd0\u884c\u72b6\u6001\u7b5b\u9009"} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}>
               <option value="all">{"\u5168\u90e8"}</option>{Object.entries(statusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </NativeSelect></div>

@@ -13,5 +13,5 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   try { demo = registryDemo(await searchParams); }
   catch { return <ProductFrame active="sites"><div className="p-xl" role="alert"><ViewHeader title={"\u7ad9\u5740\u7b5b\u9009\u65e0\u6548"} />
     <Button asChild><a href="/sites">{"\u8fd4\u56de\u7ad9\u5740\u53f0\u8d26"}</a></Button></div></ProductFrame>; }
-  return <ProductFrame active="sites" preview><SiteRegistry key={JSON.stringify(demo.query)} demo={demo} /></ProductFrame>;
+  return <ProductFrame active="sites" preview><SiteRegistry key={JSON.stringify(demo.query)} demo={demo} readAt={new Date().toISOString()} /></ProductFrame>;
 }

@@ -17,7 +17,7 @@ test("registry counts unique physical sites separately from operator service rel
 });
 
 test("city county operator scene status and sharing filters intersect before counts and pagination", () => {
-  const query = { city: "610100", county: "610113", operator: "telecom", scene: "urban", status: "warning", sharing: "multi", hour: "18" };
+  const query = { siteType: "rooftop", city: "610100", county: "610113", operator: "telecom", scene: "urban", status: "warning", sharing: "multi", hour: "18" };
   const result = registryDemo(query);
   const expected = DEMO_SITES.filter(s => s.cityId === "610100" && s.countyId === "610113" && s.operators.includes("telecom") &&
     s.profile === "urban" && s.operators.length >= 3 && siteHour(s, 18).status === "warning");
@@ -28,6 +28,27 @@ test("city county operator scene status and sharing filters intersect before cou
   const relations = registryDemo({ ...query, view: "relations" });
   assert.equal(relations.count, expected.length);
   assert.ok(relations.relations.every(r => r.code === "telecom"));
+});
+
+test("physical site types partition the registry and match its tower records across pages", () => {
+  const ids = new Set<string>();
+  let total = 0, relations = 0;
+  for (const siteType of ["ground", "rooftop"]) {
+    const result = registryDemo({ siteType });
+    assert.ok(result.count > 0);
+    total += result.count; relations += result.summary.relations;
+    for (let page = 1; page <= result.pages; page++) {
+      for (const row of registryDemo({ siteType, page: String(page) }).rows) {
+        assert.equal(row.siteType, siteType);
+        assert.equal(row.towerType === "\u697c\u9762\u62b1\u6746", siteType === "rooftop");
+        assert.ok(!ids.has(row.id)); ids.add(row.id);
+      }
+    }
+  }
+  assert.equal(total, 1080); assert.equal(ids.size, 1080);
+  assert.equal(relations, registryDemo({}).summary.relations);
+  assert.equal(registryDemo({ siteType: "ground", scene: "urban" }).count, 0);
+  assert.equal(dossierDemo("SX-DEMO-001", {})!.site.siteType, "rooftop");
 });
 
 test("ordering and page clamping are stable, search is literal and missing results stay empty", () => {
@@ -71,16 +92,18 @@ test("unsupported scope and malformed filters fail closed, including inherited p
   for (const input of [{ city: "110100" }, { county: "610113" }, { city: "610200", county: "610113" },
     { city: ["610100"] }, { status: "offline" }, { operator: "forged" }, { view: "admin" }, { page: "1.2" },
     { page: "0" }, { page: "100001" }, { hour: "24" }, { hour: "-1" }, { search: "x".repeat(81) },
+    { siteType: "indoor" }, { siteType: ["ground", "rooftop"] },
     { tab: "edit" }, { period: "year" }, { sort: "energy" }, { workspaceId: "forged" }, { constructor: "forged" }])
     assert.throws(() => parseSiteQuery(input, DEMO_REGION));
 });
 
 test("detail and list links retain business filters and cannot redirect to arbitrary destinations", () => {
-  const q = { ...DEFAULT_SITE_QUERY, city: "610100", county: "610113", operator: "telecom", page: 2, hour: 12, search: "a&b" };
+  const q = { ...DEFAULT_SITE_QUERY, siteType: "rooftop" as const, city: "610100", county: "610113", operator: "telecom", page: 2, hour: 12, search: "a&b" };
   const detail = siteDetailHref("SX-DEMO-001", q, { tab: "business", period: "month" });
   const parsed = parseSiteQuery(Object.fromEntries(new URL("http://localhost" + detail).searchParams), DEMO_REGION);
   assert.equal(parsed.search, "a&b"); assert.equal(parsed.tab, "business"); assert.equal(parsed.page, 2);
   const back = new URL("http://localhost" + siteListHref(parsed));
   assert.equal(back.pathname, "/sites"); assert.equal(back.searchParams.get("search"), "a&b");
+  assert.equal(back.searchParams.get("siteType"), "rooftop"); assert.equal(parsed.hour, 12);
   assert.equal(back.searchParams.has("tab"), false); assert.equal(back.searchParams.has("period"), false);
 });

@@ -1,6 +1,6 @@
 .site-workspace { overflow: hidden; }
 .site-table-scroll { scrollbar-gutter: stable; }
-.site-registry-tools { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-sm); align-items: center; }
+.site-registry-tools { display: grid; grid-template-columns: auto minmax(0, var(--container-overlay-md)) 1fr; gap: var(--space-sm); align-items: center; }
 .site-registry-view { min-width: 0; }
 @media (max-width: 639px) {
   .site-registry-tools { grid-template-columns: minmax(0, 1fr); }

@@ -1,16 +1,19 @@
 import type { DemoSite, HourMetrics, Operator, Profile, RegionDefinition } from "../map-demo/types";
 export const SITE_TABS = ["overview", "resources", "services", "runtime", "business", "sources"] as const;
 export type SiteTab = typeof SITE_TABS[number];
+export type SiteType = "ground" | "rooftop";
 export type SiteQuery = {
+  siteType: "all" | SiteType;
   city: string; county: string; operator: string; status: string; sharing: string; scene: string;
   search: string; view: "sites" | "relations"; sort: "name" | "operators" | "load"; direction: "asc" | "desc";
   page: number; hour: number; tab: SiteTab; period: "day" | "week" | "month";
 };
 export interface SiteRecord extends DemoSite {
+  siteType: SiteType;
   cityName: string; countyName: string; towerType: string; heightMeters: number;
   roomType: string; commissioned: string; assetCode: string; address: string; current: HourMetrics;
 }
-export const DEFAULT_SITE_QUERY: SiteQuery = { city: "all", county: "all", operator: "all", status: "all", sharing: "all", scene: "all",
+export const DEFAULT_SITE_QUERY: SiteQuery = { siteType: "all", city: "all", county: "all", operator: "all", status: "all", sharing: "all", scene: "all",
   search: "", view: "sites", sort: "name", direction: "asc", page: 1, hour: 18, tab: "overview", period: "day" };
 export function parseSiteQuery(input: Record<string, string | string[] | undefined>, region: RegionDefinition): SiteQuery {
   const q = { ...DEFAULT_SITE_QUERY };
@@ -25,6 +28,7 @@ export function parseSiteQuery(input: Record<string, string | string[] | undefin
   if (q.county !== "all" && !region.counties.some(c => c.id === q.county && c.cityId === q.city)) throw Error("invalid_site_county");
   const valid = (value: string, values: readonly string[]) => { if (!values.includes(value)) throw Error("invalid_site_filter"); };
   valid(q.operator, ["all", "mobile", "telecom", "unicom", "broadcast", "other"]);
+  valid(q.siteType, ["all", "ground", "rooftop"]);
   valid(q.status, ["all", "normal", "warning", "critical"]); valid(q.sharing, ["all", "single", "shared", "multi"]);
   valid(q.scene, ["all", "urban", "hub", "industrial", "mountain", "efficient", "shared"]);
   valid(q.view, ["sites", "relations"]); valid(q.sort, ["name", "operators", "load"]); valid(q.direction, ["asc", "desc"]);
@@ -49,6 +53,7 @@ export function siteDetailHref(id: string, q: SiteQuery, patch: Partial<SiteQuer
 export function filterSites(records: readonly SiteRecord[], q: SiteQuery) {
   const text = q.search.toLocaleLowerCase();
   return records.filter(s => (q.city === "all" || s.cityId === q.city) && (q.county === "all" || s.countyId === q.county)
+    && (q.siteType === "all" || s.siteType === q.siteType)
     && (q.operator === "all" || s.operators.includes(q.operator as Operator)) && (q.status === "all" || s.current.status === q.status)
     && (q.scene === "all" || s.profile === q.scene as Profile)
     && (q.sharing === "all" || (q.sharing === "single" ? s.operators.length === 1 : q.sharing === "multi" ? s.operators.length >= 3 : s.operators.length >= 2))
