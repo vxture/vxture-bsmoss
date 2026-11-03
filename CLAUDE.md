@@ -21,3 +21,10 @@ credentials, release history or successful deployment claims into this product.
 
 
 New-product decision: use an empty-database baseline (00/97/98); no legacy upgrade or data migration is required. Earlier unexecuted increment drafts were replaced.
+
+Portal UI follows yucer's shell composition and the published @vxture/design-system
+umbrella. New business views must use its components, theme, fonts and semantic
+tokens; do not introduce parallel button/card/table primitives, hardcoded visual
+values or global token overrides. Keep consumer providers in a client module.
+The existing full-canvas map remains independent. Legacy metrics styles are
+scoped to .legacy-metrics and must never leak into the portal.

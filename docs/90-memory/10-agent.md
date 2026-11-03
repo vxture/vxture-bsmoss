@@ -1,5 +1,16 @@
 # 后续代理入口
 
+## vxture Design 门户视觉纠正（2026-11-03，最新）
+
+用户要求参照yucer、引用vxture-Design，否定上版首页。设计229／实施650；发布DS15.0.0／UI12／tokens4已接入，latest声明与pnpm锁版。官方字体／主题／品牌／workbench／PostCSS，自有client providers。全部新门户界面从伞包导入，不引入平行组件和硬编码视觉值，已入CLAUDE.md。
+
+ProductFrame服务器层传preview，ProductChrome为DS48px顶栏、可收侧栏、手机launcher。观澜左／BS-MOSS与描述右上下两行，无竖线。首页指标／三类概况／24小时可切换柱图／占比／表格／入口全为DS。大数用TiB／万分钟／万条并标单位，数字不截断。旧首页CSS删除，旧globals全1177行限制到legacy-metrics路由作用域，不污染DS。五个正式页共享外壳，业务表单主体尚未全转DS，勿说所有页面已重构。地图保留独立全幅和原深链。
+
+首次build失败因react-resizable-panels4.17要Activity而Next15.5.28内置React无此导出；沿DS仓锁4.12.3通过，未修依赖源码或React别名。冻结安装、540单测／双层types／生产build／20HTTP通过；实际pnpm audit prod为199依赖、已知漏洞0，不冒充OSV或远端CI。最终CUA／截图／守卫和扫描、提交／63333版本以artifacts/formal-checkpoints/vxture-design-portal.json为准，日志tmp/portal-ds-*。无DB变更未重复PG。
+
+P01视觉纠正，下一批仍P02站址台账／完整档案，后续页面必须沿DS。真实来源／平台／环境／容量恢复／UAT和生产批准依赖保持，未上线。未推送／部署／建聊天／恢复goal或自动任务。陕西演示／费用预留／退役P2不变。
+
+
 ## 门户首页与产品结构（2026-11-03，最新用户指令）
 
 用户指出地图之外缺少完整业务入口，要求从门户首页梳理补齐。设计228／实施640，50信息结构已更新V0.4并盘点目标8个入口与实际代码差距；台账新增P01–P08。本轮P01首页及导航完成，下一批P02站址台账与完整档案，再P03独立三类分析／贡献与P04异常核验；P05来源质量、P06正式摘要、P07角色审计及P08验收上线仍待。不要把全部规划计为完成，也不恢复已清除goal或bs-moss heartbeat。

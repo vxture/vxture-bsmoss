@@ -1,74 +1,111 @@
-import { Activity, ArrowUpRight, BarChart3, FileText, Map, RadioTower, Zap } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { BarChart, Button, DataTable, EntryCard, Icon, MetricGrid, MetricListCard, PanelCard, Progress,
+  SegmentedControl, ShellPageContainer, StatusBadge, ViewHeader } from "@vxture/design-system";
 import type { PortalDemo } from "./demo";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
 const number = (v: number, digits = 0) => v.toLocaleString("zh-CN", { maximumFractionDigits: digits });
 const percent = (v: number | null) => v === null ? "\u2014" : number(v * 100, 1) + "%";
+const more = (href: string, label = "\u67e5\u770b\u8be6\u60c5") => <Button asChild variant="ghost" size="sm"><a href={href}>{label}<Icon name="arrow-right" size="sm" /></a></Button>;
+const metrics = [
+  { value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSeconds", label: "\u901a\u8bdd" }, { value: "sms", label: "\u77ed\u4fe1" },
+] as const;
+type Metric = typeof metrics[number]["value"];
 
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
-  if (!demo) return <div className="portal-content">
-    <div className="portal-heading"><div><p>BS-MOSS / OVERVIEW</p><h1>{"\u8fd0\u884c\u603b\u89c8"}</h1></div><span>{"\u9655\u897f\u7701"}</span></div>
-    <section className="portal-access"><RadioTower size={32} /><h2>{"\u4ece\u5168\u7701\u6001\u52bf\uff0c\u5230\u7ad9\u5740\u5206\u6790"}</h2>
-      <p>{"\u767b\u5f55\u540e\u8fdb\u5165\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u5206\u6790\u3001\u62a5\u544a\u4e0e\u7ba1\u7406\u5de5\u4f5c\u533a\u3002"}</p>
-      {loginEnabled ? <a className="portal-primary" href="/auth/login?returnTo=%2Fanalysis">{"\u4f7f\u7528\u5e73\u53f0\u8d26\u53f7\u767b\u5f55"}<ArrowUpRight size={15} /></a> : <p>{"\u6b63\u5f0f\u6570\u636e\u5c1a\u672a\u5f00\u653e\uff0c\u7b49\u5f85\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u4e0e\u6765\u6e90\u6388\u6743\u3002"}</p>}
-      <div className="portal-formal-links"><a href="/analysis">{"\u5468\u671f\u5206\u6790"}</a><a href="/reports">{"\u62a5\u544a\u4e2d\u5fc3"}</a></div>
-    </section>
-  </div>;
+  const [metric, setMetric] = useState<Metric>("bytes");
+  if (!demo) return <ShellPageContainer className="gap-lg">
+    <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701"} />
+    <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
+      <div className="flex flex-col items-start gap-lg py-lg">
+        <p className="text-body text-muted-foreground">{loginEnabled ? "\u767b\u5f55\u540e\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u5206\u6790\u3001\u62a5\u544a\u4e0e\u7ba1\u7406\u5de5\u4f5c\u533a\u3002" : "\u6b63\u5f0f\u6570\u636e\u5c1a\u672a\u5f00\u653e\uff0c\u7b49\u5f85\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u4e0e\u6765\u6e90\u6388\u6743\u3002"}</p>
+        {loginEnabled ? <Button asChild><a href="/auth/login?returnTo=%2Fanalysis">{"\u4f7f\u7528\u5e73\u53f0\u8d26\u53f7\u767b\u5f55"}</a></Button> : null}
+      </div>
+    </PanelCard>
+    <div className="grid gap-md sm:grid-cols-2">
+      <EntryCard href="/analysis" icon="chart-line-up" title={"\u5468\u671f\u5206\u6790"} description={"\u7ecf\u8425\u670d\u52a1\u3001\u8fd0\u8425\u72b6\u6001\u4e0e\u8fd0\u884c\u53c2\u6570"} />
+      <EntryCard href="/reports" icon="file-text" title={"\u62a5\u544a\u4e2d\u5fc3"} description={"\u5468\u671f\u62a5\u544a\u3001\u53d1\u5e03\u4e0e\u5bfc\u51fa\u8bb0\u5f55"} />
+    </div>
+  </ShellPageContainer>;
+
   const { usage, status } = demo;
-  return <div className="portal-content" data-portal-mode="demo" data-demo-version={demo.version}>
-    <div className="portal-heading"><div><p>BS-MOSS / OVERVIEW</p><h1>{"\u8fd0\u884c\u603b\u89c8"}</h1></div>
-      <div className="portal-context"><span>{"\u9655\u897f\u7701 \u00b7 " + demo.date}</span><b>{"\u6f14\u793a\u6570\u636e"}</b><a href="/product-preview?hour=18">{"\u8fdb\u5165\u7ad9\u7f51\u5730\u56fe"}<ArrowUpRight size={15} /></a></div>
+  const unit = metric === "bytes" ? "TiB" : metric === "voiceSeconds" ? "\u4e07\u5206\u949f" : "\u4e07\u6761";
+  const fmt = (value: number) => number(metric === "bytes" ? value / 1099511627776 : metric === "voiceSeconds" ? value / 600000 : value / 10000, 2);
+  const series = usage.series.map(point => ({ key: String(point.hour), label: String(point.hour).padStart(2, "0"), value: point.rows.reduce((sum, row) => sum + row[metric], 0) }));
+  return <ShellPageContainer className="gap-lg">
+    <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
+      <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
+        secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}
+        action={<Button asChild size="xl"><a href="/product-preview?hour=18"><Icon name="map-pin" size="sm" />{"\u8fdb\u5165\u7ad9\u7f51\u5730\u56fe"}<Icon name="arrow-right" size="sm" /></a></Button>} />
+      <MetricGrid columns={4} aria-label={"\u7ad9\u7f51\u6982\u51b5"} items={[
+        { id: "sites", label: "\u6f14\u793a\u7ad9\u5740", value: number(usage.physicalSites), description: "\u5ea7", icon: "map-pin" },
+        { id: "relations", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: number(usage.serviceRelations), description: "\u6761", icon: "database", tone: "info" },
+        { id: "shared", label: "\u5171\u4eab\u7ad9\u5740", value: number(usage.sharedSites), description: "\u5ea7", icon: "share", tone: "success" },
+        { id: "attention", label: "\u9700\u5173\u6ce8\u7ad9\u5740", value: number(status.warning + status.critical), description: "18:00", icon: "gauge", tone: "warning" },
+      ]} />
+      <section className="grid gap-md xl:grid-cols-3" aria-label={"\u4e09\u7c7b\u4e1a\u52a1\u6307\u6807"}>
+        <MetricListCard title={"\u7ecf\u8425\u670d\u52a1"} description={"\u5168\u65e5\u7d2f\u8ba1"} icon="chart-bar" tone="brand"
+          metrics={[
+            { key: "data", label: "\u6d41\u91cf / TiB", value: number(usage.totals.bytes / 1099511627776, 2) },
+            { key: "voice", label: "\u901a\u8bdd / \u4e07\u5206\u949f", value: number(usage.totals.voiceSeconds / 600000, 2) },
+            { key: "sms", label: "\u77ed\u4fe1 / \u4e07\u6761", value: number(usage.totals.sms / 10000, 2) },
+          ]} footer={more("/product-preview?usage=day&hour=18", "\u8fd0\u8425\u5546\u7528\u91cf")} />
+        <MetricListCard title={"\u8fd0\u8425\u72b6\u6001"} description="18:00" icon="gauge" tone="info"
+          metrics={[
+            { key: "connection", label: "\u63a5\u901a\u7387", value: percent(status.connectionRate) },
+            { key: "load", label: "\u8d44\u6e90\u8d1f\u8f7d", value: percent(status.load) },
+            { key: "normal", label: "\u6b63\u5e38 / \u5ea7", value: number(status.normal) },
+          ]} footer={more("/product-preview?topic=capacity&hour=18", "\u5bb9\u91cf\u4e0e\u8d28\u91cf")} />
+        <MetricListCard title={"\u8fd0\u884c\u53c2\u6570"} description={"\u5168\u65e5\u7d2f\u8ba1"} icon="lightning" tone="success"
+          metrics={[
+            { key: "energy", label: "\u7269\u7406\u7535\u8017 / kWh", value: usage.energyWh === null ? "\u2014" : number(usage.energyWh / 1000, 1) },
+            { key: "scope", label: "\u7535\u8017\u53e3\u5f84", value: "\u7269\u7406\u7ad9\u5740" },
+          ]} footer={more("/product-preview?topic=efficiency&hour=18", "\u8fd0\u884c\u4e0e\u80fd\u6548")} />
+      </section>
+      <div className="grid min-w-0 gap-md xl:grid-cols-3">
+        <PanelCard title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={demo.date + " \u00b7 24\u5c0f\u65f6 \u00b7 " + unit} className="min-w-0 xl:col-span-2" tone="brand"
+          action={<SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />}>
+          <BarChart key={metric} data={series} formatValue={fmt} peakLabel={"\u5cf0\u503c"} aria-label={"24\u5c0f\u65f6" + metrics.find(item => item.value === metric)!.label + "\u8d8b\u52bf"} />
+          <div className="flex justify-end pt-md">{more("/product-preview?usage=day&hour=18", "\u67e5\u770b\u5b8c\u6574\u7528\u91cf\u5206\u6790")}</div>
+        </PanelCard>
+        <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf\u7ed3\u6784"} description={"\u5168\u65e5\u6d41\u91cf\u5360\u6bd4"} tone="neutral" className="min-w-0">
+          <div className="flex flex-col gap-md">
+            {usage.rows.map(row => <a className="flex flex-col gap-2xs no-underline" href={"/product-preview?usage=day&operator=" + row.code + "&hour=18"} key={row.code}>
+              <div className="flex items-baseline justify-between gap-xs text-body-small"><span className="text-foreground">{names[row.code]}</span><span className="tabular-nums text-muted-foreground">{number(row.bytes / 1073741824, 1) + " GiB"}<span className="pl-xs text-primary-text">{percent(usage.totals.bytes ? row.bytes / usage.totals.bytes : null)}</span></span></div>
+              <Progress value={usage.totals.bytes ? row.bytes / usage.totals.bytes * 100 : 0} aria-label={names[row.code] + "\u6d41\u91cf\u5360\u6bd4"} />
+            </a>)}
+          </div>
+        </PanelCard>
+      </div>
+      <div className="grid min-w-0 gap-md xl:grid-cols-2">
+        <PanelCard title={"\u5730\u5e02\u4e1a\u52a1\u5206\u5e03"} description={"18:00 \u00b7 \u6309\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0">
+          <DataTable rows={demo.cities} rowKey={row => row.id} columns={[
+            { id: "city", header: "\u5730\u5e02", cell: row => <a className="text-foreground hover:text-primary-text" href={"/product-preview?city=" + row.id + "&hour=18"}>{row.name}</a> },
+            { id: "sites", header: "\u7ad9\u5740", align: "numeric", cell: row => number(row.count) },
+            { id: "load", header: "\u8d1f\u8f7d\u7387", align: "numeric", cell: row => percent(row.load) },
+            { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
+          ]} />
+        </PanelCard>
+        <PanelCard title={"\u7ad9\u5740\u72b6\u6001\u89c2\u5bdf"} description={"18:00 \u00b7 \u6a21\u62df\u72b6\u6001"} tone="warning" className="min-w-0" action={more("/product-preview?hour=18")}>
+          <DataTable rows={demo.priorities} rowKey={row => row.id} columns={[
+            { id: "site", header: "\u7ad9\u5740", cell: row => <a className="flex flex-col gap-2xs text-foreground hover:text-primary-text" href={"/product-preview?hour=18&site=" + row.id}><span>{row.name}</span><span className="text-label-micro text-muted-foreground">{row.city}</span></a> },
+            { id: "status", header: "\u72b6\u6001", cell: row => <StatusBadge size="sm" tone={row.status === "critical" ? "danger" : row.status === "warning" ? "warning" : "success"}>{row.status === "critical" ? "\u91cd\u70b9" : row.status === "warning" ? "\u5173\u6ce8" : "\u6b63\u5e38"}</StatusBadge> },
+            { id: "load", header: "\u8d1f\u8f7d\u7387", align: "numeric", cell: row => percent(row.load) },
+            { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.trafficGiB, 1) },
+          ]} />
+        </PanelCard>
+      </div>
+      <section className="grid gap-md lg:grid-cols-3" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
+        <EntryCard href="/product-preview?hour=18" icon="map-pin" title={"\u7ad9\u7f51\u5730\u56fe"} description={"\u7a7a\u95f4\u5b9a\u4f4d\u3001\u9009\u533a\u5bf9\u6bd4\u4e0e\u5355\u7ad9\u5206\u6790"} />
+        <EntryCard href="/product-preview?report=day&hour=18" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
+        <EntryCard href="/analysis" icon="chart-line-up" title={"\u6b63\u5f0f\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />
+      </section>
+      <footer className="flex flex-wrap justify-between gap-xs text-body-small text-content-tertiary">
+        <span>{"\u56fa\u5b9a\u6f14\u793a\u65e5\u671f \u00b7 1,080 \u4e2a\u6a21\u62df\u7ad9\u5740\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u63a5\u5165\u3002"}</span>
+        <span>{"\u7269\u7406\u7535\u8017\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</span>
+      </footer>
     </div>
-    <section className="portal-summary" aria-label={"\u7ad9\u7f51\u6982\u51b5"}>
-      <div><RadioTower size={19} /><span>{"\u6f14\u793a\u7ad9\u5740"}</span><strong>{number(usage.physicalSites)}<small>{"\u5ea7"}</small></strong></div>
-      <div><span>{"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}</span><strong>{number(usage.serviceRelations)}<small>{"\u6761"}</small></strong></div>
-      <div><span>{"\u5171\u4eab\u7ad9\u5740"}</span><strong>{number(usage.sharedSites)}<small>{"\u5ea7"}</small></strong></div>
-      <div><span>{"18:00 \u9700\u5173\u6ce8\u7ad9\u5740"}</span><strong className="portal-amber">{number(status.warning + status.critical)}<small>{"\u5ea7"}</small></strong></div>
-      <a className="portal-status-link" href="/product-preview?hour=18"><span>{"\u6b63\u5e38 " + number(status.normal)}</span><span>{"\u5173\u6ce8 " + number(status.warning)}</span><span>{"\u91cd\u70b9 " + number(status.critical)}</span><ArrowUpRight size={16} /></a>
-    </section>
-    <section className="portal-domains" aria-label={"\u4e09\u7c7b\u4e1a\u52a1\u6307\u6807"}>
-      <article><div className="portal-card-title"><BarChart3 size={17} /><h2>{"\u7ecf\u8425\u670d\u52a1"}</h2><span>{"\u5168\u65e5\u7d2f\u8ba1"}</span></div>
-        <div className="portal-main-value">{number(usage.totals.bytes / 1073741824, 1)}<small>GiB</small></div><p>{"\u4e1a\u52a1\u6d41\u91cf"}</p>
-        <div className="portal-pairs"><span>{"\u901a\u8bdd "}<b>{number(usage.totals.voiceSeconds / 60, 1)}<small>{" \u5206\u949f"}</small></b></span><span>{"\u77ed\u4fe1 "}<b>{number(usage.totals.sms)}<small>{" \u6761"}</small></b></span></div>
-        <a href="/product-preview?usage=day&hour=18">{"\u67e5\u770b\u8fd0\u8425\u5546\u7528\u91cf"}<ArrowUpRight size={14} /></a>
-      </article>
-      <article><div className="portal-card-title"><Activity size={17} /><h2>{"\u8fd0\u8425\u72b6\u6001"}</h2><span>18:00</span></div>
-        <div className="portal-main-value">{percent(status.connectionRate)}</div><p>{"\u63a5\u901a\u7387 \u00b7 \u6309\u6b21\u6570\u6c47\u603b"}</p>
-        <div className="portal-pairs"><span>{"\u8d44\u6e90\u8d1f\u8f7d "}<b>{percent(status.load)}</b></span><span>{"\u91cd\u70b9\u7ad9\u5740 "}<b>{number(status.critical)}<small>{" \u5ea7"}</small></b></span></div>
-        <a href="/product-preview?topic=capacity&hour=18">{"\u67e5\u770b\u5bb9\u91cf\u4e0e\u8d28\u91cf"}<ArrowUpRight size={14} /></a>
-      </article>
-      <article><div className="portal-card-title"><Zap size={17} /><h2>{"\u8fd0\u884c\u53c2\u6570"}</h2><span>{"\u5168\u65e5\u7d2f\u8ba1"}</span></div>
-        <div className="portal-main-value">{usage.energyWh === null ? "\u2014" : number(usage.energyWh / 1000, 1)}<small>kWh</small></div><p>{"\u7269\u7406\u7ad9\u5740\u7535\u8017"}</p>
-        <div className="portal-pairs"><span>{"\u4f9b\u7535\u4e0e\u8bbe\u5907"}<b>{"\u72b6\u6001\u89c2\u5bdf"}</b></span><span>{"\u80fd\u6548"}<b>{"\u4e13\u9898\u5206\u6790"}</b></span></div>
-        <a href="/product-preview?topic=efficiency&hour=18">{"\u67e5\u770b\u8fd0\u884c\u4e0e\u80fd\u6548"}<ArrowUpRight size={14} /></a>
-      </article>
-    </section>
-    <div className="portal-grid">
-      <section className="portal-panel"><div className="portal-panel-heading"><h2>{"\u5730\u5e02\u4e1a\u52a1\u5206\u5e03"}</h2><span>{"18:00 \u00b7 \u6d41\u91cf\u6392\u540d"}</span></div>
-        <div className="portal-city-list">{demo.cities.map((city, index) => <a href={"/product-preview?city=" + city.id + "&hour=18"} key={city.id}>
-          <i>{String(index + 1).padStart(2, "0")}</i><strong>{city.name}</strong><div className="portal-bar"><span style={{ width: (demo.cities[0].bytes ? city.bytes / demo.cities[0].bytes * 100 : 0) + "%" }} /></div><b>{number(city.bytes / 1073741824, 1)}<small> GiB</small></b><span>{number(city.count) + " \u7ad9"}</span><ArrowUpRight size={13} />
-        </a>)}</div>
-      </section>
-      <section className="portal-panel"><div className="portal-panel-heading"><h2>{"\u8fd0\u8425\u5546\u7528\u91cf\u7ed3\u6784"}</h2><span>{"\u5168\u65e5 \u00b7 \u6309\u6d41\u91cf\u5360\u6bd4"}</span></div>
-        <div className="portal-operator-list">{usage.rows.map(row => <a href={"/product-preview?usage=day&operator=" + row.code + "&hour=18"} key={row.code}>
-          <div><strong>{names[row.code]}</strong><span>{percent(usage.totals.bytes ? row.bytes / usage.totals.bytes : null)}</span></div><div className="portal-bar"><span style={{ width: (usage.totals.bytes ? row.bytes / usage.totals.bytes * 100 : 0) + "%" }} /></div>
-          <p>{number(row.bytes / 1073741824, 1) + " GiB"}<span>{number(row.sites) + " \u6761\u670d\u52a1\u5173\u7cfb"}</span></p>
-        </a>)}</div>
-      </section>
-    </div>
-    <div className="portal-grid portal-bottom-grid">
-      <section className="portal-panel"><div className="portal-panel-heading"><h2>{"\u91cd\u70b9\u7ad9\u5740\u89c2\u5bdf"}</h2><span>{"18:00 \u00b7 \u6a21\u62df\u72b6\u6001"}</span></div>
-        <div className="portal-table-wrap"><table><thead><tr>{["\u7ad9\u5740", "\u5730\u5e02", "\u72b6\u6001", "\u8d1f\u8f7d\u7387", "\u6d41\u91cf"].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>
-          {demo.priorities.map(site => <tr key={site.id}><td><a href={"/product-preview?hour=18&site=" + site.id}>{site.name}<ArrowUpRight size={12} /></a></td><td>{site.city}</td><td><span className={"portal-state " + site.status}>{site.status === "critical" ? "\u91cd\u70b9" : site.status === "warning" ? "\u5173\u6ce8" : "\u6b63\u5e38"}</span></td><td>{percent(site.load)}</td><td>{number(site.trafficGiB, 1) + " GiB"}</td></tr>)}
-        </tbody></table></div>
-      </section>
-      <section className="portal-panel portal-workspaces"><div className="portal-panel-heading"><h2>{"\u4e1a\u52a1\u5de5\u4f5c\u533a"}</h2></div>
-        <a href="/product-preview?hour=18"><Map size={18} /><div><strong>{"\u7ad9\u7f51\u5730\u56fe"}</strong><p>{"\u7a7a\u95f4\u5b9a\u4f4d\u3001\u9009\u533a\u3001\u5bf9\u6bd4\u4e0e\u5355\u7ad9\u5206\u6790"}</p></div><ArrowUpRight size={15} /></a>
-        <a href="/product-preview?report=day&hour=18"><FileText size={18} /><div><strong>{"\u5468\u671f\u62a5\u544a\u6f14\u793a"}</strong><p>{"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"}</p></div><ArrowUpRight size={15} /></a>
-        <a href="/analysis"><BarChart3 size={18} /><div><strong>{"\u6b63\u5f0f\u5468\u671f\u5206\u6790"}</strong><p>{"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"}</p></div><ArrowUpRight size={15} /></a>
-        <a href="/reports"><FileText size={18} /><div><strong>{"\u6b63\u5f0f\u62a5\u544a\u4e2d\u5fc3"}</strong><p>{"\u62a5\u544a\u7248\u672c\u3001\u53d1\u5e03\u4e0e\u5bfc\u51fa\u8bb0\u5f55"}</p></div><ArrowUpRight size={15} /></a>
-      </section>
-    </div>
-    <footer className="portal-footer"><span>{"\u56fa\u5b9a\u6f14\u793a\u65e5\u671f \u00b7 1,080 \u4e2a\u6a21\u62df\u7ad9\u5740\uff1b\u4e0d\u4ee3\u8868\u771f\u5b9e\u63a5\u5165\u4e0e\u6570\u636e\u5b8c\u6574\u7387\u3002"}</span><span>{"\u7269\u7406\u7535\u8017\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</span></footer>
-  </div>;
+  </ShellPageContainer>;
 }

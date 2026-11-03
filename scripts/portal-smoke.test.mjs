@@ -71,7 +71,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview",{method:"POST",body:JSON.stringify(request)})).status,404);
       const root=await fetch(url);assert.equal(root.status,200);assert.ok(!(await root.text()).includes("fixture-hourly-v1"));
       const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,200);
-      const formalHome=await formalRoot.text();assert.ok(formalHome.includes('BS-MOSS / OVERVIEW'));
+      const formalHome=await formalRoot.text();assert.ok(formalHome.includes('\u8fd0\u884c\u603b\u89c8'));
       for(const sample of ['data-portal-mode','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!formalHome.includes(sample));
     });
   });
