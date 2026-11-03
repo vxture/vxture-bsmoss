@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { JobStateFilter, JobListPage, JobDetail, RecoverJob, RecoveryResult, RecoveryRecord } from "../../domains/supervision/jobs";
-import { reportJson, ReportClientError } from "../../reports/client";
-import { reportTime } from "../../domains/reports/display";
+import type { JobStateFilter, JobListPage, JobDetail, RecoverJob, RecoveryResult, RecoveryRecord } from "../../../domains/supervision/jobs";
+import { reportJson, ReportClientError } from "../../../reports/client";
+import { reportTime } from "../../../domains/reports/display";
 import { jobLabel, jobError } from "./client";
 
 function RecoveryLink({ record, onChoose, parent = false }: { record: RecoveryRecord; onChoose(id: string): void; parent?: boolean }) {

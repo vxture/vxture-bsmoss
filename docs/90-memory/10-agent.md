@@ -860,3 +860,11 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 ## 品牌字号收敛与系统名称（2026-11-03）
 
 用户认为观澜30px过大，改用官方ShellProductTitle的20px产品标题；系统名称18px保留。新名称明确为“站址多域运营监管”，同步门户、两个预览页面和共享BRAND.displayName及产品定义；代码bsmoss／BS-MOSS及英文全称未变。生产构建含类型检查通过，tmp/header-brand-size-build.log。CUA787×871核验实际20px、新名称准确、文档宽／scrollWidth均787；截图artifacts/header-sizing-qa/brand-name-final.png，viewport reset、临时tab25关闭。仅字号和名称，未重复业务单测或数据库。无外部部署。最终提交及本地运行以实际Git／health为准。
+
+## 业务应用与配置管理独立域（2026-11-03）
+
+用户要求管理业务单独域，业务侧从header配置icon进入。设计231／实施670，信息结构V0.5。业务launcher／侧栏仅首页、地图、分析、报告；管理域/settings下含管理总览、指标模板、聚合与报告任务，同域launcher／侧栏及存储键独立，提供返回业务。两个任务目录及页面／客户端／样式实际移动settings/operations，修相对引用和登录returnTo；旧operations page仅307兼容。消息抽屉移除任务链接，避免第二套管理入口。API、真实权限／结果报告精确版本链接不变，目录不是授权。地图就地显示工具和个人外观偏好保留；未来来源／规则／角色／审计管理亦归本域，未生成占位页面，不新增网络域名。
+
+541单测（新增导航两域互斥）、双层类型、生产build、22HTTP通过（新增管理前缀／旧307／业务导航隔离），tmp/management-domain-{unit,types,build,http}.log。浏览器1280业务launcher／齿轮进入／独立侧栏／模板任务切换、390管理launcher／报告任务点击关闭／返回业务实际URL / 通过，390与787无横向溢出，warn/error空；artifacts/management-domain-qa，viewport reset、临时tab26/27关闭。无DDL／依赖／授权规则变化，不重复PG或worker测试。初次类型检查发现ShellNavSection要求title，为返回区加业务应用标题后通过；浏览器初次同名按钮定位冲突以aria交集消歧，无产品缺陷。
+
+文档／交付／静态schema／SCA、ASCII／密钥扫描与最终commit／63333运行身份以收尾工具和artifacts/formal-checkpoints/management-domain.json为准。无push／外部部署或生产上线；P02和真实来源／环境／UAT等原依赖继续保留，不恢复goal／heartbeat。

@@ -2,9 +2,9 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellProductTitle, ShellHeaderTools, ShellPanelRow, ShellPanelSection,
+import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellProductTitle, ShellHeaderTools,
   ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
-import { portalNavigation, type PortalPage } from "./navigation";
+import { portalDomain, portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher, { portalIcons as icons } from "./launcher";
 import ProductAccount, { type HeaderIdentity } from "./account";
 
@@ -13,11 +13,14 @@ export default function ProductChrome({ active, preview, children, identity, log
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const mobile = useMediaQuery("(max-width: 767px)");
-  const nav = portalNavigation(preview), current = nav.find(item => item.id === active);
-  const sections = [
-    { title: "\u4e1a\u52a1\u5de5\u4f5c\u533a", items: nav.filter(item => item.group === "business").map(item => ({ ...item, icon: icons[item.id] })) },
-    { title: "\u8fd0\u884c\u7ba1\u7406", dividerBefore: true, items: nav.filter(item => item.group === "management").map(item => ({ ...item, icon: icons[item.id] })) },
-  ];
+  const domain = portalDomain(active), management = domain === "management";
+  const nav = portalNavigation(preview, domain), current = nav.find(item => item.id === active);
+  const items = nav.map(item => ({ ...item, icon: icons[item.id] }));
+  const sections = management ? [
+    { title: "\u914d\u7f6e\u7ba1\u7406", items: items.filter(item => ["settings", "templates"].includes(item.id)) },
+    { title: "\u4efb\u52a1\u7ba1\u7406", dividerBefore: true, items: items.filter(item => ["aggregation", "report-jobs"].includes(item.id)) },
+    { title: "\u4e1a\u52a1\u5e94\u7528", dividerBefore: true, items: [{ id: "return-business", label: "\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528", href: "/", icon: "arrow-left" as const }] },
+  ] : [{ title: "\u4e1a\u52a1\u5e94\u7528", items }];
   return <ShellViewport sidebarMode={mobile ? "hidden" : collapsed ? "collapsed" : "expanded"}
     header={<ShellHeader leading={<>
       <ProductLauncher active={active} preview={preview} />
@@ -28,25 +31,20 @@ export default function ProductChrome({ active, preview, children, identity, log
       </a>
       <div className="hidden min-w-0 items-center gap-md md:flex">
         <ShellHeaderDivider />
-        <span className="truncate whitespace-nowrap text-label-small text-content-tertiary">{current?.label}</span>
+        <span className="truncate whitespace-nowrap text-label-small text-content-tertiary">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
         {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<>
       <ShellHeaderTools label={"\u64cd\u4f5c\u5de5\u5177"} linkComponent={Link}
         help={{ label: "\u5e2e\u52a9\u6587\u6863", href: "https://docs.vxture.com" }}
-        settings={{ label: "\u914d\u7f6e\u4e2d\u5fc3", href: "/settings" }}
-        notifications={{ label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f", children: <div className="flex flex-col gap-lg">
-          <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002\u4efb\u52a1\u6267\u884c\u8bb0\u5f55\u53ef\u5728\u5bf9\u5e94\u5de5\u4f5c\u53f0\u67e5\u770b\u3002"}</p>
-          <ShellPanelSection title={"\u4efb\u52a1\u5de5\u4f5c\u53f0"}>
-            <ShellPanelRow icon="database" label={"\u805a\u5408\u4efb\u52a1"} href="/operations/aggregation" linkComponent={Link} />
-            <ShellPanelRow icon="file-text" label={"\u62a5\u544a\u4efb\u52a1"} href="/operations/reports" linkComponent={Link} />
-          </ShellPanelSection>
-        </div> }} />
+        settings={{ label: "\u914d\u7f6e\u7ba1\u7406", href: "/settings" }}
+        notifications={{ label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f",
+          children: <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p> }} />
       <ProductAccount identity={identity} loginEnabled={loginEnabled} preview={preview} consoleHref={consoleHref} />
     </>} />}
     sidebar={<div className="hidden h-full min-h-0 md:flex md:flex-col">
       <ShellSidebarNav sections={sections} collapsed={collapsed} onToggleCollapsed={() => setCollapsed(value => !value)}
-        isActive={href => href === current?.href} storageKeyPrefix="bsmoss-portal"
+        isActive={href => href === current?.href} storageKeyPrefix={"bsmoss-" + domain}
         labels={{ expandNav: "\u5c55\u5f00\u5bfc\u822a", collapseNav: "\u6536\u8d77\u5bfc\u822a", expandAllGroups: "\u5c55\u5f00\u5206\u7ec4", collapseAllGroups: "\u6536\u8d77\u5206\u7ec4" }} />
     </div>}>
     {children}

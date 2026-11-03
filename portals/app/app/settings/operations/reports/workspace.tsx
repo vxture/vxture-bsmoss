@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../domains/supervision/report-jobs";
-import { reportTime } from "../../domains/reports/display";
-import { reportJson } from "../../reports/client";
+import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../../domains/supervision/report-jobs";
+import { reportTime } from "../../../domains/reports/display";
+import { reportJson } from "../../../reports/client";
 import { reportJobLabel as label, reportJobError } from "./client";
 import { ReportRecovery } from "./recovery";
 

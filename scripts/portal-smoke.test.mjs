@@ -30,12 +30,25 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test("configuration preferences are public but never grant a product identity",async()=>{
       const response=await fetch(url+'/settings');assert.equal(response.status,200);
       const html=await response.text();
-      assert.ok(html.includes('\u914d\u7f6e\u4e2d\u5fc3'));
+      assert.ok(html.includes('\u914d\u7f6e\u7ba1\u7406'));
       assert.ok(html.includes('href="/settings/templates"'));
       assert.ok(!html.includes('href="/auth/login'));
       assert.deepEqual(await (await fetch(url+'/auth/session')).json(),{authenticated:false});
       const mark=await fetch(url+'/assets/brand/guanlan-mark.svg');assert.equal(mark.status,200);
       assert.ok(mark.headers.get('content-type').includes('image/svg+xml'));
+    });
+    await t.test("management routes have a separate directory and legacy task links redirect there",async()=>{
+      for(const suffix of ['aggregation','reports']) {
+        const legacy=await fetch(url+'/operations/'+suffix,{redirect:'manual'});
+        assert.equal(legacy.status,307);assert.equal(legacy.headers.get('location'),'/settings/operations/'+suffix);
+        const response=await fetch(url+'/settings/operations/'+suffix);assert.equal(response.status,200);
+        const html=await response.text();assert.ok(html.includes('href="/settings/templates"'));
+        assert.ok(!html.includes('href="/analysis"'));assert.ok(!html.includes('href="/reports"'));
+      }
+      const home=await (await fetch(url)).text();
+      for(const managementPath of ['/settings/templates','/settings/operations/aggregation','/settings/operations/reports']) assert.ok(!home.includes('href="'+managementPath+'"'));
+      assert.ok(home.includes('href="/settings"'));
+      const settings=await (await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/"'));assert.ok(!settings.includes('href="/analysis"'));
     });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);

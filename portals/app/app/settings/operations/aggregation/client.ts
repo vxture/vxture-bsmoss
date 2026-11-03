@@ -1,4 +1,4 @@
-import { ReportClientError } from "../../reports/client";
+import { ReportClientError } from "../../../reports/client";
 export const jobLabels: Record<string, string> = {
   all: "\u5168\u90e8", pending: "\u7b49\u5f85", leased: "\u6267\u884c\u4e2d", succeeded: "\u5df2\u5b8c\u6210", dead: "\u5df2\u7ec8\u6b62",
   ready: "\u53ef\u6267\u884c", delayed: "\u7b49\u5f85\u91cd\u8bd5", running: "\u6267\u884c\u4e2d", lease_expired: "\u79df\u7ea6\u5df2\u5230\u671f", terminal: "\u7ec8\u6001",
