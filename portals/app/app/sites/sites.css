@@ -1,4 +1,21 @@
 .site-workspace { overflow: hidden; }
+/* Business text and actions share one role; IDs, timestamps and notes stay small.
+   Scope to this domain (including its portalled filters), never alter DS tokens. */
+.site-workspace :is(button, [data-slot="button"]),
+.site-filter-panel :is(button, label) {
+  font-size: var(--label-font-size);
+  line-height: var(--label-line-height);
+  font-weight: var(--label-font-weight);
+}
+.site-workspace :is(table, thead) {
+  font-size: var(--body-font-size);
+  line-height: var(--body-line-height);
+}
+.site-workspace :is(h1, h2, h3) {
+  font-size: var(--heading-2-font-size);
+  line-height: var(--heading-2-line-height);
+  font-weight: var(--heading-2-font-weight);
+}
 .site-table-scroll { scrollbar-gutter: stable; }
 .site-registry-tools { display: grid; grid-template-columns: auto minmax(0, var(--container-overlay-md)) 1fr; gap: var(--space-sm); align-items: center; }
 .site-registry-view { min-width: 0; }

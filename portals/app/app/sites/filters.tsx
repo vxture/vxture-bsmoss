@@ -16,7 +16,7 @@ export default function SiteFilters({ query, regions, onApply }: {
     <PopoverTrigger asChild><Button variant={count ? "secondary" : "outline"} aria-label={"\u7ad9\u5740\u7b5b\u9009"}>
       <Icon name="faders" size="sm" />{"\u7b5b\u9009"}{count ? " (" + count + ")" : ""}
     </Button></PopoverTrigger>
-    <PopoverContent width="xl" align="end" aria-label={"\u7ad9\u5740\u7b5b\u9009\u6761\u4ef6"}>
+    <PopoverContent width="xl" align="end" className="site-filter-panel" aria-label={"\u7ad9\u5740\u7b5b\u9009\u6761\u4ef6"}>
       <div className="flex flex-col gap-md">
         <span className="text-heading-2 font-semibold">{"\u7ad9\u5740\u7b5b\u9009"}</span>
         <div className="grid grid-cols-2 gap-md">

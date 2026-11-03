@@ -21,7 +21,7 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
     { id: "region", header: "\u5f52\u5c5e\u533a\u57df", cell: s => <TableTitleCell title={s.cityName} description={s.countyName} layout="stacked" /> },
     { id: "scene", header: "\u7c7b\u578b / \u573a\u666f", cell: s => <TableTitleCell title={siteTypeNames[s.siteType]} description={sceneNames[s.profile]} layout="stacked" /> },
     { id: "operators", header: "\u5171\u4eab\u4e0e\u670d\u52a1", sortable: true, cell: s => <div className="flex flex-col gap-2xs">
-      <span className="text-label">{s.operators.length + " \u5bb6\u8fd0\u8425\u5546"}</span><span className="text-body-small text-muted-foreground">{s.operators.map(code => operatorNames[code]).join(" / ")}</span></div> },
+      <span className="text-body">{s.operators.length + " \u5bb6\u8fd0\u8425\u5546"}</span><span className="text-body-small text-muted-foreground">{s.operators.map(code => operatorNames[code]).join(" / ")}</span></div> },
     { id: "status", header: "\u8fd0\u884c\u72b6\u6001", align: "center", width: "sm", cell: s => <StatusBadge tone={s.current.status === "critical" ? "danger" : s.current.status === "warning" ? "warning" : "success"} size="sm">{statusNames[s.current.status]}</StatusBadge> },
     { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "right", sortable: true, width: "sm", cell: s => <span className="tabular-nums">{pct(s.current.used / s.current.capacity)}</span> },
   ];
@@ -34,7 +34,7 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
     { id: "traffic", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "right", cell: r => n(r.current.bytes / 1073741824, 2) },
   ];
   const regionLabel = demo.regions.counties.find(c => c.id === q.county)?.name ?? demo.regions.cities.find(c => c.id === q.city)?.name ?? "\u9655\u897f\u7701";
-  return <div className="site-workspace flex h-full w-full min-w-0 flex-col" data-sites-mode="demo" aria-busy={pending}>
+  return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" aria-busy={pending}>
     <div className="flex min-h-0 flex-1">
       <aside aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className="hidden w-sidebar-expanded shrink-0 flex-col border-r border-border bg-card lg:flex">
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="text-label font-semibold">{"\u5730\u57df\u8d44\u6e90"}</span><Icon name="map-pin" size="sm" /></div>
@@ -61,7 +61,7 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
           <div className="flex shrink-0 items-center gap-xs">
             <Button variant="ghost" className="max-sm:gap-xs max-sm:px-xs" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
               <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="hidden sm:inline">{pending ? "\u8bfb\u53d6\u4e2d" : "\u5237\u65b0"}</span>
-              <time dateTime={readAt} className="tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readAt} aria-label={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4 " + readTime}>{readTime}</time>
+              <time dateTime={readAt} className="text-body-small tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readTime} aria-label={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4 " + readTime}><span className="sm:hidden">{readTime.slice(0, 5)}</span><span className="hidden sm:inline">{readTime}</span></time>
             </Button>
             <CollapsibleTrigger asChild><Button variant="ghost" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="secondary" className="max-sm:w-control-md max-sm:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden sm:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>

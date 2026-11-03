@@ -932,3 +932,9 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 原小时是2026-10-25合成运行快照，不是同步时刻。台账移除小时下拉，只读源时点；手动刷新通过router.refresh重新请求模型，页面层读取后生成readAt并按北京时间显示，不在客户端点击即报成功，不改变源日期，不触发或宣称上游采集。旧hour深链兼容、地图和档案保留历史分析。刷新保留当前类型／地市／运营商／page2和搜索草稿，实测readAt从12:31:21.599Z更新到12:31:21.812Z。
 
 10项相关单测、双层类型、最终生产构建、26HTTP和140文档编号通过，tmp/site-controls-{unit,types,build,http,docs}.log。CUA1042／787搜索224px、无横溢，390原数据时点被挤压，收紧官方图标Button手机内距后日期client／scrollWidth均148完整显示。类型与运营商交集、手机4关系过滤为电信1关系、ground检索楼面站为空、Enter和框内按钮查询、档案类型及返回上下文／重置通过。artifacts/site-controls-qa含桌面／中屏／手机／筛选截图和checks，warn/error空；viewport reset、临时tab39关闭。无DDL／依赖／权限／真实接入变化，不重复PG合同；设计233／实施690／信息结构同步。最终commit与63333运行身份以Git及health为准，无push／外部部署或自动任务。
+
+## 站址域字号统一（2026-11-03）
+
+用户认为整个页面字号乱，统一检查台账、共享header、筛选浮层及六层档案。实测主要是同类主数据12／14、操作12与输入14混用，档案18标题。站址局部CSS使用官方body／label／heading-2字号行高字重token：12辅助、14正文操作、16标题、20既有品牌与关键读数；主表数据提升14、按钮名称字重500、辅助常规，档案标题18→16。header已是16系统／域名及20品牌无需改；状态徽章保留12，不改全局token／DS包。筛选portalled内容独立site-filter-panel作用域。手机刷新HH:mm，秒数保留title／aria，源时点仍完整不受压。
+
+生产build含类型、26HTTP、140文档编号、ASCII及diff通过，tmp/site-typography-{build,http,docs}.log。CUA1042／787／390无横溢，390日期client／scrollWidth均148；浮层标签／选择／按钮14、标题16；台账表头／地域／负载14，档案总览／资源／经营只有12／14／16／20四档。artifacts/site-typography-qa含四页面截图与checks，warn/error空，viewport reset、tab40关闭。一次同名资源设备按钮定位冲突，限定档案分层navigation后验证成功，无业务失败。纯排版无DDL／依赖／权限或数据改动，不重复业务单测及PG；最终commit与63333身份以Git／health为准，无push或外部部署。

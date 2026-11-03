@@ -67,7 +67,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       </div>)}</div>
     </div>
   </PanelCard>;
-  return <div className="site-workspace flex h-full w-full min-w-0 flex-col" data-site-dossier-mode="demo" aria-busy={pending}>
+  return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-site-dossier-mode="demo" aria-busy={pending}>
     <div className="shrink-0 border-b border-border bg-card px-lg py-md">
       <div className="mb-sm flex items-center gap-sm text-body-small text-muted-foreground"><Button asChild variant="ghost" size="sm"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
