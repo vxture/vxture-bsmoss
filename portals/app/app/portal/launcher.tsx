@@ -28,7 +28,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
     title={item.label} description={descriptions[item.id]} icon={portalIcons[item.id]} href={item.href}
     aria-current={item.id === active ? "page" : undefined}
     meta={item.id === active ? <Icon name="check-circle" size="sm" aria-label={"\u5f53\u524d\u9875\u9762"} /> : undefined}
-    className={(management ? "p-lg" : "flex-col gap-sm p-md sm:flex-row sm:gap-lg sm:p-lg") + (item.id === active ? " bg-primary-muted" : "")} onClick={() => setOpen(false)} />;
+    className={(management ? "p-lg" : "p-md") + (item.id === active ? " bg-primary-muted" : "")} onClick={() => setOpen(false)} />;
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild><ShellIconButton icon="app-grid" label={panelLabels[domain]}><Icon name="app-grid" size="lg" /></ShellIconButton></PopoverTrigger>
     <ShellPanelContent align="start" aria-label={panelLabels[domain]} onOpenAutoFocus={() => firstEntry.current?.focus()}
@@ -44,7 +44,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
         </div>
         <ShellPanelSection><ShellPanelRow icon="arrow-left" label={"\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528"} href="/" linkComponent={Link} chevron={false} onClick={() => setOpen(false)} /></ShellPanelSection>
       </> : <>
-        <section aria-label={"\u5168\u5c40\u5165\u53e3"} className="grid grid-cols-2 gap-md">
+        <section aria-label={"\u5168\u5c40\u5165\u53e3"} className="grid gap-xl sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {nav.filter(item => item.id === "home" || item.id === "board").map(card)}
         </section>
         <Separator />

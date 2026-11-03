@@ -890,3 +890,7 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 实际发现MapLibre未分层position覆盖工具类致地图0高，改局部board-map-canvas；--color-primary别名未输出，改真实--primary变量。手机PanelCard操作槽挤压标题，专题改独立工具行；最终390标题22px单行。5项相关单测／门户类型／生产构建含类型／24HTTP／138篇编号／ASCII与diff通过，tmp/business-domains-{unit,types,build,http,guards}.log。CUA1440／787／390分组、顶行双入口、内滚动、无横溢；西安240站／小时18→17／自动回放17→18暂停、报告深链／全屏按钮进入退出／深浅主题都成功。artifacts/business-domains-qa含截图及checks.json，warn/error空、恢复浅色／viewport、tab31关闭。未重复无关PG／worker测试。
 
 P01a本地首版完成，P02站址台账／档案下一批、P03经营独立视图与P04核验仍待；正式大屏读模型及真实来源／环境／UAT仍缺，不能称正式上线。最终commit／扫描／63333运行SHA以Git和health为准；无push／外部部署，不重建goal／heartbeat，陕西／费用预留／退役P2不变。
+
+## 顶层入口尺寸统一（2026-11-03）
+
+用户认可层级，要求门户首页／决策大屏不再放大。业务顶行改用与下方相同响应网格，p-md替代大内距／手机竖排卡片；独立层级和分割线保留。CUA1440所有入口约217.6×77.2px、390均310.7×77.2px，无横溢，证据artifacts/launcher-global-size-qa。生产构建含类型通过，tmp/launcher-global-size-build.log；纯布局不重复业务单测、HTTP及PG，设计232／实施680同步。viewport reset、临时tab32关闭。最终Git与本地health为准，无外部部署，P02仍下一批。
