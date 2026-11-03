@@ -950,3 +950,13 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 用户要求操作列背景透明与所在行一致、操作按钮统一三竖点＋panel。站址／关系／档案运营商明细三个rowActions改发布版官方ActionMenu，手机ListCard.actions同步；台账／关系菜单有已有档案、运行状态、经营用量，档案菜单保留原运营商小时地图入口。无虚假编辑／删除动作。site-action-table局部取消操作格sticky遮罩（透明锁列会与滚动内容穿透叠加），随表横滚；进一步将hover背景移到tr、同行td全透明，消除hover仍有操作白块问题，不改全局token／DS包。
 
 最终build含类型、140编号、ASCII／diff通过；tmp/site-actions-{build,docs}.log。CUA1440透明TH／TD、hover整行accent且9格均透明；1042菜单可达、右界1002，390无横溢、面板右界286。台账runtime／business、关系services保留view、档案mobile小时地图深链、手机菜单和Enter／Escape通过。artifacts/site-actions-qa含四截图和checks，warn/error空、viewport reset、tab42关闭。首次中屏退场动画未完即点击引发观察null，核对closed后重开等待visible成功，无产品失败。无数据／权限／DDL／依赖变化，不重复业务／PG；设计233／实施690同步。最终Git／63333以实际health为准，无push或外部部署。
+
+## 站址工作区底色、地域收放与运营商负载（2026-11-03）
+
+用户指定DEMO-00037档案参照优化台账，并补充运营商重复档案按钮。地域树改普通flex流中的独立veil面板，四周lg24px／间距24px、圆角语义描边；内容及列表取消白底外框，沿用官方workbench淡蓝灰底，header保持独立bg-card，无新增地图／瓦片／颜色或全局token。面包屑前桌面收放按钮，官方Breadcrumb省市县及上级链接保留排序筛选；稳定SiteRegistry外层保留收放状态，查询key内层仍重置草稿与展开。窄屏地域仍从筛选进入，不显示无效侧栏按钮；县级中屏收紧刷新／地图文字防止与日期重叠，手机自然两行保留完整源时点。
+
+运营商名称用官方Button asChild承接原服务档案链接，去掉重复动作；底部小时／负载百分比及官方Progress。当前页operatorLoads由既有siteHour按站址＋运营商＋小时投影，不用全站负载或份额冒充，不受运营商筛选／关系列表分页截断；新一致性测试覆盖0／12／18时、第二页及空结果，逐项对照档案，相关9项通过。最终build含类型、26HTTP、140编号、ASCII／diff检查日志在tmp/site-workspace-*。
+
+CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392／右1416，筛选保持收起、Enter／Space开合通过。1042省市县不重叠，四运营商各162px同top299.77、右界992.66在列表内，值87.2／90.2／93.2／96.1%；名称实际进入DEMO-00037服务页签并保留排序。初轮新留白导致四卡差少量空间，展开内距md→sm后四卡同行。787／390无文档横溢；浅深主题上下表面区分、表格透明，恢复浅色。artifacts/site-workspace-qa保存展开／收起／县／主题／中屏／手机／运营商截图及checks.json，warn/error空、viewport reset、临时tab43／44关闭。首次县级等待URL因参数排序不同超时，核对实际URL及DOM后确认正确，无产品导航失败。
+
+设计233／实施690同步，最终提交／63333身份以Git和health为准。无权限、业务计数、DDL、依赖或真实接入变化，未重复PG／worker；无push、外部部署、goal或自动任务。

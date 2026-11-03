@@ -17,6 +17,17 @@
   font-weight: var(--heading-2-font-weight);
 }
 .site-table-scroll { scrollbar-gutter: stable; container-type: inline-size; }
+.site-registry-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+.site-registry-location { flex-shrink: 0; }
+.site-registry-context > time { margin-right: auto; }
+/* The shell owns the single workbench background. Only the detached resource
+   panel has a veil; the registry never paints a second content surface. */
+.site-registry-workspace .site-table-scroll { background: transparent; }
 /* Transparent action cells follow their row. Scroll with the table so text
    cannot slide underneath a transparent sticky column. */
 .site-action-table :is(th, td).sticky:last-child {
@@ -37,6 +48,8 @@
 .site-registry-tools { display: grid; grid-template-columns: auto minmax(0, var(--container-overlay-md)) 1fr; gap: var(--space-sm); align-items: center; }
 .site-registry-view { min-width: 0; }
 @media (max-width: 639px) {
+  .site-registry-context { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-sm); }
+  .site-registry-location { grid-column: 1 / -1; }
   .site-registry-tools { grid-template-columns: minmax(0, 1fr); }
   .site-registry-search { grid-row: 2; }
   .site-registry-actions { justify-content: space-between; }

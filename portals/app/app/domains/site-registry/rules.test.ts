@@ -77,6 +77,23 @@ test("dossier preserves stable resource ownership and physical energy independen
   assert.equal(dossierDemo("missing", {}), null);
 });
 
+test("expanded operator loads match the single-site hourly services across filters and pages", () => {
+  for (const hour of [0, 12, 18]) {
+    const result = registryDemo({ operator: "telecom", page: "2", hour: String(hour), sort: "load", direction: "desc" });
+    assert.deepEqual(Object.keys(result.operatorLoads), result.rows.map(s => s.id));
+    for (const site of result.rows) {
+      const loads = result.operatorLoads[site.id], dossier = dossierDemo(site.id, { hour: String(hour) })!;
+      assert.deepEqual(loads.map(r => r.code), site.operators);
+      for (const row of loads) {
+        const current = dossier.relations.find(r => r.code === row.code)!.current;
+        assert.equal(row.load, current.used / current.capacity);
+        assert.ok(Number.isFinite(row.load) && row.load >= 0 && row.load <= 1);
+      }
+    }
+  }
+  assert.deepEqual(registryDemo({ search: "not-a-real-site" }).operatorLoads, {});
+});
+
 test("all three period totals reconcile with operator rows and the existing single-site report", () => {
   for (const period of ["day", "week", "month"]) {
     const d = dossierDemo("SX-DEMO-001", { period })!, totals = d.period.usage.totals;

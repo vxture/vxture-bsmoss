@@ -1,14 +1,21 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
-  ListCard, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
+import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
+  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
 import SiteFilters from "./filters";
 import "./sites.css";
 export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; readAt: string }) {
+  // Keep the workspace choice while query-specific search/row state resets.
+  const [regionOpen, setRegionOpen] = useState(true);
+  return <RegistryContent key={JSON.stringify(demo.query)} demo={demo} readAt={readAt} regionOpen={regionOpen} onRegionToggle={() => setRegionOpen(value => !value)} />;
+}
+function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
+  demo: RegistryDemo; readAt: string; regionOpen: boolean; onRegionToggle: () => void;
+}) {
   const router = useRouter(), q = demo.query;
   const [pending, start] = useTransition(), [search, setSearch] = useState(q.search), [expanded, setExpanded] = useState<readonly string[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -38,10 +45,10 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
     { id: "connection", header: "\u65f6\u6bb5\u63a5\u901a\u7387", align: "right", cell: r => pct(r.current.attempts ? r.current.connected / r.current.attempts : null) },
     { id: "traffic", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "right", cell: r => n(r.current.bytes / 1073741824, 2) },
   ];
-  const regionLabel = demo.regions.counties.find(c => c.id === q.county)?.name ?? demo.regions.cities.find(c => c.id === q.city)?.name ?? "\u9655\u897f\u7701";
-  return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" aria-busy={pending}>
-    <div className="flex min-h-0 flex-1">
-      <aside aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className="hidden w-sidebar-expanded shrink-0 flex-col border-r border-border bg-card lg:flex">
+  const city = demo.regions.cities.find(c => c.id === q.city), county = demo.regions.counties.find(c => c.id === q.county);
+  return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
+    <div className="flex min-h-0 flex-1 gap-lg p-lg">
+      <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="text-label font-semibold">{"\u5730\u57df\u8d44\u6e90"}</span><Icon name="map-pin" size="sm" /></div>
         <div className="min-h-0 flex-1 overflow-y-auto p-md">
           <Button size="xl" className="mb-sm w-full justify-between text-body font-medium" variant={q.city === "all" ? "secondary" : "ghost"} onClick={() => navigate({ city: "all", county: "all" })}><span>{"\u9655\u897f\u7701"}</span><span className="tabular-nums">{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></Button>
@@ -57,19 +64,27 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
         </div>
         <p className="border-t border-border p-md text-body-small text-muted-foreground">{"\u533a\u57df\u6570\u5b57\u4e3a\u6f14\u793a\u8d44\u6e90\u603b\u6570"}</p>
       </aside>
-      <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md p-lg">
+      <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md">
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
-        <div className="flex items-center justify-between gap-sm">
-          <div className="flex min-w-0 flex-1 items-center gap-xs">
-            <span className="truncate text-body-small text-muted-foreground" title={"\u6570\u636e\u65f6\u70b9\uff1a" + dataTime}>{regionLabel + " \u00b7 " + dataTime}</span>
+        <div className="site-registry-context">
+          <div className="site-registry-location flex min-w-0 items-center gap-sm">
+            <Button variant="ghost" size="icon-md" className="hidden shrink-0 lg:inline-flex" aria-label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} title={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle}><Icon name={regionOpen ? "chevron-left" : "chevron-right"} size="sm" /></Button>
+            <Breadcrumb aria-label={"\u5f53\u524d\u5730\u57df"} className="min-w-0">
+              <BreadcrumbList className="flex-nowrap gap-xs whitespace-nowrap">
+                <BreadcrumbItem>{city ? <BreadcrumbLink href={siteListHref(q, { city: "all", county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ city: "all", county: "all" }); }}>{"\u9655\u897f\u7701"}</BreadcrumbLink> : <BreadcrumbPage>{"\u9655\u897f\u7701"}</BreadcrumbPage>}</BreadcrumbItem>
+                {city && <><BreadcrumbSeparator /><BreadcrumbItem>{county ? <BreadcrumbLink href={siteListHref(q, { county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ county: "all" }); }}>{city.name}</BreadcrumbLink> : <BreadcrumbPage>{city.name}</BreadcrumbPage>}</BreadcrumbItem></>}
+                {county && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{county.name}</BreadcrumbPage></BreadcrumbItem></>}
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
+          <time className="whitespace-nowrap text-body-small tabular-nums text-muted-foreground" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"} title={"\u6570\u636e\u65f6\u70b9\uff1a" + dataTime}>{dataTime}</time>
           <div className="flex shrink-0 items-center gap-xs">
             <Button variant="ghost" className="max-sm:gap-xs max-sm:px-xs" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
-              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="hidden sm:inline">{pending ? "\u8bfb\u53d6\u4e2d" : "\u5237\u65b0"}</span>
+              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="hidden xl:inline">{pending ? "\u8bfb\u53d6\u4e2d" : "\u5237\u65b0"}</span>
               <time dateTime={readAt} className="text-body-small tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readTime} aria-label={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4 " + readTime}><span className="sm:hidden">{readTime.slice(0, 5)}</span><span className="hidden sm:inline">{readTime}</span></time>
             </Button>
             <CollapsibleTrigger asChild><Button variant="ghost" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
-            <Button asChild variant="secondary" className="max-sm:w-control-md max-sm:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden sm:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>
+            <Button asChild variant="secondary" className="max-xl:w-control-md max-xl:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} title={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden xl:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>
           </div>
         </div>
         <CollapsibleContent><div className="pt-sm" role="group" aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"}><MetricListCard title={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90"} icon="building" metrics={[
@@ -95,7 +110,7 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
             <Button variant="ghost" size="icon-md" aria-label={"\u91cd\u7f6e\u7b5b\u9009"} onClick={() => start(() => router.push(siteListHref(DEFAULT_SITE_QUERY)))}><Icon name="refresh" size="sm" /></Button>
           </div>
         </form>
-        <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-border bg-card" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>
+        <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>
           <div className="flex flex-col gap-md p-md sm:hidden">
             {q.view === "sites" ? demo.rows.map(s => <ListCard key={s.id} title={s.name} icon="building" description={s.id}
               onTitleClick={() => router.push(detail(s))} actions={actions(s)}
@@ -114,10 +129,12 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
           {q.view === "sites" ? <DataTable className="site-action-table" labels={{ expand: "\u5c55\u5f00", rowActions: "\u64cd\u4f5c" }} columns={columns} rows={demo.rows} rowKey={s => s.id}
             indexStart={(q.page - 1) * demo.pageSize + 1} sort={{ columnId: q.sort, direction: q.direction }}
             onSortChange={sort => navigate({ sort: sort.columnId as SiteQuery["sort"], direction: sort.direction })}
-            expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="site-service-relations flex flex-wrap gap-sm p-md" role="group" aria-label={"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}>
-              {s.operators.map(code => <div key={code} className="site-service-relation flex flex-col gap-xs rounded-md border border-border bg-background p-sm">
-                <span className="flex flex-col gap-xs"><span className="text-label">{operatorNames[code]}</span><span className="text-body-small text-muted-foreground">{"\u901a\u8bdd \u00b7 \u6d41\u91cf \u00b7 \u77ed\u4fe1"}</span></span>
-                <Button asChild size="sm" variant="ghost" className="self-start px-0"><a href={detail(s, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button>
+            expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="site-service-relations flex flex-wrap gap-sm p-sm" role="group" aria-label={"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}>
+              {demo.operatorLoads[s.id].map(({ code, load }) => <div key={code} className="site-service-relation flex flex-col gap-xs rounded-md border border-border bg-background p-sm">
+                <Button asChild size="sm" variant="ghost" className="self-start px-0 text-primary"><a href={detail(s, "services")} aria-label={operatorNames[code] + "\u670d\u52a1\u6863\u6848"}>{operatorNames[code]}</a></Button>
+                <span className="text-body-small text-muted-foreground">{"\u901a\u8bdd \u00b7 \u6d41\u91cf \u00b7 \u77ed\u4fe1"}</span>
+                <div className="mt-xs flex items-center justify-between gap-xs text-body-small text-muted-foreground"><span>{String(q.hour).padStart(2, "0") + ":00 \u8d1f\u8f7d"}</span><span className="tabular-nums text-foreground">{pct(load)}</span></div>
+                <Progress value={load * 100} aria-label={operatorNames[code] + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u8d1f\u8f7d"} />
               </div>)}
             </div>}
             rowActions={s => actions(s)}

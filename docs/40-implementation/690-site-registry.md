@@ -66,3 +66,15 @@ P02正式版仍需真实站址主档、权属与验收资料、设备来源、�
 三个有rowActions的表使用官方ActionMenu，台账与关系共用业务动作生成函数，手机ListCard.actions同步。菜单分别链接站址／服务档案、运行状态、经营用量；档案运营商明细菜单保留原地图时段用量入口。所有目标复用已有上下文构造，无虚假写操作。site-action-table局部取消操作列的独立遮罩背景和sticky层，透明显示所在行底色，防止透明锁列与滚动文字叠加。
 
 生产build含类型、140编号、ASCII／diff通过。CUA1440操作表头／单元格rgba(0,0,0,0)，hover整行accent、全部9格透明，消除独立白块；1042横滚后菜单右界1002在视窗内，390无横溢且面板右界286。台账runtime／business、关系服务档案（保留view=relations）、档案移动时段用量地图实际URL均验证；手机ListCard菜单和Enter／Escape开关通过。artifacts/site-actions-qa含桌面／中屏／手机／档案菜单截图及checks，warn/error空、viewport reset、tab42关闭。中屏首轮Escape退场未结束即点击导致菜单被合上，检查data-state后重开并等待visible通过；无产品失败。无权限／数据／DDL／依赖改变，纯展示与导航复用未重复数据库或业务测试。
+
+## 地域面板收放与工作区底色（2026-11-03）
+
+SiteRegistry稳定外层只管理地域面板开合；带查询key的RegistryContent继续管理搜索草稿、行展开、概况开合，页面移除外层key，避免筛选时把面板状态重置。面板保留在普通flex流中，使用lg外距／间距、官方语义描边及bg-card/68；隐藏时不占宽度，内容区和表格不绘制白底。共用header及官方主题不改。
+
+顶部用官方Breadcrumb系列展示省市县，链接使用已有siteListHref与navigate，仅清除对应下级范围／页码，保留其余筛选和排序。收放按钮在面包屑前，支持鼠标、Enter与Space；窄屏原本不显示资源树，保留筛选弹层地域入口。县级全路径在中屏通过紧凑图标操作避免与源时点重叠；手机上下文自然分行。关系展开内距收为sm，保留四卡同行的可读阈值。
+
+生产构建含类型检查及26项门户HTTP通过；最终浏览器、编号文档、ASCII／diff及运行身份见artifacts/site-workspace-qa与实际Git／health。没有业务规则、权限、DDL、依赖或真实接入变化，未外部部署。
+
+补充用户行内关系批注：名称使用官方Button的asChild链接承接原服务档案href，去掉重复动作文字；下方显示小时／百分比及官方Progress。demo-store只为当前页物理站生成operatorLoads投影，使用既有siteHour(site,hour,code)，包括物理站全部运营商，不受关系列表分页或当前运营商筛选截断。新增一致性测试覆盖0／12／18时、运营商筛选与第二页、空结果，逐项对照dossierDemo，相关9项通过；最终build含类型通过。
+
+CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；名称点击实际进入DEMO-00037的服务关系页签并保留排序。四条进度值分别为87.2%／90.2%／93.2%／96.1%，与档案口径相同，未当作份额。1440收起后主区x24／宽1392／右1416；787与390无文档横溢。主题测试header／工作区深色层级独立、表格透明，恢复浅色。截图及最终检查在artifacts/site-workspace-qa。

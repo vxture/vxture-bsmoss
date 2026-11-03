@@ -42,6 +42,10 @@ export function registryDemo(input: Record<string, string | string[] | undefined
   const start = (page - 1) * SITE_PAGE_SIZE;
   return { mode: "demo" as const, version: SITE_DEMO_VERSION, date: DEMO_DATE, query: { ...q, page }, pageSize: SITE_PAGE_SIZE, pages, count,
     rows: ordered.slice(start, start + SITE_PAGE_SIZE), relations: relationRows.slice(start, start + SITE_PAGE_SIZE),
+    operatorLoads: Object.fromEntries(ordered.slice(start, start + SITE_PAGE_SIZE).map(site => [site.id, site.operators.map(code => {
+      const current = siteHour(site, q.hour, code);
+      return { code, load: current.used / current.capacity };
+    })])),
     summary: { sites: filtered.length, relations: relationRows.length, shared: filtered.filter(s => s.operators.length >= 2).length,
       multi: filtered.filter(s => s.operators.length >= 3).length, attention: filtered.filter(s => s.current.status !== "normal").length },
     regions: { cities: DEMO_REGION.cities.map(c => ({ id: c.id, name: c.name, count: all.filter(s => s.cityId === c.id).length })),
