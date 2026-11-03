@@ -880,3 +880,13 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 接续a232d1e，用户要求条目间距、整体布局及icon。两域launcher以官方EntryCard替换紧凑ShellPanelRow入口，使用xl面板留白／分组间距、md条目间距和lg入口内边距；保留两栏分组／手机单列，增加简短用途、24px官方图标及当前勾选。管理图标faders／stack／database／calendar，公共portalIcons同步管理侧栏；不加业务侧栏或跨域管理入口。
 
 实际发现ShellPanelContent默认保持顶栏焦点使Tab离开launcher，经官方onOpenAutoFocus槽与首入口ref修复；Tab逐项、Enter进入模板、Escape动画后关闭均通过。1280／787／390实际宽度无横溢，手机四管理入口及返回完整可达，业务分析／管理报告跳转正常、选中关闭；warn／error为空。artifacts/launcher-layout-qa含两域桌面、管理手机截图及checks.json；viewport reset、临时tab29／30关闭。生产build含类型、22HTTP、136篇文档编号、ASCII及diff通过；tmp/launcher-layout-{build,http,docs}.log，源代码仅launcher一处，无DDL／依赖／业务权限变化，不重复PG与单测。设计231／实施670同步。最终提交与63333运行身份以Git／health为准，无外部部署，不恢复goal／heartbeat。
+
+## 顶部双入口、五类业务与决策大屏（2026-11-03）
+
+用户否定旧站网监管／分析报告混组，先给计划后明确开始执行。本批设计232／实施680、信息结构V0.6：业务launcher顶行门户首页／决策大屏、官方Separator水平分割，再分站址资源／运行监管／经营分析／异常核验／报告中心；已实现能力归位、未交付只读规划中无href，无空壳业务页。官方EntryCard／ShellPanel组件及图标保持，宽屏五列、中屏3／2、手机单列且顶行2入口并排，业务无统一侧栏。配置管理齿轮／独立管理导航不变，管理域本身仍显示管理launcher。
+
+新增独立/board而非地图别名，服务器显式preview开关、严格city/hour解析／拒绝重复未知字段，关闭开关不加载或泄漏合成数据。复用queryMap和queryOperatorUsage生成三类时段指标、同小时全省地市比较、当前范围24小时与运营商；同地市／小时更新完整快照，无默认选站。官方面板／指标／图表／控件，独立MapLibre矢量边界／聚合站址，不共享旧工作台Zustand、不请求遥感或在线瓦片；颜色读取DS实际语义变量随主题变，地图相机不改统计范围。下钻保留city/hour，回放2.5秒且返回新快照才推进，地市选择停止。原生全屏及失败提示，页面首版仍有滚动区域。
+
+实际发现MapLibre未分层position覆盖工具类致地图0高，改局部board-map-canvas；--color-primary别名未输出，改真实--primary变量。手机PanelCard操作槽挤压标题，专题改独立工具行；最终390标题22px单行。5项相关单测／门户类型／生产构建含类型／24HTTP／138篇编号／ASCII与diff通过，tmp/business-domains-{unit,types,build,http,guards}.log。CUA1440／787／390分组、顶行双入口、内滚动、无横溢；西安240站／小时18→17／自动回放17→18暂停、报告深链／全屏按钮进入退出／深浅主题都成功。artifacts/business-domains-qa含截图及checks.json，warn/error空、恢复浅色／viewport、tab31关闭。未重复无关PG／worker测试。
+
+P01a本地首版完成，P02站址台账／档案下一批、P03经营独立视图与P04核验仍待；正式大屏读模型及真实来源／环境／UAT仍缺，不能称正式上线。最终commit／扫描／63333运行SHA以Git和health为准；无push／外部部署，不重建goal／heartbeat，陕西／费用预留／退役P2不变。

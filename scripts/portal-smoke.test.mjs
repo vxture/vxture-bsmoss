@@ -97,6 +97,11 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const formalHome=await formalRoot.text();assert.ok(formalHome.includes('\u8fd0\u884c\u603b\u89c8'));
       for(const sample of ['data-portal-mode','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!formalHome.includes(sample));
     });
+    await t.test('decision board fails closed with preview disabled',async()=>{
+      const response=await fetch(url+'/board');assert.equal(response.status,200);
+      const html=await response.text();assert.ok(html.includes('\u51b3\u7b56\u5927\u5c4f\u5c1a\u672a\u5f00\u653e'));
+      for(const sample of ['data-board-mode="demo"','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!html.includes(sample));
+    });
   });
   await withServer(true,async url=>{
     await t.test('synthetic preview never grants formal aggregate access or falls back to sample results',async()=>{
@@ -117,6 +122,17 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
       const page=await fetch(url+"/product-preview");assert.equal(page.status,200);
       const html=await page.text();assert.ok(html.includes("SX-DEMO-001"));assert.ok(html.includes("shaanxi-scenario-v1"));
+    });
+    await t.test('decision board is independent, scoped and has no default station selection',async()=>{
+      const response=await fetch(url+'/board');assert.equal(response.status,200);
+      const html=await response.text();assert.ok(html.includes('data-board-mode="demo"'));assert.ok(html.includes('2026-10-25'));
+      assert.ok(html.includes('\u51b3\u7b56\u5927\u5c4f'));assert.ok(!html.includes('mw-app mw-hud'));
+      const scoped=await (await fetch(url+'/board?city=610100&hour=12')).text();
+      assert.ok(scoped.includes('12:00'));assert.ok(scoped.includes('/product-preview?hour=12&amp;city=610100'));
+      for(const query of ['city=110100','hour=24','hour=12&hour=18','workspaceId=forged']){
+        const invalid=await (await fetch(url+'/board?'+query)).text();
+        assert.ok(invalid.includes('\u5927\u5c4f\u7b5b\u9009\u65e0\u6548'));assert.ok(!invalid.includes('data-board-mode="demo"'));
+      }
     });
     const post=body=>fetch(url+"/api/product-preview",{method:"POST",headers:{"Content-Type":"application/json"},body:typeof body==="string"?body:JSON.stringify(body)});
     await t.test('daily report and download share scoped deterministic references and reject unsupported requests',async()=>{

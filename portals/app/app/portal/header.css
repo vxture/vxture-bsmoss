@@ -4,3 +4,6 @@
   max-height: var(--radix-popover-content-available-height);
   overflow-y: auto;
 }
+.portal-launcher-business {
+  width: min(var(--container-page-xl), var(--radix-popover-content-available-width));
+}

@@ -1,5 +1,7 @@
 # 业务应用与配置管理分域
 
+业务launcher分组已由[设计232](design_bsmoss_232_business-launcher-board.md)及信息结构V0.6更新为顶部首页／决策大屏、水平分割线、五类业务；本篇管理域边界与独立侧栏继续有效。
+
 用户要求配置管理业务拆分独立域，唯一业务侧入口为header配置管理icon。遵循 [门户信息结构V0.5](../20-specs/50-information-architecture.md)，域指产品内功能与路由空间，不新建网络域名。
 
 ## 导航边界
