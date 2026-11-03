@@ -874,3 +874,9 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 用户要求业务页面不使用统一导航，板块全部收集launcher。业务域sidebarMode固定hidden、sidebar=null，真正卸载业务侧栏及其占位；首页／地图／分析／报告全局入口继续在业务launcher。配置管理域保留专属侧栏、launcher与齿轮入口。信息结构V0.5、设计231和实施670同步。未改地图独立布局、业务接口或权限。
 
 生产构建（含类型检查）及22HTTP通过，tmp/business-launcher-{build,http}.log。CUA1280实际launcher进入分析／报告均成功、业务mainX=0/mainWidth=1280且nav数0；齿轮进入管理域mainX=256、导航存在，返回业务成功。artifacts/business-launcher-qa含首页／launcher截图及checks.json，viewport reset、临时tab28关闭。此项仅布局不重复单测／PG。最终Git提交及运行health可核对；无外部部署。
+
+## Launcher入口卡与间距（2026-11-03）
+
+接续a232d1e，用户要求条目间距、整体布局及icon。两域launcher以官方EntryCard替换紧凑ShellPanelRow入口，使用xl面板留白／分组间距、md条目间距和lg入口内边距；保留两栏分组／手机单列，增加简短用途、24px官方图标及当前勾选。管理图标faders／stack／database／calendar，公共portalIcons同步管理侧栏；不加业务侧栏或跨域管理入口。
+
+实际发现ShellPanelContent默认保持顶栏焦点使Tab离开launcher，经官方onOpenAutoFocus槽与首入口ref修复；Tab逐项、Enter进入模板、Escape动画后关闭均通过。1280／787／390实际宽度无横溢，手机四管理入口及返回完整可达，业务分析／管理报告跳转正常、选中关闭；warn／error为空。artifacts/launcher-layout-qa含两域桌面、管理手机截图及checks.json；viewport reset、临时tab29／30关闭。生产build含类型、22HTTP、136篇文档编号、ASCII及diff通过；tmp/launcher-layout-{build,http,docs}.log，源代码仅launcher一处，无DDL／依赖／业务权限变化，不重复PG与单测。设计231／实施670同步。最终提交与63333运行身份以Git／health为准，无外部部署，不恢复goal／heartbeat。
