@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Guanlan</title>
+  <defs>
+    <linearGradient id="ocean" x1="6" y1="52" x2="54" y2="12" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1764D8"/><stop offset="1" stop-color="#12B8AD"/>
+    </linearGradient>
+  </defs>
+  <path d="M55 28C52 16 43 9 32 9 19 9 9 19 9 32s10 23 23 23c10 0 18-5 22-14" stroke="url(#ocean)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M10 37c7-8 13-8 21-1s14 7 24-2M17 48c5-4 10-4 16 0" stroke="url(#ocean)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="34" cy="25" r="5" fill="url(#ocean)"/>
+</svg>

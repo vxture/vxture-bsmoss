@@ -842,3 +842,11 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 宿主严格UUID/固定机器subject/有限lane/绝对路径（validate也核health路径），原子健康、全部lane观察后才running、失败退避不假绿、SIGTERM等待在途事务再关pool。独立CJS及同digest可选Compose、凭据分离、etc0700/JSON0644、on候选validate、off仅两个命名worker、--no-deps不连带重建DB/Redis，up失败不推进指针。无自动赋权、来源补造或报告自动发布。Linux镜像/Compose/POSIX信号仍未实测，不将Windows强制清理算优雅信号通过。
 
 台账补当前收尾与I09/I12托管代码状态，实际平台注册/自受众live签发、机器ACL/登记和目标Linux运行、真实来源、Beta/容量恢复/UAT/生产批准继续未完成；第2步新版六场景验收不自动扩展本次范围。不push/PR/远端CI/外部部署或上线，陕西演示/费用预留/退役P2不变。最终commit/checkpoint可直接读取，无需再改源码以回填SHA。
+
+## 产品顶栏与官方面板（2026-11-03）
+
+用户明确指定先优化header，参照yucer并使用完整vxture Design，未扩大到P02资源台账。设计230／实施660。三栏launcher用Popover＋ShellPanelContent／Row／Section，真实href、当前高亮、选中关闭及窄屏边界；新增观澜观测点／视野／波纹SVG，仅品牌图形色值。ShellHeaderTools沿yucer帮助／消息／配置三项，/settings实际页面复用官方显示偏好和现有模板／任务入口。ShellUserMenu＋ShellPreferencePanel完成头像面板、主题／密度／字号持久化；仅简体中文。服务器投影真实active RP身份，访客无在线点或虚构管理员，真实登录后才显示切换／原生POST登出；无角色或token进入chrome。消息通道未接入，不编造未读数。地图布局独立未改。
+
+540单测／双层类型／Next生产build／21HTTP通过，新增配置页公开但不授予身份的边界检查；134篇编号／61表静态镜像／交付／SCA守卫通过。无DDL／Prisma／依赖变更，不重复PG和worker制品。CUA1280×900三栏、配置跳转、消息抽屉及390×844用户面板／选中关闭通过；偏好切换后刷新仍保留，最后恢复浅色／标准，document宽和scrollWidth均390，warn／error为空，viewport已reset。artifacts/header-qa含截图和checks.json，tmp/header-{unit,types,build,http,guards,ascii,staged-scan}.log留证。真实身份联调未获平台凭据，未声称通过。
+
+最终提交／运行SHA见artifacts/formal-checkpoints/product-header.json；63333先以工作区header-review构建验证，收尾恢复精确提交身份。无push／PR／外部部署或生产上线；P02资源台账仍待，陕西演示／费用预留／退役P2不变，不重建goal／heartbeat或额外聊天。

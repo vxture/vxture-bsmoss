@@ -1,0 +1,6 @@
+/* Semantic panel width and runtime collision bounds; surface/rows belong to DS. */
+.portal-launcher {
+  width: min(var(--container-page-md), var(--radix-popover-content-available-width));
+  max-height: var(--radix-popover-content-available-height);
+  overflow-y: auto;
+}

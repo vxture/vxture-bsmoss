@@ -27,6 +27,16 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test("configuration preferences are public but never grant a product identity",async()=>{
+      const response=await fetch(url+'/settings');assert.equal(response.status,200);
+      const html=await response.text();
+      assert.ok(html.includes('\u914d\u7f6e\u4e2d\u5fc3'));
+      assert.ok(html.includes('href="/settings/templates"'));
+      assert.ok(!html.includes('href="/auth/login'));
+      assert.deepEqual(await (await fetch(url+'/auth/session')).json(),{authenticated:false});
+      const mark=await fetch(url+'/assets/brand/guanlan-mark.svg');assert.equal(mark.status,200);
+      assert.ok(mark.headers.get('content-type').includes('image/svg+xml'));
+    });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);
       const aggregate=await fetch(url+"/api/aggregates?workspaceId=forged");assert.equal(aggregate.status,401);

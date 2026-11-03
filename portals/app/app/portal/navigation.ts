@@ -1,4 +1,4 @@
-export type PortalPage = "home" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates";
+export type PortalPage = "home" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: "business" | "management" }
 
 // These are public route labels, never an authorization decision or data scope.
@@ -12,5 +12,6 @@ export function portalNavigation(preview: boolean): readonly PortalEntry[] {
     { id: "aggregation", label: "\u805a\u5408\u4efb\u52a1", href: "/operations/aggregation", group: "management" },
     { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/operations/reports", group: "management" },
     { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
+    { id: "settings", label: "\u914d\u7f6e\u4e2d\u5fc3", href: "/settings", group: "management" },
   ];
 }
