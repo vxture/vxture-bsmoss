@@ -850,3 +850,9 @@ CUA隐藏tab9通过实际React＋独立63334合成接口检查无默认选择、
 540单测／双层类型／Next生产build／21HTTP通过，新增配置页公开但不授予身份的边界检查；134篇编号／61表静态镜像／交付／SCA守卫通过。无DDL／Prisma／依赖变更，不重复PG和worker制品。CUA1280×900三栏、配置跳转、消息抽屉及390×844用户面板／选中关闭通过；偏好切换后刷新仍保留，最后恢复浅色／标准，document宽和scrollWidth均390，warn／error为空，viewport已reset。artifacts/header-qa含截图和checks.json，tmp/header-{unit,types,build,http,guards,ascii,staged-scan}.log留证。真实身份联调未获平台凭据，未声称通过。
 
 最终提交／运行SHA见artifacts/formal-checkpoints/product-header.json；63333先以工作区header-review构建验证，收尾恢复精确提交身份。无push／PR／外部部署或生产上线；P02资源台账仍待，陕西演示／费用预留／退役P2不变，不重建goal／heartbeat或额外聊天。
+
+## 顶栏三条批注修正（2026-11-03）
+
+按用户浏览器批注：页面名及演示标签从右端移入左槽，以ShellHeaderDivider分隔完整品牌区；观澜放大为DS display-xs，系统名称单行heading-1，删除顶栏BS-MOSS。未在品牌内部增加竖线，右侧官方操作组及用户面板保持。787×871实际观澜30px／系统名18px，配置中心x393／演示x457，品牌区末端x368、分隔符x376；390与1280文档宽等于scrollWidth，无横向溢出，浏览器warn／error为空。手机继续隐藏系统名称及页面上下文以保留操作空间，viewport已reset、临时tab24已关闭。
+
+生产构建／双层类型／21HTTP通过，tmp/header-sizing-{build,types,http}.log与artifacts/header-sizing-qa留证；仅排版未重复单测／PG／worker。设计230和实施660同步；最终提交及63333运行身份见artifacts/formal-checkpoints/product-header-sizing.json。无外部部署、依赖、DDL或授权变化。

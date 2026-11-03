@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ShellHeader, ShellHeaderMark, ShellHeaderTitle, ShellHeaderTools, ShellPanelRow, ShellPanelSection,
+import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellHeaderTitle, ShellHeaderTools, ShellPanelRow, ShellPanelSection,
   ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
 import { portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher, { portalIcons as icons } from "./launcher";
@@ -23,15 +23,15 @@ export default function ProductChrome({ active, preview, children, identity, log
       <ProductLauncher active={active} preview={preview} />
       <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u95e8\u6237\u9996\u9875"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
-          <ShellHeaderTitle>{"\u89c2\u6f9c"}</ShellHeaderTitle></span>
-        <span className="hidden min-w-0 flex-col sm:flex">
-          <span className="font-brand text-heading-2 font-semibold text-foreground">BS-MOSS</span>
-          <span className="truncate text-label-micro text-muted-foreground max-sm:hidden">{"\u57fa\u7ad9\u591a\u57df\u8fd0\u884c\u76d1\u7ba1\u5e73\u53f0"}</span>
-        </span>
+          <ShellHeaderTitle><span className="text-display-xs">{"\u89c2\u6f9c"}</span></ShellHeaderTitle></span>
+        <span className="hidden truncate font-brand text-heading-1 text-muted-foreground sm:block">{"\u57fa\u7ad9\u591a\u57df\u8fd0\u884c\u76d1\u7ba1\u5e73\u53f0"}</span>
       </a>
-    </>} center={<span className="hidden text-label-small text-content-tertiary md:inline">{current?.label}</span>}
-    centerAlign="end" trailing={<>
-      {preview ? <span className="hidden lg:inline-flex"><StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge></span> : null}
+      <div className="hidden min-w-0 items-center gap-md md:flex">
+        <ShellHeaderDivider />
+        <span className="truncate whitespace-nowrap text-label-small text-content-tertiary">{current?.label}</span>
+        {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
+      </div>
+    </>} trailing={<>
       <ShellHeaderTools label={"\u64cd\u4f5c\u5de5\u5177"} linkComponent={Link}
         help={{ label: "\u5e2e\u52a9\u6587\u6863", href: "https://docs.vxture.com" }}
         settings={{ label: "\u914d\u7f6e\u4e2d\u5fc3", href: "/settings" }}

@@ -16,3 +16,7 @@
 - 配置字段及会话有效性沿既有 RP；本地没有真实平台注册凭据，本包没有声称真实登录／切换／登出联调通过。无DDL／Prisma／依赖升级，不重复数据库与worker制品测试。
 
 本次为门户顶栏完善，未完成资源台账、真实接入或生产上线。最终提交与预览身份见 artifacts/formal-checkpoints/product-header.json。
+
+## 用户批注调整
+
+后续按三条批注调整：页面名与演示标签从右端移入header左侧槽，以官方竖向分隔符区分品牌；观澜使用display-xs，系统名称使用heading-1单行展示，删除顶栏BS-MOSS。字号全部沿用DS语义档位，品牌块内不增加竖线。787×871为重点检查尺寸，同时核验宽屏和390手机；本次仅排版，业务及权限未改，不重复单测／数据库／worker验证。构建、类型和HTTP与浏览器证据记录在header-sizing日志、artifacts/header-sizing-qa及对应检查点。
