@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 受审模板可视化编辑（2026-11-03，最新入口）
+
+接续841f444，恢复时clean；既有五项active目标与bs-moss heartbeat复用，无spawn。本turn有内部实质progress，勿标blocked／complete。设计225／实施610，/settings/templates 新增editor-model浏览器纯转换、实际React表单和6项测试；标题／三类字典指标／合法组件单位粒度精度／显隐／排序增删／单对象或受审rollup显式ID绑定。稳定ID同步绑定顺序，最多16／至少1面板；指标变更清旧绑定，报告日周月同步所有面板，状态设备数／时长转table。字典选项不代表来源已验收或授予权限；新草稿三类全部not_connected，无合成值。
+
+表单／高级JSON共用内存draft，每次编辑清preview／candidate／receipt，非法结构保留原文和修复提示，不丢未知字段。读取清旧reviewRef，新增同步inFlight门闩；503仍锁定全部表单与JSON并沿原command重试，409清上下文。校验入口移到编辑区上方，桌面结果sticky／视窗内滚动、手机自然顺序。只改客户端，不改正式API／权限／store／DDL／Prisma／依赖；上一包347实际PG和PrismaCLI沿已验证证据，本包不冒充新跑PG。
+
+525单测、双层类型／生产build通过；最终20HTTP、123篇编号／61表镜像／交付／SCA／ASCII及staged密钥、提交／63333 SHA见visual-template-authoring检查点与tmp/visual-template-{unit,types,build,http,guards,ascii,staged-scan}.log。新单测验证input不变、精确metricRef、变指标清绑定、报告粒度联动、状态view约束、稳定ID／顺序／上下限和坏JSON。CUA临时tab15／63334合成实际React：表单JSON同步／坏JSON保留／编辑清校验／状态单位联动／绑定／增删排序；默认切换和发布均首次生效回503，再次完全同command仅1结果；新报告全month。桌面client/scroll1265、390×844手机实际375无横溢，最终日志／截图及viewport reset和tab／63334停止以收尾工具为准。证据artifacts/visual-template-qa。主地图未操作；63333原Next PID18180已核验停为build，收尾恢复新SHA；未启动PG。
+
+更正本turn最初选题：核对发现报告生成／导出受审恢复已在550／560完成，未重复实现，当前backlog主表同步真实最新状态。I11可视化子项完成，角色／workspace层级受审配置待；I08分层规模／11万3倍突发待。下一包继续上述独立内部工作；角色需可信DB membership、独立有效配置摘要／CAS和不存在指针的并发fence，不能拿前端role或个人prefs充当正式管理。
+
+真实来源字段／样例／口径签认、C1/C2/C3 live、真实机器provider权威契约／生产托管、私有app.env／stack.env／Linux域名TLSregistryDB、远端源码及build-beta-prod、容量恢复／UAT／生产批准仍缺；沿上一只读预检prerequisites_missing／productionLaunch=false，不重复无变化外部轮询。五项1–3本地完成、4–5active；没有push／PR／远端CI／真实接入／外部部署或上线。陕西演示／费用预留／退役P2／新产品无迁移不变。
+
 ## 受审模板发布与默认选择（2026-11-03，最新入口）
 
 接续69b27b9，恢复时clean。既有五项active goal／bs-moss heartbeat复用，无spawn。设计224／实施600；I11新增templates纯规则／端口、PgTemplateStore、config-only校验和独立授权门面、实际RP组合根、/api/templates的GET／POST及preview／selection、/settings/templates管理页。page／report版本规范化，16面板，隐藏绑定和受审rollup全部真实拓扑／完整设备总体验权，映射及受审配置修订摘要pin，缺失／不匹配拒绝；不读测量或聚合，不代替真实来源／质量验收。草稿仅页面内，不持久化。

@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TemplateCandidate, TemplatePreview, TemplateRead, TemplatePublicationCommand, TemplateSelectionCommand } from "../../domains/views/templates";
 import type { TemplatePublicationReceipt, TemplateSelectionReceipt } from "../../domains/views/template-store";
 import { reportLabels, reportTime } from "../../domains/reports/display";
+import TemplateEditor from "./editor";
+import { editableTemplate, newTemplate } from "./editor-model";
 
 type Pending = { kind: "publish"; command: TemplatePublicationCommand } | { kind: "select"; command: TemplateSelectionCommand };
 const text = {
@@ -21,29 +23,35 @@ export default function TemplateWorkspace() {
   const [loaded, setLoaded] = useState<TemplateRead | null>(null), [preview, setPreview] = useState<TemplatePreview | null>(null), [candidate, setCandidate] = useState<TemplateCandidate | null>(null);
   const [pending, setPending] = useState<Pending | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
   const [receipt, setReceipt] = useState<TemplatePublicationReceipt | TemplateSelectionReceipt | null>(null);
+  const inFlight = useRef(false);
   const locked = busy || pending !== null;
+  const editable = editableTemplate(draft);
+  function changeDraft(c: TemplateCandidate) { if (locked) return; setDraft(JSON.stringify(c, null, 2)); clearValidation(); }
   function clearValidation() { setPreview(null); setCandidate(null); setNotice(""); setReceipt(null); }
   async function response(res: Response) {
     if (!res.ok) { const e = Error(res.status === 409 ? text.changed : res.status < 500 ? text.denied : text.unavailable) as Error & { status: number }; e.status = res.status; throw e; }
     return res.json();
   }
   async function load() {
-    setBusy(true); setError(""); setLoaded(null); clearValidation();
+    if (inFlight.current || pending) return; inFlight.current = true;
+    setBusy(true); setError(""); setLoaded(null); setReview(""); clearValidation();
     try {
       const params = new URLSearchParams({ code }); if (version) params.set("version", version);
       const r: TemplateRead = await response(await fetch("/api/templates?" + params, { cache: "no-store" }));
       setLoaded(r); setDraft(r.template ? JSON.stringify(r.template.candidate, null, 2) : ""); if (!r.template) setNotice(text.noTemplate);
-    } catch (e) { setError(e instanceof Error ? e.message : text.unavailable); } finally { setBusy(false); }
+    } catch (e) { setError(e instanceof Error ? e.message : text.unavailable); } finally { inFlight.current = false; setBusy(false); }
   }
   async function validate() {
+    if (inFlight.current || pending) return; inFlight.current = true;
     setBusy(true); setError(""); clearValidation();
     try {
       let c: TemplateCandidate; try { c = JSON.parse(draft); } catch { throw Error(text.invalid); }
       const r: TemplatePreview = await response(await fetch("/api/templates/preview", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ candidate: c }) }));
       setPreview(r); setCandidate(c);
-    } catch (e) { setError(e instanceof Error ? e.message : text.unavailable); } finally { setBusy(false); }
+    } catch (e) { setError(e instanceof Error ? e.message : text.unavailable); } finally { inFlight.current = false; setBusy(false); }
   }
   async function execute(p: Pending) {
+    if (inFlight.current) return; inFlight.current = true;
     setPending(p); setBusy(true); setError(""); setNotice("");
     try {
       const r: TemplatePublicationReceipt | TemplateSelectionReceipt = await response(await fetch(p.kind === "publish" ? "/api/templates" : "/api/templates/selection", {
@@ -53,7 +61,7 @@ export default function TemplateWorkspace() {
     } catch (e) {
       setError(e instanceof Error ? e.message : text.unavailable);
       if ((e as { status?: number }).status && (e as { status: number }).status < 500) { setPending(null); setLoaded(null); setPreview(null); setCandidate(null); }
-    } finally { setBusy(false); }
+    } finally { inFlight.current = false; setBusy(false); }
   }
   function publish() {
     if (!preview || !candidate || !loaded) return;
@@ -76,8 +84,13 @@ export default function TemplateWorkspace() {
     {pending && !busy && <button onClick={() => void execute(pending)}>{text.retry}</button>}
     {pending && <p className="reports-muted">{pending.command.commandId}</p>}
     {receipt && <details><summary>{text.evidence}</summary><pre>{JSON.stringify(receipt, null, 2)}</pre></details>}
-    <div className="templates-columns"><section><label>{text.draft}<textarea aria-label={text.draft} value={draft} disabled={locked || !loaded} spellCheck={false} onChange={e => { setDraft(e.target.value); clearValidation(); }} /></label>
-      <div className="reports-actions"><button disabled={locked || !draft || !loaded} onClick={() => void validate()}>{busy ? text.busy : text.validate}</button></div></section>
+    {loaded && <div className="reports-actions templates-validation-action"><button disabled={locked || !draft} onClick={() => void validate()}>{busy ? text.busy : text.validate}</button></div>}
+    <div className="templates-columns"><section>
+      {loaded && !loaded.template && <div className="reports-actions"><button disabled={locked} onClick={() => changeDraft(newTemplate("page"))}>{"\u65b0\u5efa\u9875\u9762\u8349\u7a3f"}</button><button disabled={locked} onClick={() => changeDraft(newTemplate("report"))}>{"\u65b0\u5efa\u62a5\u544a\u8349\u7a3f"}</button></div>}
+      {loaded && editable && <TemplateEditor candidate={editable} disabled={locked} onChange={changeDraft} />}
+      {loaded && draft && !editable && <p className="reports-error" role="status">{"\u8349\u7a3f\u6682\u4e0d\u80fd\u5728\u8868\u5355\u4e2d\u7f16\u8f91\uff0c\u8bf7\u5728\u9ad8\u7ea7 JSON \u4e2d\u4fee\u590d\u7ed3\u6784\u6216\u91cd\u65b0\u8bfb\u53d6\u3002\u539f\u6587\u5df2\u4fdd\u7559\u3002"}</p>}
+      <details className="template-json" open={loaded && !!draft && !editable || undefined}><summary>{"\u9ad8\u7ea7 JSON \u7f16\u8f91"}</summary><label>{text.draft}<textarea aria-label={text.draft} value={draft} disabled={locked || !loaded} spellCheck={false} onChange={e => { setDraft(e.target.value); clearValidation(); }} /></label></details>
+      </section>
       <section className="templates-preview"><h3>{text.preview}</h3><p className="reports-muted">{text.configurationOnly}</p>
         {preview && candidate && <><h2>{candidate.definition.title}</h2><p className="templates-footprint">{candidate.kind} / {candidate.definition.panels.length} {text.panel} / {preview.requiredScope.stationIds.length} {"\u7ad9\u5740"} / {preview.requiredScope.deviceIds.length} {"\u8bbe\u5907"}</p>
           <div className="templates-panels">{candidate.definition.panels.map(p => <article key={p.id}><b>{reportLabels[p.metricRef.code] ?? p.metricRef.code} <small>{reportLabels[p.category]}</small></b><span>{p.id} / {p.metricRef.code} @{p.metricRef.version}</span><small>{p.grain} / {p.view} / {p.displayUnit} / {p.visible ? text.visible : text.hidden}</small></article>)}</div>

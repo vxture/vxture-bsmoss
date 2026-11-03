@@ -69,6 +69,11 @@ and report template publication, and audited default selection/rollback. Indepen
 permissions and incoming/displaced object scope are required; publication never
 auto-selects a page or generates/publishes reports. Role-layer governance remains
 pending. See docs/40-implementation/600-reviewed-template-governance.md.
+The same workspace now provides visual page/report draft authoring with stable
+panel IDs, metric-safe binding resets and synchronized report periods. Form and
+advanced JSON edits invalidate prior validation; publishing still uses the same
+server authorization, immutable version and exact retry commands. See
+docs/40-implementation/610-visual-template-authoring.md.
 
 ## Local sample portal (I10)
 
