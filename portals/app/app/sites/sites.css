@@ -16,7 +16,12 @@
   line-height: var(--heading-2-line-height);
   font-weight: var(--heading-2-font-weight);
 }
-.site-table-scroll { scrollbar-gutter: stable; }
+.site-table-scroll { scrollbar-gutter: stable; container-type: inline-size; }
+.site-service-relations { width: min(100%, 100cqw); }
+.site-service-relation {
+  flex: 1 1 var(--container-overlay-sm);
+  min-width: min(100%, var(--container-overlay-sm));
+}
 .site-registry-tools { display: grid; grid-template-columns: auto minmax(0, var(--container-overlay-md)) 1fr; gap: var(--space-sm); align-items: center; }
 .site-registry-view { min-width: 0; }
 @media (max-width: 639px) {

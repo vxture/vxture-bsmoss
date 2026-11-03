@@ -54,3 +54,9 @@ P02正式版仍需真实站址主档、权属与验收资料、设备来源、�
 实测原台账同类主数据在12／14px间跳变，搜索和选择14px而相邻操作12px，主站名600与普通数据400差异明显。采用站址域本地排版规则：正文／表头／操作使用body／label（标准14px），主操作500；辅助编码／时间／说明及徽章12px，标题heading-2（16px），品牌和档案既有关键读数20px。档案标题18px取消；共用header原16px系统／域名称和20px品牌无需重复修改。筛选面板通过官方className接入独立作用域，表格与操作使用语义token，不修改全局token或官方包。
 
 最终生产build含类型与26HTTP、140文档编号、ASCII／diff检查通过。CUA1042／787／390检查无页面横溢；站址表头／地域主值／负载／按钮／选择／检索为14px，编码／辅助值／时间12px；浮层Label／select／Button均14px，标题16px。单站总览／资源／经营页验证只有12／14／16／20四档，标题16px、关键数值20px。手机刷新显示HH:mm、完整秒数保留title及aria，日期client／scrollWidth均148不裁切。证据artifacts/site-typography-qa，浏览器warn/error空，viewport已reset、tab40关闭。仅排版未新增业务测试或重复PG检查，未外部部署。
+
+## 展开关系一行与自然换行（2026-11-03）
+
+用户批注四运营商应优先同一行，过窄时弹性布局。expandedContent取消固定断点2／3列，改flex-wrap，子项flex-basis和最小宽度使用overlay-sm token（标准160px）且等分余量。每项改纵向组织，档案按钮独立落在下方，避免横向文字与按钮互挤；保留官方Button、14／12字号、真实关系数量和下钻href。无数据或权限变更。
+
+生产build含类型通过，140编号／ASCII／diff通过。CUA1042实测可视展开区721.3px、四项各164.8px、同top306.4且最右986位于列表右界1018内，展开高129.2px；660下3＋1自然换行且无页面横溢；五运营商1042下4＋1均可见。初轮仅flex导致继承宽表949.9px，第四卡在视窗外，改列表inline-size容器＋展开100cqw约束后通过。服务档案实际进入DEMO-00946?tab=services，当前服务页签正确。artifacts/site-relations-layout-qa含桌面／窄屏／五家截图和checks，warn/error空、viewport reset、tab41关闭。纯布局未重复业务／HTTP或数据库测试，无外部部署。

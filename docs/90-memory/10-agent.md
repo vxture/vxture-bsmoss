@@ -938,3 +938,9 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 用户认为整个页面字号乱，统一检查台账、共享header、筛选浮层及六层档案。实测主要是同类主数据12／14、操作12与输入14混用，档案18标题。站址局部CSS使用官方body／label／heading-2字号行高字重token：12辅助、14正文操作、16标题、20既有品牌与关键读数；主表数据提升14、按钮名称字重500、辅助常规，档案标题18→16。header已是16系统／域名及20品牌无需改；状态徽章保留12，不改全局token／DS包。筛选portalled内容独立site-filter-panel作用域。手机刷新HH:mm，秒数保留title／aria，源时点仍完整不受压。
 
 生产build含类型、26HTTP、140文档编号、ASCII及diff通过，tmp/site-typography-{build,http,docs}.log。CUA1042／787／390无横溢，390日期client／scrollWidth均148；浮层标签／选择／按钮14、标题16；台账表头／地域／负载14，档案总览／资源／经营只有12／14／16／20四档。artifacts/site-typography-qa含四页面截图与checks，warn/error空，viewport reset、tab40关闭。一次同名资源设备按钮定位冲突，限定档案分层navigation后验证成功，无业务失败。纯排版无DDL／依赖／权限或数据改动，不重复业务单测及PG；最终commit与63333身份以Git／health为准，无push或外部部署。
+
+## 行内服务关系四卡同行（2026-11-03）
+
+用户批注展开四家应同一行，太窄才弹性换行。expandedContent从固定sm2／xl3列改flex-wrap，子卡basis／min-width为公开overlay-sm（标准160px）、等分余量，纵向排列运营商／业务类型／服务档案，保留14／12字号和官方Button。初轮继承宽表949.9导致第4卡在视窗外，修列表container-type:inline-size、展开宽min(100%,100cqw)，按实际可见空间排布。
+
+最终build含类型、140编号、ASCII及diff通过，tmp/site-relations-layout-{build,docs}.log。CUA1042展开721.3px、4卡各164.8且同top、最右986在列表1018内；660自然3＋1，5关系1042自然4＋1，无丢项及页面横溢。档案入口DEMO-00946?tab=services及当前页签实际成功。artifacts/site-relations-layout-qa含desktop／narrow／five截图与checks，warn/error空；viewport reset、tab41关闭。纯布局无数据／权限／DDL／依赖改动，不重复业务单测／HTTP／PG。设计233／实施690同步，最终Git／63333身份以实际工具为准，无push／外部部署或自动任务。

@@ -109,10 +109,10 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
           {q.view === "sites" ? <DataTable labels={{ expand: "\u5c55\u5f00", rowActions: "\u64cd\u4f5c" }} columns={columns} rows={demo.rows} rowKey={s => s.id}
             indexStart={(q.page - 1) * demo.pageSize + 1} sort={{ columnId: q.sort, direction: q.direction }}
             onSortChange={sort => navigate({ sort: sort.columnId as SiteQuery["sort"], direction: sort.direction })}
-            expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="grid gap-md p-lg sm:grid-cols-2 xl:grid-cols-3">
-              {s.operators.map(code => <div key={code} className="flex items-center justify-between gap-md rounded-md border border-border bg-background p-md">
+            expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="site-service-relations flex flex-wrap gap-sm p-md" role="group" aria-label={"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}>
+              {s.operators.map(code => <div key={code} className="site-service-relation flex flex-col gap-xs rounded-md border border-border bg-background p-sm">
                 <span className="flex flex-col gap-xs"><span className="text-label">{operatorNames[code]}</span><span className="text-body-small text-muted-foreground">{"\u901a\u8bdd \u00b7 \u6d41\u91cf \u00b7 \u77ed\u4fe1"}</span></span>
-                <Button asChild size="sm" variant="ghost"><a href={detail(s, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button>
+                <Button asChild size="sm" variant="ghost" className="self-start px-0"><a href={detail(s, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button>
               </div>)}
             </div>}
             rowActions={s => <Button asChild variant="ghost" size="sm"><a href={detail(s)} aria-label={"\u67e5\u770b" + s.name + "\u6863\u6848"}><Icon name="arrow-right" size="sm" /></a></Button>}
