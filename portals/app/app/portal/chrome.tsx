@@ -29,10 +29,10 @@ export default function ProductChrome({ active, preview, children, identity, log
           <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
         <span className="hidden truncate font-brand text-heading-1 text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
       </a>
-      <div className="hidden min-w-0 items-center gap-md md:flex">
+      <div className="flex min-w-0 items-center gap-sm">
         <ShellHeaderDivider />
-        <span className="truncate whitespace-nowrap text-label-small text-content-tertiary">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
-        {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
+        <span className="truncate whitespace-nowrap text-label font-semibold text-foreground sm:text-heading-2">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
+        {preview ? <span className="hidden sm:flex"><StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge></span> : null}
       </div>
     </>} trailing={<>
       <ShellHeaderTools label={"\u64cd\u4f5c\u5de5\u5177"} linkComponent={Link}

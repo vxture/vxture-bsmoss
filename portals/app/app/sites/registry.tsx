@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, DataTable, EmptyState, FilterBar, Icon, Input,
-  ListCard, MetricGrid, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, ViewHeader, type DataTableColumn } from "@vxture/design-system";
+  ListCard, MetricGrid, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, statusNames } from "./labels";
@@ -31,22 +31,17 @@ export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
   ];
   const regionLabel = demo.regions.counties.find(c => c.id === q.county)?.name ?? demo.regions.cities.find(c => c.id === q.city)?.name ?? "\u9655\u897f\u7701";
   return <div className="site-workspace flex h-full w-full min-w-0 flex-col" data-sites-mode="demo" aria-busy={pending}>
-    <div className="shrink-0 border-b border-border bg-card px-lg py-md">
-      <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u7ad9\u5740\u7ba1\u7406"} description={regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}
-        secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}
-        action={<Button asChild variant="secondary"><a href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button>} />
-    </div>
     <div className="flex min-h-0 flex-1">
       <aside aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className="hidden w-sidebar-expanded shrink-0 flex-col border-r border-border bg-card lg:flex">
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="text-label font-semibold">{"\u5730\u57df\u8d44\u6e90"}</span><Icon name="map-pin" size="sm" /></div>
         <div className="min-h-0 flex-1 overflow-y-auto p-md">
-          <Button className="mb-sm w-full justify-between" variant={q.city === "all" ? "secondary" : "ghost"} onClick={() => navigate({ city: "all", county: "all" })}><span>{"\u9655\u897f\u7701"}</span><span className="tabular-nums">{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></Button>
+          <Button size="xl" className="mb-sm w-full justify-between text-body font-medium" variant={q.city === "all" ? "secondary" : "ghost"} onClick={() => navigate({ city: "all", county: "all" })}><span>{"\u9655\u897f\u7701"}</span><span className="tabular-nums">{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></Button>
           <Accordion type="single" collapsible value={q.city === "all" ? "" : q.city} onValueChange={city => navigate({ city: city || "all", county: "all" })}>
             {demo.regions.cities.map(city => <AccordionItem key={city.id} value={city.id}>
-              <AccordionTrigger><span className="flex flex-1 justify-between gap-sm"><span>{city.name}</span><span className="tabular-nums text-muted-foreground">{n(city.count)}</span></span></AccordionTrigger>
-              <AccordionContent><div className="flex flex-col gap-xs">
-                <Button size="sm" variant={q.county === "all" ? "secondary" : "ghost"} className="justify-between" onClick={() => navigate({ city: city.id, county: "all" })}>{"\u5168\u90e8\u533a\u53bf"}</Button>
-                {demo.regions.counties.filter(c => c.cityId === city.id).map(c => <Button key={c.id} size="sm" className="justify-between" variant={q.county === c.id ? "secondary" : "ghost"} onClick={() => navigate({ city: city.id, county: c.id })}><span>{c.name}</span><span className="tabular-nums text-muted-foreground">{c.count}</span></Button>)}
+              <AccordionTrigger className="min-h-control-xl px-sm py-sm text-body font-medium no-underline hover:no-underline"><span className="flex flex-1 justify-between gap-sm"><span>{city.name}</span><span className="tabular-nums text-muted-foreground">{n(city.count)}</span></span></AccordionTrigger>
+              <AccordionContent><div className="ml-sm flex flex-col gap-xs border-l border-border pl-sm">
+                <Button size="xl" variant={q.county === "all" ? "secondary" : "ghost"} className="justify-between text-body" onClick={() => navigate({ city: city.id, county: "all" })}>{"\u5168\u90e8\u533a\u53bf"}</Button>
+                {demo.regions.counties.filter(c => c.cityId === city.id).map(c => <Button key={c.id} size="xl" className="justify-between text-body" variant={q.county === c.id ? "secondary" : "ghost"} aria-pressed={q.county === c.id} onClick={() => navigate({ city: city.id, county: c.id })}><span>{c.name}</span><span className="tabular-nums text-muted-foreground">{c.count}</span></Button>)}
               </div></AccordionContent>
             </AccordionItem>)}
           </Accordion>
@@ -54,6 +49,10 @@ export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
         <p className="border-t border-border p-md text-body-small text-muted-foreground">{"\u533a\u57df\u6570\u5b57\u4e3a\u6f14\u793a\u8d44\u6e90\u603b\u6570"}</p>
       </aside>
       <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md p-lg">
+        <div className="flex shrink-0 items-center justify-between gap-sm">
+          <span className="truncate text-body-small text-muted-foreground" title={regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}>{regionLabel + " \u00b7 " + demo.date + " \u00b7 " + String(q.hour).padStart(2, "0") + ":00"}</span>
+          <Button asChild variant="secondary"><a href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button>
+        </div>
         <div className="shrink-0"><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"} items={[
           { id: "sites", icon: "building", label: "\u7269\u7406\u7ad9\u5740", value: n(demo.summary.sites), description: "\u5ea7" },
           { id: "relations", icon: "users", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: n(demo.summary.relations), description: "\u6761" },

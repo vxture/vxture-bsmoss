@@ -906,3 +906,9 @@ P01a本地首版完成，P02站址台账／档案下一批、P03经营独立视�
 9相关单测、双层类型、最终生产构建和26HTTP通过，140篇编号与交付守卫通过；日志tmp/site-registry-{unit,types,build,http,guards}.log。CUA1440实际main／workspace均x0、y48、1440×852，分页底部876；787／390无文档横溢。地域县筛选／检索、关系下钻、行内展开、排序分页、空态重置、六层／小时／日周月／经营指标、真实HTML下载、地图双向及launcher均验证。1920首页和大屏内容约1904.7（滚动条留宽）、maxWidth none；浏览器warn/error空。artifacts/site-registry-qa含台账／档案桌面手机、经营截图与checks.json；下载文件约622756字节，仅合成数据。viewport已reset、临时tab34关闭。最终提交／运行SHA以Git和health收尾为准。
 
 P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属／验收资料、服务有效期和受审版本、设备来源与生命周期、维护导入及变更审计。不提供伪造成功的新建／编辑／审批，不写正式证据。无DDL／Prisma／迁移／费用或退役影响开发，不重复无关PG合同。平台真实授权来源、Beta／容量恢复／UAT／生产批准仍缺，未push或外部部署上线，不重建goal／自动任务或聊天。
+
+## 站址台账标题与地域树批注（2026-11-03）
+
+用户批注重复大标题浪费空间、县级字小且过挤。取消/sites的重复ViewHeader／演示数据标识，header独立承载域名称与演示标识；公共域名称桌面heading-2 16px／foreground／semibold，手机text-label 14px，保留业务识别，系统名与演示标签手机隐藏。地域日期及地图入口合为一行小工具区，树直接从header下起排。省市县14px正文，区县Button xl 32px替代sm 20px，保持gap、缩进导线、选中高亮及aria-pressed。无数据规则／权限／依赖／DDL变化。
+
+最终生产build含类型、26HTTP、140篇编号及两源码ASCII／diff通过；tmp/site-layout-{build,http,docs}.log。CUA1042×871表格顶部487.06降到412.44，区县实际14px／32px；787与390无横溢。手机初轮标题16px因不足半像素省略，改14px后完整显示；县级筛选联动、范围地图链接及787配置管理顶栏兼容通过，warn/error空。artifacts/site-layout-qa含desktop.jpg、medium.jpg、mobile.jpg、checks.json；viewport已reset、临时tab36关闭。设计230／233、实施690同步，纯布局未重复业务／PG测试。最终Git与63333运行身份以工具及health为准，无push／外部部署，不重建自动任务或goal。
