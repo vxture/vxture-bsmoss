@@ -31,7 +31,7 @@ Requires Node >=22.18 and pnpm 10.30.3.
     pnpm type-check:all
     pnpm lint:docs-numbering
 
-Implemented: versioned metric and view rules, a 59-table empty-database baseline,
+Implemented: versioned metric and view rules, a 61-table empty-database baseline,
 transactional PostgreSQL measurements and aggregates, formal analysis with personal
 display preferences, versioned reports and audited task queues, and a gated sample
 portal. The internal trusted-access resolver and service facades are tested;
@@ -64,6 +64,11 @@ Reviewed physical-device populations support exact state counts/device-time and
 per-device temperature-mean bins in formal analysis and reports. Missing or stale
 devices remain unknown; temperatures are never summed or averaged across sensors.
 See docs/40-implementation/590-reviewed-device-distributions.md.
+Formal /settings/templates adds scoped configuration validation, immutable page
+and report template publication, and audited default selection/rollback. Independent
+permissions and incoming/displaced object scope are required; publication never
+auto-selects a page or generates/publishes reports. Role-layer governance remains
+pending. See docs/40-implementation/600-reviewed-template-governance.md.
 
 ## Local sample portal (I10)
 

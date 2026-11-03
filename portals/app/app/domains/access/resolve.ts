@@ -25,7 +25,7 @@ export interface LocalGrant {
   scope: MeasurementScope;
   expiresAt: number;
 }
-export type MeasurementOperation = "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute";
+export type MeasurementOperation = "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
 export type AccessPlane = "interactive" | "data";
 export interface AccessPorts {
   // These closures are wired by the server composition root, never by a request.
@@ -64,6 +64,9 @@ const permissions = {
   report_publish: "reports.publish",
   report_export: "reports.export",
   report_export_execute: "reports.export.execute",
+  template_view: "views.templates.view",
+  template_publish: "views.templates.publish",
+  template_select: "views.templates.select",
 } as const;
 function required(value: unknown): value is string {
   return (

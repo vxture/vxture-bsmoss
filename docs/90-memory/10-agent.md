@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## 受审模板发布与默认选择（2026-11-03，最新入口）
+
+接续69b27b9，恢复时clean。既有五项active goal／bs-moss heartbeat复用，无spawn。设计224／实施600；I11新增templates纯规则／端口、PgTemplateStore、config-only校验和独立授权门面、实际RP组合根、/api/templates的GET／POST及preview／selection、/settings/templates管理页。page／report版本规范化，16面板，隐藏绑定和受审rollup全部真实拓扑／完整设备总体验权，映射及受审配置修订摘要pin，缺失／不匹配拒绝；不读测量或聚合，不代替真实来源／质量验收。草稿仅页面内，不持久化。
+
+空库新增template_publication／template_selection_event，61表及Prisma标量镜像；发布trigger原子建版本、选择trigger原子移pointer，连续CAS、不可变版本／事件、DB SHA／session_user／时间。运行角色不再直接insert版本／写默认pointer，偏好改窄共享锁函数，选择排他锁。views.templates.view／publish／select独立，仅入字典不赋role，owner无隐含。新旧模板完整scope并集及末次原身份／有效期／C1/C2/C3再验权；精确subject原command replay不回退当前head，历史范围不按今天配置改写。报告发布不自动生成／发布报告，默认只analysis:default page，回退追加新event。
+
+519单测（新增7）／347实际PG（新增13）／双层types／Prisma／生产build通过；最终20HTTP、121篇编号／61表镜像／交付／SCA、ASCII／staged密钥、提交及63333运行SHA以 reviewed-template-governance 检查点和tmp/templates-{unit,db,types,prisma,build,http,guards,ascii,staged-scan,preflight}.log核对。实际PG含同异command并发、共享／排他fence和旧RR拒绝偏好、历史回退／不复活、配置修订失效、物理flag和新旧范围、写后撤权与SQL全回滚、不可变及伪scope／版本链拒绝。旧模板损坏测试改test-owner helper临时disable／finally恢复immutable trigger，runtime无ALTER。首轮fixture遗留dist默认选择和误写rollup.status列修夹具；并发确实命中template_version_pkey，限定race重试；SQL JSONB减字段括号修正，无产品放宽。
+
+63334合成实际React：默认选择／发布首个成功回503，完全同command重放均只1条；回退旧版、发布不改默认、409清上下文；客户端hash server模块导入被独立构建发现，改type-only，校验留服务器。最终桌面client/scroll1265，390×844实际375，无warn/error，三类中文标签／版本主体北京时间。artifacts/templates-qa含desktop.png／mobile.png／state.json／commands.json；viewport已reset、tab14关闭，用户地图标签未动。专用PG58874和63334收尾应停止；63333原PID23064经确认停以build，最终重启新SHA见检查点。
+
+I11仍in_progress，角色／workspace层级受审发布和可视化编辑待，I08分层规模待。真实来源签认样例、C1/C2/C3 live、真实机器provider权威契约／生产宿主、私有app.env／stack.env及Linux／域名／TLS／registry／DB／远端源码和build／beta／prod、11万3倍突发／安全恢复／UAT和生产批准仍缺，preflight仍prerequisites_missing／productionLaunch=false。没有push／PR／远端CI／真实接入／外部部署／上线；五项1–3本地完成、4–5active，费用仅预留／退服P2／陕西演示保持。
+
 ## 受审设备状态与均温分布（2026-11-03，最新入口）
 
 接续d29ae0c，恢复时clean。原五项active goal及bs-moss heartbeat复用，本turn有实质progress，不标blocked／complete、不新建自动化、不spawn。设计223／实施590。I08新增device-distribution纯规则并由object-rollup按设备语义分派；沿原object_rollup_revision只读受审配置，无DDL／Prisma／依赖变化，仍59表空库，无旧库迁移。

@@ -260,6 +260,40 @@ model VxProvisionAppInstance {
   @@schema("vx_provision")
 }
 
+model TemplatePublication {
+  workspace_id String
+  code String
+  version Decimal @db.Decimal(30,0)
+  subject String
+  command_id String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  recorded_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,code,version])
+  @@map("template_publication")
+  @@schema("bsmoss_views")
+}
+
+model TemplateSelectionEvent {
+  workspace_id String
+  scope_key String
+  revision Decimal @db.Decimal(30,0)
+  subject String
+  command_id String
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  recorded_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,scope_key,revision])
+  @@map("template_selection_event")
+  @@schema("bsmoss_views")
+}
+
 model VxProvisionWebhookDelivery {
   id String @db.Uuid @id
   delivery_id String @db.VarChar(128)

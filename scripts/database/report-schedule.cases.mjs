@@ -1,3 +1,4 @@
+import { mutateTemplateFixture } from './template-owner-fixture.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { fingerprintOf } from '../../portals/app/app/domains/aggregation/intervals.ts';
@@ -94,16 +95,16 @@ export async function reportScheduleCases(t,{db,adapterPool,access,scope,api,up,
     const {id,job}=await enqueue();await register(id,{status:'paused'},2);await assert.rejects(run(id,job),/report_schedule_paused/);assert.equal((await row(job)).attempt,'0');
     await register(id,{},3);assert.deepEqual(await pending(id),{jobIds:[]});assert.equal((await run(id,job)).status,'busy_or_unavailable');assert.equal((await scan(id)).manifest.scheduleRevision,'3');
     const templateCode='schedule-drift',definition=single();await putTemplate(templateCode,definition);const drift=await enqueue({templateCode,templateSha256:fingerprintOf(definition)});
-    const changed={...definition,title:'Reviewed replacement title'};await db.query('UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,changed]);
+    const changed={...definition,title:'Reviewed replacement title'};await mutateTemplateFixture(db,'UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,changed]);
     for(const action of [()=>scan(drift.id),()=>pending(drift.id),()=>run(drift.id,drift.job)])await assert.rejects(action(),/report_schedule_template_changed/);
     await register(drift.id,{templateCode,templateSha256:fingerprintOf(changed)},2);const restored=await scan(drift.id);assert.equal((await run(drift.id,restored.manifest.jobs.at(-1).id)).status,'succeeded');
   });
   await t.test('reviewed old-input replays record the exact historical report revision separately from its newer current revision',async()=>{
     const templateCode='schedule-replay',definition=single();await putTemplate(templateCode,definition);const {id,job}=await enqueue({templateCode,templateSha256:fingerprintOf(definition)});
     const first=await run(id,job);assert.equal(first.job.result.revision,'1');
-    const changed={...definition,title:'Second reviewed report definition'};await db.query('UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,changed]);await register(id,{templateCode,templateSha256:fingerprintOf(changed)},2);
+    const changed={...definition,title:'Second reviewed report definition'};await mutateTemplateFixture(db,'UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,changed]);await register(id,{templateCode,templateSha256:fingerprintOf(changed)},2);
     const second=await run(id,(await scan(id)).manifest.jobs.at(-1).id);assert.equal(second.job.result.revision,'2');
-    await db.query('UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,definition]);await register(id,{templateCode,templateSha256:fingerprintOf(definition)},3);
+    await mutateTemplateFixture(db,'UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[templateCode,definition]);await register(id,{templateCode,templateSha256:fingerprintOf(definition)},3);
     const replay=await run(id,(await scan(id)).manifest.jobs.at(-1).id);assert.equal(replay.generationStatus,'duplicate');assert.equal(replay.job.result.revision,'1');assert.equal(replay.job.result.currentRevision,'2');assert.equal(replay.job.result.manifestSha256,first.job.result.manifestSha256);
     const receipt=(await db.query('SELECT * FROM bsmoss_analysis.report_generation_attempt WHERE job_id=$1',[replay.job.id])).rows[0];assert.equal(receipt.report_revision,'1');assert.equal(receipt.report_current_revision,'2');
   });

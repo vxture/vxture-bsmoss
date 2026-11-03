@@ -1,3 +1,4 @@
+import { mutateTemplateFixture } from './template-owner-fixture.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { PgReportPublicationStore } from '../../portals/app/app/domains/reports/pg-publication.ts';
@@ -124,7 +125,7 @@ export async function reportPublicationCases(t,{db,adapterPool,access,scope,api,
     await confirm();const rate={code:'status.voice.connection_rate',version:1},wide={...single(),panels:[...single().panels,{...panel('rate',rate,1),displayUnit:'%'}],bindings:[...single().bindings,{panelId:'rate',kind:'aggregate',sourceId:'report-src',mappingId:'report-cell-map'}]};
     await putTemplate('publication-replace-scope',wide);const original=(await api.generate(command('publication-replace-scope'))).record;
     assert.equal(original.manifest.dataCompleteness,'complete');await pub.execute(issue(original));
-    await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[single()]);
+    await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[single()]);
     const incoming=(await api.generate(command('publication-replace-scope',original.revision))).record,replacement=issue(incoming,'1');
     assert.ok(!incoming.manifest.requiredScope.metricKeys.includes(rate.code+'@1'));
     const narrowScope={...scope,metricKeys:scope.metricKeys.filter(k=>k!==rate.code+'@1')},narrow={...publisher,async readLocalGrant(){return {...await publisher.readLocalGrant(),scope:narrowScope};}};
@@ -139,7 +140,7 @@ export async function reportPublicationCases(t,{db,adapterPool,access,scope,api,
     await make(narrow).execute(issue(incoming,'2','withdrawn'));
     const narrowCommand=issue(incoming,'3');assert.equal((await make(narrow).execute(narrowCommand)).event.eventRevision,'4');
     const staleReplay=await pub.execute(replacement);assert.equal(staleReplay.isActive,false);assert.equal(staleReplay.currentEventRevision,'4');
-    await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[{...wide,title:'Expanded reviewed report'}]);
+    await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='publication-replace-scope'",[{...wide,title:'Expanded reviewed report'}]);
     const expanded=(await api.generate(command('publication-replace-scope',incoming.revision))).record;
     assert.equal((await pub.execute(issue(expanded,'4'))).event.eventRevision,'5');
     const unaffectedReplay=await make(narrow).execute(narrowCommand);assert.equal(unaffectedReplay.status,'duplicate');assert.equal(unaffectedReplay.isActive,false);assert.equal(unaffectedReplay.currentEventRevision,'5');

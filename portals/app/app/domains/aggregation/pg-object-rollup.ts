@@ -15,7 +15,7 @@ const unavailable = new Set(["aggregate_capability_unavailable_or_ambiguous", "a
   "aggregate_mapping_unavailable", "aggregate_mapping_gap", "aggregate_subject_mapping_ambiguous", "unaligned_mapping_boundary", "unaligned_service_boundary",
   "aggregate_dependency_policy_required", "mixed_native_grain", "unsupported_native_grain", "state_policy_required", "gauge_policy_required", "gauge_duration_required"]);
 
-async function topology(client: PoolClient, scope: MeasurementScope, c: RollupConfig, query: RollupQuery) {
+export async function validateRollupTopology(client: PoolClient, scope: MeasurementScope, c: RollupConfig, query: RollupQuery) {
   const def = FIRST_METRICS.get(c.metric)!, period = bucketFor(query.at, query.grain);
   if (!scope.metricKeys.includes(refKey(c.metric)) || c.members.some(m => !scope.sourceIds.includes(m.sourceId)) ||
       c.atoms.some(a => !scope.stationIds.includes(a.stationId) || a.serviceId !== null && !scope.serviceIds.includes(a.serviceId) || a.deviceId !== undefined && !scope.deviceIds.includes(a.deviceId)) ||
@@ -68,7 +68,7 @@ export async function readObjectRollupInTransaction(pool: Pool, scope: Measureme
   const { config, sha256 } = normalizeRollupConfig(row.config);
   if (config.status !== "active") throw Error("rollup_paused");
   aggregateObjectRollup(config, query.grain, query.at, config.members.map(m => ({ memberId: m.id, currentAuthorityVersion: null, publication: null, unavailable: true })));
-  const { attribution, absent } = await topology(client, scope, config, query), observations: RollupObservation[] = [];
+  const { attribution, absent } = await validateRollupTopology(client, scope, config, query), observations: RollupObservation[] = [];
   const requiredMetrics = new Set([refKey(config.metric)]), metric = FIRST_METRICS.get(config.metric)!;
   if (metric.semantic === "derived") metric.dependencies.forEach(m => requiredMetrics.add(refKey(m)));
   for (const member of config.members) {

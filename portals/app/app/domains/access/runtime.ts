@@ -29,6 +29,8 @@ import { PgReportJobStore } from "../supervision/pg-report-jobs";
 import { createAuthorizedReportRecovery } from "./report-recovery";
 import { createAuthorizedAnalysis } from "./analysis";
 import { PgAnalysisStore } from "../views/pg-analysis";
+import { createAuthorizedTemplates } from "./templates";
+import { PgTemplateStore } from "../views/pg-templates";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -69,6 +71,9 @@ export function measurementsForSession(rpsid: string) {
 }
 export function analysisForSession(rpsid: string) {
   return createAuthorizedAnalysis(sessionAccessPorts(rpsid), { create: (scope, subject) => new PgAnalysisStore(getPool(), scope, subject) }, "interactive");
+}
+export function templatesForSession(rpsid: string) {
+  return createAuthorizedTemplates(sessionAccessPorts(rpsid), { create: (scope, subject) => new PgTemplateStore(getPool(), scope, subject) }, "interactive");
 }
 export function aggregateQueryForSession(rpsid: string) {
   return createAuthorizedAggregateQuery(sessionAccessPorts(rpsid), {

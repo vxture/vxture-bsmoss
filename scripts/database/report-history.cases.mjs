@@ -1,3 +1,4 @@
+import { mutateTemplateFixture } from './template-owner-fixture.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { fingerprintOf } from '../../portals/app/app/domains/aggregation/intervals.ts';
@@ -157,9 +158,9 @@ export async function reportHistoryCases(t,{db,adapterPool,access,scope,api,up,p
   });
   await t.test('historical fingerprint reuse pins the older result separately and never rolls the current report or publication head backward',async()=>{
     const f=await fixture({disconnected:true}),changed={...f.definition,title:'Reviewed title replacement'};
-    await db.query('UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[f.id,changed]);await register(f.id,{...f.config,templateSha256:fingerprintOf(changed)},2);
+    await mutateTemplateFixture(db,'UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[f.id,changed]);await register(f.id,{...f.config,templateSha256:fingerprintOf(changed)},2);
     const second=(await make().generate({templateCode:f.id,templateVersion:1,at:period.start,expectedRevision:'1'})).record;assert.equal(second.revision,'2');
-    await db.query('UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[f.id,f.definition]);await register(f.id,f.config,3);
+    await mutateTemplateFixture(db,'UPDATE bsmoss_views.template_version SET definition=$2 WHERE code=$1',[f.id,f.definition]);await register(f.id,f.config,3);
     const before=await count(),r=await check(f.id);assert.equal(r.receipt.manifest.outcome,'duplicate');assert.equal(r.receipt.manifest.original.revision,'2');
     assert.equal(r.receipt.manifest.result.revision,'1');assert.equal(r.receipt.manifest.result.currentRevision,'2');assert.equal((await count()).reports,before.reports);
     assert.equal((await api.read({reportId:f.record.reportId})).currentRevision,'2');assert.equal((await count()).publications,before.publications);

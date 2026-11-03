@@ -34,9 +34,10 @@ export class PgAnalysisStore implements AnalysisStore {
     catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; } finally { client.release(discard); }
   }
   private async template(client: PoolClient, lock = false): Promise<Template | null> {
+    if (lock) await client.query("SELECT bsmoss_views.lock_analysis_selection($1)", [this.workspaceId]);
     const row = (await client.query(`SELECT t.* FROM bsmoss_views.template_selection s JOIN bsmoss_views.template_version t
       ON (t.workspace_id,t.code,t.version)=(s.workspace_id,s.template_code,s.template_version)
-      WHERE s.workspace_id=$1 AND s.scope_key='analysis:default'${lock ? " FOR SHARE OF s" : ""}`, [this.workspaceId])).rows[0];
+      WHERE s.workspace_id=$1 AND s.scope_key='analysis:default'`, [this.workspaceId])).rows[0];
     if (!row) return null;
     if (row.template_kind !== "page" || !Number.isSafeInteger(Number(row.version))) throw Error("invalid_analysis_template");
     return { code: row.code, version: Number(row.version), sha256: fingerprintOf(row.definition), definition: analysisTemplate(row.definition) };

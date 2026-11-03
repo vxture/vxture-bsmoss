@@ -59,7 +59,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,59);
+      assert.equal(tables.rows[0].n,61);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -151,11 +151,12 @@ await test("empty-database PostgreSQL contract", async t => {
         await rejects("INSERT INTO bsmoss_catalog.metric_version VALUES ('forbidden',1,'business_service','interval_delta','byte','{}')","42501");
       } finally {await db.query("RESET ROLE");}
     });
-    await t.test("runtime may move selection pointer but not anchor columns or published versions",async()=>{
+    await t.test("runtime cannot bypass reviewed template publication and selection events",async()=>{
       await db.query("SET ROLE bsmoss_svc");
       try {
-        await db.query("INSERT INTO bsmoss_views.template_selection VALUES ('w','home','default',1,'user',now())");
-        await db.query("UPDATE bsmoss_views.template_selection SET template_version=2,changed_by='reviewer',changed_at=now() WHERE workspace_id='w' AND scope_key='home'");
+        await rejects("INSERT INTO bsmoss_views.template_selection VALUES ('w','home','default',1,'user',now())","42501");
+        await rejects("UPDATE bsmoss_views.template_selection SET template_version=2,changed_by='reviewer',changed_at=now() WHERE workspace_id='w' AND scope_key='home'","42501");
+        await rejects("INSERT INTO bsmoss_views.template_version VALUES ('w','forged',1,'page','{}','user',now())","42501");
         await rejects("UPDATE bsmoss_views.template_selection SET workspace_id='other' WHERE scope_key='home'","42501");
         await rejects("UPDATE bsmoss_views.template_version SET definition='{}' WHERE code='default'","42501");
       } finally {await db.query("RESET ROLE");}

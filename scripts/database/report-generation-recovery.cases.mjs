@@ -1,3 +1,4 @@
+import { mutateTemplateFixture } from './template-owner-fixture.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createAuthorizedReportRecovery } from '../../portals/app/app/domains/access/report-recovery.ts';
@@ -54,7 +55,7 @@ export async function reportGenerationRecoveryCases(t,{db,adapterPool,access,sco
     assert.equal((await runRegisteredReport(adapterPool,pending.worker,pending.scheduleId,pending.id)).status,'succeeded');await assert.rejects(recover.recover(review(pending.id,{expectedAttempt:1})),/job_recovery_conflict/);
     for(const mode of ['attempt','paused','subject','template']) {
       const f=await fixture(),before=await counts();if(mode==='paused'||mode==='subject')await register(f.scheduleId,{...f.config,...(mode==='paused'?{status:'paused'}:{subject:'different-worker'})},2);
-      if(mode==='template')await db.query("UPDATE bsmoss_views.template_version SET definition=jsonb_set(definition,'{title}','\"Changed by DBA fixture\"') WHERE workspace_id='w' AND code=$1",[f.scheduleId]);
+      if(mode==='template')await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=jsonb_set(definition,'{title}','\"Changed by DBA fixture\"') WHERE workspace_id='w' AND code=$1",[f.scheduleId]);
       await assert.rejects(recover.recover(review(f.id,mode==='attempt'?{expectedAttempt:4}:{})),mode==='template'?/report_schedule_template_changed/:/job_recovery_conflict/);assert.deepEqual(await counts(),before);
     }
   });

@@ -1,3 +1,4 @@
+import { mutateTemplateFixture } from './template-owner-fixture.mjs';
 import assert from 'node:assert/strict';
 import { reportGenerationRecoveryCases } from './report-generation-recovery.cases.mjs';
 import { reportHistoryCases } from './report-history.cases.mjs';
@@ -24,6 +25,7 @@ import { jobRecoveryCases } from './job-recovery.cases.mjs';
 import { reportJobMonitorCases } from './report-job-monitor.cases.mjs';
 import { analysisCases } from './analysis.cases.mjs';
 import { deviceDistributionCases } from './device-distribution.cases.mjs';
+import { templateCases } from './templates.cases.mjs';
 
 export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   const metric=code=>({code,version:1}),up=metric('service.data.uplink_bytes'),rate=metric('status.voice.connection_rate'),state=metric('runtime.device.state'),gauge=metric('runtime.environment.temperature_c'),sms=metric('service.sms.success_count');
@@ -156,8 +158,8 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
     // Only the test owner replaces a template binding, then restores it. This
     // tests old fingerprint replay; runtime cannot mutate template definitions.
     await putTemplate('report-replay',single());const one=await api.generate(command('report-replay'));
-    const changed={...single(),title:'Fixture changed title'};await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='report-replay'",[changed]);const two=await api.generate(command('report-replay','1'));assert.equal(two.record.revision,'2');
-    await db.query("UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='report-replay'",[single()]);const replay=await api.generate(command('report-replay','2'));assert.equal(replay.status,'duplicate');assert.equal(replay.record.revision,'1');assert.equal(replay.record.currentRevision,'2');assert.equal(replay.record.reportId,one.record.reportId);
+    const changed={...single(),title:'Fixture changed title'};await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='report-replay'",[changed]);const two=await api.generate(command('report-replay','1'));assert.equal(two.record.revision,'2');
+    await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=$1 WHERE code='report-replay'",[single()]);const replay=await api.generate(command('report-replay','2'));assert.equal(replay.status,'duplicate');assert.equal(replay.record.revision,'1');assert.equal(replay.record.currentRevision,'2');assert.equal(replay.record.reportId,one.record.reportId);
   });
   await t.test('current authorization covers immutable historical report scope and final read revocation drops an otherwise valid result',async()=>{
     const three=(await db.query("SELECT id FROM bsmoss_analysis.report_series WHERE template_code='report-three'")).rows[0].id;
@@ -176,7 +178,7 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
     const raw=(await db.query("SELECT config FROM bsmoss_integration.object_rollup_revision WHERE id='report-rollup'")).rows[0].config;
     await db.query(`INSERT INTO bsmoss_integration.object_rollup_revision(workspace_id,id,revision,config,review_ref) VALUES ('w','report-rollup',2,$1,'fixture://report-rollup-paused')`,[{...raw,status:'paused',members:[{...raw.members[0],sourceId:'unauthorized-source'}]}]);
     r=await api.read({reportId:three});assert.ok(r.reasons.includes('region:rollup_configuration_changed'));assert.equal(r.manifest.items.find(i=>i.panel.id==='region').data.result.configRevision,'1');
-    await db.query("UPDATE bsmoss_views.template_version SET definition=jsonb_set(definition,'{title}','\"Fixture altered\"') WHERE code='report-single'");r=await api.read({reportId:first.record.reportId});assert.ok(r.reasons.includes('template_definition_changed'));assert.equal(r.manifest.template.definition.title,'Fixture periodic report');
+    await mutateTemplateFixture(db,"UPDATE bsmoss_views.template_version SET definition=jsonb_set(definition,'{title}','\"Fixture altered\"') WHERE code='report-single'");r=await api.read({reportId:first.record.reportId});assert.ok(r.reasons.includes('template_definition_changed'));assert.equal(r.manifest.template.definition.title,'Fixture periodic report');
   });
   await t.test('weekly and monthly reports pin every day publication so daily-only revisions invalidate the saved report',async()=>{
     for(const grain of ['week','month']){
@@ -218,4 +220,5 @@ export async function reportSnapshotCases(t,{db,adapterPool,ports}) {
   await reportGenerationRecoveryCases(t,{db,adapterPool,access,scope,up,period,putTemplate,single,intercept});
   await reportHistoryCases(t,{db,adapterPool,access,scope,api,up,period,write,publish,putTemplate,single,intercept});
   await deviceDistributionCases(t,{db,adapterPool,access,period,putTemplate,intercept});
+  await templateCases(t,{db,adapterPool,access,scope,up,state,sms,panel,period,intercept});
 }

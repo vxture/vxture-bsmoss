@@ -42,6 +42,9 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       }
       const reportsPage=await fetch(url+'/reports');assert.equal(reportsPage.status,200);assert.ok((await reportsPage.text()).includes('\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e'));
       const analysisPage=await fetch(url+'/analysis');assert.equal(analysisPage.status,200);assert.ok((await analysisPage.text()).includes('\u6b63\u5f0f\u5206\u6790\u5c1a\u672a\u5f00\u653e'));
+      const templatesPage=await fetch(url+'/settings/templates');assert.equal(templatesPage.status,200);assert.ok((await templatesPage.text()).includes('\u6a21\u677f\u7ba1\u7406\u5c1a\u672a\u5f00\u653e'));
+      for(const path of ['/api/templates','/api/templates/preview','/api/templates/selection']){const r=await fetch(url+path,{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');}
+      assert.equal((await fetch(url+'/api/templates?code=forged')).status,401);
       for(const method of ['GET','POST']){const r=await fetch(url+'/api/analysis',{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');}
       for(const path of ['/api/aggregate-jobs','/api/aggregate-jobs/untrusted','/api/report-jobs?kind=generation','/api/report-jobs/untrusted?kind=export']){const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');}
       assert.equal((await fetch(url+'/api/aggregate-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
@@ -72,6 +75,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
   });
   await withServer(true,async url=>{
     await t.test('synthetic preview never grants formal aggregate access or falls back to sample results',async()=>{
+      assert.equal((await fetch(url+'/api/templates?code=qa-page')).status,401);
       assert.equal((await fetch(url+'/api/analysis?at=2026-11-03T00%3A00%3A00Z')).status,401);
       const response=await fetch(url+'/api/aggregates?sourceId=src&mappingId=map&metricCode=service.data.uplink_bytes&metricVersion=1&grain=day&at=2026-10-25T00%3A00%3A00Z');
       assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');assert.ok(response.headers.get('vary').split(',').map(s=>s.trim().toLowerCase()).includes('cookie'));

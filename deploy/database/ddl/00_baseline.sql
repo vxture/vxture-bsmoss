@@ -233,6 +233,161 @@ CREATE INDEX quality_measurement_revision ON bsmoss_metering.quality_decision(wo
 -- Neutral platform contract schemas adapted from yucer.
 CREATE EXTENSION IF NOT EXISTS pgcrypto; 
 
+-- Reviewed template publication and default selection. Empty baseline only.
+CREATE FUNCTION bsmoss_views.immutable_template_version() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $$ BEGIN
+  RAISE EXCEPTION 'immutable_template_version' USING ERRCODE='42501';
+END $$;
+CREATE TRIGGER immutable_template_version BEFORE UPDATE OR DELETE ON bsmoss_views.template_version
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_views.immutable_template_version();
+CREATE TRIGGER immutable_template_version_truncate BEFORE TRUNCATE ON bsmoss_views.template_version
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_views.immutable_template_version();
+
+CREATE TABLE bsmoss_views.template_publication (
+  workspace_id text NOT NULL,
+  code text NOT NULL,
+  version numeric(30,0) NOT NULL CHECK(version>0),
+  subject text NOT NULL CHECK(length(subject) BETWEEN 1 AND 200),
+  command_id text NOT NULL CHECK(length(command_id) BETWEEN 1 AND 200),
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL DEFAULT '' CHECK(database_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL DEFAULT session_user,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(workspace_id,code,version), UNIQUE(workspace_id,subject,command_id),
+  FOREIGN KEY(workspace_id,code,version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
+);
+CREATE TABLE bsmoss_views.template_selection_event (
+  workspace_id text NOT NULL,
+  scope_key text NOT NULL CHECK(scope_key='analysis:default'),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  subject text NOT NULL CHECK(length(subject) BETWEEN 1 AND 200),
+  command_id text NOT NULL CHECK(length(command_id) BETWEEN 1 AND 200),
+  template_code text NOT NULL,
+  template_version numeric(30,0) NOT NULL,
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL DEFAULT '' CHECK(database_sha256 ~ '^[a-f0-9]{64}$'),
+  recorded_by text NOT NULL DEFAULT session_user,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(workspace_id,scope_key,revision), UNIQUE(workspace_id,subject,command_id),
+  FOREIGN KEY(workspace_id,template_code,template_version) REFERENCES bsmoss_views.template_version(workspace_id,code,version)
+);
+-- SQL independently checks the minimum real object footprint, including hidden
+-- bindings and uncovered atoms. Application validation also checks semantics,
+-- topology and derived-metric dependencies, with the final platform gates.
+CREATE FUNCTION bsmoss_views.template_minimum_scope(w text, d jsonb) RETURNS jsonb
+LANGUAGE plpgsql STABLE SET search_path=pg_catalog AS $$
+DECLARE p jsonb; b jsonb; a jsonb; member jsonb; cfg jsonb; m bsmoss_integration.source_mapping%ROWTYPE;
+  sources jsonb='[]'; stations jsonb='[]'; services jsonb='[]'; devices jsonb='[]'; metrics jsonb='[]'; site boolean=false;
+BEGIN
+  FOR p IN SELECT value FROM jsonb_array_elements(d->'panels') LOOP
+    metrics=metrics||jsonb_build_array((p->'metricRef'->>'code')||'@'||(p->'metricRef'->>'version'));
+  END LOOP;
+  FOR b IN SELECT value FROM jsonb_array_elements(d->'bindings') LOOP
+    IF b->>'kind'='rollup' THEN
+      SELECT config INTO cfg FROM bsmoss_integration.object_rollup_revision WHERE workspace_id=w AND id=b->>'rollupId' ORDER BY revision DESC LIMIT 1;
+      IF cfg IS NULL THEN RAISE EXCEPTION 'template_binding_unavailable' USING ERRCODE='23514'; END IF;
+      FOR a IN SELECT value FROM jsonb_array_elements(cfg->'atoms') LOOP
+        stations=stations||jsonb_build_array(a->>'stationId');
+        IF a->>'serviceId' IS NOT NULL THEN services=services||jsonb_build_array(a->>'serviceId'); END IF;
+        IF a->>'deviceId' IS NOT NULL THEN devices=devices||jsonb_build_array(a->>'deviceId'); END IF;
+        IF a->>'serviceId' IS NULL AND a->>'deviceId' IS NULL THEN site=true; END IF;
+      END LOOP;
+    ELSE cfg=jsonb_build_object('members',jsonb_build_array(b)); END IF;
+    IF b->>'kind'<>'not_connected' THEN
+      FOR member IN SELECT value FROM jsonb_array_elements(cfg->'members') LOOP
+        SELECT * INTO m FROM bsmoss_integration.source_mapping WHERE workspace_id=w AND id=member->>'mappingId' AND source_id=member->>'sourceId';
+        IF m.id IS NULL THEN RAISE EXCEPTION 'template_binding_unavailable' USING ERRCODE='23514'; END IF;
+        sources=sources||jsonb_build_array(m.source_id); stations=stations||jsonb_build_array(m.station_id);
+        IF m.service_id IS NOT NULL THEN services=services||jsonb_build_array(m.service_id); END IF;
+        IF m.device_id IS NOT NULL THEN devices=devices||jsonb_build_array(m.device_id); END IF;
+        IF m.service_id IS NULL AND m.device_id IS NULL THEN site=true; END IF;
+      END LOOP;
+    END IF;
+  END LOOP;
+  RETURN jsonb_build_object('workspaceId',w,'sourceIds',sources,'stationIds',stations,'serviceIds',services,'deviceIds',devices,'metricKeys',metrics)
+    || CASE WHEN site THEN jsonb_build_object('allowSiteParameters',true) ELSE '{}'::jsonb END;
+END $$;
+
+CREATE FUNCTION bsmoss_views.capture_template_publication() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE c jsonb; prior numeric; previous_kind text; required jsonb;
+BEGIN
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'immutable_template_publication' USING ERRCODE='42501'; END IF;
+  c=NEW.manifest->'command'; required=NEW.manifest->'requiredScope';
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-template-publication',NEW.workspace_id,NEW.code)::text,0));
+  SELECT version,template_kind INTO prior,previous_kind FROM bsmoss_views.template_version WHERE workspace_id=NEW.workspace_id AND code=NEW.code ORDER BY version DESC LIMIT 1;
+  IF NEW.manifest->>'schema' IS DISTINCT FROM 'template-publication-v1' OR
+    (c->>'templateCode',c->>'commandId') IS DISTINCT FROM (NEW.code,NEW.command_id) OR
+    c->'candidate'->>'kind' NOT IN ('page','report') OR c->'candidate'->>'kind' IS NULL OR
+    (previous_kind IS NOT NULL AND previous_kind<>c->'candidate'->>'kind') OR
+    (c->>'expectedVersion') IS DISTINCT FROM prior::text OR NEW.version<>coalesce(prior,0)+1 OR
+    length(coalesce(c->>'reviewRef','')) NOT BETWEEN 1 AND 200 OR
+    NEW.manifest->'validation'->>'validationSha256' IS DISTINCT FROM c->>'validationSha256' OR
+    NEW.manifest->'validation'->>'candidateSha256' IS DISTINCT FROM c->>'candidateSha256' OR
+    required IS DISTINCT FROM NEW.manifest->'validation'->'requiredScope' OR
+    required->>'workspaceId' IS DISTINCT FROM NEW.workspace_id OR
+    NOT coalesce(required @> bsmoss_views.template_minimum_scope(NEW.workspace_id,c->'candidate'->'definition'),false) THEN
+    RAISE EXCEPTION 'invalid_template_publication' USING ERRCODE='23514';
+  END IF;
+  NEW.database_sha256=encode(sha256(convert_to(NEW.manifest::text,'UTF8')),'hex'); NEW.recorded_by=session_user; NEW.created_at=clock_timestamp();
+  INSERT INTO bsmoss_views.template_version(workspace_id,code,version,template_kind,definition,published_by,published_at)
+    VALUES(NEW.workspace_id,NEW.code,NEW.version,c->'candidate'->>'kind',c->'candidate'->'definition',NEW.subject,NEW.created_at);
+  RETURN NEW;
+END $$;
+CREATE TRIGGER capture_template_publication BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_views.template_publication
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_views.capture_template_publication();
+CREATE TRIGGER capture_template_publication_truncate BEFORE TRUNCATE ON bsmoss_views.template_publication
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_views.capture_template_publication();
+
+CREATE FUNCTION bsmoss_views.capture_template_selection() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE c jsonb; prior numeric; s bsmoss_views.template_selection%ROWTYPE; t bsmoss_views.template_version%ROWTYPE; required jsonb; old_definition jsonb;
+BEGIN
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'immutable_template_selection_event' USING ERRCODE='42501'; END IF;
+  c=NEW.manifest->'command'; required=NEW.manifest->'requiredScope';
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-template-selection',NEW.workspace_id,NEW.scope_key)::text,0));
+  SELECT * INTO s FROM bsmoss_views.template_selection WHERE workspace_id=NEW.workspace_id AND scope_key=NEW.scope_key FOR UPDATE;
+  SELECT max(revision) INTO prior FROM bsmoss_views.template_selection_event WHERE workspace_id=NEW.workspace_id AND scope_key=NEW.scope_key;
+  SELECT * INTO t FROM bsmoss_views.template_version WHERE workspace_id=NEW.workspace_id AND code=NEW.template_code AND version=NEW.template_version;
+  IF NEW.manifest->>'schema' IS DISTINCT FROM 'template-selection-v1' OR t.template_kind IS DISTINCT FROM 'page' OR
+    (c->>'templateCode',c->>'templateVersion',c->>'scopeKey',c->>'commandId') IS DISTINCT FROM (NEW.template_code,NEW.template_version::text,NEW.scope_key,NEW.command_id) OR
+    (c->'expected'->>'revision') IS DISTINCT FROM prior::text OR NEW.revision<>coalesce(prior,0)+1 OR
+    (c->'expected'->>'code',c->'expected'->>'version') IS DISTINCT FROM (s.template_code,s.template_version::text) OR
+    (s.workspace_id IS NULL AND c->'expected' IS DISTINCT FROM 'null'::jsonb) OR
+    length(coalesce(c->>'reviewRef','')) NOT BETWEEN 1 AND 200 OR
+    NEW.manifest->'validation'->>'validationSha256' IS DISTINCT FROM c->>'validationSha256' OR
+    required->>'workspaceId' IS DISTINCT FROM NEW.workspace_id OR
+    NOT coalesce((required-'allowSiteParameters') @> ((NEW.manifest->'validation'->'requiredScope')-'allowSiteParameters'),false) OR
+    (NEW.manifest->'validation'->'requiredScope'->>'allowSiteParameters'='true' AND required->>'allowSiteParameters' IS DISTINCT FROM 'true') OR
+    NOT coalesce(required @> bsmoss_views.template_minimum_scope(NEW.workspace_id,t.definition),false) THEN
+    RAISE EXCEPTION 'invalid_template_selection_event' USING ERRCODE='23514';
+  END IF;
+  IF s.workspace_id IS NOT NULL THEN
+    SELECT definition INTO old_definition FROM bsmoss_views.template_version WHERE workspace_id=s.workspace_id AND code=s.template_code AND version=s.template_version;
+    IF NOT coalesce(required @> bsmoss_views.template_minimum_scope(NEW.workspace_id,old_definition),false) THEN
+      RAISE EXCEPTION 'invalid_template_selection_scope' USING ERRCODE='23514';
+    END IF;
+  END IF;
+  NEW.database_sha256=encode(sha256(convert_to(NEW.manifest::text,'UTF8')),'hex'); NEW.recorded_by=session_user; NEW.created_at=clock_timestamp();
+  INSERT INTO bsmoss_views.template_selection(workspace_id,scope_key,template_code,template_version,changed_by,changed_at)
+    VALUES(NEW.workspace_id,NEW.scope_key,NEW.template_code,NEW.template_version,NEW.subject,NEW.created_at)
+    ON CONFLICT(workspace_id,scope_key) DO UPDATE SET template_code=excluded.template_code,template_version=excluded.template_version,changed_by=excluded.changed_by,changed_at=excluded.changed_at;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER capture_template_selection BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_views.template_selection_event
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_views.capture_template_selection();
+CREATE TRIGGER capture_template_selection_truncate BEFORE TRUNCATE ON bsmoss_views.template_selection_event
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_views.capture_template_selection();
+-- A preference save can share-lock the default pointer without acquiring any
+-- direct UPDATE privilege on it. This function has no write capability.
+CREATE FUNCTION bsmoss_views.lock_analysis_selection(w text) RETURNS void
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+  SELECT scope_key FROM bsmoss_views.template_selection WHERE workspace_id=w AND scope_key='analysis:default' FOR SHARE
+$$;
+REVOKE ALL ON FUNCTION bsmoss_views.capture_template_publication(),bsmoss_views.capture_template_selection(),bsmoss_views.template_minimum_scope(text,jsonb),bsmoss_views.lock_analysis_selection(text) FROM PUBLIC;
+
 CREATE UNIQUE INDEX analysis_preference_command ON bsmoss_views.user_preference
   (workspace_id,subject,template_code,template_version,(definition->'command'->>'commandId'))
   WHERE definition->>'schema'='analysis-preference-v1';
@@ -408,7 +563,7 @@ CREATE TABLE local_authz.data_scope (
   UNIQUE(workspace_id,member_id),
   FOREIGN KEY(workspace_id,member_id) REFERENCES local_authz.member(workspace_id,id)
 );
-INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('metering.jobs.view','Inspect scoped aggregate jobs'),('metering.jobs.recover','Review and replace terminal aggregate jobs'),('reports.jobs.view','Inspect scoped report jobs'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('metering.view','Read measurement evidence'),('metering.ingest','Append measurement evidence'),('metering.aggregate','Publish aggregate revisions'),('metering.jobs.view','Inspect scoped aggregate jobs'),('metering.jobs.recover','Review and replace terminal aggregate jobs'),('reports.jobs.view','Inspect scoped report jobs'),('reports.generate','Generate report snapshots'),('reports.publish','Publish or withdraw report snapshots'),('reports.export','Request and download report exports'),('reports.export.execute','Execute report export jobs'),('views.templates.view','Inspect reviewed templates'),('views.templates.publish','Publish immutable template versions'),('views.templates.select','Review and switch default template');
 
 -- Versioned interval aggregates. Empty baseline only; no legacy upgrade path.
 CREATE SCHEMA bsmoss_analysis;
