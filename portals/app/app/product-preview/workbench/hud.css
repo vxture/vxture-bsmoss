@@ -190,3 +190,8 @@
 .mw-hud .mw-station-report-download{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--mw-line);color:#859c78}.mw-hud .mw-station-report-download small{font-size:8px}.mw-hud .mw-station-report-download a{display:flex;align-items:center;gap:5px;color:#c4d5aa;font-size:9px;text-decoration:none;padding:6px 9px;border:1px solid #82916b40;border-radius:3px}.mw-hud .mw-station-report-download a:hover{background:#82916b20}
 
 .mw-hud .mw-return-report{display:flex;align-items:center;gap:7px;color:#b7cca0;font-size:9px;margin:8px 18px 0;padding:6px 0}
+
+/* Keep report period controls anchored across daily and calendar layouts. */
+.mw-hud .mw-report-panel>header>div{min-height:28px}
+.mw-hud .mw-report-context{display:grid;grid-template-columns:minmax(0,1fr) auto 100px;flex-shrink:0}.mw-hud .mw-report-context>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mw-hud .mw-report-context .mw-usage-period,.mw-hud .mw-report-context select{margin-left:0}.mw-hud .mw-report-context select{width:100%;min-width:0}
+@media(max-width:760px){.mw-hud .mw-report-context{grid-template-columns:auto minmax(0,1fr)}.mw-hud .mw-report-context>span{grid-column:1/-1}}
