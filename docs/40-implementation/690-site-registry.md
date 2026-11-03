@@ -82,3 +82,7 @@ CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；�
 ## 主列表负载可视化（2026-11-03）
 
 台账时段负载列与手机站址卡片复用loadIndicator组合，使用官方Progress，值为既有物理站used／capacity×100；数值改为12px辅助字号与muted-foreground，上置右对齐，柱条及轨道保持官方样式。不增加指标、颜色阈值或数据计算规则，原排序继续按原始比率。仅展示调整，生产构建含类型与浏览器核验，证据见artifacts/site-list-load-qa及tmp/site-list-load-build.log。
+
+## 地域标题与统一收放图标（2026-11-03）
+
+省级资源总数由原树首行移至标题右侧；左侧map-pin＋陕西·资源，树移除陕西省按钮，不再出现默认选中省级行。计数仍为全部地市资源总数，与筛选结果数分开。配置域官方ShellSidebarNav使用ShellIconButton的sidebar图标，本站址域复用同一组件、非active，替换单向chevron；保留aria-expanded／controls及键盘收放。基础按钮对aria-expanded=true有底色，站址局部site-region-toggle仅覆盖非hover／非focus-visible的背景为透明，保留官方交互反馈。全省范围可从既有面包屑返回。生产构建含类型及浏览器验证记录在tmp/site-region-heading-build.log与artifacts/site-region-heading-qa，未改规则或权限。

@@ -24,6 +24,7 @@
   gap: var(--space-md);
 }
 .site-registry-location { flex-shrink: 0; }
+.site-region-toggle:not(:hover):not(:focus-visible) { background-color: transparent; }
 .site-registry-context > time { margin-right: auto; }
 /* The shell owns the single workbench background. Only the detached resource
    panel has a veil; the registry never paints a second content surface. */

@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
-  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
+  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, ShellIconButton, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
@@ -55,9 +55,8 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
     <div className="flex min-h-0 flex-1 gap-lg p-lg">
       <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
-        <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="text-label font-semibold">{"\u5730\u57df\u8d44\u6e90"}</span><Icon name="map-pin" size="sm" /></div>
+        <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="map-pin" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
         <div className="min-h-0 flex-1 overflow-y-auto p-md">
-          <Button size="xl" className="mb-sm w-full justify-between text-body font-medium" variant={q.city === "all" ? "secondary" : "ghost"} onClick={() => navigate({ city: "all", county: "all" })}><span>{"\u9655\u897f\u7701"}</span><span className="tabular-nums">{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></Button>
           <Accordion type="single" collapsible value={q.city === "all" ? "" : q.city} onValueChange={city => navigate({ city: city || "all", county: "all" })}>
             {demo.regions.cities.map(city => <AccordionItem key={city.id} value={city.id}>
               <AccordionTrigger className="min-h-control-xl px-sm py-sm text-body font-medium no-underline hover:no-underline"><span className="flex flex-1 justify-between gap-sm"><span>{city.name}</span><span className="tabular-nums text-muted-foreground">{n(city.count)}</span></span></AccordionTrigger>
@@ -74,7 +73,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
         <div className="site-registry-context">
           <div className="site-registry-location flex min-w-0 items-center gap-sm">
-            <Button variant="ghost" size="icon-md" className="hidden shrink-0 lg:inline-flex" aria-label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} title={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle}><Icon name={regionOpen ? "chevron-left" : "chevron-right"} size="sm" /></Button>
+            <ShellIconButton icon="sidebar" className="site-region-toggle hidden shrink-0 lg:inline-flex" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle} />
             <Breadcrumb aria-label={"\u5f53\u524d\u5730\u57df"} className="min-w-0">
               <BreadcrumbList className="flex-nowrap gap-xs whitespace-nowrap">
                 <BreadcrumbItem>{city ? <BreadcrumbLink href={siteListHref(q, { city: "all", county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ city: "all", county: "all" }); }}>{"\u9655\u897f\u7701"}</BreadcrumbLink> : <BreadcrumbPage>{"\u9655\u897f\u7701"}</BreadcrumbPage>}</BreadcrumbItem>

@@ -966,3 +966,9 @@ CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392�
 用户要求列表时段负载沿用运营商卡片进度条，数字缩小淡化。registry本地loadIndicator组合复用官方Progress，桌面列和手机卡片同步；百分比body-small／muted-foreground、上方右对齐，手机保留时段负载标签。值仍是既有站址used／capacity×100，不新增阈值或数据规则，排序／宽度／其他布局不变。
 
 生产build含类型通过（tmp/site-list-load-build.log），140编号／ASCII／diff收尾检查；纯展示不重复业务单测、HTTP、PG。CUA1440实测12px／muted色、官方8px条高，首值62.9%对应62.94237；点击时段负载实际URL /sites?sort=load，20行原始值升序正确；390文档无横溢且20条手机进度条可用。artifacts/site-list-load-qa含桌面／手机及checks，warn/error空、viewport reset、临时tab46关闭。设计233／实施690同步，最终commit与63333运行身份以Git／health为准；无外部部署或依赖变更。
+
+## 地域面板省级汇总与统一收放（2026-11-03）
+
+用户批注陕西省未对齐且无需选择态，改面板标题map-pin＋陕西·资源＋右对齐1080全省总数，删除树中重复省级Button，直接从地市开始；全省返回保留内容面包屑／筛选入口，地域数字含义不变。收放改官方ShellIconButton／sidebar，与配置域ShellSidebarNav相同；非active。实测基础按钮对aria-expanded=true仍填底色，局部site-region-toggle仅在非hover且非focus-visible覆盖透明，保留键盘环和交互反馈，不改全局token或DS包。
+
+生产build含类型通过（tmp/site-region-heading-build.log）、140编号／源码ASCII／diff检查；CUA1042展开与收起常态均rgba(0,0,0,0)，鼠标及Enter／Space收放、刷新保持通过；选西安后标题仍1080，面包屑实际返回/sites。artifacts/site-region-heading-qa含desktop.png／checks.json，warn/error空、viewport reset、临时tab47关闭。设计233／实施690同步，无数据／权限／DDL／依赖变化，纯布局未重复业务单测、HTTP或PG。最终Git／63333以health为准，无push或外部部署。
