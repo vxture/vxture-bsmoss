@@ -960,3 +960,9 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392／右1416，筛选保持收起、Enter／Space开合通过。1042省市县不重叠，四运营商各162px同top299.77、右界992.66在列表内，值87.2／90.2／93.2／96.1%；名称实际进入DEMO-00037服务页签并保留排序。初轮新留白导致四卡差少量空间，展开内距md→sm后四卡同行。787／390无文档横溢；浅深主题上下表面区分、表格透明，恢复浅色。artifacts/site-workspace-qa保存展开／收起／县／主题／中屏／手机／运营商截图及checks.json，warn/error空、viewport reset、临时tab43／44关闭。首次县级等待URL因参数排序不同超时，核对实际URL及DOM后确认正确，无产品导航失败。
 
 设计233／实施690同步，最终提交／63333身份以Git和health为准。无权限、业务计数、DDL、依赖或真实接入变化，未重复PG／worker；无push、外部部署、goal或自动任务。
+
+## 台账时段负载进度条（2026-11-03）
+
+用户要求列表时段负载沿用运营商卡片进度条，数字缩小淡化。registry本地loadIndicator组合复用官方Progress，桌面列和手机卡片同步；百分比body-small／muted-foreground、上方右对齐，手机保留时段负载标签。值仍是既有站址used／capacity×100，不新增阈值或数据规则，排序／宽度／其他布局不变。
+
+生产build含类型通过（tmp/site-list-load-build.log），140编号／ASCII／diff收尾检查；纯展示不重复业务单测、HTTP、PG。CUA1440实测12px／muted色、官方8px条高，首值62.9%对应62.94237；点击时段负载实际URL /sites?sort=load，20行原始值升序正确；390文档无横溢且20条手机进度条可用。artifacts/site-list-load-qa含桌面／手机及checks，warn/error空、viewport reset、临时tab46关闭。设计233／实施690同步，最终commit与63333运行身份以Git／health为准；无外部部署或依赖变更。

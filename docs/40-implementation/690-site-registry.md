@@ -78,3 +78,7 @@ SiteRegistry稳定外层只管理地域面板开合；带查询key的RegistryCon
 补充用户行内关系批注：名称使用官方Button的asChild链接承接原服务档案href，去掉重复动作文字；下方显示小时／百分比及官方Progress。demo-store只为当前页物理站生成operatorLoads投影，使用既有siteHour(site,hour,code)，包括物理站全部运营商，不受关系列表分页或当前运营商筛选截断。新增一致性测试覆盖0／12／18时、运营商筛选与第二页、空结果，逐项对照dossierDemo，相关9项通过；最终build含类型通过。
 
 CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；名称点击实际进入DEMO-00037的服务关系页签并保留排序。四条进度值分别为87.2%／90.2%／93.2%／96.1%，与档案口径相同，未当作份额。1440收起后主区x24／宽1392／右1416；787与390无文档横溢。主题测试header／工作区深色层级独立、表格透明，恢复浅色。截图及最终检查在artifacts/site-workspace-qa。
+
+## 主列表负载可视化（2026-11-03）
+
+台账时段负载列与手机站址卡片复用loadIndicator组合，使用官方Progress，值为既有物理站used／capacity×100；数值改为12px辅助字号与muted-foreground，上置右对齐，柱条及轨道保持官方样式。不增加指标、颜色阈值或数据计算规则，原排序继续按原始比率。仅展示调整，生产构建含类型与浏览器核验，证据见artifacts/site-list-load-qa及tmp/site-list-load-build.log。

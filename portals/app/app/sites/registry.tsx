@@ -23,6 +23,12 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
   const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
+  const loadIndicator = (s: SiteRecord, labelled = false) => <div className="flex w-full flex-col gap-xs">
+    <div className="flex items-center justify-end gap-sm text-body-small text-muted-foreground">
+      {labelled && <span className="mr-auto">{"\u65f6\u6bb5\u8d1f\u8f7d"}</span>}<span className="tabular-nums">{pct(s.current.used / s.current.capacity)}</span>
+    </div>
+    <Progress value={s.current.used / s.current.capacity * 100} aria-label={s.name + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u8d1f\u8f7d"} />
+  </div>;
   const actions = (s: SiteRecord, service = false) => <ActionMenu label={(service ? "\u670d\u52a1\u64cd\u4f5c\uff1a" : "\u7ad9\u5740\u64cd\u4f5c\uff1a") + s.name} items={[
     { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview")) },
     { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime")) },
@@ -35,7 +41,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
     { id: "operators", header: "\u5171\u4eab\u4e0e\u670d\u52a1", sortable: true, cell: s => <div className="flex flex-col gap-2xs">
       <span className="text-body">{s.operators.length + " \u5bb6\u8fd0\u8425\u5546"}</span><span className="text-body-small text-muted-foreground">{s.operators.map(code => operatorNames[code]).join(" / ")}</span></div> },
     { id: "status", header: "\u8fd0\u884c\u72b6\u6001", align: "center", width: "sm", cell: s => <StatusBadge tone={s.current.status === "critical" ? "danger" : s.current.status === "warning" ? "warning" : "success"} size="sm">{statusNames[s.current.status]}</StatusBadge> },
-    { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "right", sortable: true, width: "sm", cell: s => <span className="tabular-nums">{pct(s.current.used / s.current.capacity)}</span> },
+    { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "right", sortable: true, width: "sm", cell: s => loadIndicator(s) },
   ];
   const relationColumns: DataTableColumn<RegistryDemo["relations"][number]>[] = [
     { id: "site", header: "\u670d\u52a1\u7ad9\u5740", cell: r => <TableTitleCell title={r.site.name} description={r.site.id} icon="building" onTitleClick={() => router.push(detail(r.site, "services"))} /> },
@@ -116,7 +122,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
               onTitleClick={() => router.push(detail(s))} actions={actions(s)}
               status={<StatusBadge tone={s.current.status === "critical" ? "danger" : s.current.status === "warning" ? "warning" : "success"} size="sm">{statusNames[s.current.status]}</StatusBadge>}
               meta={<div className="flex flex-col gap-xs"><span>{s.cityName + " / " + s.countyName + " \u00b7 " + siteTypeNames[s.siteType] + " / " + sceneNames[s.profile]}</span>
-                <span>{s.operators.map(code => operatorNames[code]).join(" / ")}</span><span>{"\u65f6\u6bb5\u8d1f\u8f7d " + pct(s.current.used / s.current.capacity)}</span>
+                <span>{s.operators.map(code => operatorNames[code]).join(" / ")}</span>{loadIndicator(s, true)}
                 <Button asChild variant="secondary" size="sm"><a href={detail(s)}>{"\u7ad9\u5740\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />) :
               demo.relations.map(r => <ListCard key={r.id} title={operatorNames[r.code] + " \u00b7 " + r.site.name} icon="users" description={r.id}
                 onTitleClick={() => router.push(detail(r.site, "services"))} actions={actions(r.site, true)}
