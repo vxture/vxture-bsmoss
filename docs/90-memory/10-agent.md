@@ -944,3 +944,9 @@ P02仅陕西演示首版完成，正式资源管理仍需真实主档及权属�
 用户批注展开四家应同一行，太窄才弹性换行。expandedContent从固定sm2／xl3列改flex-wrap，子卡basis／min-width为公开overlay-sm（标准160px）、等分余量，纵向排列运营商／业务类型／服务档案，保留14／12字号和官方Button。初轮继承宽表949.9导致第4卡在视窗外，修列表container-type:inline-size、展开宽min(100%,100cqw)，按实际可见空间排布。
 
 最终build含类型、140编号、ASCII及diff通过，tmp/site-relations-layout-{build,docs}.log。CUA1042展开721.3px、4卡各164.8且同top、最右986在列表1018内；660自然3＋1，5关系1042自然4＋1，无丢项及页面横溢。档案入口DEMO-00946?tab=services及当前页签实际成功。artifacts/site-relations-layout-qa含desktop／narrow／five截图与checks，warn/error空；viewport reset、tab41关闭。纯布局无数据／权限／DDL／依赖改动，不重复业务单测／HTTP／PG。设计233／实施690同步，最终Git／63333身份以实际工具为准，无push／外部部署或自动任务。
+
+## 透明操作列与三竖点ActionMenu（2026-11-03）
+
+用户要求操作列背景透明与所在行一致、操作按钮统一三竖点＋panel。站址／关系／档案运营商明细三个rowActions改发布版官方ActionMenu，手机ListCard.actions同步；台账／关系菜单有已有档案、运行状态、经营用量，档案菜单保留原运营商小时地图入口。无虚假编辑／删除动作。site-action-table局部取消操作格sticky遮罩（透明锁列会与滚动内容穿透叠加），随表横滚；进一步将hover背景移到tr、同行td全透明，消除hover仍有操作白块问题，不改全局token／DS包。
+
+最终build含类型、140编号、ASCII／diff通过；tmp/site-actions-{build,docs}.log。CUA1440透明TH／TD、hover整行accent且9格均透明；1042菜单可达、右界1002，390无横溢、面板右界286。台账runtime／business、关系services保留view、档案mobile小时地图深链、手机菜单和Enter／Escape通过。artifacts/site-actions-qa含四截图和checks，warn/error空、viewport reset、tab42关闭。首次中屏退场动画未完即点击引发观察null，核对closed后重开等待visible成功，无产品失败。无数据／权限／DDL／依赖变化，不重复业务／PG；设计233／实施690同步。最终Git／63333以实际health为准，无push或外部部署。

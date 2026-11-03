@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
+import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
   ListCard, MetricListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
@@ -16,6 +16,11 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
   const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
+  const actions = (s: SiteRecord, service = false) => <ActionMenu label={(service ? "\u670d\u52a1\u64cd\u4f5c\uff1a" : "\u7ad9\u5740\u64cd\u4f5c\uff1a") + s.name} items={[
+    { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview")) },
+    { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime")) },
+    { id: "usage", label: "\u7ecf\u8425\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(detail(s, "business")) },
+  ]} />;
   const columns: DataTableColumn<SiteRecord>[] = [
     { id: "name", header: "\u7ad9\u5740", sortable: true, cell: s => <TableTitleCell title={s.name} description={s.id} icon="building" onTitleClick={() => router.push(detail(s))} tooltip={s.name} /> },
     { id: "region", header: "\u5f52\u5c5e\u533a\u57df", cell: s => <TableTitleCell title={s.cityName} description={s.countyName} layout="stacked" /> },
@@ -93,20 +98,20 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
         <div className="site-table-scroll min-h-0 min-w-0 flex-1 overflow-y-auto rounded-lg border border-border bg-card" aria-label={q.view === "sites" ? "\u7ad9\u5740\u5217\u8868" : "\u670d\u52a1\u5173\u7cfb\u5217\u8868"}>
           <div className="flex flex-col gap-md p-md sm:hidden">
             {q.view === "sites" ? demo.rows.map(s => <ListCard key={s.id} title={s.name} icon="building" description={s.id}
-              onTitleClick={() => router.push(detail(s))}
+              onTitleClick={() => router.push(detail(s))} actions={actions(s)}
               status={<StatusBadge tone={s.current.status === "critical" ? "danger" : s.current.status === "warning" ? "warning" : "success"} size="sm">{statusNames[s.current.status]}</StatusBadge>}
               meta={<div className="flex flex-col gap-xs"><span>{s.cityName + " / " + s.countyName + " \u00b7 " + siteTypeNames[s.siteType] + " / " + sceneNames[s.profile]}</span>
                 <span>{s.operators.map(code => operatorNames[code]).join(" / ")}</span><span>{"\u65f6\u6bb5\u8d1f\u8f7d " + pct(s.current.used / s.current.capacity)}</span>
                 <Button asChild variant="secondary" size="sm"><a href={detail(s)}>{"\u7ad9\u5740\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />) :
               demo.relations.map(r => <ListCard key={r.id} title={operatorNames[r.code] + " \u00b7 " + r.site.name} icon="users" description={r.id}
-                onTitleClick={() => router.push(detail(r.site, "services"))}
+                onTitleClick={() => router.push(detail(r.site, "services"))} actions={actions(r.site, true)}
                 meta={<div className="flex flex-col gap-xs"><span>{r.site.cityName + " / " + r.site.countyName}</span>
                   <span>{"\u63a5\u901a\u7387 " + pct(r.current.attempts ? r.current.connected / r.current.attempts : null) + " \u00b7 " + n(r.current.bytes / 1073741824, 2) + " GiB"}</span>
                   <Button asChild variant="secondary" size="sm"><a href={detail(r.site, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />)}
             {!demo.count && <EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u8d44\u6e90"} description={"\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />}
           </div>
           <div className="hidden sm:block">
-          {q.view === "sites" ? <DataTable labels={{ expand: "\u5c55\u5f00", rowActions: "\u64cd\u4f5c" }} columns={columns} rows={demo.rows} rowKey={s => s.id}
+          {q.view === "sites" ? <DataTable className="site-action-table" labels={{ expand: "\u5c55\u5f00", rowActions: "\u64cd\u4f5c" }} columns={columns} rows={demo.rows} rowKey={s => s.id}
             indexStart={(q.page - 1) * demo.pageSize + 1} sort={{ columnId: q.sort, direction: q.direction }}
             onSortChange={sort => navigate({ sort: sort.columnId as SiteQuery["sort"], direction: sort.direction })}
             expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="site-service-relations flex flex-wrap gap-sm p-md" role="group" aria-label={"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}>
@@ -115,10 +120,10 @@ export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; rea
                 <Button asChild size="sm" variant="ghost" className="self-start px-0"><a href={detail(s, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button>
               </div>)}
             </div>}
-            rowActions={s => <Button asChild variant="ghost" size="sm"><a href={detail(s)} aria-label={"\u67e5\u770b" + s.name + "\u6863\u6848"}><Icon name="arrow-right" size="sm" /></a></Button>}
+            rowActions={s => actions(s)}
             empty={<EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u7ad9\u5740"} description={"\u8c03\u6574\u533a\u57df\u3001\u8fd0\u8425\u5546\u6216\u68c0\u7d22\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />} /> :
-            <DataTable labels={{ rowActions: "\u64cd\u4f5c" }} columns={relationColumns} rows={demo.relations} rowKey={r => r.id} indexStart={(q.page - 1) * demo.pageSize + 1}
-              rowActions={r => <Button asChild variant="ghost" size="sm"><a href={detail(r.site, "services")} aria-label={"\u67e5\u770b" + operatorNames[r.code] + "\u670d\u52a1\u6863\u6848"}><Icon name="arrow-right" size="sm" /></a></Button>}
+            <DataTable className="site-action-table" labels={{ rowActions: "\u64cd\u4f5c" }} columns={relationColumns} rows={demo.relations} rowKey={r => r.id} indexStart={(q.page - 1) * demo.pageSize + 1}
+              rowActions={r => actions(r.site, true)}
               empty={<EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u670d\u52a1\u5173\u7cfb"} description={"\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />} />}
           </div>
         </div>

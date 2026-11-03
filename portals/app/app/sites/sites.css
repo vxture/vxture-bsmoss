@@ -17,6 +17,18 @@
   font-weight: var(--heading-2-font-weight);
 }
 .site-table-scroll { scrollbar-gutter: stable; container-type: inline-size; }
+/* Transparent action cells follow their row. Scroll with the table so text
+   cannot slide underneath a transparent sticky column. */
+.site-action-table :is(th, td).sticky:last-child {
+  position: static;
+  background-color: transparent;
+}
+.site-action-table tbody > tr:has(> td.sticky) > td {
+  background-color: transparent;
+}
+.site-action-table tbody > tr:has(> td.sticky):hover {
+  background-color: var(--accent);
+}
 .site-service-relations { width: min(100%, 100cqw); }
 .site-service-relation {
   flex: 1 1 var(--container-overlay-sm);

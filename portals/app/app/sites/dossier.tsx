@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard,
+import { ActionMenu, BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard,
   Progress, SegmentedControl, StatusBadge, ViewHeader, type DataTableColumn } from "@vxture/design-system";
 import type { DossierDemo } from "../domains/site-registry/demo-store";
 import { changeLabel, windowLabel } from "../domains/map-demo/period-comparison-display";
@@ -102,7 +102,9 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       {q.tab === "services" && <div className="flex flex-col gap-lg"><div className="site-dossier-layout">{serviceMap}
         <PanelCard title={"\u670d\u52a1\u53e3\u5f84"} icon="info"><DetailList><DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u7269\u7406\u7ad9\u5740"}>{"1 \u5ea7"}</DetailRow><DetailRow label={"\u670d\u52a1\u5173\u7cfb"}>{s.operators.length + " \u6761"}</DetailRow><DetailRow label={"\u7ecf\u8425\u6570\u636e"}>{"\u6309\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7edf\u8ba1"}</DetailRow><DetailRow label={"\u7ad9\u5740\u7535\u8017"}>{"\u7269\u7406\u7ad9\u603b\u8868\uff0c\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u8fd0\u8425\u5546\u670d\u52a1\u660e\u7ec6"} icon="users" description={time + " \u00b7 \u5168\u90e8\u5728\u7ad9\u8fd0\u8425\u5546"}><DataTable labels={{ rowActions: "\u64cd\u4f5c" }} columns={serviceColumns} rows={demo.relations} rowKey={r => r.id}
-          rowActions={r => <Button asChild variant="ghost" size="sm"><a href={mapHref + "&operator=" + r.code + "&usage=hour"} aria-label={"\u67e5\u770b" + operatorNames[r.code] + "\u65f6\u6bb5\u7528\u91cf"}><Icon name="arrow-right" size="sm" /></a></Button>} /></PanelCard>
+          className="site-action-table" rowActions={r => <ActionMenu label={operatorNames[r.code] + "\u670d\u52a1\u64cd\u4f5c"} items={[
+            { id: "hourly-usage", label: "\u67e5\u770b\u65f6\u6bb5\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(mapHref + "&operator=" + r.code + "&usage=hour") },
+          ]} />} /></PanelCard>
       </div>}
       {q.tab === "runtime" && <div className="flex flex-col gap-lg">
         <div className="grid gap-md lg:grid-cols-3">

@@ -60,3 +60,9 @@ P02正式版仍需真实站址主档、权属与验收资料、设备来源、�
 用户批注四运营商应优先同一行，过窄时弹性布局。expandedContent取消固定断点2／3列，改flex-wrap，子项flex-basis和最小宽度使用overlay-sm token（标准160px）且等分余量。每项改纵向组织，档案按钮独立落在下方，避免横向文字与按钮互挤；保留官方Button、14／12字号、真实关系数量和下钻href。无数据或权限变更。
 
 生产build含类型通过，140编号／ASCII／diff通过。CUA1042实测可视展开区721.3px、四项各164.8px、同top306.4且最右986位于列表右界1018内，展开高129.2px；660下3＋1自然换行且无页面横溢；五运营商1042下4＋1均可见。初轮仅flex导致继承宽表949.9px，第四卡在视窗外，改列表inline-size容器＋展开100cqw约束后通过。服务档案实际进入DEMO-00946?tab=services，当前服务页签正确。artifacts/site-relations-layout-qa含桌面／窄屏／五家截图和checks，warn/error空、viewport reset、tab41关闭。纯布局未重复业务／HTTP或数据库测试，无外部部署。
+
+## 操作列透明与三竖点菜单（2026-11-03）
+
+三个有rowActions的表使用官方ActionMenu，台账与关系共用业务动作生成函数，手机ListCard.actions同步。菜单分别链接站址／服务档案、运行状态、经营用量；档案运营商明细菜单保留原地图时段用量入口。所有目标复用已有上下文构造，无虚假写操作。site-action-table局部取消操作列的独立遮罩背景和sticky层，透明显示所在行底色，防止透明锁列与滚动文字叠加。
+
+生产build含类型、140编号、ASCII／diff通过。CUA1440操作表头／单元格rgba(0,0,0,0)，hover整行accent、全部9格透明，消除独立白块；1042横滚后菜单右界1002在视窗内，390无横溢且面板右界286。台账runtime／business、关系服务档案（保留view=relations）、档案移动时段用量地图实际URL均验证；手机ListCard菜单和Enter／Escape开关通过。artifacts/site-actions-qa含桌面／中屏／手机／档案菜单截图及checks，warn/error空、viewport reset、tab42关闭。中屏首轮Escape退场未结束即点击导致菜单被合上，检查data-state后重开并等待visible通过；无产品失败。无权限／数据／DDL／依赖改变，纯展示与导航复用未重复数据库或业务测试。
