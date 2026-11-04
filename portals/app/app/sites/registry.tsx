@@ -8,18 +8,17 @@ import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type 
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
 import SiteFilters from "./filters";
 import "./sites.css";
-export default function SiteRegistry({ demo, readAt }: { demo: RegistryDemo; readAt: string }) {
+export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
   // Keep the workspace choice while query-specific search/row state resets.
   const [regionOpen, setRegionOpen] = useState(true);
-  return <RegistryContent key={JSON.stringify(demo.query)} demo={demo} readAt={readAt} regionOpen={regionOpen} onRegionToggle={() => setRegionOpen(value => !value)} />;
+  return <RegistryContent key={JSON.stringify(demo.query)} demo={demo} regionOpen={regionOpen} onRegionToggle={() => setRegionOpen(value => !value)} />;
 }
-function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
-  demo: RegistryDemo; readAt: string; regionOpen: boolean; onRegionToggle: () => void;
+function RegistryContent({ demo, regionOpen, onRegionToggle }: {
+  demo: RegistryDemo; regionOpen: boolean; onRegionToggle: () => void;
 }) {
   const router = useRouter(), q = demo.query;
   const [pending, start] = useTransition(), [search, setSearch] = useState(q.search), [expanded, setExpanded] = useState<readonly string[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const readTime = new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(readAt));
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
   const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
@@ -89,9 +88,8 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
           </div>
           <div className="site-registry-data-time flex items-center gap-xs whitespace-nowrap text-body-small text-muted-foreground"><span>{"\u6570\u636e\u622a\u81f3"}</span><time className="tabular-nums" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"}>{dataTime}</time></div>
           <div className="site-registry-context-actions flex shrink-0 items-center gap-sm">
-            <Button variant="ghost" className="gap-xs px-xs" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
-              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="text-body-small text-muted-foreground">{pending ? "\u5237\u65b0\u4e2d" : "\u5237\u65b0\u4e8e"}</span>
-              <time dateTime={readAt} className="text-body-small tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readTime}>{readTime.slice(0, 5)}</time>
+            <Button variant="ghost" size="icon-md" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
+              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
             </Button>
             <CollapsibleTrigger asChild><Button variant="ghost" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="secondary" className="max-xl:w-control-md max-xl:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} title={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden xl:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>

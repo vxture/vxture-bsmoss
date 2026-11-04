@@ -989,3 +989,8 @@ DS18项相关测试／类型／构建DTS／类名守卫／ESLint通过，产品b
 四条用户批注落地：切换补官方building／users，地域资源标题改building；视图左侧、搜索与类型／筛选／重置右侧，sm上下留白、md组距／sm动作距，中宽搜索160／宽屏224、窄平板两行手机三行。接通率与台账负载共用局部ratioIndicator＋官方Progress，12px淡数字，原connected／attempts口径，空分母仅缺值。时间直接标数据截至＋完整日期，刷新按钮始终刷新于HH:mm，完整readAt保留dateTime／title，pending刷新中，无冒充上游同步。
 
 build含类型、140编号／ASCII／diff通过；CUA1042操作行46.09px、搜索右置，默认接通率99.3%／99.2727实际进度且右界997.33在列表1018内，初版固定列宽导致裁切已移除。县筛选、检索SX-DEMO-001为4关系、刷新readAt35.261→45.918秒而数据截至不变、键盘切换成功；1440／1042／787／660／390无文档横溢。artifacts/site-toolbar-polish-qa含桌面、宽屏台账／关系、中屏／手机截图和checks；warn/error空、viewport reset／tab50关闭。设计233／实施690同步，无业务／权限／依赖／DDL变化，不重复PG或实现镜像测试。最终Git与63333health以收尾为准，无push、发布、goal或自动任务。
+## 单一数据截至与动态快照分析（2026-11-04）
+
+用户去掉刷新时间：registry删除readAt／readTime，page删除new Date透传，仅数据截至＋官方图标刷新，pending禁用旋转保留。build含类型通过tmp/site-data-time-build.log；CUA点击刷新后context只有1个time、按钮无文字，截图artifacts/site-data-time-qa/desktop.png，tab51关闭。
+
+追加用户要求分析截至应当前刷新后的时间：查明registryDemo仍DEMO_DATE固定2026-10-25、q.hour样本，刷新仅重读。已解释截至应取成功数据快照有效时间，有新数据才推进，不应直接套电脑时间；动态演示需要同步推进快照和指标，真实来源用来源水位。本轮仅分析该模型问题，尚未实现动态快照，不要后续误认为已完成。其他地图／档案历史周期保持原模型，无权限／依赖／DDL变更，无外部发布。

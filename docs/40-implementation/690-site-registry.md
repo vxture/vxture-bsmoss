@@ -105,3 +105,8 @@ registry的官方SegmentedControl items新增building／users图标，资源标�
 数据时间直接标“数据截至”，刷新按钮始终标“刷新于”＋HH:mm，pending为刷新中；完整readAt保留dateTime和title，不用秒时钟冒充同步。刷新成功后服务器readAt更新，源日期保持固定，搜索和关系视图保留。
 
 最终生产build含类型通过，tmp/site-toolbar-polish-build.log；140编号／源码ASCII／diff检查通过。CUA1042操作行46.09px（原约26px）、组间16px、操作12px、搜索160且在右侧；切换两项各一个官方图标。默认关系首值99.3%对应99.2727%，12px／muted、8px官方条，去掉初版固定列宽后右界997.33位于列表1018内。省市县筛选与路径通过；检索SX-DEMO-001得到4条关系，刷新readAt从01:51:35.261Z到01:51:45.918Z，数据截至仍2026-10-25 18:00。1440／1042／787／660／390无页面横溢，660自然两行、手机20条进度可见；方向键切换最终view=relations且aria-checked=true。截图及checks在artifacts/site-toolbar-polish-qa，浏览器warn/error空、viewport reset、临时tab50关闭。纯展示未新增镜像测试或重复PG；无push／外部部署，最终Git与health为准。
+## 移除页面读取时间（2026-11-04）
+
+用户要求只显示数据截至，移除registry readAt／readTime及page新Date透传，保留官方icon-md刷新按钮。生产build含类型通过tmp/site-data-time-build.log；CUA刷新后context仅1个time，刷新按钮无时间文字，数据截至2026-10-25 18:00保持既有样本真实时间，截图artifacts/site-data-time-qa/desktop.png，临时tab51关闭。没有改来源样本、指标或历史小时链接。
+
+用户追加分析：截至应为刷新后的当前时点。检查registryDemo确认DEMO_DATE固定、指标按q.hour生成，无来源新快照；直接改now会把旧样本标新。已说明推荐快照成功后更新时间、有延迟保留来源时点，动态演示须同步改生成模型；本轮未将静态样本伪装当前，后续动态快照设计待接续。
