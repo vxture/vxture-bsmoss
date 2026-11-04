@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button, DataTable, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, EmptyState, Icon,
-  MetricListCard, SegmentedControl } from "@vxture/design-system";
+  LabeledValue, PanelCard, PanelItem, PanelList, SegmentedControl } from "@vxture/design-system";
 import { CATEGORIES, type Category } from "../domains/catalog/registry";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
 import { categoryNames, metricDisplay, OVERVIEW_METRICS, overviewUnit, type OverviewMetricDefinition, type OverviewUnit } from "./metric-catalog";
@@ -36,18 +36,25 @@ export default function OverviewMetrics({ demo, scope }: { demo: PortalDemo; sco
   const destination = (c: Category) => businessHref(c === "business_service" ? "operator-usage" : c === "operational_status" ? "capacity" : "efficiency", scope);
   return <section className="flex min-w-0 flex-col gap-sm" aria-label={"\u4e09\u57df\u8fd0\u884c\u6458\u8981"} data-overview-metrics={data.version}>
     <div className="grid min-w-0 gap-md lg:grid-cols-3">
-      {CATEGORIES.map(c => <MetricListCard key={c} title={categoryNames[c]} icon={icons[c]} tone={tones[c]}
-        description={c === "business_service" ? "\u5168\u65e5\u7d2f\u8ba1 \u00b7 00:00\u201324:00" : "\u5168\u65e5 / \u65f6\u70b9 " + hour + " \u00b7 \u6309\u6307\u6807\u53e3\u5f84"}
-        metrics={preference.selections[c].map(selection => {
+      {CATEGORIES.map(c => <PanelCard key={c} title={categoryNames[c]} icon={icons[c]} tone={tones[c]} className="min-w-0"
+        description={"\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9 " + hour}>
+        <PanelList>
+        {preference.selections[c].map(selection => {
           const d = def(selection.id), f = fact(selection.id);
-          return { key: d.id, label: <><span className="block whitespace-normal">{d.label + " / " + overviewUnit(selection.unit).label}</span>
-            <span className="block whitespace-normal pt-2xs">{(d.basis === "day" ? "\u8f83\u6628\u65e5 " : "\u8f83\u6628\u65e5\u540c\u65f6 ") + overviewChangeLabel(f, d, selection.unit)}</span></>,
-            value: metricValue(metricDisplay(f.current, selection.unit, d.precision)) };
+          return <PanelItem key={d.id}
+            main={<LabeledValue label={<span className="block whitespace-normal">{d.label + " / " + overviewUnit(selection.unit).label}</span>}
+              value={<span className="tabular-nums">{metricValue(metricDisplay(f.current, selection.unit, d.precision))}</span>} />}
+            trail={<div className="flex flex-col gap-2xs text-body-small text-muted-foreground">
+              <span>{d.basis === "day" ? "\u8f83\u6628\u65e5" : "\u8f83\u6628\u65e5\u540c\u65f6"}</span>
+              <span className="tabular-nums">{overviewChangeLabel(f, d, selection.unit)}</span>
+            </div>} />;
         })}
-        footer={<div className="flex flex-wrap items-center justify-between gap-sm">
+        </PanelList>
+        <div className="mt-md flex flex-wrap items-center justify-between gap-sm border-t border-border pt-sm">
           <Button size="sm" variant="ghost" onClick={() => { setCategory(c); setOpen(true); }}>{"\u5168\u90e8\u6307\u6807 " + OVERVIEW_METRICS.filter(d => d.category === c).length}</Button>
           <Button asChild size="sm" variant="ghost"><a href={destination(c)}>{"\u4e13\u9898\u5206\u6790"}<Icon name="arrow-right" size="sm" /></a></Button>
-        </div>} />)}
+        </div>
+      </PanelCard>)}
     </div>
     {message && <p role="status" className="text-body-small text-muted-foreground">{message}</p>}
     <Dialog open={open} onOpenChange={setOpen}>
