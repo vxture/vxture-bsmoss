@@ -1009,3 +1009,9 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 ## 站网地图提升全局入口（2026-11-04）
 
 用户批注把站网地图放到决策大屏后面：launcher顶行依次门户首页／决策大屏／站网地图，从运行监管分组移除地图；官方EntryCard尺寸、原用途说明、图标及响应式网格沿用。map目录顺序调整，预览关闭仍无地图链接；管理域不变。导航两项既有回归同步顺序及去重并通过，最终生产build含类型通过tmp/launcher-map-top-build.log。CUA1042三卡同行、业务分组地图0项；390首次变更viewport即时测量命中Radix尚未重定位尺寸，重新在该尺寸打开确认实际卡片310.67px／x32、单列顺序正确。点击进入/product-preview?hour=18，无默认site，warn/error空；截图artifacts/launcher-map-top-qa/desktop.png及mobile.png，viewport已reset，tab53／54关闭。设计232／实施680及信息结构同步；纯目录调整不重复业务／PG测试，无权限／依赖／DDL变化，无外部部署。
+
+## 规划入口卡片对齐（2026-11-04）
+
+用户批注用量核验／核验记录与其他入口不齐，需保留规划中标记。原因是规划项原用ShellPanelRow，已统一为官方EntryCard，沿用图标、p-md、边框、背景及间距，meta使用官方neutral StatusBadge。规划项无href／onClick，aria-disabled=true且tabIndex=-1，保留文字可读，不开放业务功能。
+
+生产build含类型通过tmp/launcher-planned-card-build.log；CUA1042卡片同宽304.67px、高约77.3px且首行对齐，390卡片310.67px、文档无横溢。强制点击规划项不导航且面板保持打开；工具对禁用链接直接press被拦截，改验正常Tab从运营商用量直接到报告中心、跳过两个规划项。warn/error空，截图artifacts/launcher-planned-card-qa/desktop.png及mobile.png，viewport已reset、tab55关闭。设计232／实施680同步，无依赖／权限／DDL变化，无push或外部部署；63333最终版本以health为准。

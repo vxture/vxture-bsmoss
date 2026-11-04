@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { EntryCard, Icon, Popover, PopoverTrigger, Separator, ShellIconButton, ShellPanelContent, ShellPanelRow,
+import { EntryCard, Icon, Popover, PopoverTrigger, Separator, ShellIconButton, ShellPanelContent, ShellPanelRow, StatusBadge,
   ShellPanelSection, type IconName } from "@vxture/design-system";
 import { portalBusinessGroups, portalDomain, portalNavigation, type PortalDomain, type PortalEntry, type PortalPage } from "./navigation";
 import "./header.css";
@@ -55,11 +55,12 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
           {portalBusinessGroups(preview).map(group => <div key={group.key} className="flex min-w-0 flex-col gap-lg">
             <ShellPanelRow icon={group.icon as IconName} label={group.title} className="text-muted-foreground" />
             <ShellPanelSection divided={false} className="gap-md">
-              {group.modules.map(item => item.planned ?
-                <ShellPanelRow key={item.key} icon={item.icon as IconName} label={item.label} description={item.description} value={"\u89c4\u5212\u4e2d"} disabled className="py-sm" /> :
-                <EntryCard key={item.key} title={item.label} description={item.description} icon={item.icon as IconName}
-                  href={item.href} aria-current={item.page === active ? "page" : undefined}
-                  className={item.page === active ? "p-md bg-primary-muted" : "p-md"} onClick={() => setOpen(false)} />)}
+              {group.modules.map(item => <EntryCard key={item.key} title={item.label} description={item.description} icon={item.icon as IconName}
+                  href={item.planned ? undefined : item.href} aria-current={item.page === active ? "page" : undefined}
+                  role={item.planned ? "link" : undefined} aria-disabled={item.planned || undefined} tabIndex={item.planned ? -1 : undefined}
+                  meta={item.planned ? <StatusBadge tone="neutral" size="sm">{"\u89c4\u5212\u4e2d"}</StatusBadge> : undefined}
+                  className={(item.page === active ? "p-md bg-primary-muted" : "p-md") + (item.planned ? " cursor-not-allowed" : "")}
+                  onClick={item.planned ? undefined : () => setOpen(false)} />)}
             </ShellPanelSection>
           </div>)}
         </section>
