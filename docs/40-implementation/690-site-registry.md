@@ -98,3 +98,10 @@ CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；�
 DS18项分页／Checkbox相关回归、UI类型、UI构建／DTS、组件类名守卫及相关ESLint通过；新增三位数窗口与Enter／Space行为验证。首次测试类型把浏览器locator的exact选项带入Testing Library，类型检查拦截后移除并复查通过。产品生产build含类型通过（tmp/site-pagination-build.log），纯布局不重复数据库／业务全量测试。
 
 CUA1042实测单数字与箭头均24px、gap8px、12px字，末页54正确禁用下一页／末页，Enter上一页到53；关系末页196显示192–196且每个32.67px宽，无文字溢出，Space到195保留view=relations。390全页scrollWidth390，分页342px内末按钮右界347.33，正常换行且完整可达；1440无横溢，首页返回正常。artifacts/site-pagination-qa保存desktop／three-digit／mobile／wide截图与checks.json。最终Git及63333health为准；不push、不发布DS包或外部部署。
+## 操作行、关系指标与双时间批注（2026-11-04）
+
+registry的官方SegmentedControl items新增building／users图标，资源标题map-pin改building；操作行网格改为弹性视图列＋右侧搜索列＋操作组，增加sm上下留白、md组间距／sm动作间距。搜索中宽160／宽屏224，640–767两行、手机三行，保持官方InputGroup与既有路由行为。比例展示抽取局部ratioIndicator组合、官方Progress不变；接通率connected／attempts与负载used／capacity各自计算，空分母显示缺值，桌面手机一致。无业务数据、权限或依赖改动。
+
+数据时间直接标“数据截至”，刷新按钮始终标“刷新于”＋HH:mm，pending为刷新中；完整readAt保留dateTime和title，不用秒时钟冒充同步。刷新成功后服务器readAt更新，源日期保持固定，搜索和关系视图保留。
+
+最终生产build含类型通过，tmp/site-toolbar-polish-build.log；140编号／源码ASCII／diff检查通过。CUA1042操作行46.09px（原约26px）、组间16px、操作12px、搜索160且在右侧；切换两项各一个官方图标。默认关系首值99.3%对应99.2727%，12px／muted、8px官方条，去掉初版固定列宽后右界997.33位于列表1018内。省市县筛选与路径通过；检索SX-DEMO-001得到4条关系，刷新readAt从01:51:35.261Z到01:51:45.918Z，数据截至仍2026-10-25 18:00。1440／1042／787／660／390无页面横溢，660自然两行、手机20条进度可见；方向键切换最终view=relations且aria-checked=true。截图及checks在artifacts/site-toolbar-polish-qa，浏览器warn/error空、viewport reset、临时tab50关闭。纯展示未新增镜像测试或重复PG；无push／外部部署，最终Git与health为准。

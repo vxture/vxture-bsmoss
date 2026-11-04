@@ -54,7 +54,8 @@
 }
 .site-registry-location { flex-shrink: 0; }
 .site-region-toggle:not(:hover):not(:focus-visible) { background-color: transparent; }
-.site-registry-context > time { margin-right: auto; }
+.site-registry-data-time { margin-right: auto; }
+.site-registry-context-actions { margin-left: auto; }
 /* The shell owns the single workbench background. Only the detached resource
    panel has a veil; the registry never paints a second content surface. */
 .site-registry-workspace .site-table-scroll { background: transparent; }
@@ -75,11 +76,27 @@
   flex: 1 1 var(--container-overlay-sm);
   min-width: min(100%, var(--container-overlay-sm));
 }
-.site-registry-tools { display: grid; grid-template-columns: auto minmax(0, var(--container-overlay-md)) 1fr; gap: var(--space-sm); align-items: center; }
+.site-registry-tools {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) var(--container-overlay-sm) auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding-block: var(--space-sm);
+}
 .site-registry-view { min-width: 0; }
+@media (min-width: 1280px) {
+  .site-registry-tools { grid-template-columns: minmax(max-content, 1fr) var(--container-overlay-md) auto; }
+}
+@media (min-width: 640px) and (max-width: 767px) {
+  .site-registry-tools { grid-template-columns: minmax(0, 1fr) auto; }
+  .site-registry-view { grid-column: 1 / -1; }
+  .site-registry-search { width: min(100%, var(--container-overlay-md)); justify-self: end; }
+}
 @media (max-width: 639px) {
   .site-registry-context { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-sm); }
   .site-registry-location { grid-column: 1 / -1; }
+  .site-registry-data-time { grid-column: 1 / -1; }
+  .site-registry-context-actions { grid-column: 1 / -1; justify-content: space-between; margin-left: 0; }
   .site-registry-tools { grid-template-columns: minmax(0, 1fr); }
   .site-registry-search { grid-row: 2; }
   .site-registry-actions { justify-content: space-between; }

@@ -984,3 +984,8 @@ CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392�
 用户要求分析本页还是DS并彻底修正。原DS数字Button md左右16px，数字39–42px／箭头24px、gap4px；站址14px覆盖叠加。上游D:/MyWebSite/vxture/vxture-design官方Pagination改min-w-control-md／px-2xs／tabular-nums、gap-xs，加pagination／pagination-pages数据槽，更新Unreleased与三位数键盘回归。DS未发布，无包版本改动；产品仍消费发布伞包15／UI12，site-registry-pagination旧版局部兼容样式镜像修复，检测新版槽后不生效、升级验证后移除。分页恢复官方label-small12px，业务字号不改。
 
 DS18项相关测试／类型／构建DTS／类名守卫／ESLint通过，产品build含类型通过。首次新增测试错误使用Testing Library不支持exact选项，已由类型拦截并修正通过。CUA1042单数字24px／gap8px；54末页禁用正确，Enter上一页53；关系196末页三位数32.67px不溢，Space195保留关系视图；390无横溢且342px分页完整，1440正常。证据artifacts/site-pagination-qa、tmp/site-pagination-build.log和DS.tmp/pagination-fix-*。设计233／实施690同步，最终commit／health见收尾；无push、依赖／DDL／权限变化或外部发布，不建goal／自动任务。
+## 操作行、接通率、资源图标与双时间（2026-11-04）
+
+四条用户批注落地：切换补官方building／users，地域资源标题改building；视图左侧、搜索与类型／筛选／重置右侧，sm上下留白、md组距／sm动作距，中宽搜索160／宽屏224、窄平板两行手机三行。接通率与台账负载共用局部ratioIndicator＋官方Progress，12px淡数字，原connected／attempts口径，空分母仅缺值。时间直接标数据截至＋完整日期，刷新按钮始终刷新于HH:mm，完整readAt保留dateTime／title，pending刷新中，无冒充上游同步。
+
+build含类型、140编号／ASCII／diff通过；CUA1042操作行46.09px、搜索右置，默认接通率99.3%／99.2727实际进度且右界997.33在列表1018内，初版固定列宽导致裁切已移除。县筛选、检索SX-DEMO-001为4关系、刷新readAt35.261→45.918秒而数据截至不变、键盘切换成功；1440／1042／787／660／390无文档横溢。artifacts/site-toolbar-polish-qa含桌面、宽屏台账／关系、中屏／手机截图和checks；warn/error空、viewport reset／tab50关闭。设计233／实施690同步，无业务／权限／依赖／DDL变化，不重复PG或实现镜像测试。最终Git与63333health以收尾为准，无push、发布、goal或自动任务。

@@ -23,12 +23,17 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
   const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
-  const loadIndicator = (s: SiteRecord, labelled = false) => <div className="flex w-full flex-col gap-xs">
+  const ratioIndicator = (value: number | null, label: string, caption?: string) => <div className="flex w-full flex-col gap-xs">
     <div className="flex items-center justify-end gap-sm text-body-small text-muted-foreground">
-      {labelled && <span className="mr-auto">{"\u65f6\u6bb5\u8d1f\u8f7d"}</span>}<span className="tabular-nums">{pct(s.current.used / s.current.capacity)}</span>
+      {caption && <span className="mr-auto">{caption}</span>}<span className="tabular-nums">{pct(value)}</span>
     </div>
-    <Progress value={s.current.used / s.current.capacity * 100} aria-label={s.name + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u8d1f\u8f7d"} />
+    {value !== null && <Progress value={value * 100} aria-label={label} />}
   </div>;
+  const loadIndicator = (s: SiteRecord, labelled = false) => ratioIndicator(s.current.used / s.current.capacity,
+    s.name + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u8d1f\u8f7d", labelled ? "\u65f6\u6bb5\u8d1f\u8f7d" : undefined);
+  const connectionIndicator = (r: RegistryDemo["relations"][number], labelled = false) => ratioIndicator(
+    r.current.attempts ? r.current.connected / r.current.attempts : null,
+    r.site.name + " " + operatorNames[r.code] + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u63a5\u901a\u7387", labelled ? "\u65f6\u6bb5\u63a5\u901a\u7387" : undefined);
   const actions = (s: SiteRecord, service = false) => <ActionMenu label={(service ? "\u670d\u52a1\u64cd\u4f5c\uff1a" : "\u7ad9\u5740\u64cd\u4f5c\uff1a") + s.name} items={[
     { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview")) },
     { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime")) },
@@ -48,14 +53,14 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
     { id: "operator", header: "\u670d\u52a1\u5bf9\u8c61", cell: r => <TableTitleCell title={operatorNames[r.code]} description={r.id} icon="users" /> },
     { id: "scope", header: "\u670d\u52a1\u8303\u56f4", cell: () => "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" },
     { id: "resource", header: "\u627f\u8f7d\u8d44\u6e90", cell: r => r.site.roomType + " / \u65e0\u7ebf\u8bbe\u5907" },
-    { id: "connection", header: "\u65f6\u6bb5\u63a5\u901a\u7387", align: "right", cell: r => pct(r.current.attempts ? r.current.connected / r.current.attempts : null) },
+    { id: "connection", header: "\u65f6\u6bb5\u63a5\u901a\u7387", align: "right", cell: r => connectionIndicator(r) },
     { id: "traffic", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "right", cell: r => n(r.current.bytes / 1073741824, 2) },
   ];
   const city = demo.regions.cities.find(c => c.id === q.city), county = demo.regions.counties.find(c => c.id === q.county);
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
     <div className="flex min-h-0 flex-1 gap-lg p-lg">
       <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
-        <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="map-pin" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
+        <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="building" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
         <div className="site-region-scroll min-h-0 flex-1 overflow-y-auto p-md" tabIndex={0} role="region" aria-label={"\u5730\u57df\u6811\u6eda\u52a8\u533a"}>
           <Accordion type="single" collapsible value={q.city === "all" ? "" : q.city} onValueChange={city => navigate({ city: city || "all", county: "all" })}>
             {demo.regions.cities.map(city => <AccordionItem key={city.id} value={city.id}>
@@ -82,11 +87,11 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <time className="whitespace-nowrap text-body-small tabular-nums text-muted-foreground" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"} title={"\u6570\u636e\u65f6\u70b9\uff1a" + dataTime}>{dataTime}</time>
-          <div className="flex shrink-0 items-center gap-xs">
-            <Button variant="ghost" className="max-sm:gap-xs max-sm:px-xs" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
-              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="hidden xl:inline">{pending ? "\u8bfb\u53d6\u4e2d" : "\u5237\u65b0"}</span>
-              <time dateTime={readAt} className="text-body-small tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readTime} aria-label={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4 " + readTime}><span className="sm:hidden">{readTime.slice(0, 5)}</span><span className="hidden sm:inline">{readTime}</span></time>
+          <div className="site-registry-data-time flex items-center gap-xs whitespace-nowrap text-body-small text-muted-foreground"><span>{"\u6570\u636e\u622a\u81f3"}</span><time className="tabular-nums" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"}>{dataTime}</time></div>
+          <div className="site-registry-context-actions flex shrink-0 items-center gap-sm">
+            <Button variant="ghost" className="gap-xs px-xs" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26\uff1b\u6f14\u793a\u6a21\u5f0f\u4e0d\u89e6\u53d1\u4e0a\u6e38\u91c7\u96c6"}>
+              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /><span className="text-body-small text-muted-foreground">{pending ? "\u5237\u65b0\u4e2d" : "\u5237\u65b0\u4e8e"}</span>
+              <time dateTime={readAt} className="text-body-small tabular-nums text-muted-foreground" title={"\u9875\u9762\u8bfb\u53d6\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09\uff1a" + readTime}>{readTime.slice(0, 5)}</time>
             </Button>
             <CollapsibleTrigger asChild><Button variant="ghost" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="secondary" className="max-xl:w-control-md max-xl:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} title={"\u7ad9\u7f51\u5730\u56fe"} href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden xl:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button>
@@ -101,13 +106,13 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
         </Collapsible>
         <form className="site-registry-tools shrink-0" role="search" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
           <div className="site-registry-view"><SegmentedControl ariaLabel={"\u8d44\u6e90\u4e1a\u52a1\u89c6\u56fe"} value={q.view} onChange={view => navigate({ view })}
-            items={[{ value: "sites", label: "\u7ad9\u5740\u53f0\u8d26" }, { value: "relations", label: "\u670d\u52a1\u5173\u7cfb" }]} /></div>
+            items={[{ value: "sites", label: "\u7ad9\u5740\u53f0\u8d26", icon: "building" }, { value: "relations", label: "\u670d\u52a1\u5173\u7cfb", icon: "users" }]} /></div>
           <div className="site-registry-search min-w-0">
             <InputGroup><InputGroupAddon><Button size="icon-sm" type="submit" variant="ghost" aria-label={"\u67e5\u8be2"}><Icon name="search" size="sm" /></Button></InputGroupAddon>
               <InputGroupInput aria-label={"\u68c0\u7d22\u7ad9\u5740"} placeholder={"\u7ad9\u540d / \u7f16\u7801 / \u5730\u5740"} value={search} onChange={e => setSearch(e.target.value)} />
             </InputGroup>
           </div>
-          <div className="site-registry-actions flex items-center justify-end gap-xs">
+          <div className="site-registry-actions flex items-center justify-end gap-sm">
             <NativeSelect aria-label={"\u7ad9\u70b9\u7c7b\u578b"} wrapperClassName="w-auto" value={q.siteType} onChange={e => navigate({ siteType: e.target.value as SiteQuery["siteType"] })}>
               {Object.entries(siteTypeNames).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
             </NativeSelect>
@@ -126,7 +131,7 @@ function RegistryContent({ demo, readAt, regionOpen, onRegionToggle }: {
               demo.relations.map(r => <ListCard key={r.id} title={operatorNames[r.code] + " \u00b7 " + r.site.name} icon="users" description={r.id}
                 onTitleClick={() => router.push(detail(r.site, "services"))} actions={actions(r.site, true)}
                 meta={<div className="flex flex-col gap-xs"><span>{r.site.cityName + " / " + r.site.countyName}</span>
-                  <span>{"\u63a5\u901a\u7387 " + pct(r.current.attempts ? r.current.connected / r.current.attempts : null) + " \u00b7 " + n(r.current.bytes / 1073741824, 2) + " GiB"}</span>
+                  {connectionIndicator(r, true)}<span>{"\u65f6\u6bb5\u6d41\u91cf " + n(r.current.bytes / 1073741824, 2) + " GiB"}</span>
                   <Button asChild variant="secondary" size="sm"><a href={detail(r.site, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />)}
             {!demo.count && <EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u8d44\u6e90"} description={"\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />}
           </div>
