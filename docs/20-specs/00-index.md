@@ -13,3 +13,5 @@
 7. [三类指标体系与显示配置 V0.3](70-metric-catalog.md)
 
 8. [全国可扩展地域架构与陕西演示](80-national-map-demo.md)
+
+9. [用量核验与核验记录](90-usage-verification.md)

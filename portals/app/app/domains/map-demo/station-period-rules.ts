@@ -3,7 +3,7 @@ import {counterChange,type CounterChange} from './period-comparison-rules.ts';
 import {BUSINESS_KEYS,type BusinessMetric} from './period-contribution-rules.ts';
 import type {DemoSite,HourMetrics,MapQuery} from './types.ts';
 import type {StationReportReference} from './station-report-rules.ts';
-export const STATION_PERIOD_VERSION='bsmoss-demo-station-period-v1';
+export const STATION_PERIOD_VERSION='bsmoss-demo-station-period-v2';
 export const WAVE_POLICY={relativeBps:1500,minimum:{bytes:'1073741824',voiceSeconds:'300',sms:'20'},baselineWeeks:[1,2,3,4]} as const;
 export interface WaveEvidence {
   current:string;references:string[];referenceNumerator:string|null;denominator:2;deltaNumerator:string|null;rate:number|null;
@@ -33,13 +33,14 @@ export function baselineDates(date:string):string[] {
   const t=Date.parse(date+'T00:00:00Z');
   return WAVE_POLICY.baselineWeeks.map(weeks=>new Date(t-weeks*7*86400000).toISOString().slice(0,10));
 }
-// A four-sample median is kept as an integer numerator over two, including half counters.
+// Three or four verified, comparable samples share an exact numerator over two.
+// Callers retain unavailable reference slots and their reasons outside this helper.
 export function evaluateWave(current:string,references:readonly string[],minimum:string,relativeBps:number=WAVE_POLICY.relativeBps):WaveEvidence {
   const valid=(s:string)=>/^\d{1,100}$/.test(s);
   if(!valid(current)||!valid(minimum)||BigInt(minimum)<1n||!Number.isSafeInteger(relativeBps)||relativeBps<1||relativeBps>10000||references.some(s=>!valid(s)))throw Error('invalid_wave_counter');
   const base={current,references:[...references],denominator:2 as const};
-  if(references.length!==4)return {...base,referenceNumerator:null,deltaNumerator:null,rate:null,status:'insufficient',flagged:false};
-  const sorted=references.map(BigInt).sort((a,b)=>a===b?0:a<b?-1:1),reference=sorted[1]+sorted[2],delta=2n*BigInt(current)-reference,absolute=delta<0n?-delta:delta;
+  if(references.length!==3&&references.length!==4)return {...base,referenceNumerator:null,deltaNumerator:null,rate:null,status:'insufficient',flagged:false};
+  const sorted=references.map(BigInt).sort((a,b)=>a===b?0:a<b?-1:1),reference=references.length===3?2n*sorted[1]:sorted[1]+sorted[2],delta=2n*BigInt(current)-reference,absolute=delta<0n?-delta:delta;
   const flagged=absolute>=2n*BigInt(minimum)&&(reference===0n||absolute*10000n>=reference*BigInt(relativeBps));
   return {...base,referenceNumerator:String(reference),deltaNumerator:String(delta),rate:reference===0n?null:Number(delta)/Number(reference),status:reference===0n?(BigInt(current)===0n?'both_zero':'from_zero'):flagged?(delta>0n?'up':'down'):'within',flagged};
 }

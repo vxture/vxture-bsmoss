@@ -15,10 +15,28 @@ test('four-value median retains half counters and requires both relative and abs
   const input=['200','50','0','51'],copy=[...input],v=evaluateWave('60',input,'9');assert.equal(v.referenceNumerator,'101');assert.equal(v.deltaNumerator,'19');assert.equal(v.rate,19/101);assert.equal(v.flagged,true);assert.equal(v.status,'up');assert.deepEqual(input,copy);assert.deepEqual(v.references,input);
   assert.equal(evaluateWave('60',input,'10').flagged,false);assert.equal(evaluateWave('114',['100','100','100','100'],'1').flagged,false);assert.equal(evaluateWave('115',['100','100','100','100'],'1').flagged,true);assert.equal(evaluateWave('85',['100','100','100','100'],'1').status,'down');
 });
+
+test('three valid references use the exact median and the same inclusive dual thresholds',()=>{
+  const references=['103','99','101'],copy=[...references],v=evaluateWave('117',references,'15');
+  assert.equal(v.referenceNumerator,'202');assert.equal(v.deltaNumerator,'32');assert.equal(v.denominator,2);
+  assert.equal(v.status,'up');assert.equal(v.flagged,true);assert.equal(v.rate,16/101);
+  assert.deepEqual(references,copy);assert.deepEqual(v.references,references);
+  assert.equal(evaluateWave('116',references,'15').flagged,false);
+  assert.equal(evaluateWave('117',references,'17').flagged,false);
+  assert.equal(evaluateWave('85',['100','100','100'],'15').status,'down');
+  assert.equal(evaluateWave('115',['100','100','100'],'15').flagged,true);
+  const n=9007199254740993n,huge=evaluateWave(String(n+123n),[String(n+1n),String(n-1n),String(n)],'1',1);
+  assert.equal(huge.referenceNumerator,String(2n*n));assert.equal(huge.deltaNumerator,'246');
+});
 test('zero reference and missing baseline never manufacture a finite percentage change',()=>{
   const zero=['0','0','0','0'];assert.equal(evaluateWave('0',zero,'1').status,'both_zero');assert.equal(evaluateWave('0',zero,'1').flagged,false);assert.equal(evaluateWave('0',zero,'1').rate,null);
   assert.equal(evaluateWave('10',zero,'20').status,'from_zero');assert.equal(evaluateWave('10',zero,'20').flagged,false);assert.equal(evaluateWave('20',zero,'20').flagged,true);assert.equal(evaluateWave('20',zero,'20').rate,null);
-  const missing=evaluateWave('100',['10','10','10'],'1');assert.equal(missing.status,'insufficient');assert.equal(missing.rate,null);assert.equal(missing.referenceNumerator,null);assert.equal(missing.flagged,false);
+  for(const references of [[],['10'],['10','10'],['10','10','10','10','10']]){
+    const missing=evaluateWave('100',references,'1');assert.equal(missing.status,'insufficient');assert.equal(missing.rate,null);assert.equal(missing.referenceNumerator,null);assert.equal(missing.flagged,false);
+  }
+  const threeZero=['0','0','0'];assert.equal(evaluateWave('0',threeZero,'1').status,'both_zero');
+  assert.equal(evaluateWave('20',threeZero,'20').status,'from_zero');assert.equal(evaluateWave('20',threeZero,'20').rate,null);
+  assert.equal(evaluateWave('19',threeZero,'20').flagged,false);assert.equal(evaluateWave('20',threeZero,'20').flagged,true);
 });
 test('wave arithmetic keeps >53-bit signed differences exact and rejects invalid counters and policy',()=>{
   const n=9007199254740993n,v=evaluateWave(String(n+123n),Array(4).fill(String(n)),'1');assert.equal(v.deltaNumerator,'246');assert.equal(v.referenceNumerator,String(2n*n));
