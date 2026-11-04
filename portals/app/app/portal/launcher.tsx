@@ -31,6 +31,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
   const nav = portalNavigation(preview, domain);
   const card = (item: PortalEntry) => <EntryCard key={item.id} ref={item.id === nav[0]?.id ? firstEntry : undefined}
     title={item.label} description={descriptions[item.id]} icon={portalIcons[item.id]} href={item.href}
+    target={item.id === "map" ? "_blank" : undefined} rel={item.id === "map" ? "noopener noreferrer" : undefined}
     aria-current={item.id === active ? "page" : undefined}
     meta={item.id === active ? <Icon name="check-circle" size="sm" aria-label={"\u5f53\u524d\u9875\u9762"} /> : undefined}
     className={(management ? "p-lg" : "p-md") + (item.id === active ? " bg-primary-muted" : "")} onClick={() => setOpen(false)} />;

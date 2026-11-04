@@ -1,5 +1,7 @@
 # 业务领域Launcher与独立决策大屏
 
+2026-11-04：按用户要求，通用三个入口中的站网地图以新标签页打开。官方EntryCard透传target=_blank及rel=noopener noreferrer，保持原href和点击收起面板；首页／大屏不设置target。构建类型及浏览器真实新tab／原页保留验证见代理记忆，本次没有地图或其他业务链接变化。
+
 对应[设计232](../30-design/design_bsmoss_232_business-launcher-board.md)。本批落实入口目录、launcher结构及独立大屏首版，不把资源／核验的规划项标记为完成。
 
 ## 实现

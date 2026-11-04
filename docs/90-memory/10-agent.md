@@ -1045,3 +1045,7 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 ## 页面留白恢复24px（2026-11-04，覆盖上一条12px偏好）
 
 用户查看后要求统一24px。product-page-inset及旧分析／报告／模板／任务的同批外留白全部改用DS var(--space-lg)，不再除2；标准密度24px，保留统一容器、断点一致及地图／header／组件内距边界。实施650明确当前24并保留历史记录。生产build含类型通过tmp/page-inset-24-build.log，CUA1042／390实测24px且无文档横溢、warn/error空。截图和checks在artifacts/page-inset-24-qa，viewport已reset、临时tab58关闭。纯布局无新增测试／业务／依赖／权限／DB变化，文档编号／diff／提交扫描收尾，无外部部署或push，最终运行SHA见health。
+
+## launcher站网地图新标签页（2026-11-04）
+
+用户要求三个通用模块中的站网地图newtab打开。只给launcher全局卡片id=map传官方EntryCard原生target=_blank及rel=noopener noreferrer，原href／自动收起保持；首页与大屏target为空，其他业务页地图下钻未改。设计232／实施680同步。生产构建含类型通过tmp/launcher-map-newtab-build.log；CUA从/sites?view=relations点击实际生成新tab60到/product-preview?hour=18，原tab59 URL及关系视图保留、launcher收起，地图正常呈现无默认站址。三全局卡片DOM属性逐项确认，证据artifacts/launcher-map-newtab-qa，测试tab59／60已关闭，用户tab45保留。纯原生链接变更无新增测试／权限／依赖／数据或DB改动；文档编号／diff／提交扫描收尾，最终63333SHA以health为准，无push或外部部署。

@@ -1,5 +1,7 @@
 # 全局入口、业务领域与决策大屏
 
+2026-11-04交互补充：顶行站网地图使用原生链接target=_blank及rel=noopener noreferrer，新标签页打开并收起launcher，原业务页面与筛选保留。门户首页／决策大屏沿用当前标签页；其他业务页地图下钻不在本次调整范围。
+
 依据用户确认的计划及[信息结构V0.6](../20-specs/50-information-architecture.md)，参照yucer的跨域顶行和业务分栏语法，继续使用已发布vxture Design官方组件。
 
 ## 入口层次
