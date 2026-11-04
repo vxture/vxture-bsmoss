@@ -13,7 +13,7 @@ export function portalDomain(page: PortalPage): PortalDomain {
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
   const entries: PortalEntry[] = [
     { id: "home", label: "\u95e8\u6237\u9996\u9875", href: "/", group: "business" },
-    { id: "board", label: "\u51b3\u7b56\u5927\u5c4f", href: "/board", group: "business" },
+    { id: "board", label: "\u51b3\u7b56\u5206\u6790", href: "/board", group: "business" },
     ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
     { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
     { id: "capacity", label: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", href: "/capacity", group: "business" },

@@ -37,7 +37,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
-        action={<Button asChild size="xl"><a href="/board"><Icon name="chart-bar" size="sm" />{"\u51b3\u7b56\u5927\u5c4f"}</a></Button>} />
+        action={<Button asChild size="xl"><a href="/board"><Icon name="chart-bar" size="sm" />{"\u51b3\u7b56\u5206\u6790"}</a></Button>} />
       <MetricGrid columns={4} aria-label={"\u7ad9\u7f51\u6982\u51b5"} items={[
         { id: "sites", label: "\u7ad9\u5740\u8d44\u6e90", value: number(usage.physicalSites), description: "\u5ea7", icon: "map-pin" },
         { id: "relations", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: number(usage.serviceRelations), description: "\u6761", icon: "database", tone: "info" },

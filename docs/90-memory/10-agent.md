@@ -1061,3 +1061,7 @@ build含类型（tmp/map-entry-audit-build.log）、148编号／ASCII／diff通�
 用户要求除tag外页面／标题／板块不得出现“演示”，按正式系统设计实现。规格50追加明确约束、实施740记录。全站TS／TSX字符串AST核查仅剩门户chrome“演示”与地图header“演示数据”两处tag；门户去首页／大屏／档案重复tag，窄屏header保留。launcher／首页用量报告统一命名、站址资源、访客、地图使用帮助／精简视图、检索／图例／空态／错误／规则／资料／报告正文均业务化。核验仅保留只读实际状态和证据入口，来源版本、缺数、未接入、位置待核验、草稿／复核与合成属性仍如实显示；内部demo ID／模式／API／来源版本／证据及预览开关不改，不表示真实接入或生产就绪。费用／退役／地域范围不改。
 
 最终build含类型、导航及日报／单站报告13项既有测试、149编号／源码ASCII／diff通过，tmp/business-copy-{build,unit,docs}.log。CUA15路由／页签状态前13仅header一次环境标识、正文0／属性0，辅助页0；launcher0、用户面板访客、地图帮助0且独立header保留；390报告唯一tag／文档无横溢，viewport reset。warn/error空，artifacts/business-copy-qa含launcher／report／map-help／mobile与checks，临时tab66关闭，用户45保留。首轮快速goto即时DOM为空未作为证据，逐页domSnapshot后重测通过。文案脚本两次严格断言发现子串先替换／原句误写，受影响文件未写入，修正后通过完整源码扫描和构建。无新增实现镜像测试、无PG／DDL／权限／依赖变更，无push／外部部署、goal或自动任务；最终63333身份以Git与health为准。
+
+## 决策分析命名统一（2026-11-04）
+
+用户将“决策大屏”改为“决策分析”。navigation／home／board page与view／network-map共5文件同步页面、入口、功能域及无障碍名称；模块board和/board路由、地图newtab与全部原功能不改。规格50／实施740同步。生产构建含类型通过tmp/decision-analysis-name-build.log；CUA首页与launcher名称正确、实际点击进入/board，header与H1均决策分析，旧名0、warn/error空；截图artifacts/decision-analysis-name-qa/page.png，临时tab67关闭，用户45保留。纯命名不新增镜像单测或重复业务／PG验证；ASCII／diff／149编号收尾。最终Git和63333身份以health为准，无push／外部部署、goal或自动任务。
