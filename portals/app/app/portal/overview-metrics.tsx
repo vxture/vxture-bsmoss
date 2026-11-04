@@ -36,8 +36,7 @@ export default function OverviewMetrics({ demo, scope }: { demo: PortalDemo; sco
   const destination = (c: Category) => businessHref(c === "business_service" ? "operator-usage" : c === "operational_status" ? "capacity" : "efficiency", scope);
   return <section className="flex min-w-0 flex-col gap-sm" aria-label={"\u4e09\u57df\u8fd0\u884c\u6458\u8981"} data-overview-metrics={data.version}>
     <div className="grid min-w-0 gap-md lg:grid-cols-3">
-      {CATEGORIES.map(c => <PanelCard key={c} title={categoryNames[c]} icon={icons[c]} tone={tones[c]} className="min-w-0"
-        description={"\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9 " + hour}>
+      {CATEGORIES.map(c => <PanelCard key={c} title={categoryNames[c]} icon={icons[c]} tone={tones[c]} className="min-w-0">
         <PanelList>
         {preference.selections[c].map(selection => {
           const d = def(selection.id), f = fact(selection.id);

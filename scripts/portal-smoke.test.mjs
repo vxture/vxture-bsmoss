@@ -209,6 +209,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(home.includes('data-overview-attention="capacity"'));assert.ok(home.includes('data-overview-verification'));
       assert.ok(home.includes('data-overview-report="day"'));assert.ok(home.includes('bsmoss-demo-review-scenarios-v1'));
       assert.ok(home.includes('data-overview-metrics="bsmoss-overview-metrics-v1"'));
+      assert.ok(home.includes('\u5206\u6790\u5feb\u7167 2026-10-25 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
+      assert.ok(!home.includes('\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9'));
       assert.ok(home.includes('\u8f83\u6628\u65e5'));
       const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));
       const config=await (await fetch(url+'/settings')).text();assert.ok(config.includes('href="/settings/overview"'));

@@ -65,7 +65,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           </NativeSelect>
         </div>
         <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground">
-          <time dateTime={demo.date}>{demo.date}</time><span>{"\u7528\u91cf 00:00\u201324:00"}</span><span>{"\u72b6\u6001 " + hour}</span>
+          <time dateTime={demo.date + "T" + hour + ":00+08:00"} title={"\u72b6\u6001\u6307\u6807\u91c7\u7528\u8be5\u65f6\u70b9\u5feb\u7167\uff1b\u65e5\u7d2f\u8ba1\u6307\u6807\u4e0e\u5168\u65e5\u8d8b\u52bf\u7edf\u8ba1\u7a97\u53e3\u4e3a\u5f53\u65e5 00:00\u201324:00\u3002"}>{"\u5206\u6790\u5feb\u7167 " + demo.date + " " + hour}</time>
           <Button variant="ghost" size="icon-md" disabled={pending} aria-label={"\u91cd\u65b0\u8bfb\u53d6\u603b\u89c8\u6570\u636e"} title={"\u91cd\u65b0\u8bfb\u53d6\u6570\u636e\uff0c\u65f6\u70b9\u4ee5\u6765\u6e90\u6570\u636e\u4e3a\u51c6"} onClick={() => start(() => router.refresh())}>
             <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
           </Button>
@@ -105,7 +105,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           </div>
         </PanelCard>
       </div>
-      <PanelCard title={"\u5730\u5e02\u8fd0\u884c\u6bd4\u8f83"} icon="city" description={hour + " \u00b7 \u65f6\u6bb5\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0"
+      <PanelCard title={"\u5730\u5e02\u8fd0\u884c\u6bd4\u8f83"} icon="city" description={"\u6309\u65f6\u6bb5\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0"
         action={<SegmentedControl ariaLabel={"\u5730\u5e02\u89c2\u5bdf\u6307\u6807"} value={regionMetric} onChange={setRegionMetric} size="sm" items={[{ value: "load", label: "\u8d1f\u8f7d" }, { value: "connectionRate", label: "\u63a5\u901a\u7387" }]} />}>
         <DataTable rows={demo.cities} rowKey={row => row.id} columns={[
           { id: "city", header: "\u5730\u5e02", cell: row => <a className="text-foreground hover:text-primary-text" href={siteListHref({ ...siteQuery, city: row.id })}>{row.name}</a> },

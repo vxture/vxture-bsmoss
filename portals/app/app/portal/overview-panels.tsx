@@ -47,7 +47,7 @@ export function OverviewAttention({ demo }: { demo: PortalDemo }) {
   const href = businessHref(topic === "capacity" ? "capacity" : "efficiency", scope);
   return <section id="overview-attention" className="scroll-mt-lg" data-overview-attention={topic}>
     <PanelCard title={"\u91cd\u70b9\u5173\u6ce8"} icon="flag" tone="warning"
-      description={String(demo.hour).padStart(2, "0") + ":00 \u00b7 \u5404\u4e13\u9898\u72ec\u7acb\u5224\u5b9a\uff0c\u540c\u7ad9\u53ef\u547d\u4e2d\u591a\u4e2a\u4e13\u9898"}
+      description={"\u5404\u4e13\u9898\u72ec\u7acb\u5224\u5b9a\uff0c\u540c\u7ad9\u53ef\u547d\u4e2d\u591a\u4e2a\u4e13\u9898"}
       action={<Button asChild variant="ghost" size="sm"><a href={href}>{"\u8fdb\u5165\u4e13\u9898\u5206\u6790"}</a></Button>}>
       <div className="flex flex-wrap items-center justify-between gap-md pb-md">
         <SegmentedControl ariaLabel={"\u91cd\u70b9\u5173\u6ce8\u4e13\u9898"} value={topic} onChange={setTopic} items={demo.signals.map(group => ({
