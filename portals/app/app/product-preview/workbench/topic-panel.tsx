@@ -1,4 +1,5 @@
 'use client';
+import BusinessPageLink from './business-page-link';
 import {selectionLabel} from '../../domains/map-demo/geometry.ts';
 import {Radar,X,Activity,Zap,Leaf,ArrowUpRight,Columns3,LoaderCircle,RotateCcw} from 'lucide-react';
 import {useWorkbench} from '../../domains/map-demo/workbench-store.ts';
@@ -25,7 +26,7 @@ export default function TopicPanel({region,snapshot,loading,error,onPick,onRetry
   const peak=topic?Math.max(1,...topic.series.map(s=>s.critical+s.warning)):1;
   const scope=region.counties.find(r=>r.id===state.countyId)?.name??region.cities.find(r=>r.id===state.cityId)?.name??region.name;
   return <aside className="mw-topic-panel" aria-label={"\u4e13\u9898\u5206\u6790"} aria-busy={loading}>
-    <header><span><Radar size={15}/>{"\u4e13\u9898\u5206\u6790"}</span><button aria-label={"\u6536\u8d77\u4e13\u9898\u5206\u6790"} onClick={()=>state.set({topicOpen:false})}><X size={16}/></button></header>
+    <header><span><Radar size={15}/>{"\u4e13\u9898\u5206\u6790"}</span><div className="flex items-center gap-sm"><BusinessPageLink kind={state.topic === 'capacity' ? 'capacity' : 'efficiency'}/><button aria-label={"\u6536\u8d77\u4e13\u9898\u5206\u6790"} onClick={()=>state.set({topicOpen:false})}><X size={16}/></button></div></header>
     <div className="mw-topic-tabs" role="group" aria-label={"\u9009\u62e9\u4e13\u9898"}>{([{key:'capacity',icon:Activity},{key:'power',icon:Zap},{key:'efficiency',icon:Leaf}] as const).map(t=><button key={t.key} aria-pressed={state.topic===t.key} className={state.topic===t.key?'active':''} onClick={()=>state.set({topic:t.key})}><t.icon size={12}/>{TOPIC_NAMES[t.key]}</button>)}</div>
     <div className="mw-topic-content">
     <div className="mw-topic-context"><span>{scope}{state.selection?' \u00b7 '+selectionLabel(state.selection):''}<small>{"2026.10.25 \u00b7 "}{String(state.hour).padStart(2,'0')}:00</small></span><select aria-label={"\u4e13\u9898\u8fd0\u8425\u5546"} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,selectedId:null})}><option value="all">{"\u5168\u90e8\u8fd0\u8425\u5546"}</option>{Object.entries(OP_NAMES).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></div>

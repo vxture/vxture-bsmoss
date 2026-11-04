@@ -94,7 +94,7 @@ test('topics replace other analysis windows while retaining selection, compariso
   const state=()=>useWorkbench.getState();
   state().set({cityId:'610100',countyId:'610113',selection:[108.8,34.1,109.1,34.5],selectedId:'SX-DEMO-001',hour:12,operator:'mobile',compareIds:['a','b']});
   state().openPanel('runtime');state().openPanel('business');state().expandPanel('runtime');
-  state().set({topicOpen:true,topic:'power',search:'stale'});
+  state().set({search:'stale'});state().set({topicOpen:true,topic:'power'});
   assert.ok(state().topicOpen&&!state().detailOpen&&!state().compareOpen&&!state().selectionOpen&&!state().leftOpen);
   assert.equal(state().expandedPanel,null);assert.equal(state().search,'');assert.equal(state().hour,12);assert.equal(state().operator,'mobile');
   assert.deepEqual(state().selection,[108.8,34.1,109.1,34.5]);assert.deepEqual(state().compareIds,['a','b']);

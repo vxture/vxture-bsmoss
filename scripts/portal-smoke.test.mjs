@@ -27,6 +27,13 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('standalone analysis pages never expose synthetic models when preview is disabled',async()=>{
+      for(const path of ['/capacity','/efficiency','/operator-usage','/usage-reports']) {
+        const response=await fetch(url+path);assert.equal(response.status,200);
+        const html=await response.text();assert.ok(html.includes('\u5c1a\u672a\u5f00\u653e'));
+        for(const marker of ['data-business-analysis=','SX-DEMO-','href="/product-preview','maplibregl-canvas'])assert.ok(!html.includes(marker));
+      }
+    });
     await t.test("configuration preferences are public but never grant a product identity",async()=>{
       const response=await fetch(url+'/settings');assert.equal(response.status,200);
       const html=await response.text();
@@ -111,13 +118,31 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('standalone business modules render without maps and link to scoped map analysis',async()=>{
+      const scope='city=610100&county=610113&operator=mobile&hour=17&search=SX-DEMO-006&selection='+encodeURIComponent('circle:108.95,34.26,10000');
+      for(const kind of ['capacity','efficiency','operator-usage','usage-reports']) {
+        const period=kind==='operator-usage'||kind==='usage-reports'?'&period=week':'';
+        const response=await fetch(url+'/'+kind+'?'+scope+period);assert.equal(response.status,200);
+        const html=await response.text();assert.ok(html.includes('data-business-analysis="'+kind+'"'));assert.ok(html.includes('SX-DEMO-006'));
+        assert.ok(html.includes('/product-preview?city=610100'));assert.ok(html.includes('search=SX-DEMO-006'));
+        assert.ok(!html.includes('maplibregl-canvas'));assert.ok(!html.includes('mw-map-loading'));
+        assert.ok(!html.includes('aria-label="\\u'));assert.ok(!html.includes('>\\u'));
+      }
+      for(const kind of ['capacity','efficiency','operator-usage','usage-reports']) for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24','search='+('a'.repeat(81))]) {
+        const html=await (await fetch(url+'/'+kind+'?'+query)).text();
+        assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));assert.ok(!html.includes('data-business-analysis='));
+      }
+      const home=await (await fetch(url+'/')).text();
+      for(const path of ['/capacity','/efficiency','/operator-usage','/usage-reports'])assert.ok(home.includes('href="'+path));
+    });
     await t.test('site business pages support geographic relations and six dossier layers without formal access',async()=>{
       const list=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
       assert.ok(list.includes('data-sites-mode="demo"'));assert.ok(list.includes('/sites/SX-DEMO-001'));
       assert.ok(list.includes('data-slot="input-group"'));assert.ok(!list.includes('aria-label="\u72b6\u6001\u65f6\u6bb5"'));
-      const firstRead=list.match(/<time dateTime="([^"]+)"/)[1];assert.ok(Number.isFinite(Date.parse(firstRead)));
+      const firstRead=list.match(/<time\b[^>]*dateTime="([^"]+)"/i)[1];assert.ok(Number.isFinite(Date.parse(firstRead)));
       const reread=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
-      assert.ok(Date.parse(reread.match(/<time dateTime="([^"]+)"/)[1])>Date.parse(firstRead));
+      assert.equal(reread.match(/<time\b[^>]*dateTime="([^"]+)"/i)[1],firstRead);
+      assert.equal((reread.match(/<time\b/g)??[]).length,1);
       const rooftop=await (await fetch(url+'/sites?siteType=rooftop&search=SX-DEMO-001&hour=17')).text();
       assert.ok(rooftop.includes('/sites/SX-DEMO-001'));assert.ok(rooftop.includes('2026-10-25 17:00'));
       const ground=await (await fetch(url+'/sites?siteType=ground&search=SX-DEMO-001')).text();

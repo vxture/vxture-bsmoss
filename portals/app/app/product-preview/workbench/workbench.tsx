@@ -54,6 +54,7 @@ export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:st
     if(['hour','day','week','month'].includes(p.get('usage')??'')){patch.usageOpen=true;patch.usagePeriod=p.get('usage') as 'hour'|'day'|'week'|'month';patch.topicOpen=false;patch.selectionOpen=false;patch.compareOpen=false;}
     if(['day','week','month'].includes(p.get('report')??'')){patch.reportPeriod=p.get('report') as 'day'|'week'|'month';patch.reportOpen=true;patch.usageOpen=false;patch.topicOpen=false;patch.selectionOpen=false;patch.compareOpen=false;}
     if(window.innerWidth<1000)patch.leftOpen=false;
+    const search=(p.get('search')??'').trim();patch.search=search.length<=80?search:'';
     state.set(patch);setHydrated(true);
   // Initialize only from the URL and local display preferences.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,9 +67,10 @@ export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:st
     if(state.topicOpen)p.set('topic',state.topic);
     if(state.usageOpen)p.set('usage',state.usagePeriod);
     if(state.reportOpen)p.set('report',state.reportPeriod);
+    if(state.search)p.set('search',state.search);
     p.set('hour',String(state.hour));if(state.selectedId)p.set('site',state.selectedId);
     window.history.replaceState(null,'','?'+p.toString());
-  },[hydrated,state.cityId,state.countyId,state.operator,state.hour,state.selectedId,state.selection,state.compareIds,state.topic,state.topicOpen,state.usageOpen,state.usagePeriod,state.reportOpen,state.reportPeriod]);
+  },[hydrated,state.cityId,state.countyId,state.operator,state.hour,state.selectedId,state.selection,state.compareIds,state.topic,state.topicOpen,state.usageOpen,state.usagePeriod,state.reportOpen,state.reportPeriod,state.search]);
   useEffect(()=>{
     if(!hydrated)return;
     const controller=new AbortController();

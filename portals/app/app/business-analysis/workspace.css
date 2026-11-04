@@ -1,0 +1,15 @@
+.business-analysis-search { width: var(--container-overlay-md); max-width: 100%; }
+.business-analysis { min-width: 0; }
+/* Published DS Pagination compatibility; matches the upstream sizing fix.
+   Drop after upgrading to a release with the pagination-pages slot. */
+.business-analysis-pagination:not([data-slot="pagination"]) > div:last-child > div:last-child {
+  gap: var(--space-xs);
+}
+.business-analysis-pagination:not([data-slot="pagination"]) button:not([aria-label]) {
+  min-width: var(--space-control-md);
+  padding-inline: var(--space-2xs);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 639px) {
+  .business-analysis-search { width: 100%; }
+}

@@ -5,7 +5,7 @@ import { portalBusinessGroups, portalDomain, portalNavigation } from "./navigati
 test("business and configuration navigation are disjoint and management routes share their own domain", () => {
   for (const preview of [false, true]) {
     const business = portalNavigation(preview), management = portalNavigation(preview, "management");
-    assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "sites", "map", "analysis", "reports"] : ["home", "board", "sites", "analysis", "reports"]);
+    assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "sites", "map", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports"] : ["home", "board", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports"]);
     assert.deepEqual(management.map(entry => entry.id), ["settings", "templates", "aggregation", "report-jobs"]);
     for (const entry of management) {
       assert.equal(portalDomain(entry.id), "management");
@@ -27,7 +27,8 @@ test("global destinations stand apart from business groups and planned modules h
       else assert.ok(item.href?.startsWith("/") && !item.href.startsWith("/settings"));
       if (!preview) assert.ok(!item.href?.startsWith("/product-preview"));
     }
-    for (const id of preview ? ["sites", "map", "analysis", "reports"] : ["sites", "analysis", "reports"])
+    for (const id of preview ? ["sites", "map", "analysis", "reports", "capacity", "efficiency", "operator-usage", "usage-reports"] : ["sites", "analysis", "reports"])
       assert.equal(modules.filter(item => item.page === id).length, 1);
+    for (const item of modules.filter(item => item.page !== "map")) assert.ok(!item.href?.startsWith("/product-preview"));
   }
 });

@@ -52,28 +52,28 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
             { key: "data", label: "\u6d41\u91cf / TiB", value: number(usage.totals.bytes / 1099511627776, 2) },
             { key: "voice", label: "\u901a\u8bdd / \u4e07\u5206\u949f", value: number(usage.totals.voiceSeconds / 600000, 2) },
             { key: "sms", label: "\u77ed\u4fe1 / \u4e07\u6761", value: number(usage.totals.sms / 10000, 2) },
-          ]} footer={more("/product-preview?usage=day&hour=18", "\u8fd0\u8425\u5546\u7528\u91cf")} />
+          ]} footer={more("/operator-usage", "\u8fd0\u8425\u5546\u7528\u91cf")} />
         <MetricListCard title={"\u8fd0\u8425\u72b6\u6001"} description="18:00" icon="gauge" tone="info"
           metrics={[
             { key: "connection", label: "\u63a5\u901a\u7387", value: percent(status.connectionRate) },
             { key: "load", label: "\u8d44\u6e90\u8d1f\u8f7d", value: percent(status.load) },
             { key: "normal", label: "\u6b63\u5e38 / \u5ea7", value: number(status.normal) },
-          ]} footer={more("/product-preview?topic=capacity&hour=18", "\u5bb9\u91cf\u4e0e\u8d28\u91cf")} />
+          ]} footer={more("/capacity", "\u5bb9\u91cf\u4e0e\u8d28\u91cf")} />
         <MetricListCard title={"\u8fd0\u884c\u53c2\u6570"} description={"\u5168\u65e5\u7d2f\u8ba1"} icon="lightning" tone="success"
           metrics={[
             { key: "energy", label: "\u7269\u7406\u7535\u8017 / kWh", value: usage.energyWh === null ? "\u2014" : number(usage.energyWh / 1000, 1) },
             { key: "scope", label: "\u7535\u8017\u53e3\u5f84", value: "\u7269\u7406\u7ad9\u5740" },
-          ]} footer={more("/product-preview?topic=efficiency&hour=18", "\u8fd0\u884c\u4e0e\u80fd\u6548")} />
+          ]} footer={more("/efficiency", "\u8fd0\u884c\u4e0e\u80fd\u6548")} />
       </section>
       <div className="grid min-w-0 gap-md xl:grid-cols-3">
         <PanelCard title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={demo.date + " \u00b7 24\u5c0f\u65f6 \u00b7 " + unit} className="min-w-0 xl:col-span-2" tone="brand"
           action={<SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />}>
           <BarChart key={metric} data={series} formatValue={fmt} peakLabel={"\u5cf0\u503c"} aria-label={"24\u5c0f\u65f6" + metrics.find(item => item.value === metric)!.label + "\u8d8b\u52bf"} />
-          <div className="flex justify-end pt-md">{more("/product-preview?usage=day&hour=18", "\u67e5\u770b\u5b8c\u6574\u7528\u91cf\u5206\u6790")}</div>
+          <div className="flex justify-end pt-md">{more("/operator-usage", "\u67e5\u770b\u5b8c\u6574\u7528\u91cf\u5206\u6790")}</div>
         </PanelCard>
         <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf\u7ed3\u6784"} description={"\u5168\u65e5\u6d41\u91cf\u5360\u6bd4"} tone="neutral" className="min-w-0">
           <div className="flex flex-col gap-md">
-            {usage.rows.map(row => <a className="flex flex-col gap-2xs no-underline" href={"/product-preview?usage=day&operator=" + row.code + "&hour=18"} key={row.code}>
+            {usage.rows.map(row => <a className="flex flex-col gap-2xs no-underline" href={"/operator-usage?period=day&operator=" + row.code + "&hour=18"} key={row.code}>
               <div className="flex items-baseline justify-between gap-xs text-body-small"><span className="text-foreground">{names[row.code]}</span><span className="tabular-nums text-muted-foreground">{number(row.bytes / 1073741824, 1) + " GiB"}<span className="pl-xs text-primary-text">{percent(usage.totals.bytes ? row.bytes / usage.totals.bytes : null)}</span></span></div>
               <Progress value={usage.totals.bytes ? row.bytes / usage.totals.bytes * 100 : 0} aria-label={names[row.code] + "\u6d41\u91cf\u5360\u6bd4"} />
             </a>)}
@@ -101,7 +101,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
       <section className="grid gap-md sm:grid-cols-2 xl:grid-cols-4" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
         <EntryCard href="/sites" icon="building" title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u53f0\u8d26\u3001\u6863\u6848\u3001\u8d44\u6e90\u4e0e\u670d\u52a1\u5173\u7cfb"} />
         <EntryCard href="/product-preview?hour=18" icon="map-pin" title={"\u7ad9\u7f51\u5730\u56fe"} description={"\u7a7a\u95f4\u5b9a\u4f4d\u3001\u9009\u533a\u5bf9\u6bd4\u4e0e\u5355\u7ad9\u5206\u6790"} />
-        <EntryCard href="/product-preview?report=day&hour=18" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
+        <EntryCard href="/usage-reports" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
         <EntryCard href="/analysis" icon="chart-line-up" title={"\u6b63\u5f0f\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />
       </section>
       <footer className="flex flex-wrap justify-between gap-xs text-body-small text-content-tertiary">

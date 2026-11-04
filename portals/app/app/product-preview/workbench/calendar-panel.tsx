@@ -1,4 +1,5 @@
 'use client';
+import BusinessPageLink from './business-page-link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Table2,FileText,X,Download,LoaderCircle,RotateCcw,ArrowUpRight} from 'lucide-react';
 import {serializeSelection,selectionLabel} from '../../domains/map-demo/geometry.ts';
@@ -20,10 +21,10 @@ export default function CalendarPanel({mode,region,onPick}:{mode:'report'|'usage
   const [snapshot,setSnapshot]=useState<CalendarUsage|CalendarReport|null>(null),[error,setError]=useState(false),[revision,setRevision]=useState(0);
   const [section,setSection]=useState<'overview'|'comparison'|'operators'|'evidence'>('overview'),[metric,setMetric]=useState<'bytes'|'voiceSeconds'|'sms'>('bytes'),[selectedDate,setSelectedDate]=useState('');
   const contentRef=useRef<HTMLDivElement>(null);
-  const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:0,selection:state.selection??undefined,search:''}),[region.id,state.cityId,state.countyId,state.operator,state.selection]);
+  const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:0,selection:state.selection??undefined,search:state.search}),[region.id,state.cityId,state.countyId,state.operator,state.selection,state.search]);
   const params=useMemo(()=>{
     const p=new URLSearchParams({regionId:query.regionId,cityId:query.cityId,countyId:query.countyId,operator:query.operator,period:selectedPeriod});
-    if(query.selection)p.set('selection',serializeSelection(query.selection));return p.toString();
+    if(query.search)p.set('search',query.search);if(query.selection)p.set('selection',serializeSelection(query.selection));return p.toString();
   },[query,selectedPeriod]);
   const key=mode==='report'?calendarReportContextKey(query,selectedPeriod):periodContextKey(query,selectedPeriod);
   useEffect(()=>{contentRef.current?.scrollTo({top:0});},[section,key]);
@@ -43,7 +44,7 @@ export default function CalendarPanel({mode,region,onPick}:{mode:'report'|'usage
   const allGood=u&&u.checks.bytesDelta==='0'&&u.checks.voiceSecondsDelta===0&&u.checks.smsDelta===0;
   const close=()=>mode==='report'?state.set({reportOpen:false}):state.set({usageOpen:false});
   return <aside className={'mw-comparison mw-calendar-panel '+(mode==='report'?'mw-report-panel':'mw-operator-panel')} aria-label={mode==='report'?'\u5468\u671f\u5206\u6790\u62a5\u544a':'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}>
-    <header><span>{mode==='report'?<FileText size={15}/>:<Table2 size={15}/>} {mode==='report'?'\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]:'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}<small>{'\u6a21\u62df\u6570\u636e'}</small></span><div>{report&&!error&&<a className="mw-report-download" href={'/api/product-preview/reports?'+params+'&format=html'} download aria-label={'\u4e0b\u8f7d\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]}><Download size={13}/>{'\u4e0b\u8f7d\u62a5\u544a'}</a>}<button aria-label={mode==='report'?'\u5173\u95ed\u5468\u671f\u62a5\u544a':'\u5173\u95ed\u4f7f\u7528\u6838\u67e5'} onClick={close}><X size={15}/></button></div></header>
+    <header><span>{mode==='report'?<FileText size={15}/>:<Table2 size={15}/>} {mode==='report'?'\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]:'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}<small>{'\u6a21\u62df\u6570\u636e'}</small></span><div><BusinessPageLink kind={mode === 'report' ? 'usage-reports' : 'operator-usage'}/>{report&&!error&&<a className="mw-report-download" href={'/api/product-preview/reports?'+params+'&format=html'} download aria-label={'\u4e0b\u8f7d\u7528\u91cf'+PERIOD_NAMES[selectedPeriod]}><Download size={13}/>{'\u4e0b\u8f7d\u62a5\u544a'}</a>}<button aria-label={mode==='report'?'\u5173\u95ed\u5468\u671f\u62a5\u544a':'\u5173\u95ed\u4f7f\u7528\u6838\u67e5'} onClick={close}><X size={15}/></button></div></header>
     <div className={"mw-comparison-context"+(mode==='report'?' mw-report-context':'')}><span title={contextLabel}>{contextLabel}</span><PeriodSelector mode={mode}/><select aria-label={mode==='report'?'\u62a5\u544a\u8fd0\u8425\u5546':'\u6838\u67e5\u8fd0\u8425\u5546'} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,playing:false})}><option value="all">{'\u5168\u90e8\u8fd0\u8425\u5546'}</option>{Object.entries(OP_NAMES).map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></div>
     {mode==='usage'&&<div className="mw-calendar-window"><span>{calendarLabel(selectedPeriod)}</span><small>{'\u5b8c\u6574\u6837\u4f8b \xb7 '+(selectedPeriod==='week'?7:31)+' \u5929'}</small></div>}
     <div className="mw-report-tabs" aria-label={'\u5468\u671f\u5206\u6790\u7ae0\u8282'}>{([{key:'overview',label:'\u5468\u671f\u6982\u89c8'},{key:'comparison',label:'\u73af\u6bd4\u5206\u6790'},{key:'operators',label:'\u8fd0\u8425\u5546\u5206\u9879'},{key:'evidence',label:'\u53e3\u5f84\u4e0e\u4f9d\u636e'}] as const).map(tab=><button key={tab.key} className={section===tab.key?'active':''} onClick={()=>setSection(tab.key)}>{tab.label}</button>)}</div>

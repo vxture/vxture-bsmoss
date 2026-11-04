@@ -994,3 +994,14 @@ build含类型、140编号／ASCII／diff通过；CUA1042操作行46.09px、搜�
 用户去掉刷新时间：registry删除readAt／readTime，page删除new Date透传，仅数据截至＋官方图标刷新，pending禁用旋转保留。build含类型通过tmp/site-data-time-build.log；CUA点击刷新后context只有1个time、按钮无文字，截图artifacts/site-data-time-qa/desktop.png，tab51关闭。
 
 追加用户要求分析截至应当前刷新后的时间：查明registryDemo仍DEMO_DATE固定2026-10-25、q.hour样本，刷新仅重读。已解释截至应取成功数据快照有效时间，有新数据才推进，不应直接套电脑时间；动态演示需要同步推进快照和指标，真实来源用来源水位。本轮仅分析该模型问题，尚未实现动态快照，不要后续误认为已完成。其他地图／档案历史周期保持原模型，无权限／依赖／DDL变更，无外部发布。
+## 独立业务分析与地图双向入口（2026-11-04）
+
+用户明确多个功能域不应直接进入地图；新增设计234／实施700，P03陕西演示首版。容量质量/capacity、运行能效/efficiency（能效／供电）、运营商用量/operator-usage（时日周月）、用量报告/usage-reports（日周月、环比、版本与HTML）均全宽无地图，launcher／首页入口归位。地图原专题／运营商／日报／周月报继续保留，新增独立分析链接；统一links保留省内地域、运营商、小时／周期、检索与全部选区类型，普通往返不选站，行操作可明确定位。
+
+复用原合成领域服务及阈值，时点状态与累计量不混算；小时总量只算所选小时，趋势说明全天24小时。未分摊运营商电耗为空、能效未知，空态／零分母不补零。报告复用已有usage快照避免重复整月计算，客户端不带无用地图点位副本；手机用官方MetricListCard紧凑摘要，桌面MetricGrid，地市对比宽屏两列。DS伞包、语义token和官方组件不变，分页用同上游修复的本域旧版兼容CSS，无依赖／DDL／权限变动。
+
+17相关单测、双层类型、最终生产构建、28HTTP及142文档编号／交付守卫通过（tmp/business-analysis-*）。HTTP核对四域开关关闭不加载样例、严格筛选及无地图DOM；纠正站址旧HTTP仍断言读取时间增长的过期用例，现唯一源时间同版重读不变。首轮新属性放ShellPageContainer被其丢弃，改原生外层承载data标记和aria-busy；JSX中文属性改JS字符串表达式，类型误用MetricListCard.items改正确metrics后通过。
+
+CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直达、容量分页21起／严重空态／判定口径、能效mobile未知和供电切换、经营周月／短信切换、报告日周月、区县运营商17时检索与圆形选区双向保持、三点菜单地图显式站址定位均验证。月报实际下载D:/Downloads/bsmoss-DEMO-MONTH-8c9527a423e0a1446a7d.html（24689字节），编号、检索、圆形选区吻合，报告本期与上期30／31天及日均环比可读。窄屏宽表仅内部横滚。artifacts/business-analysis-qa含桌面／手机截图和checks.json；warn/error空，viewport已reset、临时tab52关闭。初轮全省月报计算耗时较长，后续去重计算并收紧传输；本地演示不视为11万容量验收。
+
+正式/analysis及/reports原授权不变；四独立页预览关闭只显示未开放。真实来源、平台注册、正式业务读模型、容量／恢复／UAT及生产批准继续待办，无外部部署／push或生产上线，不恢复goal／自动任务。

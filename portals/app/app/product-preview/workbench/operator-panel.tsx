@@ -1,4 +1,5 @@
 'use client';
+import BusinessPageLink from './business-page-link';
 import CalendarPanel from './calendar-panel.tsx';
 import PeriodSelector from './period-selector.tsx';
 import {PeriodComparisonLoader} from './period-comparison.tsx';
@@ -23,13 +24,13 @@ function DailyOperatorPanel({region}:{region:RegionDefinition}) {
   const [snapshot,setSnapshot]=useState<OperatorUsage|null>(null),[error,setError]=useState(false),[revision,setRevision]=useState(0);
   const [comparisonOpen,setComparisonOpen]=useState(false);
   const [metric,setMetric]=useState<'bytes'|'voiceSeconds'|'sms'>('bytes');
-  const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:state.hour,selection:state.selection??undefined,search:''}),[region.id,state.cityId,state.countyId,state.operator,state.hour,state.selection]);
+  const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:state.hour,selection:state.selection??undefined,search:state.search}),[region.id,state.cityId,state.countyId,state.operator,state.hour,state.selection,state.search]);
   const period=state.usagePeriod==='hour'?'hour':'day',key=usageContextKey(query,period);
   useEffect(()=>{
     if(!state.usageOpen)return;
     const controller=new AbortController();setError(false);
     const p=new URLSearchParams({regionId:query.regionId,cityId:query.cityId,countyId:query.countyId,operator:query.operator,hour:String(query.hour),period});
-    if(query.selection)p.set('selection',serializeSelection(query.selection));
+    if(query.search)p.set('search',query.search);if(query.selection)p.set('selection',serializeSelection(query.selection));
     fetch('/api/product-preview/operators?'+p,{signal:controller.signal}).then(async r=>{if(!r.ok)throw Error('usage_failed');return r.json();}).then(result=>{if(!controller.signal.aborted)setSnapshot(result);}).catch(()=>{if(!controller.signal.aborted)setError(true);});
     return()=>controller.abort();
   },[query,period,state.usageOpen,revision]);
@@ -40,7 +41,7 @@ function DailyOperatorPanel({region}:{region:RegionDefinition}) {
   const unit=metric==='bytes'?'GiB':metric==='voiceSeconds'?'\u5c0f\u65f6':'\u6761';
   const max=result?Math.max(1,...result.series.map(h=>h.rows.reduce((sum,r)=>sum+r[metric],0))):1;
   return <aside className="mw-comparison mw-operator-panel" aria-label={'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}>
-    <header><span><Table2 size={15}/>{'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}</span><div><small>{'\u6a21\u62df\u6570\u636e'}</small><button aria-label={'\u5173\u95ed\u4f7f\u7528\u6838\u67e5'} onClick={()=>state.set({usageOpen:false})}><X size={15}/></button></div></header>
+    <header><span><Table2 size={15}/>{'\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5'}</span><div><BusinessPageLink kind="operator-usage"/><small>{'\u6a21\u62df\u6570\u636e'}</small><button aria-label={'\u5173\u95ed\u4f7f\u7528\u6838\u67e5'} onClick={()=>state.set({usageOpen:false})}><X size={15}/></button></div></header>
     <div className="mw-comparison-context"><span>{scope+(state.selection?' \xb7 '+selectionLabel(state.selection):'')+' \xb7 '+(period==='day'?'\u5168\u5929\u7d2f\u8ba1':String(state.hour).padStart(2,'0')+':00 \u2014 '+String(state.hour+1).padStart(2,'0')+':00')}</span><PeriodSelector mode="usage"/><select aria-label={'\u6838\u67e5\u8fd0\u8425\u5546'} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,playing:false})}><option value="all">{'\u5168\u90e8\u8fd0\u8425\u5546'}</option>{Object.entries(OP_NAMES).map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></div>
     <div className="mw-comparison-content">
       {error?<div className="mw-comparison-empty"><span>{'\u6838\u67e5\u6570\u636e\u52a0\u8f7d\u5931\u8d25'}</span><button onClick={()=>setRevision(v=>v+1)}><RotateCcw size={13}/>{'\u91cd\u8bd5'}</button></div>:!result?<div className="mw-comparison-empty"><LoaderCircle size={22} className="mw-spin"/><span>{'\u6b63\u5728\u6c47\u603b\u4f7f\u7528\u91cf'}</span></div>:<>
