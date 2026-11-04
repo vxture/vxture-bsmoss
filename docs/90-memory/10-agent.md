@@ -1015,3 +1015,9 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 用户批注用量核验／核验记录与其他入口不齐，需保留规划中标记。原因是规划项原用ShellPanelRow，已统一为官方EntryCard，沿用图标、p-md、边框、背景及间距，meta使用官方neutral StatusBadge。规划项无href／onClick，aria-disabled=true且tabIndex=-1，保留文字可读，不开放业务功能。
 
 生产build含类型通过tmp/launcher-planned-card-build.log；CUA1042卡片同宽304.67px、高约77.3px且首行对齐，390卡片310.67px、文档无横溢。强制点击规划项不导航且面板保持打开；工具对禁用链接直接press被拦截，改验正常Tab从运营商用量直接到报告中心、跳过两个规划项。warn/error空，截图artifacts/launcher-planned-card-qa/desktop.png及mobile.png，viewport已reset、tab55关闭。设计232／实施680同步，无依赖／权限／DDL变化，无push或外部部署；63333最终版本以health为准。
+
+## 总体检查与批次重排（2026-11-04）
+
+用户要求按3个通用＋5类10专业检查进展并规划批次。新增70-workplan/50-product-batch-plan.md，30台账顶部和00入口同步。核实9演示可用（3通用＋6专业）、2正式工作区已有本地实现但当前未开放（/analysis、/reports）、2规划中（用量核验、核验记录）；不把HTTP200计业务完成，不按入口数推生产完成率。当前业务基线5850ac7、health ok；11项相关既有单测及11URL检查证据tmp/product-progress-unit.log／http.json。本次纯规划未改页面，无需重做构建或视觉QA，不声称全量回归。
+
+排序B01核验闭环→B02周期分析／报告中心显式隔离演示→B03资源／运行深化及快照刷新语义→B04通用收口六场景客户演示→B05配置治理→B06真实来源／正式读模型→B07 Beta／容量恢复／UAT／生产试点。下一任务B01-01详细设计为ready，尚未设计或实现；规划入口继续禁用，人工核验不改原始测量，演示记录与正式账本隔离。来源／平台／Linux／容量安全恢复／业务签认与生产批准仍待，不恢复goal、自动任务或外部发布。运行页面无变更，63333保留5850ac7业务构建；后续规划提交SHA可与其不同。
