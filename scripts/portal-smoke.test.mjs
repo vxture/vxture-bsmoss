@@ -27,6 +27,12 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test("usage verification never exposes its isolated scenario evidence with preview off",async()=>{
+      const r=await fetch(url+'/usage-review'); assert.equal(r.status,200);
+      const html=await r.text();assert.ok(html.includes('\u6b63\u5f0f\u7528\u91cf\u6838\u9a8c\u5c1a\u672a\u5f00\u653e'));
+      assert.ok(!html.includes('data-usage-review='));assert.ok(!html.includes('bsmoss-demo-review-scenarios-v1'));
+      assert.equal((await fetch(url+'/usage-review/UV-'+'0'.repeat(24))).status,404);
+    });
     await t.test('standalone analysis pages never expose synthetic models when preview is disabled',async()=>{
       for(const path of ['/capacity','/efficiency','/operator-usage','/usage-reports']) {
         const response=await fetch(url+path);assert.equal(response.status,200);
@@ -118,6 +124,24 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test("usage review list and evidence are independent, strictly scoped and preserve return context",async()=>{
+      const response=await fetch(url+'/usage-review');assert.equal(response.status,200);
+      const html=await response.text();assert.ok(html.includes('data-usage-review="list"'));
+      assert.ok(html.includes('\u6838\u9a8c\u573a\u666f\u6837\u4f8b'));assert.ok(!html.includes('maplibregl-canvas'));
+      const match=html.match(/href="(\/usage-review\/UV-[a-f0-9]{24}\?[^"]+)"/);assert.ok(match);
+      const detailPath=match[1].replaceAll('&amp;','&');
+      const detail=await (await fetch(url+detailPath)).text();
+      assert.ok(detail.includes('data-usage-review="detail"'));assert.ok(detail.includes('bsmoss-demo-review-scenarios-v1'));
+      assert.ok(detail.includes('\u56db\u5468\u53c2\u8003\u539f\u503c'));assert.ok(detail.includes('\u7cbe\u786e\u539f\u59cb\u8ba1\u6570'));
+      assert.ok(!detail.includes('maplibregl-canvas'));assert.ok(detail.includes('/usage-review?'));
+      const other=await fetch(url+detailPath+'&selection='+encodeURIComponent('circle:105,32,1000'));assert.equal(other.status,404);
+      assert.equal((await fetch(url+'/usage-review/UV-'+'0'.repeat(24))).status,404);
+      for(const invalid of ['period=hour','city=610300&county=610113','city=610100&city=610200','workspaceId=forged','page=0']) {
+        const invalidHtml=await (await fetch(url+'/usage-review?'+invalid)).text();assert.ok(invalidHtml.includes('\u6838\u9a8c\u7b5b\u9009\u65e0\u6548'));assert.ok(!invalidHtml.includes('data-usage-review="list"'));
+      }
+      const empty=await (await fetch(url+'/usage-review?status=closed')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6838\u9a8c\u7ebf\u7d22'));
+      const month=await (await fetch(url+'/usage-review?period=month&page=2')).text();assert.ok(month.includes('data-usage-review="list"'));
+    });
     await t.test('standalone business modules render without maps and link to scoped map analysis',async()=>{
       const scope='city=610100&county=610113&operator=mobile&hour=17&search=SX-DEMO-006&selection='+encodeURIComponent('circle:108.95,34.26,10000');
       for(const kind of ['capacity','efficiency','operator-usage','usage-reports']) {

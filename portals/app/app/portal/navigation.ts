@@ -1,4 +1,4 @@
-export type PortalPage = "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -22,6 +22,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "usage-reports", label: "\u7528\u91cf\u62a5\u544a", href: "/usage-reports", group: "business" },
     { id: "analysis", label: "\u5468\u671f\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
+    { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
     { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
     { id: "aggregation", label: "\u805a\u5408\u4efb\u52a1", href: "/settings/operations/aggregation", group: "management" },
@@ -53,7 +54,7 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
       ...(preview ? [{ key: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", icon: "chart-pie", description: "\u901a\u8bdd\u3001\u6d41\u91cf\u4e0e\u77ed\u4fe1", page: "operator-usage" as const, href: "/operator-usage" }] : []),
     ] },
     { key: "verification", title: "\u5f02\u5e38\u6838\u9a8c", icon: "shield-check", description: "\u53d1\u73b0\u3001\u8bc1\u636e\u4e0e\u590d\u6838", modules: [
-      planned("usage-review", "\u7528\u91cf\u6838\u9a8c", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570"),
+      ...(preview ? page("usage-review", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570") : [planned("usage-review", "\u7528\u91cf\u6838\u9a8c", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570")]),
       planned("review-history", "\u6838\u9a8c\u8bb0\u5f55", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2"),
     ] },
     { key: "reporting", title: "\u62a5\u544a\u4e2d\u5fc3", icon: "file-text", description: "\u5468\u671f\u6210\u679c\u4e0e\u8ffd\u6eaf", modules: [
