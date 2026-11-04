@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard, Progress,
-  SectionHeader, SegmentedControl, ShellPageContainer, toneEdgeClasses } from "@vxture/design-system";
+  SectionHeader, SegmentedControl, ShellPageContainer, ViewHeader, toneEdgeClasses } from "@vxture/design-system";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
 import { DEFAULT_SITE_QUERY, siteListHref } from "../domains/site-registry/rules";
 import type { PortalDemo } from "./demo";
@@ -22,6 +22,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   const router = useRouter(), [pending, start] = useTransition();
   const [metric, setMetric] = useState<Metric>("bytes");
   if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
+    <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} divider={false} className="pb-0" />
     <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
         <p className="text-body text-muted-foreground">{loginEnabled ? "\u767b\u5f55\u540e\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u5206\u6790\u3001\u62a5\u544a\u4e0e\u7ba1\u7406\u5de5\u4f5c\u533a\u3002" : "\u6b63\u5f0f\u6570\u636e\u5c1a\u672a\u5f00\u653e\uff0c\u7b49\u5f85\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u4e0e\u6765\u6e90\u6388\u6743\u3002"}</p>
@@ -54,8 +55,9 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
 
   return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} aria-busy={pending} className="flex min-w-0 flex-col gap-lg">
-      <h1 className="sr-only">{"\u8fd0\u884c\u603b\u89c8"}</h1>
-      <div className="flex flex-wrap items-center justify-between gap-md" aria-label={"\u603b\u89c8\u8303\u56f4\u4e0e\u65f6\u95f4"}>
+      <div className="flex flex-wrap items-center justify-between gap-md">
+        <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} divider={false} className="pb-0" />
+        <div className="flex min-w-0 flex-wrap items-center gap-md" aria-label={"\u603b\u89c8\u8303\u56f4\u4e0e\u65f6\u95f4"}>
         <div className="flex min-w-0 flex-wrap items-center gap-sm">
           <NativeSelect wrapperClassName="w-auto" aria-label={"\u603b\u89c8\u5730\u5e02"} value={q.cityId} disabled={pending} onChange={e => navigate(e.target.value, "all")}>
             <option value="all">{"\u9655\u897f\u7701 \u00b7 \u5168\u90e8\u5730\u5e02"}</option>{demo.region.cities.map(city => <option key={city.id} value={city.id}>{city.name}</option>)}
@@ -69,6 +71,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           <Button variant="ghost" size="icon-md" disabled={pending} aria-label={"\u91cd\u65b0\u8bfb\u53d6\u603b\u89c8\u6570\u636e"} title={"\u91cd\u65b0\u8bfb\u53d6\u6570\u636e\uff0c\u65f6\u70b9\u4ee5\u6765\u6e90\u6570\u636e\u4e3a\u51c6"} onClick={() => start(() => router.refresh())}>
             <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
           </Button>
+        </div>
         </div>
       </div>
       <section className="sm:hidden" aria-label={"\u7ad9\u7f51\u8d44\u6e90"}>

@@ -1133,3 +1133,7 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 ## 地市用量表头单行（2026-11-04）
 
 用户要求列名称和单位保持一行。home三项表头改为DS原生字符串“流量 / GiB”“通话 / 万分钟”“短信 / 万条”，覆盖上一条两行排布；无需新增CSS或token。数据、单位换算、八列顺序和表内横滚保持。最终生产构建含类型通过tmp/overview-city-header-build.log；CUA904三个表头均nowrap、38.125px高、无子级换行元素，表内775／896px、文档904无横溢；1280截图与checks在artifacts/overview-city-header-qa，warn/error空，viewport reset、临时tab78关闭。152编号／源码ASCII／diff和提交扫描收尾；纯显示修正不重复业务／PG或新增镜像测试，无依赖／权限／事实／DDL变化，无push／外部上线，下一业务仍B01-04，最终63333身份以health为准。
+
+## 运行总览恢复内容区标题（2026-11-04）
+
+用户明确header功能域提示不能替代常态标题。首页用官方ViewHeader恢复可见H1“运行总览”，替换sr-only标题；与地域／快照操作组成可换行首行，不增加描述／重复tag。未开放数据时也有同标题。规格50覆盖先前去大标题决定，实施770追加。生产build含类型通过tmp/overview-title-build.log；CUA904／390 H1均18px、72×25.2px、x24／y72可见，无文档横溢，warn/error空。截图及checks在artifacts/overview-title-qa，viewport reset、临时tab79关闭，用户页保留。152编号／ASCII／diff和提交扫描收尾；纯布局不重复PG／业务或新增镜像测试，无依赖／权限／事实／DDL变化、无push／外部上线，下一业务仍B01-04，最终63333身份见health。
