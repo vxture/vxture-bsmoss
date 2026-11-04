@@ -21,7 +21,6 @@ type Metric = typeof metrics[number]["value"];
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
   const router = useRouter(), [pending, start] = useTransition();
   const [metric, setMetric] = useState<Metric>("bytes");
-  const [regionMetric, setRegionMetric] = useState<"load" | "connectionRate">("load");
   if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
@@ -90,13 +89,13 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
       ]} /></div>
       <OverviewMetrics demo={demo} scope={scope} />
       <OverviewAttention key={q.cityId + q.countyId} demo={demo} />
-      <div className="grid min-w-0 gap-md xl:grid-cols-3">
-        <Card className={"min-w-0 gap-md border-t-medium xl:col-span-2 " + toneEdgeClasses.brand}>
+      <div className="grid min-w-0 auto-rows-fr gap-md xl:grid-cols-3">
+        <Card className={"overview-usage-panel min-h-0 min-w-0 gap-md border-t-medium xl:col-span-2 " + toneEdgeClasses.brand}>
           <CardContent><div className="flex flex-wrap items-center justify-between gap-md border-b border-dashed border-border pb-md">
             <SectionHeader level={3} divider={false} title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} />
             <div className="flex flex-wrap items-center justify-end gap-sm">
               <SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />
-              {more(businessHref("operator-usage", scope), "\u5b8c\u6574\u7528\u91cf\u5206\u6790")}
+              <Button asChild variant="outline" size="sm"><a href={businessHref("operator-usage", scope)}>{"\u7528\u91cf\u5206\u6790"}</a></Button>
             </div></div></CardContent>
           <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
           {usage.physicalSites ? <UsageTrend key={metric} data={series} formatValue={fmt} name={metricName} unit={unit} />
@@ -112,14 +111,16 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           </div>
         </PanelCard>
       </div>
-      <PanelCard title={"\u5730\u5e02\u8fd0\u884c\u6bd4\u8f83"} icon="city" description={"\u6309\u65f6\u6bb5\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0"
-        action={<SegmentedControl ariaLabel={"\u5730\u5e02\u89c2\u5bdf\u6307\u6807"} value={regionMetric} onChange={setRegionMetric} size="sm" items={[{ value: "load", label: "\u8d1f\u8f7d" }, { value: "connectionRate", label: "\u63a5\u901a\u7387" }]} />}>
+      <PanelCard title={"\u5730\u5e02\u8fd0\u884c\u6bd4\u8f83"} icon="city" description={"\u65f6\u6bb5\u7528\u91cf \u00b7 \u6309\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0">
         <DataTable rows={demo.cities} rowKey={row => row.id} columns={[
-          { id: "city", header: "\u5730\u5e02", cell: row => <a className="text-foreground hover:text-primary-text" href={siteListHref({ ...siteQuery, city: row.id })}>{row.name}</a> },
+          { id: "city", header: "\u5730\u5e02", cell: row => <a className="whitespace-nowrap text-foreground hover:text-primary-text" href={siteListHref({ ...siteQuery, city: row.id })}>{row.name}</a> },
           { id: "sites", header: "\u7269\u7406\u7ad9\u5740", align: "numeric", cell: row => number(row.count) },
           { id: "attention", header: "\u9700\u5173\u6ce8\u7ad9\u5740", align: "numeric", cell: row => number(row.warning + row.critical) },
-          { id: "metric", header: regionMetric === "load" ? "\u8d44\u6e90\u8d1f\u8f7d" : "\u63a5\u901a\u7387", align: "numeric", cell: row => readout(row[regionMetric], row.name + (regionMetric === "load" ? "\u8d44\u6e90\u8d1f\u8f7d" : "\u63a5\u901a\u7387")) },
-          { id: "data", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
+          { id: "load", header: "\u8d44\u6e90\u8d1f\u8f7d", align: "numeric", cell: row => readout(row.load, row.name + "\u8d44\u6e90\u8d1f\u8f7d") },
+          { id: "connectionRate", header: "\u63a5\u901a\u7387", align: "numeric", cell: row => readout(row.connectionRate, row.name + "\u63a5\u901a\u7387") },
+          { id: "data", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u6d41\u91cf"}</span><span className="text-muted-foreground">GiB</span></span>, align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
+          { id: "voice", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u901a\u8bdd"}</span><span className="text-muted-foreground">{"\u4e07\u5206\u949f"}</span></span>, align: "numeric", cell: row => number(row.voiceSeconds / 600000, 2) },
+          { id: "sms", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u77ed\u4fe1"}</span><span className="text-muted-foreground">{"\u4e07\u6761"}</span></span>, align: "numeric", cell: row => number(row.sms / 10000, 2) },
         ]} />
       </PanelCard>
       <div className="grid min-w-0 items-start gap-md xl:grid-cols-2">

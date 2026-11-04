@@ -1123,3 +1123,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户要求完整用量分析链接上移、图表占满高度，以及数值提示跟随鼠标。实施770追加：官方Card／CardContent／SectionHeader组合替换本卡PanelCard；操作区含原指标切换及分析链接，窄屏换行，无底部链接。DS BarChart当前固定80px绘图区及右上角读数、无tooltip接口，本页用既有ECharts6专用UsageTrend适配，不改DS／依赖。颜色字体间距圆角从DS计算样式读取，避免rem／calc原始token解析错误。最小高度DS192＋80＝272px、flex自适应，ResizeObserver／主题观察及销毁清理；指针提示边界避让、Home／End／左右键和SR读数，失焦隐藏，24时数据及单位／来源快照不变。
 
 最终生产build含类型通过tmp/overview-usage-chart-build.log。CUA1280／904／390绘图区272px、无文档横溢；同一10点柱原生点击两处移动指针，提示y519.98变480.98，右缘23点提示在图内；通话End读23:00／67.37万分钟、短信左键读18:00／12.83万条，完整分析实际进入operator-usage并保持范围／小时。warn/error空，artifacts/overview-usage-chart-qa含tooltip／width904／mobile及checks，viewport reset／临时tab75关闭。未使用合成事件或浏览器状态注入。152编号、源码ASCII／diff及提交扫描收尾；纯布局不重复PG／业务测试，无数据／权限／DDL／依赖改动、无push／外部部署／生产上线，下一业务切片仍B01-04；最终63333身份见health。
+
+## 趋势卡适配高度、短入口与地市八列比较（2026-11-04）
+
+用户连续批注：趋势卡过高需随运营商卡、完整分析文字过长去icon按钮化、地市负载／接通率无需切换、扩展流量通话短信分列。实施770追加覆盖：图表取消272px最小高度，存在图表的趋势卡局部contain:size，父网格auto-rows-fr由运营商自然内容决定两卡等高；上下排列同高、并排顶底齐。入口官方outline小号按钮“用量分析”无icon，原参数不改。删除regionMetric状态与切换，地市八列含资源负载／接通率两条同样进度，以及时段流量GiB／通话万分钟／短信万条三列，列名和单位两行、按流量排序，城市名单不换行，DS表格内部横滚。
+
+最终生产构建含类型通过tmp/overview-usage-height-build.log；152编号、源码ASCII／diff与提交扫描收尾。CUA1280／904两卡均370.18px、图226.96px，390图190.96px且两卡仍370.18；切换通话／End读数及短入口实际跳转保持范围。地市10行8列20条进度，西安62.6%／98.5%及9362.5GiB／29.43万分钟／2.85万条；直接查询既有summary原量10052894975199bytes／17657381seconds／28478sms换算相符。904表内部775／884px，390实际横滚至634.67、文档390无横溢；城市nowrap。首轮空杨陵区发现EmptyState被压到卡外，改仅有图表时尺寸包含；最终空态两卡298.65px，client=scroll=296无溢出。warn/error空，artifacts/overview-usage-height-qa含desktop／mobile／overview／city-table／city-mobile／empty与两份checks；viewport reset、临时tab76／77关闭，用户页保留。布局修正后不重复PG或新增镜像测试；无事实／权限／DDL／依赖变化、无push／外部部署／上线，下一业务仍B01-04，最终Git及63333身份见health。

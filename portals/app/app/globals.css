@@ -9,7 +9,12 @@
   padding: var(--space-lg);
 }
 
-/* Usage analysis fills the panel body; ECharts observes its available size. */
+/* The operator breakdown sets the shared row height, including stacked cards. */
+.overview-usage-panel:has(.overview-usage-chart) {
+  contain: size;
+}
+
+/* ECharts fills the available body without setting the card's intrinsic height. */
 .overview-usage-chart {
-  min-height: calc(var(--spacing-media-3xl) + var(--spacing-media-lg));
+  min-height: 0;
 }
