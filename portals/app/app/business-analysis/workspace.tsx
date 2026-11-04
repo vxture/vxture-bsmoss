@@ -26,7 +26,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const scale = metric === "bytes" ? 1073741824 : metric === "voiceSeconds" ? 3600 : 1;
  const trend = u ? u.trend.map(p => ({ key: p.key, label: p.label, value: p[metric] / scale })) : demo.trend;
  const comparison = demo.report?.comparison;
- return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="business-analysis max-w-none gap-lg">
+ return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
    <div className="flex flex-wrap items-center justify-between gap-md">
      <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground">
        <span className="text-label text-foreground">{demo.scopeName}</span>

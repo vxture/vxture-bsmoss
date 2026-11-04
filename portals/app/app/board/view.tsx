@@ -50,7 +50,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
   const chart = demo.series.map(row => ({ key: String(row.hour), label: row.hour.toString().padStart(2, "0"),
     value: theme === "traffic" ? row.bytes / 1073741824 : theme === "energy" ? (row.energyWh ?? 0) / 1000 : (row.load ?? 0) * 100 }));
   return <div ref={root} className="decision-board bg-background" data-board-mode="demo">
-    <ShellPageContainer className="max-w-none">
+    <ShellPageContainer className="product-page-inset max-w-none">
       <div className="flex min-w-0 flex-col gap-lg">
         <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u51b3\u7b56\u5927\u5c4f"} description={(city?.name ?? "\u9655\u897f\u7701") + " \u00b7 " + demo.date + " \u00b7 " + context}
           action={<div className="flex flex-wrap items-center gap-sm">

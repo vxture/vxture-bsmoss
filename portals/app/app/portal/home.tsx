@@ -16,7 +16,7 @@ type Metric = typeof metrics[number]["value"];
 
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
   const [metric, setMetric] = useState<Metric>("bytes");
-  if (!demo) return <ShellPageContainer className="max-w-none gap-lg">
+  if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701"} />
     <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
@@ -34,7 +34,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   const unit = metric === "bytes" ? "TiB" : metric === "voiceSeconds" ? "\u4e07\u5206\u949f" : "\u4e07\u6761";
   const fmt = (value: number) => number(metric === "bytes" ? value / 1099511627776 : metric === "voiceSeconds" ? value / 600000 : value / 10000, 2);
   const series = usage.series.map(point => ({ key: String(point.hour), label: String(point.hour).padStart(2, "0"), value: point.rows.reduce((sum, row) => sum + row[metric], 0) }));
-  return <ShellPageContainer className="max-w-none gap-lg">
+  return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
         secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}

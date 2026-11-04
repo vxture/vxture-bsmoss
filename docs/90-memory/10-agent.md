@@ -1035,3 +1035,9 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 详情展示原始计数、逐窗有效量／质量／完成标记、四周参考及有效数量、门槛、规则／基线／映射／服务关系版本及SHA256；BigInt保留原量和分母2，图表近似显示独立单位，缺数不补零。样例不修改地图／报告测量，地图只作物理定位；同版刷新水位固定11月1日00:00，不用电脑时间冒充新数据。当前全部待核验，待复核／已复核真实空态；原因确认／复核／历史／IndexedDB事务CAS未实现，下一B01-04，再B01-05完整双向上下文；正式权限／PG在B06。任务矩阵变10演示＋2正式待接＋1规划，不计生产完成率。
 
 23相关单测、双层类型、最终生产构建、30门户HTTP、147编号及交付守卫、15源码ASCII／diff通过，日志tmp/usage-review-*。首轮build发现client导入server query带node:crypto，已拆client-safe links修正。CUA1042／787／390列表与1440／390详情无横溢，分页page2返回、连续零3成员、隔离候选原值保留但有效空、2/4基线、县／运营商／月／检索／刷新保持、已复核空态、launcher键盘及记录禁用通过；warn/error空。截图artifacts/usage-review-qa，viewport收尾reset、临时tab56关闭，最终Git／63333运行身份以收尾工具及health为准。无DB／权限／依赖改动，不重复PG；未push、真实接入、外部部署或上线，不恢复goal／自动任务。
+
+## 页面内容外边距统一12px（2026-11-04）
+
+用户要求整体页面padding从24收敛12并使用DS token。新增局部product-page-inset，消费calc(var(--space-lg) / 2)，标准密度实测12；ShellPageContainer显式套该类，台账／档案／核验及错误空态同步。旧正式分析／模板根padding、报告／任务列表padding及详情外margin各断点同值，不改卡片内距、header、launcher或地图全画布，不覆写DS token。实施650补记。编辑脚本曾因PowerShell单项数组展开误作字符替换，立即diff发现，仅恢复本轮三文件后用精确补丁修正；最终diff和生产build类型均通过，无残留错误。
+
+生产构建含类型通过tmp/page-inset-build.log；纯布局不重复业务／PG／接口测试。CUA1042首页／台账／档案两层／容量／核验／配置／报告空态及390核验实际padding均12px，文档宽等视口、warn/error空。artifacts/page-inset-qa含desktop／sites／mobile及checks.json；viewport已reset、临时tab57关闭。147文档编号、19源码ASCII／diff和提交扫描收尾；本地Git及63333最终SHA以health为准，无依赖／权限／数据或真实部署变化，未push／外部上线，不恢复自动任务。

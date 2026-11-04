@@ -57,7 +57,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
   ];
   const city = demo.regions.cities.find(c => c.id === q.city), county = demo.regions.counties.find(c => c.id === q.county);
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
-    <div className="flex min-h-0 flex-1 gap-lg p-lg">
+    <div className="product-page-inset flex min-h-0 flex-1 gap-lg">
       <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="building" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
         <div className="site-region-scroll min-h-0 flex-1 overflow-y-auto p-md" tabIndex={0} role="region" aria-label={"\u5730\u57df\u6811\u6eda\u52a8\u533a"}>

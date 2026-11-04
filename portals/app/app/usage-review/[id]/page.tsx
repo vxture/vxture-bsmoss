@@ -9,7 +9,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const { id } = await params;
   let model;
   try { model = reviewDemoDetail(id, await searchParams); }
-  catch (error) { if (!(error instanceof Error && /^(invalid_|query_too_large)/.test(error.message))) throw error; return <ProductFrame active="usage-review"><ShellPageContainer className="max-w-none"><div role="alert"><PanelCard title={"\u6838\u9a8c\u7b5b\u9009\u65e0\u6548"} icon="search"><Button asChild><a href="/usage-review">{"\u91cd\u7f6e\u6838\u9a8c\u8303\u56f4"}</a></Button></PanelCard></div></ShellPageContainer></ProductFrame>; }
+  catch (error) { if (!(error instanceof Error && /^(invalid_|query_too_large)/.test(error.message))) throw error; return <ProductFrame active="usage-review"><ShellPageContainer className="product-page-inset max-w-none"><div role="alert"><PanelCard title={"\u6838\u9a8c\u7b5b\u9009\u65e0\u6548"} icon="search"><Button asChild><a href="/usage-review">{"\u91cd\u7f6e\u6838\u9a8c\u8303\u56f4"}</a></Button></PanelCard></div></ShellPageContainer></ProductFrame>; }
   if (!model) notFound();
   return <ProductFrame active="usage-review" preview><ReviewDetail model={model} /></ProductFrame>;
 }

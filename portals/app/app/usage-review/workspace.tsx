@@ -20,7 +20,7 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
     { id: "site", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push("/sites/" + c.site.id + "?tab=business&period=" + q.period) },
     { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => router.push(reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)) },
   ]} />;
-  return <div data-usage-review="list" aria-busy={pending} className="review-workspace flex h-full min-h-0 w-full flex-col gap-md p-lg sm:p-xl">
+  return <div data-usage-review="list" aria-busy={pending} className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-md">
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-md">
       <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><span className="text-label text-foreground">{model.scopeName}</span><span>{calendarLabel(q.period)}</span>
         {q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>

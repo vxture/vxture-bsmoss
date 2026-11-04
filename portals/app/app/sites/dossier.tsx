@@ -68,7 +68,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     </div>
   </PanelCard>;
   return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-site-dossier-mode="demo" aria-busy={pending}>
-    <div className="shrink-0 border-b border-border bg-card px-lg py-md">
+    <div className="shrink-0 border-b border-border bg-card product-page-inset">
       <div className="mb-sm flex items-center gap-sm text-body-small text-muted-foreground"><Button asChild variant="ghost" size="sm"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
         secondary={<div className="flex gap-sm"><StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge><StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge></div>}
@@ -77,7 +77,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
       </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{demo.date + " \u00b7 " + String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>
     </div>
-    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-lg" aria-label={tabNames[q.tab]}>
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto product-page-inset" aria-label={tabNames[q.tab]}>
       {q.tab === "overview" && <div className="flex flex-col gap-lg">
         <MetricGrid columns={4} items={[
           { id: "operators", icon: "users", label: "\u5171\u4eab\u8fd0\u8425\u5546", value: s.operators.length, description: "\u5bb6" },
