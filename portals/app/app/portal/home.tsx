@@ -118,9 +118,9 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           { id: "attention", header: "\u9700\u5173\u6ce8\u7ad9\u5740", align: "numeric", cell: row => number(row.warning + row.critical) },
           { id: "load", header: "\u8d44\u6e90\u8d1f\u8f7d", align: "numeric", cell: row => readout(row.load, row.name + "\u8d44\u6e90\u8d1f\u8f7d") },
           { id: "connectionRate", header: "\u63a5\u901a\u7387", align: "numeric", cell: row => readout(row.connectionRate, row.name + "\u63a5\u901a\u7387") },
-          { id: "data", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u6d41\u91cf"}</span><span className="text-muted-foreground">GiB</span></span>, align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
-          { id: "voice", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u901a\u8bdd"}</span><span className="text-muted-foreground">{"\u4e07\u5206\u949f"}</span></span>, align: "numeric", cell: row => number(row.voiceSeconds / 600000, 2) },
-          { id: "sms", header: <span className="flex flex-col items-end gap-2xs"><span>{"\u77ed\u4fe1"}</span><span className="text-muted-foreground">{"\u4e07\u6761"}</span></span>, align: "numeric", cell: row => number(row.sms / 10000, 2) },
+          { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
+          { id: "voice", header: "\u901a\u8bdd / \u4e07\u5206\u949f", align: "numeric", cell: row => number(row.voiceSeconds / 600000, 2) },
+          { id: "sms", header: "\u77ed\u4fe1 / \u4e07\u6761", align: "numeric", cell: row => number(row.sms / 10000, 2) },
         ]} />
       </PanelCard>
       <div className="grid min-w-0 items-start gap-md xl:grid-cols-2">

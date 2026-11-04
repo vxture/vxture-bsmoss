@@ -1129,3 +1129,7 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户连续批注：趋势卡过高需随运营商卡、完整分析文字过长去icon按钮化、地市负载／接通率无需切换、扩展流量通话短信分列。实施770追加覆盖：图表取消272px最小高度，存在图表的趋势卡局部contain:size，父网格auto-rows-fr由运营商自然内容决定两卡等高；上下排列同高、并排顶底齐。入口官方outline小号按钮“用量分析”无icon，原参数不改。删除regionMetric状态与切换，地市八列含资源负载／接通率两条同样进度，以及时段流量GiB／通话万分钟／短信万条三列，列名和单位两行、按流量排序，城市名单不换行，DS表格内部横滚。
 
 最终生产构建含类型通过tmp/overview-usage-height-build.log；152编号、源码ASCII／diff与提交扫描收尾。CUA1280／904两卡均370.18px、图226.96px，390图190.96px且两卡仍370.18；切换通话／End读数及短入口实际跳转保持范围。地市10行8列20条进度，西安62.6%／98.5%及9362.5GiB／29.43万分钟／2.85万条；直接查询既有summary原量10052894975199bytes／17657381seconds／28478sms换算相符。904表内部775／884px，390实际横滚至634.67、文档390无横溢；城市nowrap。首轮空杨陵区发现EmptyState被压到卡外，改仅有图表时尺寸包含；最终空态两卡298.65px，client=scroll=296无溢出。warn/error空，artifacts/overview-usage-height-qa含desktop／mobile／overview／city-table／city-mobile／empty与两份checks；viewport reset、临时tab76／77关闭，用户页保留。布局修正后不重复PG或新增镜像测试；无事实／权限／DDL／依赖变化、无push／外部部署／上线，下一业务仍B01-04，最终Git及63333身份见health。
+
+## 地市用量表头单行（2026-11-04）
+
+用户要求列名称和单位保持一行。home三项表头改为DS原生字符串“流量 / GiB”“通话 / 万分钟”“短信 / 万条”，覆盖上一条两行排布；无需新增CSS或token。数据、单位换算、八列顺序和表内横滚保持。最终生产构建含类型通过tmp/overview-city-header-build.log；CUA904三个表头均nowrap、38.125px高、无子级换行元素，表内775／896px、文档904无横溢；1280截图与checks在artifacts/overview-city-header-qa，warn/error空，viewport reset、临时tab78关闭。152编号／源码ASCII／diff和提交扫描收尾；纯显示修正不重复业务／PG或新增镜像测试，无依赖／权限／事实／DDL变化，无push／外部上线，下一业务仍B01-04，最终63333身份以health为准。
