@@ -1069,3 +1069,13 @@ build含类型（tmp/map-entry-audit-build.log）、148编号／ASCII／diff通�
 ## 运行总览命名、header同色与launcher外框（2026-11-04）
 
 用户将门户首页改运行总览，系统名称与功能域字色都浅色一致；追加launcher图标大小不变、外轮廓及hover扩大。navigation／chrome／地图返回链接统一运行总览，功能域使用与系统名称相同DS text-muted-foreground。ShellIconButton仅补size-control-2xl rounded-lg，原Icon lg不变。规格50／实施740同步。最终build含类型、149编号、ASCII／diff通过，tmp/overview-header-{build,docs}.log。CUA按钮40×40、图标24×24、圆角10px；两名称computed色同为oklch(0.556 0 0)，hover命中且官方accent有填色。鼠标／Escape／Enter开合和launcher运行总览跳转正确，390按钮40且无文档横溢；warn/error空。证据artifacts/overview-header-qa/{header,mobile}.png与checks.json，viewport reset／tab68关闭，用户45保留。纯布局文案不新增镜像单测或重复业务／PG；无依赖／权限／数据／DDL变化，Git／63333版本以health为准，无push／外部部署、goal或自动任务。
+
+## 运行总览提升首批（2026-11-04）
+
+用户确认七板块方案并要求执行，首批实施750：陕西省市县URL联动／服务端严格校验、同范围资源及三域摘要、运行参数备用供电与温度≥35°C计数、重点站址前置与统一运行档案下钻、三指标趋势及运营商数量／单位／占比／排序同步、地市负载／接通率切换。去重复标题／决策按钮／快捷目录，保留SR h1与DS 24px，窄屏四项资源收为官方MetricListCard。电耗全日累计、18:00状态分开；刷新不冒充新来源水位，运行计数独立于地图点位上限。无站群时趋势及结构用空态，不画零量峰值；首页没有地图入口，本期报告只保留同范围已有入口。
+
+新增4契约＋既有5分析测试共9通过，最终生产build含类型、完整30门户HTTP、150文档编号、5源码ASCII和diff通过，tmp/overview-stage1-*。初次契约误引用registry.total改实际summary.sites后通过；HTTP首轮发现历史断言仍要求旧决策大屏／核验场景样例和已删除首页地图入口，按现行产品规则修正并补范围断言，最终30全通过；不计首轮失败为成功。补丁两次因重复目标／上下文未匹配被工具拒绝，无文件半写，拆分精确补丁后通过。
+
+CUA实际验证流量／通话／短信趋势与结构，市240及雁塔县16座与全部业务href保范围，进入SX-DEMO-006运行档案返回，刷新保持窗口，换市清县，空县杨陵无统计对象／服务关系、非法省市可重置；地市接通率切换、1042／390无文档横溢、24px、warn/error空。证据artifacts/overview-stage1-qa/{overview,desktop,mobile,empty}.png与checks.json，viewport已reset、临时tab69已关闭，用户tab保留。
+
+规格50／台账30／计划50同步最新用户优先事项。下一批是重点事项原因与证据、同源核验摘要及真实报告动态；再指标扩展、可比周期及显示配置。B01人工确认／复核／记录和B04整批均未完成；无新增费用／退役、权限／依赖／DDL，无PG重跑、真实接入、外部部署、push、goal或自动任务。最终Git及63333身份以收尾health为准。

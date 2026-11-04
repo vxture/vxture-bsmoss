@@ -119,7 +119,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
     await t.test('decision board fails closed with preview disabled',async()=>{
       const response=await fetch(url+'/board');assert.equal(response.status,200);
-      const html=await response.text();assert.ok(html.includes('\u51b3\u7b56\u5927\u5c4f\u5c1a\u672a\u5f00\u653e'));
+      const html=await response.text();assert.ok(html.includes('\u51b3\u7b56\u5206\u6790\u5c1a\u672a\u5f00\u653e'));
       for(const sample of ['data-board-mode="demo"','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!html.includes(sample));
     });
   });
@@ -127,7 +127,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test("usage review list and evidence are independent, strictly scoped and preserve return context",async()=>{
       const response=await fetch(url+'/usage-review');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('data-usage-review="list"'));
-      assert.ok(html.includes('\u6838\u9a8c\u573a\u666f\u6837\u4f8b'));assert.ok(!html.includes('maplibregl-canvas'));
+      assert.ok(html.includes('\u53ea\u8bfb'));assert.ok(!html.includes('maplibregl-canvas'));
       const match=html.match(/href="(\/usage-review\/UV-[a-f0-9]{24}\?[^"]+)"/);assert.ok(match);
       const detailPath=match[1].replaceAll('&amp;','&');
       const detail=await (await fetch(url+detailPath)).text();
@@ -196,22 +196,30 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const exported=await fetch(url+'/api/report-exports/demo-job?format=html');assert.equal(exported.status,401);assert.equal(exported.headers.get('x-content-type-options'),'nosniff');assert.ok(exported.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await exported.json()).code,'AUTH_REQUIRED');
       for(const path of ['/api/report-jobs?kind=export','/api/report-jobs/untrusted?kind=generation'])assert.equal((await fetch(url+path)).status,401);assert.equal((await fetch(url+'/operations/reports')).status,200);assert.equal((await fetch(url+'/api/aggregate-jobs?status=dead')).status,401);assert.equal((await fetch(url+'/api/aggregate-jobs/demo-job/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
     });
-    await t.test("portal home summarizes synthetic data and links to the separately gated map",async()=>{
+    await t.test("overview scopes its business summaries and leaves map navigation to the launcher",async()=>{
       const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,200);
       const home=await root.text();assert.ok(home.includes('data-portal-mode="demo"'));assert.ok(home.includes('2026-10-25'));
-      assert.ok(home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
+      assert.ok(!home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
+      const scoped=await (await fetch(url+'/?city=610100&county=610113')).text();
+      assert.ok(scoped.includes('href="/sites?city=610100&amp;county=610113"'));
+      assert.ok(scoped.includes('data-overview-structure="bytes"'));
+      assert.ok(!scoped.includes('/sites/DEMO-00419'));
+      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=12']) {
+        const invalid=await (await fetch(url+'/?'+query)).text();
+        assert.ok(invalid.includes('\u603b\u89c8\u8303\u56f4\u65e0\u6548'));assert.ok(!invalid.includes('data-portal-mode="demo"'));
+      }
       const page=await fetch(url+"/product-preview");assert.equal(page.status,200);
       const html=await page.text();assert.ok(html.includes("SX-DEMO-001"));assert.ok(html.includes("shaanxi-scenario-v1"));
     });
     await t.test('decision board is independent, scoped and has no default station selection',async()=>{
       const response=await fetch(url+'/board');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('data-board-mode="demo"'));assert.ok(html.includes('2026-10-25'));
-      assert.ok(html.includes('\u51b3\u7b56\u5927\u5c4f'));assert.ok(!html.includes('mw-app mw-hud'));
+      assert.ok(html.includes('\u51b3\u7b56\u5206\u6790'));assert.ok(!html.includes('mw-app mw-hud'));
       const scoped=await (await fetch(url+'/board?city=610100&hour=12')).text();
       assert.ok(scoped.includes('12:00'));assert.ok(scoped.includes('/product-preview?hour=12&amp;city=610100'));
       for(const query of ['city=110100','hour=24','hour=12&hour=18','workspaceId=forged']){
         const invalid=await (await fetch(url+'/board?'+query)).text();
-        assert.ok(invalid.includes('\u5927\u5c4f\u7b5b\u9009\u65e0\u6548'));assert.ok(!invalid.includes('data-board-mode="demo"'));
+        assert.ok(invalid.includes('\u51b3\u7b56\u5206\u6790\u7b5b\u9009\u65e0\u6548'));assert.ok(!invalid.includes('data-board-mode="demo"'));
       }
     });
     const post=body=>fetch(url+"/api/product-preview",{method:"POST",headers:{"Content-Type":"application/json"},body:typeof body==="string"?body:JSON.stringify(body)});
