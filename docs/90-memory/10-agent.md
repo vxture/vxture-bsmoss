@@ -1005,3 +1005,7 @@ build含类型、140编号／ASCII／diff通过；CUA1042操作行46.09px、搜�
 CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直达、容量分页21起／严重空态／判定口径、能效mobile未知和供电切换、经营周月／短信切换、报告日周月、区县运营商17时检索与圆形选区双向保持、三点菜单地图显式站址定位均验证。月报实际下载D:/Downloads/bsmoss-DEMO-MONTH-8c9527a423e0a1446a7d.html（24689字节），编号、检索、圆形选区吻合，报告本期与上期30／31天及日均环比可读。窄屏宽表仅内部横滚。artifacts/business-analysis-qa含桌面／手机截图和checks.json；warn/error空，viewport已reset、临时tab52关闭。初轮全省月报计算耗时较长，后续去重计算并收紧传输；本地演示不视为11万容量验收。
 
 正式/analysis及/reports原授权不变；四独立页预览关闭只显示未开放。真实来源、平台注册、正式业务读模型、容量／恢复／UAT及生产批准继续待办，无外部部署／push或生产上线，不恢复goal／自动任务。
+
+## 站网地图提升全局入口（2026-11-04）
+
+用户批注把站网地图放到决策大屏后面：launcher顶行依次门户首页／决策大屏／站网地图，从运行监管分组移除地图；官方EntryCard尺寸、原用途说明、图标及响应式网格沿用。map目录顺序调整，预览关闭仍无地图链接；管理域不变。导航两项既有回归同步顺序及去重并通过，最终生产build含类型通过tmp/launcher-map-top-build.log。CUA1042三卡同行、业务分组地图0项；390首次变更viewport即时测量命中Radix尚未重定位尺寸，重新在该尺寸打开确认实际卡片310.67px／x32、单列顺序正确。点击进入/product-preview?hour=18，无默认site，warn/error空；截图artifacts/launcher-map-top-qa/desktop.png及mobile.png，viewport已reset，tab53／54关闭。设计232／实施680及信息结构同步；纯目录调整不重复业务／PG测试，无权限／依赖／DDL变化，无外部部署。

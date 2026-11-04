@@ -14,8 +14,8 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
   const entries: PortalEntry[] = [
     { id: "home", label: "\u95e8\u6237\u9996\u9875", href: "/", group: "business" },
     { id: "board", label: "\u51b3\u7b56\u5927\u5c4f", href: "/board", group: "business" },
-    { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
     ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
+    { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
     { id: "capacity", label: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", href: "/capacity", group: "business" },
     { id: "efficiency", label: "\u8fd0\u884c\u4e0e\u80fd\u6548", href: "/efficiency", group: "business" },
     { id: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", href: "/operator-usage", group: "business" },
@@ -43,7 +43,6 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
       { key: "service-relations", label: "\u670d\u52a1\u5173\u7cfb", icon: "users", description: "\u8fd0\u8425\u5546\u4e0e\u8bbe\u5907\u8d44\u6e90", href: "/sites?view=relations" },
     ] },
     { key: "supervision", title: "\u8fd0\u884c\u76d1\u7ba1", icon: "gauge", description: "\u72b6\u6001\u3001\u8d28\u91cf\u4e0e\u80fd\u6548", modules: [
-      ...page("map", "map-pin", "\u7a7a\u95f4\u5b9a\u4f4d\u4e0e\u5355\u7ad9\u8c03\u67e5"),
       ...(preview ? [
         { key: "capacity", label: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", icon: "gauge", description: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", page: "capacity" as const, href: "/capacity" },
         { key: "efficiency", label: "\u8fd0\u884c\u4e0e\u80fd\u6548", icon: "lightning", description: "\u7269\u7406\u7535\u8017\u4e0e\u8fd0\u884c\u53c2\u6570", page: "efficiency" as const, href: "/efficiency" },
