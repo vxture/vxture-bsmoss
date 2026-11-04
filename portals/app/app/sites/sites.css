@@ -7,6 +7,23 @@
   line-height: var(--label-line-height);
   font-weight: var(--label-font-weight);
 }
+/* Pagination is auxiliary navigation, not a business action label. */
+.site-workspace .site-registry-pagination button {
+  font-size: var(--label-small-font-size);
+  line-height: var(--label-small-line-height);
+  font-weight: var(--label-small-font-weight);
+}
+/* Compatibility for published design-ui 12.0.0 via design-system 15.0.0.
+   Mirrors the upstream Pagination fix without patching dependencies. Remove
+   after consuming a release with pagination-pages and verifying its geometry. */
+.site-registry-pagination:not([data-slot="pagination"]) > div:last-child > div:last-child {
+  gap: var(--space-xs);
+}
+.site-registry-pagination:not([data-slot="pagination"]) button:not([aria-label]) {
+  min-width: var(--space-control-md);
+  padding-inline: var(--space-2xs);
+  font-variant-numeric: tabular-nums;
+}
 .site-workspace :is(table, thead) {
   font-size: var(--body-font-size);
   line-height: var(--body-line-height);

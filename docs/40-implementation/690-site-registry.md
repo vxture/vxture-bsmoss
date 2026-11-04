@@ -90,3 +90,11 @@ CUA1042实测四卡各约162px、同top299.77且右界992.66位于列表内；�
 ## 隐藏滚动条保留滚动（2026-11-03）
 
 地域树增加site-region-scroll，台账原site-table-scroll与DataTable内部overflow-x-auto统一使用scrollbar-width:none和WebKit伪元素隐藏，移除旧stable gutter，保留原overflow。树和列表增加tabIndex=0／命名region及局部focus-visible轮廓，支持键盘滚动；不隐藏其他业务页滚动条，不用overflow:hidden或脚本模拟滚动。生产build与浏览器证据见tmp/site-scroll-build.log和artifacts/site-scroll-qa。
+
+## 分页组件根因及源头修正（2026-11-04）
+
+实测原数字页码39.1–42.5px宽／24px高，箭头24px、gap4px；源头是DS普通md按钮横向padding叠加站址14px字号。D:/MyWebSite/vxture/vxture-design的官方Pagination改数字最小control-md＋px-2xs／tabular-nums、gap-xs，增加data-slot；不修改全局Button。BSMOSS仍用design-system15.0.0／design-ui12.0.0，registry仅挂局部分页class，CSS恢复官方12px导航字与限定旧版结构的等效布局，含移除条件，未改依赖锁定或node_modules。DS变更为未发布源码修正，不能视为已发布版本。
+
+DS18项分页／Checkbox相关回归、UI类型、UI构建／DTS、组件类名守卫及相关ESLint通过；新增三位数窗口与Enter／Space行为验证。首次测试类型把浏览器locator的exact选项带入Testing Library，类型检查拦截后移除并复查通过。产品生产build含类型通过（tmp/site-pagination-build.log），纯布局不重复数据库／业务全量测试。
+
+CUA1042实测单数字与箭头均24px、gap8px、12px字，末页54正确禁用下一页／末页，Enter上一页到53；关系末页196显示192–196且每个32.67px宽，无文字溢出，Space到195保留view=relations。390全页scrollWidth390，分页342px内末按钮右界347.33，正常换行且完整可达；1440无横溢，首页返回正常。artifacts/site-pagination-qa保存desktop／three-digit／mobile／wide截图与checks.json。最终Git及63333health为准；不push、不发布DS包或外部部署。

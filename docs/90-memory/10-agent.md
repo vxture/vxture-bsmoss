@@ -978,3 +978,9 @@ CUA1440面板x24／y72／256×804，主区透明；收起后主区x24／宽1392�
 用户要求地域树隐藏滚动条、列表隐藏或极细，统一隐藏原生条。site-region-scroll／台账site-table-scroll／内部DataTable overflow-x-auto使用scrollbar-width:none＋WebKit伪元素display:none；移除stable gutter，保持原overflow及横向滚动。树和列表新增命名region、tabIndex=0与官方border-width-medium／ring的focus-visible轮廓，键盘可达；仅台账局部，不影响档案或全局。
 
 生产build含类型（tmp/site-scroll-build.log）、140编号、源码ASCII／diff通过。CUA1042两区scrollbarWidth none／webkit none、gutter auto／overflow auto；树653高内容1027，列表655高内容1894，表格内宽714内容961保持横向空间。树PageDown到374且列表0，列表PageDown到573.33且树374，Home两者归0；文档宽1042无溢出。artifacts/site-scroll-qa含desktop.png／checks，warn/error空、viewport reset、临时tab48关闭。纯布局不重复业务／HTTP／PG，设计233／实施690同步，无依赖／DDL／权限变化。最终commit及63333以Git／health为准，无push或外部部署。
+
+## 分页尺寸与间距源头修正（2026-11-04）
+
+用户要求分析本页还是DS并彻底修正。原DS数字Button md左右16px，数字39–42px／箭头24px、gap4px；站址14px覆盖叠加。上游D:/MyWebSite/vxture/vxture-design官方Pagination改min-w-control-md／px-2xs／tabular-nums、gap-xs，加pagination／pagination-pages数据槽，更新Unreleased与三位数键盘回归。DS未发布，无包版本改动；产品仍消费发布伞包15／UI12，site-registry-pagination旧版局部兼容样式镜像修复，检测新版槽后不生效、升级验证后移除。分页恢复官方label-small12px，业务字号不改。
+
+DS18项相关测试／类型／构建DTS／类名守卫／ESLint通过，产品build含类型通过。首次新增测试错误使用Testing Library不支持exact选项，已由类型拦截并修正通过。CUA1042单数字24px／gap8px；54末页禁用正确，Enter上一页53；关系196末页三位数32.67px不溢，Space195保留关系视图；390无横溢且342px分页完整，1440正常。证据artifacts/site-pagination-qa、tmp/site-pagination-build.log和DS.tmp/pagination-fix-*。设计233／实施690同步，最终commit／health见收尾；无push、依赖／DDL／权限变化或外部发布，不建goal／自动任务。
