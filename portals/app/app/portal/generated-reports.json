@@ -1,0 +1,355 @@
+{
+  "schema": "bsmoss-overview-reports-v1",
+  "version": "shaanxi-scenario-v1/bsmoss-demo-calendar-v2/bsmoss-demo-daily-v3/bsmoss-demo-period-report-v3/bsmoss-demo-period-comparison-v2",
+  "reports": {
+    "day": {
+      "id": "DEMO-DAY-38eab5eb033728465ab6",
+      "period": "day",
+      "templateVersion": "bsmoss-demo-daily-v3",
+      "window": {
+        "start": "2026-10-25T00:00:00+08:00",
+        "end": "2026-10-26T00:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "dates": [
+          "2026-10-25"
+        ]
+      },
+      "sites": 1080,
+      "relations": 3902,
+      "totals": {
+        "bytes": "599736141363170",
+        "voiceSeconds": "1124022473",
+        "sms": "1806246"
+      },
+      "energyWh": 59374424,
+      "runtime": {
+        "samples": 25920,
+        "temperatureMean": 28.588888888890434,
+        "temperatureMin": 25.7,
+        "temperatureMax": 37.4,
+        "batterySiteHours": 540,
+        "batterySites": 180
+      },
+      "comparison": {
+        "comparable": true,
+        "reason": "matched",
+        "previous": {
+          "window": {
+            "start": "2026-10-24T00:00:00+08:00",
+            "end": "2026-10-25T00:00:00+08:00",
+            "timezone": "Asia/Shanghai"
+          },
+          "days": 1,
+          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "physicalSites": 1080,
+          "serviceRelations": 3902,
+          "expectedSamples": 25920,
+          "observedSamples": 25920,
+          "expectedServiceSamples": 93648,
+          "observedServiceSamples": 93648,
+          "totals": {
+            "bytes": "581598917756626",
+            "upBytes": "110503794374123",
+            "downBytes": "471095123382503",
+            "voiceSeconds": 1084411557,
+            "sms": 1751780,
+            "attempts": 10968584,
+            "connected": 10739596,
+            "used": 824589699,
+            "capacity": 2592014160,
+            "connectionRate": 0.9791232851934215,
+            "load": 0.31812700398210786
+          },
+          "energyWh": 59248484
+        },
+        "metrics": {
+          "bytes": {
+            "current": "599736141363170",
+            "previous": "581598917756626",
+            "delta": "18137223606544",
+            "rate": 0.03118510549590404,
+            "dailyRate": 0.03118510549590404,
+            "status": "comparable"
+          },
+          "voiceSeconds": {
+            "current": "1124022473",
+            "previous": "1084411557",
+            "delta": "39610916",
+            "rate": 0.03652756718084295,
+            "dailyRate": 0.03652756718084295,
+            "status": "comparable"
+          },
+          "sms": {
+            "current": "1806246",
+            "previous": "1751780",
+            "delta": "54466",
+            "rate": 0.031091803765312995,
+            "dailyRate": 0.031091803765312995,
+            "status": "comparable"
+          }
+        }
+      },
+      "busy": {
+        "hour": 19,
+        "bytes": "48480084554112",
+        "share": 0.08083568958162037,
+        "date": "2026-10-25"
+      },
+      "highestLoad": {
+        "hour": 19,
+        "value": 0.6576541757781138
+      },
+      "lowestConnection": {
+        "hour": 13,
+        "value": 0.9684066444195683
+      },
+      "downloadHref": "/api/product-preview/reports?hour=18&cityId=all&countyId=all&format=html"
+    },
+    "week": {
+      "id": "DEMO-WEEK-0ee40f50f154310623b1",
+      "period": "week",
+      "templateVersion": "bsmoss-demo-period-report-v3",
+      "window": {
+        "start": "2026-10-19T00:00:00+08:00",
+        "end": "2026-10-26T00:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "dates": [
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ]
+      },
+      "sites": 1080,
+      "relations": 3902,
+      "totals": {
+        "bytes": "4083174098665638",
+        "voiceSeconds": "7631793981",
+        "sms": "12293598"
+      },
+      "energyWh": 414075913,
+      "runtime": {
+        "samples": 181440,
+        "temperatureMean": 28.5460317460301,
+        "temperatureMin": 24.8,
+        "temperatureMax": 38.3,
+        "batterySiteHours": 3780,
+        "batterySites": 180
+      },
+      "comparison": {
+        "comparable": true,
+        "reason": "matched",
+        "previous": {
+          "window": {
+            "start": "2026-10-12T00:00:00+08:00",
+            "end": "2026-10-19T00:00:00+08:00",
+            "timezone": "Asia/Shanghai"
+          },
+          "days": 7,
+          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "physicalSites": 1080,
+          "serviceRelations": 3902,
+          "expectedSamples": 181440,
+          "observedSamples": 181440,
+          "expectedServiceSamples": 655536,
+          "observedServiceSamples": 655536,
+          "totals": {
+            "bytes": "3982649608576823",
+            "upBytes": "756703425632090",
+            "downBytes": "3225946182944733",
+            "voiceSeconds": 7439983317,
+            "sms": 11990815,
+            "attempts": 74972467,
+            "connected": 73586507,
+            "used": 5661064924,
+            "capacity": 18144099120,
+            "connectionRate": 0.981513746906581,
+            "load": 0.31200584204039555
+          },
+          "energyWh": 412927084
+        },
+        "metrics": {
+          "bytes": {
+            "current": "4083174098665638",
+            "previous": "3982649608576823",
+            "delta": "100524490088815",
+            "rate": 0.025240606121193988,
+            "dailyRate": 0.025240606121193988,
+            "status": "comparable"
+          },
+          "voiceSeconds": {
+            "current": "7631793981",
+            "previous": "7439983317",
+            "delta": "191810664",
+            "rate": 0.025781061035677587,
+            "dailyRate": 0.025781061035677587,
+            "status": "comparable"
+          },
+          "sms": {
+            "current": "12293598",
+            "previous": "11990815",
+            "delta": "302783",
+            "rate": 0.025251244389976828,
+            "dailyRate": 0.025251244389976828,
+            "status": "comparable"
+          }
+        }
+      },
+      "busy": {
+        "date": "2026-10-24",
+        "hour": 19,
+        "bytes": "48794935457378",
+        "share": 0.011950246126738498
+      },
+      "highestLoad": {
+        "date": "2026-10-25",
+        "hour": 19,
+        "value": 0.6576541757781138
+      },
+      "lowestConnection": {
+        "date": "2026-10-24",
+        "hour": 13,
+        "value": 0.961306366851286
+      },
+      "downloadHref": "/api/product-preview/reports?hour=18&cityId=all&countyId=all&period=week&format=html"
+    },
+    "month": {
+      "id": "DEMO-MONTH-e0198bae245f89fd428a",
+      "period": "month",
+      "templateVersion": "bsmoss-demo-period-report-v3",
+      "window": {
+        "start": "2026-10-01T00:00:00+08:00",
+        "end": "2026-11-01T00:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "dates": [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-31"
+        ]
+      },
+      "sites": 1080,
+      "relations": 3902,
+      "totals": {
+        "bytes": "17693161582452974",
+        "voiceSeconds": "33060910296",
+        "sms": "53282049"
+      },
+      "energyWh": 1829444652,
+      "runtime": {
+        "samples": 803520,
+        "temperatureMean": 28.550179211475054,
+        "temperatureMin": 24.8,
+        "temperatureMax": 38.3,
+        "batterySiteHours": 16740,
+        "batterySites": 180
+      },
+      "comparison": {
+        "comparable": true,
+        "reason": "matched",
+        "previous": {
+          "window": {
+            "start": "2026-09-01T00:00:00+08:00",
+            "end": "2026-10-01T00:00:00+08:00",
+            "timezone": "Asia/Shanghai"
+          },
+          "days": 30,
+          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "physicalSites": 1080,
+          "serviceRelations": 3902,
+          "expectedSamples": 777600,
+          "observedSamples": 777600,
+          "expectedServiceSamples": 2809440,
+          "observedServiceSamples": 2809440,
+          "totals": {
+            "bytes": "16053369318899954",
+            "upBytes": "3050140170599943",
+            "downBytes": "13003229148300011",
+            "voiceSeconds": 30023219363,
+            "sms": 48372657,
+            "attempts": 302186488,
+            "connected": 296928202,
+            "used": 22843372956,
+            "capacity": 77760424800,
+            "connectionRate": 0.9825992021191894,
+            "load": 0.2937660514941014
+          },
+          "energyWh": 1757796250
+        },
+        "metrics": {
+          "bytes": {
+            "current": "17693161582452974",
+            "previous": "16053369318899954",
+            "delta": "1639792263553020",
+            "rate": 0.10214629907146407,
+            "dailyRate": 0.06659319264980393,
+            "status": "comparable"
+          },
+          "voiceSeconds": {
+            "current": "33060910296",
+            "previous": "30023219363",
+            "delta": "3037690933",
+            "rate": 0.10117805476729082,
+            "dailyRate": 0.06565618203286208,
+            "status": "comparable"
+          },
+          "sms": {
+            "current": "53282049",
+            "previous": "48372657",
+            "delta": "4909392",
+            "rate": 0.10149105516366405,
+            "dailyRate": 0.06595908564225553,
+            "status": "comparable"
+          }
+        }
+      },
+      "busy": {
+        "date": "2026-10-31",
+        "hour": 19,
+        "bytes": "49796766454064",
+        "share": 0.0028144640075773385
+      },
+      "highestLoad": {
+        "date": "2026-10-25",
+        "hour": 19,
+        "value": 0.6576541757781138
+      },
+      "lowestConnection": {
+        "date": "2026-10-31",
+        "hour": 13,
+        "value": 0.9611942370355218
+      },
+      "downloadHref": "/api/product-preview/reports?hour=18&cityId=all&countyId=all&period=month&format=html"
+    }
+  }
+}

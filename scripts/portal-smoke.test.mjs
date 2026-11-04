@@ -27,6 +27,11 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test("overview never exposes cached synthetic report summaries with preview off",async()=>{
+      const r=await fetch(url+'/?reportPeriod=month');assert.equal(r.status,200);
+      const html=await r.text();
+      for(const marker of ['data-overview-report=','data-overview-attention=','bsmoss-demo-review-scenarios-v1','DEMO-MONTH-']) assert.ok(!html.includes(marker));
+    });
     await t.test("usage verification never exposes its isolated scenario evidence with preview off",async()=>{
       const r=await fetch(url+'/usage-review'); assert.equal(r.status,200);
       const html=await r.text();assert.ok(html.includes('\u6b63\u5f0f\u7528\u91cf\u6838\u9a8c\u5c1a\u672a\u5f00\u653e'));
@@ -199,12 +204,19 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test("overview scopes its business summaries and leaves map navigation to the launcher",async()=>{
       const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,200);
       const home=await root.text();assert.ok(home.includes('data-portal-mode="demo"'));assert.ok(home.includes('2026-10-25'));
+      assert.ok(home.includes('data-overview-attention="capacity"'));assert.ok(home.includes('data-overview-verification'));
+      assert.ok(home.includes('data-overview-report="day"'));assert.ok(home.includes('bsmoss-demo-review-scenarios-v1'));
+      for(const period of ['week','month']) {
+        const report=await (await fetch(url+'/?reportPeriod='+period)).text();
+        assert.ok(report.includes('data-overview-report="'+period+'"'));
+        assert.ok(report.includes('period='+period+'&amp;format=html'));
+      }
       assert.ok(!home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
       const scoped=await (await fetch(url+'/?city=610100&county=610113')).text();
       assert.ok(scoped.includes('href="/sites?city=610100&amp;county=610113"'));
       assert.ok(scoped.includes('data-overview-structure="bytes"'));
       assert.ok(!scoped.includes('/sites/DEMO-00419'));
-      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=12']) {
+      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=12','reportPeriod=year','reportPeriod=day&reportPeriod=week']) {
         const invalid=await (await fetch(url+'/?'+query)).text();
         assert.ok(invalid.includes('\u603b\u89c8\u8303\u56f4\u65e0\u6548'));assert.ok(!invalid.includes('data-portal-mode="demo"'));
       }

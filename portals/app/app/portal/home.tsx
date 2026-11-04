@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart, Button, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard, Progress,
-  SegmentedControl, ShellPageContainer, StatusBadge } from "@vxture/design-system";
+  SegmentedControl, ShellPageContainer } from "@vxture/design-system";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
-import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref } from "../domains/site-registry/rules";
+import { DEFAULT_SITE_QUERY, siteListHref } from "../domains/site-registry/rules";
 import type { PortalDemo } from "./demo";
+import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
 const number = (v: number, digits = 0) => v.toLocaleString("zh-CN", { maximumFractionDigits: digits });
@@ -36,6 +37,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
     const params = new URLSearchParams();
     if (city !== "all") params.set("city", city);
     if (county !== "all") params.set("county", county);
+    if (demo.report.period !== "day") params.set("reportPeriod", demo.report.period);
     start(() => router.push("/" + (params.size ? "?" + params : ""), { scroll: false }));
   };
   const unit = metric === "bytes" ? "TiB" : metric === "voiceSeconds" ? "\u4e07\u5206\u949f" : "\u4e07\u6761";
@@ -73,7 +75,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: <a href={siteListHref(siteQuery)}>{number(usage.physicalSites)}</a> },
           { key: "relations", label: "\u670d\u52a1\u5173\u7cfb", value: <a href={siteListHref(siteQuery, { view: "relations" })}>{number(usage.serviceRelations)}</a> },
           { key: "shared", label: "\u5171\u4eab\u7ad9\u5740", value: <a href={siteListHref(siteQuery, { sharing: "shared" })}>{number(usage.sharedSites)}</a> },
-          { key: "attention", label: "\u9700\u5173\u6ce8", value: <a href="#overview-attention">{number(status.warning + status.critical)}</a> },
+          { key: "attention", label: "\u72b6\u6001\u5173\u6ce8", value: <a href="#overview-attention">{number(status.warning + status.critical)}</a> },
         ]} />
       </section>
       <div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u7ad9\u7f51\u8d44\u6e90"} items={[
@@ -81,7 +83,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
         { id: "relations", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: <a href={siteListHref(siteQuery, { view: "relations" })} className="hover:underline">{number(usage.serviceRelations)}</a>, description: "\u6761", icon: "database", tone: "info" },
         { id: "shared", label: "\u5171\u4eab\u7ad9\u5740", value: <a href={siteListHref(siteQuery, { sharing: "shared" })} className="hover:underline">{number(usage.sharedSites)}</a>,
           description: "\u5171\u4eab\u7387 " + percent(usage.physicalSites ? usage.sharedSites / usage.physicalSites : null), icon: "share", tone: "success" },
-        { id: "attention", label: "\u9700\u5173\u6ce8\u7ad9\u5740", value: <a href="#overview-attention" className="hover:underline">{number(status.warning + status.critical)}</a>,
+        { id: "attention", label: "\u8fd0\u884c\u72b6\u6001\u5173\u6ce8", help: "\u6309\u7ad9\u5740\u72b6\u6001\u7edf\u8ba1\u5173\u6ce8\u4e0e\u5f02\u5e38\uff1b\u4e0b\u65b9\u4e13\u9898\u6309\u6307\u6807\u9608\u503c\u72ec\u7acb\u5224\u5b9a\uff0c\u5404\u4e13\u9898\u6570\u91cf\u4e0d\u76f8\u52a0\u3002", value: <a href="#overview-attention" className="hover:underline">{number(status.warning + status.critical)}</a>,
           description: "\u5173\u6ce8 " + number(status.warning) + " / \u5f02\u5e38 " + number(status.critical), icon: "gauge", tone: "warning" },
       ]} /></div>
       <section className="grid min-w-0 gap-md lg:grid-cols-3" aria-label={"\u4e09\u57df\u8fd0\u884c\u6458\u8981"}>
@@ -101,18 +103,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           { key: "temperature", label: "\u226535\u00b0C / \u5ea7", value: number(demo.runtime.hot) },
         ]} footer={more(businessHref("efficiency", scope), "\u8fd0\u884c\u4e0e\u80fd\u6548")} />
       </section>
-      <section id="overview-attention" className="scroll-mt-lg">
-        <PanelCard title={"\u91cd\u70b9\u5173\u6ce8"} icon="flag" description={hour + " \u00b7 \u6309\u8fd0\u884c\u72b6\u6001\u3001\u65f6\u6bb5\u6d41\u91cf\u6392\u5e8f \u00b7 \u524d5\u5ea7"} tone="warning"
-          action={more(siteListHref(siteQuery, { sort: "load", direction: "desc" }), "\u67e5\u770b\u7ad9\u5740\u53f0\u8d26")}>
-          <DataTable rows={demo.priorities} rowKey={row => row.id} columns={[
-            { id: "site", header: "\u7ad9\u5740", cell: row => <a className="text-foreground hover:text-primary-text" href={siteDetailHref(row.id, siteQuery, { tab: "runtime" })}>{row.name}</a> },
-            { id: "city", header: "\u5730\u5e02", cell: row => row.city },
-            { id: "status", header: "\u8fd0\u884c\u72b6\u6001", cell: row => <StatusBadge size="sm" tone={row.status === "critical" ? "danger" : "warning"}>{row.status === "critical" ? "\u5f02\u5e38" : "\u5173\u6ce8"}</StatusBadge> },
-            { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "numeric", cell: row => readout(row.load, row.name + "\u65f6\u6bb5\u8d1f\u8f7d") },
-            { id: "data", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.trafficGiB, 1) },
-          ]} empty={<EmptyState title={"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u9700\u5173\u6ce8\u7ad9\u5740"} />} />
-        </PanelCard>
-      </section>
+      <OverviewAttention key={q.cityId + q.countyId} demo={demo} />
       <div className="grid min-w-0 gap-md xl:grid-cols-3">
         <PanelCard title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} className="min-w-0 xl:col-span-2" tone="brand"
           action={<SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />}>
@@ -139,9 +130,12 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           { id: "data", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
         ]} />
       </PanelCard>
+      <div className="grid min-w-0 items-start gap-md xl:grid-cols-2">
+        <OverviewVerification demo={demo} />
+        <OverviewReport demo={demo} />
+      </div>
       <footer className="flex flex-wrap justify-between gap-sm text-body-small text-muted-foreground">
         <span>{"\u7269\u7406\u7ad9\u5740\u4e0e\u670d\u52a1\u5173\u7cfb\u5206\u522b\u5f52\u96c6 \u00b7 \u7535\u8017\u6309\u7269\u7406\u7ad9\u5740\u7edf\u8ba1"}</span>
-        {more(businessHref("usage-reports", scope), "\u67e5\u770b\u672c\u671f\u7528\u91cf\u62a5\u544a")}
       </footer>
     </div>
   </ShellPageContainer>;

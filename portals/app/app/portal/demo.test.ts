@@ -3,6 +3,14 @@ import assert from "node:assert/strict";
 import { portalDemoSummary } from "./demo";
 import { businessDemo } from "../business-analysis/model";
 import { registryDemo } from "../domains/site-registry/demo-store";
+import { queryDailyReport, queryCalendarReport } from "../domains/map-demo/service";
+import { reviewDemo, reviewDemoDetail } from "../domains/usage-verification/demo";
+import { DEMO_SITES } from "../domains/map-demo/resources";
+import { siteHour } from "../domains/map-demo/rules";
+import { evaluateTopic } from "../domains/map-demo/topic-rules";
+import { overviewSignals, overviewTriggers } from "./overview-rules";
+import { REPORT_SUMMARY_VERSION, summarizeOverviewReport } from "./report-summary";
+import generatedReports from "./generated-reports.json";
 
 test("overview province and city totals reconcile without duplicating shared physical sites", () => {
   const province = portalDemoSummary();
@@ -49,7 +57,87 @@ test("unchanged refresh retains source windows and a valid empty county has no f
 
 test("overview rejects ambiguous, unknown and incompatible region scopes", () => {
   for (const input of [{ city: ["610100", "610200"] }, { city: "110100" }, { county: "610113" },
-    { city: "610300", county: "610113" }, { workspaceId: "forged" }, { hour: "12" }]) {
+    { city: "610300", county: "610113" }, { workspaceId: "forged" }, { hour: "12" },
+    { reportPeriod: "year" }, { reportPeriod: ["day", "week"] }]) {
     assert.throws(() => portalDemoSummary(input));
+  }
+});
+
+test("topic counts and consecutive evidence agree with independent topic rules without future slots", () => {
+  const sites = DEMO_SITES.slice(0, 24);
+  for (const hour of [0, 12, 18, 23]) for (const group of overviewSignals(sites, hour)) {
+    for (const level of ["normal", "warning", "critical", "unknown"] as const) {
+      assert.equal(group.counts[level], sites.filter(site => evaluateTopic(group.topic, siteHour(site, hour)).level === level).length);
+    }
+    for (const row of group.rows) {
+      const site = sites.find(site => site.id === row.site.id)!;
+      assert.ok(row.triggers.length > 0);
+      assert.equal(row.series.length, hour + 1);
+      assert.equal(row.series.at(-1)!.hour, hour);
+      assert.ok(row.series.slice(-row.streak).every(s => s.level === "warning" || s.level === "critical"));
+      if (row.streak <= hour) assert.ok(!["warning", "critical"].includes(row.series[hour - row.streak].level));
+      assert.equal(row.operators.reduce((n, op) => n + op.bytes, 0), siteHour(site, hour).bytes);
+      assert.ok(Math.abs(row.operators.reduce((n, op) => n + (op.share ?? 0), 0) - 1) < 1e-12);
+    }
+  }
+  assert.ok(overviewSignals(sites, 12).find(g => g.topic === "power")!.rows.some(row => row.triggers.includes("battery")));
+});
+
+test("trigger explanations obey exact thresholds and do not diagnose an unknown energy value", () => {
+  const m = siteHour(DEMO_SITES[0], 18);
+  assert.deepEqual(overviewTriggers("capacity", { ...m, capacity: 100, used: 85, attempts: 100, connected: 98 }), ["load"]);
+  assert.deepEqual(overviewTriggers("capacity", { ...m, capacity: 0, attempts: 0 }), []);
+  assert.deepEqual(overviewTriggers("power", { ...m, power: "mains", temperature: 35 }), ["temperature"]);
+  assert.deepEqual(overviewTriggers("efficiency", { ...m, energyWh: null }), []);
+  assert.deepEqual(overviewSignals([], 18).map(g => g.rows), [[], [], []]);
+});
+
+test("all six verification kinds reconcile to the scoped independent evidence list", () => {
+  const d = portalDemoSummary(), v = d.verification, expected = reviewDemo({ status: "open" });
+  assert.equal(v.total, expected.total);
+  assert.deepEqual(v.counts, expected.counts);
+  assert.equal(v.kinds.reduce((n, k) => n + k.count, 0), v.total);
+  assert.ok(v.kinds.every(k => k.count > 0 && k.sample));
+  for (const { sample, kind } of v.kinds) {
+    const detail = reviewDemoDetail(sample!.id, Object.fromEntries(new URL(sample!.href, "http://localhost").searchParams))!;
+    assert.equal(detail.item.kind, kind);
+    assert.equal(sample!.current, detail.item.current);
+    if (kind === "missing") assert.equal(sample!.current, null);
+    if (kind === "insufficient") assert.equal(sample!.validReferences, 2);
+    if (kind === "zero_run") assert.equal(Date.parse(sample!.end) - Date.parse(sample!.start), 3 * 3600000);
+  }
+  const empty = portalDemoSummary({ city: "610400", county: "610403" });
+  assert.equal(empty.verification.total, 0);
+  assert.ok(empty.verification.kinds.every(k => !k.sample));
+});
+
+test("report day/week/month summaries and download IDs match the report engine while daily overview stays fixed", () => {
+  const base = { city: "610100", county: "610113" }, day = portalDemoSummary(base);
+  for (const reportPeriod of ["day", "week", "month"] as const) {
+    const overview = portalDemoSummary({ ...base, reportPeriod });
+    const params = new URLSearchParams({ cityId: base.city, countyId: base.county, hour: "18" });
+    const expected = reportPeriod === "day" ? queryDailyReport(params) : queryCalendarReport(new URLSearchParams({ ...Object.fromEntries(params), period: reportPeriod }));
+    assert.equal(overview.report.id, expected.id);
+    assert.equal(overview.report.totals.bytes, String(expected.usage.totals.bytes));
+    assert.deepEqual(overview.report.runtime, expected.runtime);
+    assert.deepEqual(overview.report.comparison.metrics, expected.comparison!.metrics);
+    assert.deepEqual(overview.usage.totals, day.usage.totals);
+    assert.deepEqual(overview.status, day.status);
+    assert.equal(overview.report.window.dates.length, reportPeriod === "day" ? 1 : reportPeriod === "week" ? 7 : 31);
+    assert.equal(new URL(overview.report.downloadHref, "http://localhost").searchParams.get("format"), "html");
+    assert.equal(overview.report.runtime.samples, overview.report.sites * overview.report.window.dates.length * 24);
+    assert.equal("contribution" in overview.report.comparison, false);
+  }
+});
+
+test("immutable province summaries reconcile exactly with the report engine and version", () => {
+  assert.equal(generatedReports.schema, "bsmoss-overview-reports-v1");
+  assert.equal(generatedReports.version, REPORT_SUMMARY_VERSION);
+  const params = new URLSearchParams({ hour: "18", cityId: "all", countyId: "all" });
+  for (const period of ["day", "week", "month"] as const) {
+    const source = period === "day" ? queryDailyReport(params) : queryCalendarReport(new URLSearchParams({ ...Object.fromEntries(params), period }));
+    const expected = summarizeOverviewReport(source, period, params);
+    assert.deepEqual(generatedReports.reports[period], expected);
+    assert.deepEqual(portalDemoSummary({ reportPeriod: period }).report, expected);
   }
 });
