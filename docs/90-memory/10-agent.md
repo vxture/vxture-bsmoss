@@ -1065,3 +1065,7 @@ build含类型（tmp/map-entry-audit-build.log）、148编号／ASCII／diff通�
 ## 决策分析命名统一（2026-11-04）
 
 用户将“决策大屏”改为“决策分析”。navigation／home／board page与view／network-map共5文件同步页面、入口、功能域及无障碍名称；模块board和/board路由、地图newtab与全部原功能不改。规格50／实施740同步。生产构建含类型通过tmp/decision-analysis-name-build.log；CUA首页与launcher名称正确、实际点击进入/board，header与H1均决策分析，旧名0、warn/error空；截图artifacts/decision-analysis-name-qa/page.png，临时tab67关闭，用户45保留。纯命名不新增镜像单测或重复业务／PG验证；ASCII／diff／149编号收尾。最终Git和63333身份以health为准，无push／外部部署、goal或自动任务。
+
+## 运行总览命名、header同色与launcher外框（2026-11-04）
+
+用户将门户首页改运行总览，系统名称与功能域字色都浅色一致；追加launcher图标大小不变、外轮廓及hover扩大。navigation／chrome／地图返回链接统一运行总览，功能域使用与系统名称相同DS text-muted-foreground。ShellIconButton仅补size-control-2xl rounded-lg，原Icon lg不变。规格50／实施740同步。最终build含类型、149编号、ASCII／diff通过，tmp/overview-header-{build,docs}.log。CUA按钮40×40、图标24×24、圆角10px；两名称computed色同为oklch(0.556 0 0)，hover命中且官方accent有填色。鼠标／Escape／Enter开合和launcher运行总览跳转正确，390按钮40且无文档横溢；warn/error空。证据artifacts/overview-header-qa/{header,mobile}.png与checks.json，viewport reset／tab68关闭，用户45保留。纯布局文案不新增镜像单测或重复业务／PG；无依赖／权限／数据／DDL变化，Git／63333版本以health为准，无push／外部部署、goal或自动任务。

@@ -1,5 +1,7 @@
 # 业务命名与环境标识收敛
 
+命名及header更新（2026-11-04）：用户将“门户首页”改为“运行总览”，同步launcher、header功能域及品牌返回链接、独立地图返回链接。系统名称与紧随其后的功能域名称统一使用DS `text-muted-foreground`，保留观澜品牌原色；不调整路由或功能。构建及页面证据位于`tmp/overview-header-build.log`和`artifacts/overview-header-qa/`。
+
 命名更新（2026-11-04）：用户要求“决策大屏”改为“决策分析”。launcher、首页按钮、功能域与页面标题、未开放／无效筛选提示及无障碍标签同步，路由`/board`、模块ID及功能保持原行为。构建与浏览器证据见`tmp/decision-analysis-name-build.log`、`artifacts/decision-analysis-name-qa/`及本轮记忆。
 
 2026-11-04，按用户要求，页面以正式业务视角组织，“演示”只保留为环境tag。
@@ -22,3 +24,5 @@
 浏览器检查15个路由／页签状态：门户首页、大屏、关系列表、站址总览／设备／资料、容量、能效、用量、报告、核验列表／详情、配置、指标配置、版权说明。前13状态均仅header有1次标识，正文0次，辅助页面0次，title／aria-label／placeholder均无重复环境文案；无文档横溢。launcher面板0次环境字样、正式业务名称可读，账户为访客；地图帮助内容0次，地图独立header保留tag。390手机报告页保留唯一tag且无文档横溢，viewport已reset。warn/error为空，临时tab66关闭，用户原tab45保留。首轮快速导航后即时DOM读取尚未稳定，已改逐页domSnapshot后读取并确认结果，不使用首轮空结果作为证据。
 
 截图与检查结果位于`artifacts/business-copy-qa/`，最终运行版本以Git和health为准。本轮没有新增与实现镜像的文案单测，也未重复业务计算或PG验收。
+
+launcher按钮补充：保留官方ShellIconButton与原Icon lg，仅通过className使用DS size-control-2xl和rounded-lg扩大点击与hover外框，不覆写DS token，不修改图标大小或面板交互。标准密度目标按钮40px、图标24px。

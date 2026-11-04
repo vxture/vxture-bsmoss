@@ -36,7 +36,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
     meta={item.id === active ? <Icon name="check-circle" size="sm" aria-label={"\u5f53\u524d\u9875\u9762"} /> : undefined}
     className={(management ? "p-lg" : "p-md") + (item.id === active ? " bg-primary-muted" : "")} onClick={() => setOpen(false)} />;
   return <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild><ShellIconButton icon="app-grid" label={panelLabels[domain]}><Icon name="app-grid" size="lg" /></ShellIconButton></PopoverTrigger>
+    <PopoverTrigger asChild><ShellIconButton icon="app-grid" label={panelLabels[domain]} className="size-control-2xl rounded-lg"><Icon name="app-grid" size="lg" /></ShellIconButton></PopoverTrigger>
     <ShellPanelContent align="start" aria-label={panelLabels[domain]} onOpenAutoFocus={() => firstEntry.current?.focus()}
       className={"portal-launcher gap-xl p-xl bg-gradient-to-b from-gradient-card-from to-gradient-card-to" + (management ? "" : " portal-launcher-business")}>
       {management ? <>

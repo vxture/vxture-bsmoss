@@ -12,7 +12,7 @@ export function portalDomain(page: PortalPage): PortalDomain {
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
   const entries: PortalEntry[] = [
-    { id: "home", label: "\u95e8\u6237\u9996\u9875", href: "/", group: "business" },
+    { id: "home", label: "\u8fd0\u884c\u603b\u89c8", href: "/", group: "business" },
     { id: "board", label: "\u51b3\u7b56\u5206\u6790", href: "/board", group: "business" },
     ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
     { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },

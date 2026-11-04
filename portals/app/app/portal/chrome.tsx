@@ -24,14 +24,14 @@ export default function ProductChrome({ active, preview, children, identity, log
   return <ShellViewport sidebarMode={!management || mobile ? "hidden" : collapsed ? "collapsed" : "expanded"}
     header={<ShellHeader leading={<>
       <ProductLauncher active={active} preview={preview} />
-      <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u95e8\u6237\u9996\u9875"}>
+      <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
           <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
         <span className="hidden truncate text-heading-2 font-semibold text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
       </a>
       <div className="flex min-w-0 items-center gap-sm">
         <ShellHeaderDivider />
-        <span className="truncate whitespace-nowrap text-label font-semibold text-foreground sm:text-heading-2">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
+        <span className="truncate whitespace-nowrap text-label font-semibold text-muted-foreground sm:text-heading-2">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
         {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<>
