@@ -37,10 +37,9 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
-        secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}
         action={<Button asChild size="xl"><a href="/board"><Icon name="chart-bar" size="sm" />{"\u51b3\u7b56\u5927\u5c4f"}</a></Button>} />
       <MetricGrid columns={4} aria-label={"\u7ad9\u7f51\u6982\u51b5"} items={[
-        { id: "sites", label: "\u6f14\u793a\u7ad9\u5740", value: number(usage.physicalSites), description: "\u5ea7", icon: "map-pin" },
+        { id: "sites", label: "\u7ad9\u5740\u8d44\u6e90", value: number(usage.physicalSites), description: "\u5ea7", icon: "map-pin" },
         { id: "relations", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: number(usage.serviceRelations), description: "\u6761", icon: "database", tone: "info" },
         { id: "shared", label: "\u5171\u4eab\u7ad9\u5740", value: number(usage.sharedSites), description: "\u5ea7", icon: "share", tone: "success" },
         { id: "attention", label: "\u9700\u5173\u6ce8\u7ad9\u5740", value: number(status.warning + status.critical), description: "18:00", icon: "gauge", tone: "warning" },
@@ -88,7 +87,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
             { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
           ]} />
         </PanelCard>
-        <PanelCard title={"\u7ad9\u5740\u72b6\u6001\u89c2\u5bdf"} description={"18:00 \u00b7 \u6a21\u62df\u72b6\u6001"} tone="warning" className="min-w-0">
+        <PanelCard title={"\u7ad9\u5740\u72b6\u6001\u89c2\u5bdf"} description={"18:00 \u00b7 \u65f6\u6bb5\u72b6\u6001"} tone="warning" className="min-w-0">
           <DataTable rows={demo.priorities} rowKey={row => row.id} columns={[
             { id: "site", header: "\u7ad9\u5740", cell: row => <a className="flex flex-col gap-2xs text-foreground hover:text-primary-text" target="_blank" rel="noopener noreferrer" href={"/product-preview?hour=18&site=" + row.id}><span>{row.name}</span><span className="text-label-micro text-muted-foreground">{row.city}</span></a> },
             { id: "status", header: "\u72b6\u6001", cell: row => <StatusBadge size="sm" tone={row.status === "critical" ? "danger" : row.status === "warning" ? "warning" : "success"}>{row.status === "critical" ? "\u91cd\u70b9" : row.status === "warning" ? "\u5173\u6ce8" : "\u6b63\u5e38"}</StatusBadge> },
@@ -99,11 +98,11 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
       </div>
       <section className="grid gap-md sm:grid-cols-2 xl:grid-cols-3" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
         <EntryCard href="/sites" icon="building" title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u53f0\u8d26\u3001\u6863\u6848\u3001\u8d44\u6e90\u4e0e\u670d\u52a1\u5173\u7cfb"} />
-        <EntryCard href="/usage-reports" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
-        <EntryCard href="/analysis" icon="chart-line-up" title={"\u6b63\u5f0f\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />
+        <EntryCard href="/usage-reports" icon="file-text" title={"\u7528\u91cf\u62a5\u544a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
+        <EntryCard href="/analysis" icon="chart-line-up" title={"\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />
       </section>
       <footer className="flex flex-wrap justify-between gap-xs text-body-small text-content-tertiary">
-        <span>{"\u56fa\u5b9a\u6f14\u793a\u65e5\u671f \u00b7 1,080 \u4e2a\u6a21\u62df\u7ad9\u5740\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u63a5\u5165\u3002"}</span>
+        <span>{"\u7edf\u8ba1\u8303\u56f4\u6309\u7269\u7406\u7ad9\u5740\u4e0e\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u5206\u522b\u5f52\u96c6\u3002"}</span>
         <span>{"\u7269\u7406\u7535\u8017\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</span>
       </footer>
     </div>

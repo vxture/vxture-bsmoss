@@ -13,8 +13,8 @@ export interface HeaderIdentity {
   workspace: string | null;
 }
 
-export default function ProductAccount({ identity, loginEnabled, preview, consoleHref }: {
-  identity: HeaderIdentity | null; loginEnabled: boolean; preview: boolean; consoleHref?: string;
+export default function ProductAccount({ identity, loginEnabled, consoleHref }: {
+  identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string;
 }) {
   const logout = useRef<HTMLFormElement>(null);
   const login = (switchAccount = false) => {
@@ -29,7 +29,7 @@ export default function ProductAccount({ identity, loginEnabled, preview, consol
         meta: [identity.workspace, identity.organization].filter(Boolean).join(" \u00b7 "),
         statusTag: { label: "\u5df2\u767b\u5f55" },
       } : {
-        displayName: preview ? "\u6f14\u793a\u8bbf\u5ba2" : "\u8bbf\u5ba2",
+        displayName: "\u8bbf\u5ba2",
         meta: "\u89c2\u6f9c \u00b7 BS-MOSS", statusTag: { label: "\u672a\u767b\u5f55" },
       }}
       links={identity && consoleHref ? [{ key: "account", label: "\u8d26\u6237\u4e2d\u5fc3", icon: "user-circle", href: consoleHref, newTab: true }] : []}

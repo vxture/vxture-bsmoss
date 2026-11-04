@@ -27,7 +27,7 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
       </div>
       <div className="flex items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u6838\u9a8c\u5217\u8868"} disabled={pending} onClick={() => start(() => router.refresh())}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref(q)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></div>
     </div>
-    <div className="flex shrink-0 flex-wrap items-center gap-sm text-body-small text-muted-foreground"><StatusBadge tone="neutral" size="sm">{"\u6838\u9a8c\u573a\u666f\u6837\u4f8b"}</StatusBadge><span>{"\u72ec\u7acb\u6837\u4f8b\u96c6 \u00b7 \u5730\u56fe\u4ec5\u5b9a\u4f4d\u7ad9\u5740 \u00b7 \u5f53\u524d\u4ec5\u67e5\u770b\u8bc1\u636e"}</span></div>
+    <div className="flex shrink-0 flex-wrap items-center gap-sm text-body-small text-muted-foreground"><StatusBadge tone="neutral" size="sm">{"\u53ea\u8bfb"}</StatusBadge><span>{"\u67e5\u770b\u6838\u9a8c\u7ebf\u7d22\u3001\u539f\u59cb\u8bc1\u636e\u4e0e\u5173\u8054\u7ad9\u5740"}</span></div>
     <form role="search" aria-label={"\u7528\u91cf\u6838\u9a8c\u7b5b\u9009"} onSubmit={e => { e.preventDefault(); navigate({}, { search }); }} className="flex shrink-0 flex-wrap items-center gap-md py-sm">
       <SegmentedControl ariaLabel={"\u6838\u9a8c\u5206\u7c7b"} value={q.category} onChange={category => navigate({ category })} items={Object.entries(categoryNames).map(([value, label]) => ({ value: value as ReviewQuery["category"], label }))} />
       <div className="ml-auto flex max-w-full flex-wrap items-center gap-sm">

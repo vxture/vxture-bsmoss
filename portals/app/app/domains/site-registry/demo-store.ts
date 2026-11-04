@@ -15,7 +15,7 @@ function record(site: DemoSite, hour: number): SiteRecord {
     heightMeters: site.profile === "urban" ? 18 + site.seed % 8 : 30 + site.seed % 26,
     roomType: site.seed % 3 === 0 ? "\u4e00\u4f53\u5316\u673a\u67dc" : "\u6807\u51c6\u673a\u623f",
     commissioned: (2016 + site.seed % 9) + "-" + String(1 + site.seed % 12).padStart(2, "0") + "-01",
-    assetCode: "TT-" + site.id, address: cityName + countyName + " \u00b7 " + site.name + "\u6f14\u793a\u4f4d\u7f6e",
+    assetCode: "TT-" + site.id, address: cityName + countyName + " \u00b7 " + site.name + " \u00b7 \u4f4d\u7f6e\u5f85\u6838\u9a8c",
   };
 }
 function inventory(site: SiteRecord) {

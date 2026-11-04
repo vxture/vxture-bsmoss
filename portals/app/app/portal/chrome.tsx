@@ -32,7 +32,7 @@ export default function ProductChrome({ active, preview, children, identity, log
       <div className="flex min-w-0 items-center gap-sm">
         <ShellHeaderDivider />
         <span className="truncate whitespace-nowrap text-label font-semibold text-foreground sm:text-heading-2">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
-        {preview ? <span className="hidden sm:flex"><StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge></span> : null}
+        {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<>
       <ShellHeaderTools label={"\u64cd\u4f5c\u5de5\u5177"} linkComponent={Link}
@@ -40,7 +40,7 @@ export default function ProductChrome({ active, preview, children, identity, log
         settings={{ label: "\u914d\u7f6e\u7ba1\u7406", href: "/settings" }}
         notifications={{ label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f",
           children: <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p> }} />
-      <ProductAccount identity={identity} loginEnabled={loginEnabled} preview={preview} consoleHref={consoleHref} />
+      <ProductAccount identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
     </>} />}
     sidebar={management ? <div className="hidden h-full min-h-0 md:flex md:flex-col">
       <ShellSidebarNav sections={sections} collapsed={collapsed} onToggleCollapsed={() => setCollapsed(value => !value)}

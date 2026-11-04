@@ -59,7 +59,7 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
     ] },
     { key: "reporting", title: "\u62a5\u544a\u4e2d\u5fc3", icon: "file-text", description: "\u5468\u671f\u6210\u679c\u4e0e\u8ffd\u6eaf", modules: [
       ...page("reports", "file-text", "\u62a5\u544a\u5e93\u4e0e\u5386\u53f2\u7248\u672c"),
-      ...(preview ? [{ key: "report-preview", label: "\u7528\u91cf\u62a5\u544a\u6f14\u793a", icon: "newspaper", description: "\u65e5\u5468\u6708\u62a5\u544a\u4e0e\u5bfc\u51fa", page: "usage-reports" as const, href: "/usage-reports" }] : []),
+      ...(preview ? [{ key: "report-preview", label: "\u7528\u91cf\u62a5\u544a", icon: "newspaper", description: "\u65e5\u5468\u6708\u62a5\u544a\u4e0e\u5bfc\u51fa", page: "usage-reports" as const, href: "/usage-reports" }] : []),
     ] },
   ];
 }

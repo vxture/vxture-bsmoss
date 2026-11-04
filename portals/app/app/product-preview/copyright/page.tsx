@@ -17,8 +17,8 @@ export default function CopyrightPage() {
       <h2 style={{fontSize:17}}>{'\u53ef\u9009\u536b\u661f\u5f71\u50cf'}</h2>
       <p>Tiles &copy; Esri &amp; contributors. World Imagery.</p>
       <p><a style={{color:'#a8c79a'}} href="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer" target="_blank" rel="noopener noreferrer">{'\u5f71\u50cf\u670d\u52a1\u4e0e\u6765\u6e90\u8bf4\u660e'}</a></p>
-      <h2 style={{fontSize:17}}>{'\u6f14\u793a\u4e1a\u52a1\u6570\u636e'}</h2>
-      <p>{'\u7ad9\u5740\u70b9\u4f4d\u3001\u901a\u8bdd\u3001\u6d41\u91cf\u3001\u77ed\u4fe1\u3001\u8fd0\u8425\u6307\u6807\u4e0e\u8bbe\u5907\u72b6\u6001\u4e3a\u4ea7\u54c1\u6f14\u793a\u5408\u6210\u6570\u636e\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u8fd0\u8425\u5546\u6216\u7ad9\u5740\u7684\u751f\u4ea7\u6570\u636e\u3002'}</p>
+      <h2 style={{fontSize:17}}>{'\u4e1a\u52a1\u6570\u636e\u6765\u6e90'}</h2>
+      <p>{'\u7ad9\u5740\u70b9\u4f4d\u3001\u901a\u8bdd\u3001\u6d41\u91cf\u3001\u77ed\u4fe1\u3001\u8fd0\u8425\u6307\u6807\u4e0e\u8bbe\u5907\u72b6\u6001\u4e3a\u5408\u6210\u6570\u636e\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u8fd0\u8425\u5546\u6216\u7ad9\u5740\u7684\u751f\u4ea7\u6570\u636e\u3002'}</p>
     </article>
   </main>;
 }

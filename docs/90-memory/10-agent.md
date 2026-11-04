@@ -1055,3 +1055,9 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 用户要求统计全部地图入口并判断必要性。按独立源码交互位置21处，删除门户页头地图／状态观察通用详情／快捷地图卡片3处与档案来源页签地图调查1处，剩17＝launcher1＋业务上下文14＋指标配置／版权辅助2。共享分析组件按实际路由展开原25／剩21，循环数据行不计功能入口；完整分项见实施730，设计232同步。首页快捷区宽屏改3列，档案运营商菜单改“地图时段用量”。原生链接target=_blank及noopener noreferrer；官方ActionMenu无href接口，三个业务菜单和大屏点位回调同步window.open＋noopener,noreferrer。保留现有参数构造、预览开关和默认无选站。
 
 build含类型（tmp/map-entry-audit-build.log）、148编号／ASCII／diff通过。CUA实际普通区域链接、档案运营商菜单Enter、容量行菜单与核验行菜单各开新tab且来源不变、目标参数正确；逐页锚点属性全通过：首页15条数据下钻／通用0，大屏9数据链接、能效／用量／报告各1、档案资料1、核验详情1、辅助各1、launcher1。大屏canvas点位仅源码／构建验证，未实际点测。warn/error空，截图artifacts/map-entry-audit-qa/{launcher,map}.png及checks.json，临时tab61至65关闭、用户45保留；两个菜单即时tab列表尚未更新，下一次状态读取已确认新tab，无产品失败。核验同站多线索按钮名重复导致工具严格定位拦截，改限定首行成功。无权限／依赖／数据／DDL改动，不重复业务或PG测试。最终本地Git／63333身份以health为准，无push、外部部署、goal或自动任务。
+
+## 正式业务命名与环境标识收敛（2026-11-04）
+
+用户要求除tag外页面／标题／板块不得出现“演示”，按正式系统设计实现。规格50追加明确约束、实施740记录。全站TS／TSX字符串AST核查仅剩门户chrome“演示”与地图header“演示数据”两处tag；门户去首页／大屏／档案重复tag，窄屏header保留。launcher／首页用量报告统一命名、站址资源、访客、地图使用帮助／精简视图、检索／图例／空态／错误／规则／资料／报告正文均业务化。核验仅保留只读实际状态和证据入口，来源版本、缺数、未接入、位置待核验、草稿／复核与合成属性仍如实显示；内部demo ID／模式／API／来源版本／证据及预览开关不改，不表示真实接入或生产就绪。费用／退役／地域范围不改。
+
+最终build含类型、导航及日报／单站报告13项既有测试、149编号／源码ASCII／diff通过，tmp/business-copy-{build,unit,docs}.log。CUA15路由／页签状态前13仅header一次环境标识、正文0／属性0，辅助页0；launcher0、用户面板访客、地图帮助0且独立header保留；390报告唯一tag／文档无横溢，viewport reset。warn/error空，artifacts/business-copy-qa含launcher／report／map-help／mobile与checks，临时tab66关闭，用户45保留。首轮快速goto即时DOM为空未作为证据，逐页domSnapshot后重测通过。文案脚本两次严格断言发现子串先替换／原句误写，受影响文件未写入，修正后通过完整源码扫描和构建。无新增实现镜像测试、无PG／DDL／权限／依赖变更，无push／外部部署、goal或自动任务；最终63333身份以Git与health为准。

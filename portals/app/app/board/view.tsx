@@ -54,7 +54,6 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
       <div className="flex min-w-0 flex-col gap-lg">
         <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u51b3\u7b56\u5927\u5c4f"} description={(city?.name ?? "\u9655\u897f\u7701") + " \u00b7 " + demo.date + " \u00b7 " + context}
           action={<div className="flex flex-wrap items-center gap-sm">
-            <StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>
             <NativeSelect aria-label={"\u5927\u5c4f\u5730\u5e02"} value={demo.cityId} onChange={event => { setPlaying(false); navigate(event.target.value, demo.hour); }} wrapperClassName="w-auto">
               <option value="all">{"\u9655\u897f\u5168\u7701"}</option>{demo.region.cities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
             </NativeSelect>
@@ -124,7 +123,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
             </a>)}</div>
           </PanelCard>
         </section>
-        <p className="text-body-small text-content-tertiary">{"\u56fa\u5b9a\u65e5\u671f\u6a21\u62df\u6570\u636e \u00b7 \u5f53\u524d\u6f14\u793a\u8986\u76d6 1,080 \u4e2a\u7ad9\u5740 \u00b7 \u7269\u7406\u7535\u8017\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</p>
+        <p className="text-body-small text-content-tertiary">{"\u7edf\u8ba1\u53e3\u5f84\uff1a\u7ad9\u5740\u6309\u7269\u7406\u8d44\u6e90\u8ba1\u6570\uff0c\u8fd0\u8425\u5546\u6309\u670d\u52a1\u5173\u7cfb\u5f52\u96c6\uff1b\u7269\u7406\u7535\u8017\u4e0d\u5206\u644a\u3002"}</p>
       </div>
     </ShellPageContainer>
   </div>;

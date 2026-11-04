@@ -25,7 +25,7 @@ export function TopicSettings(){
   const state=useWorkbench(),prefs=state.display.topics[state.topic];
   const update=(patch:Partial<TopicDisplay>)=>state.set({display:{...state.display,topics:{...state.display.topics,[state.topic]:{...prefs,...patch}}}});
   return <details className="mw-topic-config"><summary><SlidersHorizontal size={11}/>{'\u663e\u793a\u914d\u7f6e'}<span>{'\u5f53\u524d\u4e13\u9898'}</span></summary><div>
-    <div className="mw-config-presets"><button onClick={()=>update(defaultDisplay().topics[state.topic])}>{'\u5b8c\u6574\u5206\u6790'}</button><button onClick={()=>update({mapScope:'attention',sections:['trend','priority'],evidence:false,limit:3})}>{'\u6f14\u793a\u7cbe\u7b80'}</button></div>
+    <div className="mw-config-presets"><button onClick={()=>update(defaultDisplay().topics[state.topic])}>{'\u5b8c\u6574\u5206\u6790'}</button><button onClick={()=>update({mapScope:'attention',sections:['trend','priority'],evidence:false,limit:3})}>{'\u7cbe\u7b80\u89c6\u56fe'}</button></div>
     <label className="mw-config-select"><span>{'\u5730\u56fe\u7ad9\u70b9'}</span><select aria-label={'\u4e13\u9898\u5730\u56fe\u7ad9\u70b9'} value={prefs.mapScope} onChange={e=>update({mapScope:e.target.value as TopicDisplay['mapScope']})}><option value="all">{'\u5168\u90e8\u72b6\u6001'}</option><option value="attention">{'\u5173\u6ce8\u4e0e\u672a\u77e5'}</option></select></label>
     <p>{'\u4ec5\u6539\u53d8\u70b9\u4f4d\u663e\u793a\uff0c\u7edf\u8ba1\u53e3\u5f84\u4e0d\u53d8\uff1b\u672a\u77e5\u59cb\u7ec8\u4fdd\u7559\u3002'}</p>
     <div className="mw-config-heading"><strong>{'\u5206\u6790\u533a\u5757'}</strong><small>{'\u52fe\u9009\u663e\u793a \u00b7 \u7bad\u5934\u6392\u5e8f'}</small></div>

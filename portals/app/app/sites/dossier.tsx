@@ -48,7 +48,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     <DetailRow label={"\u7ad9\u70b9\u7c7b\u578b"}>{siteTypeNames[s.siteType]}</DetailRow><DetailRow label={"\u673a\u623f\u5f62\u6001"}>{s.roomType}</DetailRow>
     <DetailRow label={"\u6295\u8fd0\u65e5\u671f"}>{s.commissioned}</DetailRow>
     <DetailRow label={"\u5730\u7406\u5750\u6807"}>{s.lng.toFixed(6) + ", " + s.lat.toFixed(6)}</DetailRow><DetailRow label={"\u6863\u6848\u7248\u672c"}>{demo.version}</DetailRow>
-    <DetailRow label={"\u4f4d\u7f6e\u63cf\u8ff0"}>{s.address}</DetailRow><DetailRow label={"\u6570\u636e\u5c5e\u6027"}>{"\u5408\u6210\u6863\u6848 \u00b7 \u7528\u4e8e\u4e1a\u52a1\u6f14\u793a"}</DetailRow>
+    <DetailRow label={"\u4f4d\u7f6e\u63cf\u8ff0"}>{s.address}</DetailRow><DetailRow label={"\u6570\u636e\u5c5e\u6027"}>{"\u5408\u6210\u6863\u6848"}</DetailRow>
   </DetailList></PanelCard>;
   const focus = <PanelCard title={"\u8fd0\u884c\u5173\u6ce8"} icon="gauge" description={demo.date + " \u00b7 " + time}>
     <div className="flex flex-col gap-lg">{demo.findings.map((f, i) => <div key={i} className="flex items-start gap-md">
@@ -71,7 +71,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     <div className="shrink-0 border-b border-border bg-card product-page-inset">
       <div className="mb-sm flex items-center gap-sm text-body-small text-muted-foreground"><Button asChild variant="ghost" size="sm"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
-        secondary={<div className="flex gap-sm"><StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge><StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge></div>}
+        secondary={<StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge>}
         action={<Button asChild variant="secondary"><a target="_blank" rel="noopener noreferrer" href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>} />
       <div className="mt-md flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
@@ -97,7 +97,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
           <MetricListCard title={"\u65e0\u7ebf\u627f\u8f7d"} icon="stack" metrics={[{ key: "radios", label: "\u65e0\u7ebf\u8bbe\u5907", value: s.operators.length + " \u5957" }, { key: "sharing", label: "\u5171\u4eab\u4e3b\u4f53", value: s.operators.length + " \u5bb6" }, { key: "services", label: "\u670d\u52a1\u4e1a\u52a1", value: "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" }]} />
         </div>
         <PanelCard title={"\u8d44\u6e90\u8bbe\u5907\u6e05\u5355"} icon="table" description={"\u5171\u7528\u8bbe\u65bd\u4e0e\u8fd0\u8425\u5546\u8bbe\u5907\u5206\u522b\u5f52\u5c5e"}><DataTable columns={deviceColumns} rows={demo.devices} rowKey={d => d.id} /></PanelCard>
-        <p className="text-body-small text-muted-foreground">{"\u8d44\u6e90\u89c4\u683c\u4e0e\u8bbe\u5907\u72b6\u6001\u4e3a\u6f14\u793a\u6a21\u578b\uff0c\u4e0d\u66ff\u4ee3\u5b9e\u7269\u5de1\u68c0\u6216\u771f\u5b9e\u8d44\u4ea7\u6e05\u5355\u3002"}</p>
+        <p className="text-body-small text-muted-foreground">{"\u8bbe\u5907\u72b6\u6001\u9700\u7ed3\u5408\u73b0\u573a\u5de1\u68c0\u4e0e\u8d44\u4ea7\u8d44\u6599\u6838\u9a8c\u3002"}</p>
       </div>}
       {q.tab === "services" && <div className="flex flex-col gap-lg"><div className="site-dossier-layout">{serviceMap}
         <PanelCard title={"\u670d\u52a1\u53e3\u5f84"} icon="info"><DetailList><DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u7269\u7406\u7ad9\u5740"}>{"1 \u5ea7"}</DetailRow><DetailRow label={"\u670d\u52a1\u5173\u7cfb"}>{s.operators.length + " \u6761"}</DetailRow><DetailRow label={"\u7ecf\u8425\u6570\u636e"}>{"\u6309\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7edf\u8ba1"}</DetailRow><DetailRow label={"\u7ad9\u5740\u7535\u8017"}>{"\u7269\u7406\u7ad9\u603b\u8868\uff0c\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</DetailRow></DetailList></PanelCard></div>
@@ -152,7 +152,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
           <DetailRow label={"\u72b6\u6001\u65f6\u95f4"}>{demo.date + " \u00b7 " + time + " \u00b7 \u5317\u4eac\u65f6\u95f4"}</DetailRow><DetailRow label={"\u7ecf\u8425\u5468\u671f"}>{periodLabel}</DetailRow><DetailRow label={"\u8d44\u6599\u5c5e\u6027"}>{"\u786e\u5b9a\u6027\u5408\u6210\u6570\u636e"}</DetailRow>
           <DetailRow label={"\u6b63\u5f0f\u6765\u6e90"}>{"\u5f85\u6388\u6743\u63a5\u5165"}</DetailRow><DetailRow label={"\u5b9e\u7269\u6838\u9a8c"}>{"\u672a\u5f00\u5c55"}</DetailRow></DetailList></PanelCard>
           <PanelCard title={"\u8d44\u6599\u6e05\u5355"} icon="file-text"><DetailList>
-            <DetailRow label={"\u7ad9\u5740\u57fa\u7840\u6863\u6848"}>{"\u6f14\u793a\u6863\u6848\u53ef\u67e5"}</DetailRow><DetailRow label={"\u8d44\u6e90\u8bbe\u5907\u660e\u7ec6"}>{"\u573a\u666f\u6a21\u578b\u53ef\u67e5"}</DetailRow>
+            <DetailRow label={"\u7ad9\u5740\u57fa\u7840\u6863\u6848"}>{"\u57fa\u7840\u6863\u6848\u53ef\u67e5"}</DetailRow><DetailRow label={"\u8d44\u6e90\u8bbe\u5907\u660e\u7ec6"}>{"\u573a\u666f\u6a21\u578b\u53ef\u67e5"}</DetailRow>
             <DetailRow label={"\u7ecf\u8425\u670d\u52a1\u5173\u7cfb"}>{"\u6309\u7a33\u5b9a\u7ad9\u5740\u4e0e\u8fd0\u8425\u5546\u7f16\u7801\u5173\u8054"}</DetailRow><DetailRow label={"\u6743\u5c5e / \u79df\u8d41\u51ed\u8bc1"}>{"\u672a\u63a5\u5165"}</DetailRow><DetailRow label={"\u5efa\u8bbe / \u9a8c\u6536\u8d44\u6599"}>{"\u672a\u63a5\u5165"}</DetailRow>
             <DetailRow label={"\u771f\u5b9e\u53d8\u66f4\u5386\u53f2"}>{"\u672a\u63a5\u5165\uff0c\u4e0d\u751f\u6210\u865a\u6784\u8bb0\u5f55"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u5173\u8054\u5206\u6790\u4e0e\u62a5\u544a"} icon="file-text"><div className="flex flex-wrap gap-md">
