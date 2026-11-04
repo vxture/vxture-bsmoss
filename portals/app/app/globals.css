@@ -9,6 +9,19 @@
   padding: var(--space-lg);
 }
 
+/* Overview page gutter is additional to the shared content inset. */
+@media (min-width: 48rem) {
+  .overview-page-gutter {
+    padding-inline: calc(var(--space-lg) + var(--space-md));
+  }
+}
+
+@media (min-width: 80rem) {
+  .overview-page-gutter {
+    padding-inline: calc(var(--space-lg) + var(--space-xl));
+  }
+}
+
 /* The operator breakdown sets the shared row height, including stacked cards. */
 .overview-usage-panel:has(.overview-usage-chart) {
   contain: size;

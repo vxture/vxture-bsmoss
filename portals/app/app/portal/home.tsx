@@ -21,7 +21,7 @@ type Metric = typeof metrics[number]["value"];
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
   const router = useRouter(), [pending, start] = useTransition();
   const [metric, setMetric] = useState<Metric>("bytes");
-  if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
+  if (!demo) return <ShellPageContainer className="product-page-inset overview-page-gutter max-w-none gap-lg">
     <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} divider={false} className="pb-0" />
     <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
@@ -53,7 +53,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
     {value !== null && <Progress value={value * 100} aria-label={label} />}
   </div>;
 
-  return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
+  return <ShellPageContainer className="product-page-inset overview-page-gutter max-w-none gap-lg">
     <div data-portal-mode="demo" data-demo-version={demo.version} aria-busy={pending} className="flex min-w-0 flex-col gap-lg">
       <div className="flex flex-wrap items-center justify-between gap-md">
         <ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} divider={false} className="pb-0" />

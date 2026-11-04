@@ -1137,3 +1137,7 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 ## 运行总览恢复内容区标题（2026-11-04）
 
 用户明确header功能域提示不能替代常态标题。首页用官方ViewHeader恢复可见H1“运行总览”，替换sr-only标题；与地域／快照操作组成可换行首行，不增加描述／重复tag。未开放数据时也有同标题。规格50覆盖先前去大标题决定，实施770追加。生产build含类型通过tmp/overview-title-build.log；CUA904／390 H1均18px、72×25.2px、x24／y72可见，无文档横溢，warn/error空。截图及checks在artifacts/overview-title-qa，viewport reset、临时tab79关闭，用户页保留。152编号／ASCII／diff和提交扫描收尾；纯布局不重复PG／业务或新增镜像测试，无依赖／权限／事实／DDL变化、无push／外部上线，下一业务仍B01-04，最终63333身份见health。
+
+## 运行总览响应式水平页面留白（2026-11-04）
+
+用户同意在24px内容内距外增加左右页面留白。首页两分支增加局部overview-page-gutter，48rem起padding-inline=space-lg＋space-md，80rem起space-lg＋space-xl；手机沿用space-lg，垂直不变。标准密度合计56／40／24px，不改共享token／其他页面／header／地图。规格50及实施770同步。生产build含类型通过tmp/overview-gutter-build.log，152编号通过。CUA1280／904／390 computed padding分别24px 56px／24px 40px／24px，标题x56／40／24，均无文档横溢、warn/error空。artifacts/overview-gutter-qa含desktop／width904／mobile及checks；viewport reset、临时tab80关闭、用户页保留。源码ASCII／diff与提交扫描收尾，纯布局不新增镜像测试或重复业务／PG；无事实／权限／依赖／DDL变化、无push／外部上线，下一业务仍B01-04；最终63333身份见health。
