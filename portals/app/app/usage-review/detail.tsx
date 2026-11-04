@@ -1,5 +1,5 @@
 "use client";
-import { BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, Icon, PanelCard, StatusBadge } from "@vxture/design-system";
+import { BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, Icon, PanelCard, StatusBadge, ViewHeader } from "@vxture/design-system";
 import { useState } from "react";
 import type { ReviewDetailModel } from "../domains/usage-verification/demo";
 import { reviewHref, reviewMapHref } from "../domains/usage-verification/links";
@@ -21,9 +21,9 @@ export default function ReviewDetail({ model }: { model: ReviewDetailModel }) {
       <div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button><span className="text-body-small text-muted-foreground">{model.region.cities.find(s => s.id === c.site.cityId)?.name + " / " + model.region.counties.find(s => s.id === c.site.countyId)?.name}</span></div>
       <div className="flex flex-wrap items-center gap-sm"><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></div>
     </div>
-    <div className="flex flex-wrap items-center gap-sm"><span className="text-heading-2 font-semibold">{c.site.name}</span><span className="text-body-small text-muted-foreground">{c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}</span><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{"\u5f85\u6838\u9a8c"}</StatusBadge></div>
+    <div className="flex shrink-0 flex-wrap items-center gap-md"><ViewHeader title={c.site.name} divider={false} className="pb-0" /><span className="text-body-small text-muted-foreground">{c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}</span><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{"\u5f85\u6838\u9a8c"}</StatusBadge></div>
     <p className="text-body-small text-muted-foreground">{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></p>
-    <div className="grid min-w-0 gap-lg xl:grid-cols-3">
+    <div className="grid min-w-0 shrink-0 gap-lg xl:grid-cols-3">
       <div className="flex min-w-0 flex-col gap-lg xl:col-span-2">
         <PanelCard title={heading} icon="search" tone={c.category === "quality" ? "warning" : c.category === "insufficient" ? "neutral" : "info"} description={windowLabel(c.start, c.end)}>
           <div className="grid grid-cols-1 gap-lg py-sm sm:grid-cols-3">{[{ label: "\u5b9e\u9645\u91cf", value: quantity(c.current, metric) }, { label: "\u5386\u53f2\u4e2d\u4f4d\u6570", value: quantity(c.referenceNumerator, metric, 2) }, { label: "\u53d8\u5316", value: deviation(c.current, c.referenceNumerator) }].map(x => <div key={x.label} className="flex flex-col gap-xs"><span className="text-body-small text-muted-foreground">{x.label}</span><strong className="text-heading-2 tabular-nums">{x.value}</strong></div>)}</div>

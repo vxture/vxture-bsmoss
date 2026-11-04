@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
-  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, ShellIconButton, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
+  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, ShellIconButton, StatusBadge, TableTitleCell, ViewHeader, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
@@ -78,6 +78,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         <div className="site-registry-context">
           <div className="site-registry-location flex min-w-0 items-center gap-sm">
             <ShellIconButton icon="sidebar" className="site-region-toggle hidden shrink-0 lg:inline-flex" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle} />
+            <ViewHeader title={"\u7ad9\u5740\u7ba1\u7406"} divider={false} className="shrink-0 pb-0" />
             <Breadcrumb aria-label={"\u5f53\u524d\u5730\u57df"} className="min-w-0">
               <BreadcrumbList className="flex-nowrap gap-xs whitespace-nowrap">
                 <BreadcrumbItem>{city ? <BreadcrumbLink href={siteListHref(q, { city: "all", county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ city: "all", county: "all" }); }}>{"\u9655\u897f\u7701"}</BreadcrumbLink> : <BreadcrumbPage>{"\u9655\u897f\u7701"}</BreadcrumbPage>}</BreadcrumbItem>

@@ -33,7 +33,7 @@ export default function ReportWorkspace({ initialSelection = null, invalidLink =
     } catch (e) { if (!c.signal.aborted) setError(reportErrorText(e)); }
     finally { if (!c.signal.aborted) setGenerating(false); }
   }
-  return <div className="reports-workspace">
+  return <div className="reports-workspace product-page-inset">
     <aside className="reports-library" aria-label={"\u62a5\u544a\u5217\u8868"}>
       <div className="reports-row"><h1>{"\u5468\u671f\u62a5\u544a"}</h1><button onClick={refreshList} disabled={loading}>{"\u5237\u65b0"}</button></div>
       <p className="reports-muted">{"\u5217\u8868\u663e\u793a\u751f\u6210\u65f6\u7684\u5b8c\u6574\u6027\uff0c\u6253\u5f00\u8be6\u60c5\u6838\u9a8c\u6700\u65b0\u72b6\u6001\u3002"}</p>

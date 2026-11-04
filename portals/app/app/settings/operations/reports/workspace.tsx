@@ -48,7 +48,7 @@ export default function ReportJobsWorkspace() {
   }, [kind, status, cursor, epoch]);
   function clear() { setCursor(null); setPages([]); setSelected(null); }
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"}>
+  return <div className="jobs-workspace product-page-inset"><aside className="jobs-library" aria-label={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"}>
     <div className="reports-row"><h1>{"\u62a5\u544a\u4efb\u52a1"}</h1><button onClick={refresh} disabled={loading}>{"\u5237\u65b0"}</button></div>
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u7c7b\u578b"}>{(["generation", "export"] as const).map(k => <button key={k} aria-pressed={kind === k} onClick={() => { setKind(k); clear(); }}>{label(k)}</button>)}</div>
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u72b6\u6001"}>{(["all", "pending", "dead", "succeeded"] as const).map(s => <button key={s} aria-pressed={status === s} onClick={() => { setStatus(s); clear(); }}>{label(s)}</button>)}</div>

@@ -28,7 +28,12 @@
   font-size: var(--body-font-size);
   line-height: var(--body-line-height);
 }
-.site-workspace :is(h1, h2, h3) {
+.site-workspace h1 {
+  font-size: var(--heading-1-font-size);
+  line-height: var(--heading-1-line-height);
+  font-weight: var(--heading-1-font-weight);
+}
+.site-workspace :is(h2, h3) {
   font-size: var(--heading-2-font-size);
   line-height: var(--heading-2-line-height);
   font-weight: var(--heading-2-font-weight);
@@ -36,12 +41,15 @@
 .site-table-scroll { container-type: inline-size; }
 /* Hide only the registry's native scroll chrome, not its scrollable overflow. */
 .site-region-scroll,
+.site-dossier-scroll,
 .site-registry-workspace .site-table-scroll,
 .site-registry-workspace .site-action-table > .overflow-x-auto { scrollbar-width: none; }
 .site-region-scroll::-webkit-scrollbar,
+.site-dossier-scroll::-webkit-scrollbar,
 .site-registry-workspace .site-table-scroll::-webkit-scrollbar,
 .site-registry-workspace .site-action-table > .overflow-x-auto::-webkit-scrollbar { display: none; }
 .site-region-scroll:focus-visible,
+.site-dossier-scroll:focus-visible,
 .site-registry-workspace .site-table-scroll:focus-visible {
   outline: var(--border-width-medium) solid var(--ring);
   outline-offset: calc(-1 * var(--border-width-medium));

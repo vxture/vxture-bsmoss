@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ActionMenu, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, ListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell } from "@vxture/design-system";
+import { ActionMenu, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, ListCard, NativeSelect, Pagination, SegmentedControl, StatusBadge, TableTitleCell, ViewHeader } from "@vxture/design-system";
 import type { ReviewListModel, ReviewCase } from "../domains/usage-verification/demo";
 import { reviewHref, reviewMapHref } from "../domains/usage-verification/links";
 import type { ReviewQuery } from "../domains/usage-verification/query";
@@ -22,8 +22,8 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
   ]} />;
   return <div data-usage-review="list" aria-busy={pending} className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-md">
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-md">
-      <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><span className="text-label text-foreground">{model.scopeName}</span><span>{calendarLabel(q.period)}</span>
-        {q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>
+      <div className="flex min-w-0 flex-wrap items-center gap-md"><ViewHeader title={"\u7528\u91cf\u6838\u9a8c"} divider={false} className="pb-0" /><div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><span className="text-label text-foreground">{model.scopeName}</span><span>{calendarLabel(q.period)}</span>
+        {q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span></div>
       </div>
       <div className="flex items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u6838\u9a8c\u5217\u8868"} disabled={pending} onClick={() => start(() => router.refresh())}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref(q)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></div>
     </div>

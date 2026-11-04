@@ -1,7 +1,7 @@
 import { getOidcConfig } from "./auth/lib/config";
 import ProductFrame from "./portal/header";
 import PortalHome from "./portal/home";
-import { Button, PanelCard, ShellPageContainer } from "@vxture/design-system";
+import { Button, PanelCard, ShellPageContainer, ViewHeader } from "@vxture/design-system";
 
 export const dynamic = "force-dynamic";
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -12,7 +12,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     try { demo = (await import("./portal/demo")).portalDemoSummary(await searchParams); }
     catch (error) {
       if (!(error instanceof Error && error.message.startsWith("invalid_"))) throw error;
-      return <ProductFrame active="home" preview><ShellPageContainer className="product-page-inset max-w-none">
+      return <ProductFrame active="home" preview><ShellPageContainer className="product-page-inset max-w-none"><ViewHeader title={"\u8fd0\u884c\u603b\u89c8"} divider={false} className="pb-0" />
       <div role="alert"><PanelCard title={"\u603b\u89c8\u8303\u56f4\u65e0\u6548"} icon="search">
         <Button asChild><a href="/">{"\u91cd\u7f6e\u603b\u89c8\u8303\u56f4"}</a></Button>
       </PanelCard></div></ShellPageContainer></ProductFrame>; }

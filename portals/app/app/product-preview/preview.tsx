@@ -388,7 +388,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
             <span className="avatar small-avatar">{"\u89c8"}</span>
           </div>
         </header>
-        <main className="content" aria-busy={busy}>
+        <main className="content product-page-inset" aria-busy={busy}>
           <div className="page-heading">
             <div>
               <div className="eyebrow">MULTI-DOMAIN OBSERVATORY</div>

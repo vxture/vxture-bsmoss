@@ -19,7 +19,7 @@ export default function OverviewDisplaySettings() {
     [items[index], items[target]] = [items[target], items[index]]; update(category, items);
   };
   return <ShellPageContainer className="product-page-inset max-w-none"><div className="flex min-w-0 flex-col gap-lg" data-overview-display-settings>
-    <ViewHeader title={"\u8fd0\u884c\u603b\u89c8\u663e\u793a"} description={"\u6bcf\u7c7b\u9009\u62e92\u20134\u9879\uff0c\u8c03\u6574\u987a\u5e8f\u4e0e\u5408\u6cd5\u5355\u4f4d\uff1b\u4fdd\u5b58\u5230\u5f53\u524d\u6d4f\u89c8\u5668\u3002"} action={<Button asChild variant="outline"><a href="/">{"\u67e5\u770b\u8fd0\u884c\u603b\u89c8"}</a></Button>} />
+    <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8\u663e\u793a"} description={"\u6bcf\u7c7b\u9009\u62e92\u20134\u9879\uff0c\u8c03\u6574\u987a\u5e8f\u4e0e\u5408\u6cd5\u5355\u4f4d\uff1b\u4fdd\u5b58\u5230\u5f53\u524d\u6d4f\u89c8\u5668\u3002"} action={<Button asChild variant="outline"><a href="/">{"\u67e5\u770b\u8fd0\u884c\u603b\u89c8"}</a></Button>} />
     <div className="flex flex-wrap items-center justify-between gap-md">
       <p className="text-body-small text-muted-foreground">{"\u4ec5\u8c03\u6574\u4e2a\u4eba\u9996\u9875\u5c55\u793a\uff0c\u7edf\u8ba1\u8303\u56f4\u3001\u91c7\u96c6\u3001\u9608\u503c\u4e0e\u62a5\u544a\u6a21\u677f\u4fdd\u6301\u539f\u53e3\u5f84\u3002"}</p>
       <div className="flex flex-wrap items-center gap-sm"><StatusBadge size="sm" tone={dirty ? "warning" : "neutral"}>{dirty ? "\u6709\u672a\u4fdd\u5b58\u4fee\u6539" : "\u5f53\u524d\u5e03\u5c40"}</StatusBadge>

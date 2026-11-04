@@ -74,7 +74,7 @@ export default function TemplateWorkspace() {
       templateVersion: loaded.template.version, templateSha256: loaded.template.sha256, validationSha256: preview.validationSha256, expected: loaded.selection, reviewRef: review } });
   }
   const unchanged = loaded?.template && candidate && JSON.stringify(loaded.template.candidate) === JSON.stringify(candidate);
-  return <div className="templates-workspace"><header><span className="reports-eyebrow">TEMPLATE GOVERNANCE</span><h1>{text.title}</h1><p className="reports-muted">{text.intro}</p></header>
+  return <div className="templates-workspace product-page-inset"><header><span className="reports-eyebrow">TEMPLATE GOVERNANCE</span><h1>{text.title}</h1><p className="reports-muted">{text.intro}</p></header>
     <section className="templates-reader"><label>{text.code}<input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
       <label>{text.version}<input value={version} disabled={locked} inputMode="numeric" onChange={e => { setVersion(e.target.value); setLoaded(null); clearValidation(); }} /></label>
       <button disabled={locked || !code} onClick={() => void load()}>{text.load}</button></section>

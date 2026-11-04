@@ -80,7 +80,7 @@ export default function AnalysisWorkspace() {
     document.addEventListener("keydown", key);
     return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", key); previous?.focus(); };
   }, [editing, disabled]);
-  return <div className="analysis-workspace"><div className="analysis-heading"><div><span className="reports-eyebrow">OPERATION INSIGHTS</span><h1>{"\u5468\u671f\u5206\u6790"}</h1></div>
+  return <div className="analysis-workspace product-page-inset"><div className="analysis-heading"><div><span className="reports-eyebrow">OPERATION INSIGHTS</span><h1>{"\u5468\u671f\u5206\u6790"}</h1></div>
     <form className="analysis-toolbar" onSubmit={e => { e.preventDefault(); const next = Date.parse(time + ":00+08:00"); if (Number.isFinite(next)) { setMessage(""); setAt(new Date(next).toISOString()); setEpoch(n => n + 1); } }}>
       <label>{"\u5206\u6790\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09"}<input type="datetime-local" min="1992-01-01T00:00" required value={time} disabled={disabled} onChange={e => setTime(e.target.value)} /></label><button disabled={disabled}>{"\u67e5\u8be2"}</button><button type="button" disabled={busy} onClick={refresh}>{"\u5237\u65b0"}</button>
       <button type="button" disabled={disabled || !data?.template} onClick={() => { setDraft(editablePanels.map(e => editable(e.panel))); setEditing(true); }}>{"\u4e2a\u4eba\u663e\u793a"}</button></form></div>

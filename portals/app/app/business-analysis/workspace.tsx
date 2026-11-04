@@ -1,7 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
+import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
-import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, MetricListCard, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell } from "@vxture/design-system";
+import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell, ViewHeader } from "@vxture/design-system";
 import type { BusinessDemo } from "./model";
 import { businessHref, businessMapHref, type BusinessScope } from "./links";
 import { n, pct, operatorNames } from "../sites/labels";
@@ -28,12 +29,13 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const comparison = demo.report?.comparison;
  return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
    <div className="flex flex-wrap items-center justify-between gap-md">
-     <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground">
-       <span className="text-label text-foreground">{demo.scopeName}</span>
+     <div className="flex min-w-0 flex-wrap items-center gap-md">
+       <ViewHeader title={labels[demo.kind]} divider={false} className="pb-0" />
+       <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><span className="text-label text-foreground">{demo.scopeName}</span>
        {q.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}
-       <time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time>
+       <time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time></div>
      </div>
-     <div className="flex items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
+     <div className="flex flex-wrap items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}
      </div>
@@ -49,7 +51,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      {q.selection && <Button variant="ghost" onClick={() => navigate({ selection: undefined })}>{"\u6e05\u9664\u9009\u533a"}</Button>}
    </form>
    {topicMode && t ? <>
-     <div className="sm:hidden"><MetricListCard title={"\u4e13\u9898\u6982\u51b5"} icon="gauge" metrics={[{ key: "total", label: "\u89c2\u5bdf\u7ad9\u5740", value: n(t.counts.total) }, { key: "critical", label: "\u4e25\u91cd", value: n(t.counts.critical) }, { key: "warning", label: "\u5173\u6ce8", value: n(t.counts.warning) }, { key: "unknown", label: "\u4e0d\u53ef\u8bc4\u4f30", value: n(t.counts.unknown) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u4e13\u9898\u72b6\u6001\u6982\u51b5"} items={[
+     <div className="sm:hidden"><MetricRowsCard title={"\u4e13\u9898\u6982\u51b5"} icon="gauge" metrics={[{ key: "total", label: "\u89c2\u5bdf\u7ad9\u5740", value: n(t.counts.total) }, { key: "critical", label: "\u4e25\u91cd", value: n(t.counts.critical) }, { key: "warning", label: "\u5173\u6ce8", value: n(t.counts.warning) }, { key: "unknown", label: "\u4e0d\u53ef\u8bc4\u4f30", value: n(t.counts.unknown) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u4e13\u9898\u72b6\u6001\u6982\u51b5"} items={[
        { id: "total", label: "\u89c2\u5bdf\u7ad9\u5740", value: n(t.counts.total), description: "\u5ea7", icon: "building" },
        { id: "critical", label: "\u4e25\u91cd", value: n(t.counts.critical), description: "\u5ea7", tone: "danger", icon: "flag" },
        { id: "warning", label: "\u5173\u6ce8", value: n(t.counts.warning), description: "\u5ea7", tone: "warning", icon: "gauge" },
@@ -80,7 +82,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
        <Pagination aria-label={"\u5206\u6790\u660e\u7ec6\u5206\u9875"} className="business-analysis-pagination pt-lg" page={current} pageCount={pages} countLabel={n(visible.length) + " \u5ea7\u7ad9\u5740"} onPageChange={setPage} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} />
      </PanelCard>
    </> : u ? <>
-     <div className="sm:hidden"><MetricListCard title={"\u7528\u91cf\u6982\u51b5"} icon="chart-bar" metrics={[{ key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(u.physicalSites) }, { key: "bytes", label: "\u6d41\u91cf / GiB", value: n(Number(u.totals.bytes) / 1073741824, 2) }, { key: "voice", label: "\u901a\u8bdd / \u5c0f\u65f6", value: n(u.totals.voiceSeconds / 3600, 2) }, { key: "sms", label: "\u77ed\u4fe1 / \u6761", value: n(u.totals.sms) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u7ecf\u8425\u7528\u91cf\u6982\u51b5"} items={[
+     <div className="sm:hidden"><MetricRowsCard title={"\u7528\u91cf\u6982\u51b5"} icon="chart-bar" metrics={[{ key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(u.physicalSites) }, { key: "bytes", label: "\u6d41\u91cf / GiB", value: n(Number(u.totals.bytes) / 1073741824, 2) }, { key: "voice", label: "\u901a\u8bdd / \u5c0f\u65f6", value: n(u.totals.voiceSeconds / 3600, 2) }, { key: "sms", label: "\u77ed\u4fe1 / \u6761", value: n(u.totals.sms) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u7ecf\u8425\u7528\u91cf\u6982\u51b5"} items={[
        { id: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(u.physicalSites), description: n(u.serviceRelations) + " \u6761\u670d\u52a1\u5173\u7cfb", icon: "building" },
        { id: "bytes", label: "\u53cc\u5411\u6d41\u91cf / GiB", value: n(Number(u.totals.bytes) / 1073741824, 2), icon: "chart-bar" },
        { id: "voice", label: "\u901a\u8bdd / \u5c0f\u65f6", value: n(u.totals.voiceSeconds / 3600, 2), icon: "users" },

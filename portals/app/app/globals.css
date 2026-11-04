@@ -3,22 +3,25 @@
 @import "@vxture/design-system/styles/brands/vxture.css";
 @import "@vxture/design-system/styles/workbench.css";
 
-/* Product page gutter: the DS large inset (24px at default density).
-   Keep component insets, floating overlays and the full-canvas map independent. */
+/* Page inset plus a responsive horizontal gutter, shared by list/detail views.
+   Component insets, floating overlays and the full-canvas map stay independent. */
 .product-page-inset {
-  padding: var(--space-lg);
+  --bsmoss-page-inset-inline: var(--space-lg);
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  padding: var(--space-lg) var(--bsmoss-page-inset-inline);
 }
 
-/* Overview page gutter is additional to the shared content inset. */
 @media (min-width: 48rem) {
-  .overview-page-gutter {
-    padding-inline: calc(var(--space-lg) + var(--space-md));
+  .product-page-inset {
+    --bsmoss-page-inset-inline: calc(var(--space-lg) + var(--space-md));
   }
 }
 
 @media (min-width: 80rem) {
-  .overview-page-gutter {
-    padding-inline: calc(var(--space-lg) + var(--space-xl));
+  .product-page-inset {
+    --bsmoss-page-inset-inline: calc(var(--space-lg) + var(--space-xl));
   }
 }
 

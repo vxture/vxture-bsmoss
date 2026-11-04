@@ -72,7 +72,7 @@ export default function AggregateJobsWorkspace() {
     return () => c.abort();
   }, [status, cursor, epoch]);
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u805a\u5408\u4efb\u52a1\u5217\u8868"}>
+  return <div className="jobs-workspace product-page-inset"><aside className="jobs-library" aria-label={"\u805a\u5408\u4efb\u52a1\u5217\u8868"}>
     <div className="reports-row"><h1>{"\u805a\u5408\u4efb\u52a1"}</h1><button onClick={refresh} disabled={loading}>{"\u5237\u65b0"}</button></div>
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u72b6\u6001"}>{(["all", "pending", "leased", "dead", "succeeded"] as const).map(s => <button key={s} aria-pressed={status === s} onClick={() => { setStatus(s); setCursor(null); setPages([]); setSelected(null); }}>{jobLabel(s)}</button>)}</div>
     <p className="reports-muted">{"\u5f53\u524d\u6388\u6743\u8303\u56f4\uff0c\u6309\u521b\u5efa\u65f6\u95f4\u5012\u5e8f\u3002"}</p>

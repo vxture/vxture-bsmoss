@@ -1,7 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
+import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
-import { ActionMenu, BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard,
+import { ActionMenu, BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, NativeSelect, PanelCard,
   Progress, SegmentedControl, StatusBadge, ViewHeader, type DataTableColumn } from "@vxture/design-system";
 import type { DossierDemo } from "../domains/site-registry/demo-store";
 import { changeLabel, windowLabel } from "../domains/map-demo/period-comparison-display";
@@ -77,7 +78,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
       </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{demo.date + " \u00b7 " + String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>
     </div>
-    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto product-page-inset" aria-label={tabNames[q.tab]}>
+    <div className="site-dossier-scroll min-h-0 min-w-0 flex-1 overflow-y-auto product-page-inset" role="region" tabIndex={0} aria-label={tabNames[q.tab]}>
       {q.tab === "overview" && <div className="flex flex-col gap-lg">
         <MetricGrid columns={4} items={[
           { id: "operators", icon: "users", label: "\u5171\u4eab\u8fd0\u8425\u5546", value: s.operators.length, description: "\u5bb6" },
@@ -92,9 +93,9 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       </div>}
       {q.tab === "resources" && <div className="flex flex-col gap-lg">
         <div className="grid gap-md lg:grid-cols-3">
-          <MetricListCard title={"\u5854\u623f\u8d44\u6e90"} icon="building" metrics={[{ key: "tower", label: "\u5854\u4f53", value: s.towerType }, { key: "height", label: "\u5854\u9ad8", value: s.heightMeters + " m" }, { key: "room", label: "\u673a\u623f", value: s.roomType }]} />
-          <MetricListCard title={"\u80fd\u6e90\u4fdd\u969c"} icon="lightning" metrics={[{ key: "power", label: "\u4f9b\u7535", value: m.power === "battery" ? "\u5907\u7528\u7535\u6c60" : "\u5e02\u7535" }, { key: "battery", label: "\u540e\u5907\u5bb9\u91cf", value: "200 Ah" }, { key: "meter", label: "\u8ba1\u91cf\u53e3\u5f84", value: "\u7269\u7406\u7ad9\u5740\u603b\u8868" }]} />
-          <MetricListCard title={"\u65e0\u7ebf\u627f\u8f7d"} icon="stack" metrics={[{ key: "radios", label: "\u65e0\u7ebf\u8bbe\u5907", value: s.operators.length + " \u5957" }, { key: "sharing", label: "\u5171\u4eab\u4e3b\u4f53", value: s.operators.length + " \u5bb6" }, { key: "services", label: "\u670d\u52a1\u4e1a\u52a1", value: "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" }]} />
+          <MetricRowsCard title={"\u5854\u623f\u8d44\u6e90"} icon="building" metrics={[{ key: "tower", label: "\u5854\u4f53", value: s.towerType }, { key: "height", label: "\u5854\u9ad8", value: s.heightMeters + " m" }, { key: "room", label: "\u673a\u623f", value: s.roomType }]} />
+          <MetricRowsCard title={"\u80fd\u6e90\u4fdd\u969c"} icon="lightning" metrics={[{ key: "power", label: "\u4f9b\u7535", value: m.power === "battery" ? "\u5907\u7528\u7535\u6c60" : "\u5e02\u7535" }, { key: "battery", label: "\u540e\u5907\u5bb9\u91cf", value: "200 Ah" }, { key: "meter", label: "\u8ba1\u91cf\u53e3\u5f84", value: "\u7269\u7406\u7ad9\u5740\u603b\u8868" }]} />
+          <MetricRowsCard title={"\u65e0\u7ebf\u627f\u8f7d"} icon="stack" metrics={[{ key: "radios", label: "\u65e0\u7ebf\u8bbe\u5907", value: s.operators.length + " \u5957" }, { key: "sharing", label: "\u5171\u4eab\u4e3b\u4f53", value: s.operators.length + " \u5bb6" }, { key: "services", label: "\u670d\u52a1\u4e1a\u52a1", value: "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" }]} />
         </div>
         <PanelCard title={"\u8d44\u6e90\u8bbe\u5907\u6e05\u5355"} icon="table" description={"\u5171\u7528\u8bbe\u65bd\u4e0e\u8fd0\u8425\u5546\u8bbe\u5907\u5206\u522b\u5f52\u5c5e"}><DataTable columns={deviceColumns} rows={demo.devices} rowKey={d => d.id} /></PanelCard>
         <p className="text-body-small text-muted-foreground">{"\u8bbe\u5907\u72b6\u6001\u9700\u7ed3\u5408\u73b0\u573a\u5de1\u68c0\u4e0e\u8d44\u4ea7\u8d44\u6599\u6838\u9a8c\u3002"}</p>
@@ -108,8 +109,8 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       </div>}
       {q.tab === "runtime" && <div className="flex flex-col gap-lg">
         <div className="grid gap-md lg:grid-cols-3">
-          <MetricListCard title={"\u8fd0\u8425\u72b6\u6001"} icon="gauge" description={demo.date + " \u00b7 " + time} metrics={[{ key: "load", label: "\u8d44\u6e90\u8d1f\u8f7d\u7387", value: pct(m.used / m.capacity) }, { key: "connection", label: "\u547c\u53eb\u63a5\u901a\u7387", value: pct(m.attempts ? m.connected / m.attempts : null) }, { key: "latency", label: "\u7f51\u7edc\u65f6\u5ef6", value: m.latency + " ms" }]} />
-          <MetricListCard title={"\u8fd0\u884c\u53c2\u6570"} icon="lightning" description={time + " \u00b7 \u7269\u7406\u7ad9\u5740"} metrics={[{ key: "power", label: "\u4f9b\u7535\u65b9\u5f0f", value: m.power === "battery" ? "\u5907\u7528\u7535\u6c60" : "\u5e02\u7535" }, { key: "energy", label: "\u65f6\u6bb5\u7535\u8017", value: n((m.energyWh ?? 0) / 1000, 2) + " kWh" }, { key: "temperature", label: "\u73af\u5883\u6e29\u5ea6", value: m.temperature + " \u00b0C" }]} />
+          <MetricRowsCard title={"\u8fd0\u8425\u72b6\u6001"} icon="gauge" description={demo.date + " \u00b7 " + time} metrics={[{ key: "load", label: "\u8d44\u6e90\u8d1f\u8f7d\u7387", value: pct(m.used / m.capacity) }, { key: "connection", label: "\u547c\u53eb\u63a5\u901a\u7387", value: pct(m.attempts ? m.connected / m.attempts : null) }, { key: "latency", label: "\u7f51\u7edc\u65f6\u5ef6", value: m.latency + " ms" }]} />
+          <MetricRowsCard title={"\u8fd0\u884c\u53c2\u6570"} icon="lightning" description={time + " \u00b7 \u7269\u7406\u7ad9\u5740"} metrics={[{ key: "power", label: "\u4f9b\u7535\u65b9\u5f0f", value: m.power === "battery" ? "\u5907\u7528\u7535\u6c60" : "\u5e02\u7535" }, { key: "energy", label: "\u65f6\u6bb5\u7535\u8017", value: n((m.energyWh ?? 0) / 1000, 2) + " kWh" }, { key: "temperature", label: "\u73af\u5883\u6e29\u5ea6", value: m.temperature + " \u00b0C" }]} />
           {focus}
         </div><div className="grid gap-lg xl:grid-cols-2">
           <PanelCard title={"24 \u5c0f\u65f6\u8d1f\u8f7d"} icon="gauge" description={demo.date + " \u00b7 %"}><BarChart data={demo.series.map(h => ({ key: String(h.hour), label: String(h.hour).padStart(2, "0"), value: h.used / h.capacity * 100 }))} labelEvery={4} formatValue={v => n(v, 1) + "%"} peakLabel={"\u5cf0\u503c"} /></PanelCard>

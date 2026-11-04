@@ -1141,3 +1141,11 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 ## 运行总览响应式水平页面留白（2026-11-04）
 
 用户同意在24px内容内距外增加左右页面留白。首页两分支增加局部overview-page-gutter，48rem起padding-inline=space-lg＋space-md，80rem起space-lg＋space-xl；手机沿用space-lg，垂直不变。标准密度合计56／40／24px，不改共享token／其他页面／header／地图。规格50及实施770同步。生产build含类型通过tmp/overview-gutter-build.log，152编号通过。CUA1280／904／390 computed padding分别24px 56px／24px 40px／24px，标题x56／40／24，均无文档横溢、warn/error空。artifacts/overview-gutter-qa含desktop／width904／mobile及checks；viewport reset、临时tab80关闭、用户页保留。源码ASCII／diff与提交扫描收尾，纯布局不新增镜像测试或重复业务／PG；无事实／权限／依赖／DDL变化、无push／外部上线，下一业务仍B01-04；最终63333身份见health。
+
+## 全站与二级页面布局统一（2026-11-04）
+
+用户授权按已确认留白逻辑全面优化页面板块及二级页。实施780、规格50覆盖首页限定：共享product-page-inset采用DS space-lg基础、48rem起额外space-md、80rem起额外space-xl，标准水平24／40／56px、垂直24px，全宽；产品局部组合变量，不改DS token。业务分析／台账／核验补常态ViewHeader H1及换行操作；档案页首与正文同级对齐，正文隐藏原生滚动条保留可聚焦region与滚动，修正15px宽差。旧正式分析／报告／模板／任务根布局应用共享内距，详情不叠外边距，字号与字体收敛DS角色；未接入／登录分支使用官方组件业务组合WorkspaceAvailability，原门槛不改。业务窄屏与档案资源／运行卡新增MetricRowsCard（官方PanelCard／PanelList／PanelItem／LabeledValue组合），修正统计大数省略。版权辅助页用官方卡片，指标辅助页仅外留白；地图全画布、header／launcher／浮层独立。
+
+最终生产build含类型、31项HTTP、153文档编号通过，tmp/page-layout-{build,http,docs}.log；33源码ASCII及diff通过。CUA20路由／视图×1280／904／390共60组无页面横溢、唯一可见H1／无内距嵌套，实际内距56／40／24；六档案页签×两档12次以URL及aria-current确认，页首正文宽一致；390实际日周月URL／选中／窗口／下载同步，周月长数字完整。1042台账收起后x40全宽展开；核验列表内部滚动分页、详情滚动和非法筛选可重置；地图canvas1／共享内距0／无默认选站，warn/error空。证据artifacts/page-layout-qa含checks.json及各页截图。首轮发现数字省略和档案滚动条宽差后修复重验；周期工具等待两次超时，随后URL及aria状态确认正常，早期旧周期快照不算成功。无真实凭据，正式工作区仅验门槛页及构建，不声称真实授权后联调。最终63333以Git和health为准，1920指标辅助页与父区等宽、无最大宽度限制；测试tab81已关闭／viewport已恢复，用户tab保留。
+
+本批仅布局与可读性，不推进B01／B04业务完成状态；下一业务仍B01-04原因确认／复核／记录。陕西范围、快照分析、费用预留、退役P2、新产品无旧库迁移保持；无依赖／权限／事实／DDL变化，不重复PG；无push／外部部署／生产上线、新聊天／goal／重复自动任务。
