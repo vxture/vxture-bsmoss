@@ -72,7 +72,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       <div className="mb-sm flex items-center gap-sm text-body-small text-muted-foreground"><Button asChild variant="ghost" size="sm"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
         secondary={<div className="flex gap-sm"><StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge><StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge></div>}
-        action={<Button asChild variant="secondary"><a href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>} />
+        action={<Button asChild variant="secondary"><a target="_blank" rel="noopener noreferrer" href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>} />
       <div className="mt-md flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
       </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{demo.date + " \u00b7 " + String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>
@@ -103,7 +103,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
         <PanelCard title={"\u670d\u52a1\u53e3\u5f84"} icon="info"><DetailList><DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u7269\u7406\u7ad9\u5740"}>{"1 \u5ea7"}</DetailRow><DetailRow label={"\u670d\u52a1\u5173\u7cfb"}>{s.operators.length + " \u6761"}</DetailRow><DetailRow label={"\u7ecf\u8425\u6570\u636e"}>{"\u6309\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7edf\u8ba1"}</DetailRow><DetailRow label={"\u7ad9\u5740\u7535\u8017"}>{"\u7269\u7406\u7ad9\u603b\u8868\uff0c\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u8fd0\u8425\u5546\u670d\u52a1\u660e\u7ec6"} icon="users" description={time + " \u00b7 \u5168\u90e8\u5728\u7ad9\u8fd0\u8425\u5546"}><DataTable labels={{ rowActions: "\u64cd\u4f5c" }} columns={serviceColumns} rows={demo.relations} rowKey={r => r.id}
           className="site-action-table" rowActions={r => <ActionMenu label={operatorNames[r.code] + "\u670d\u52a1\u64cd\u4f5c"} items={[
-            { id: "hourly-usage", label: "\u67e5\u770b\u65f6\u6bb5\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(mapHref + "&operator=" + r.code + "&usage=hour") },
+            { id: "hourly-usage", label: "\u5730\u56fe\u65f6\u6bb5\u7528\u91cf", icon: "chart-line-up", onSelect: () => window.open(mapHref + "&operator=" + r.code + "&usage=hour", "_blank", "noopener,noreferrer") },
           ]} />} /></PanelCard>
       </div>}
       {q.tab === "runtime" && <div className="flex flex-col gap-lg">
@@ -156,7 +156,6 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
             <DetailRow label={"\u7ecf\u8425\u670d\u52a1\u5173\u7cfb"}>{"\u6309\u7a33\u5b9a\u7ad9\u5740\u4e0e\u8fd0\u8425\u5546\u7f16\u7801\u5173\u8054"}</DetailRow><DetailRow label={"\u6743\u5c5e / \u79df\u8d41\u51ed\u8bc1"}>{"\u672a\u63a5\u5165"}</DetailRow><DetailRow label={"\u5efa\u8bbe / \u9a8c\u6536\u8d44\u6599"}>{"\u672a\u63a5\u5165"}</DetailRow>
             <DetailRow label={"\u771f\u5b9e\u53d8\u66f4\u5386\u53f2"}>{"\u672a\u63a5\u5165\uff0c\u4e0d\u751f\u6210\u865a\u6784\u8bb0\u5f55"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u5173\u8054\u5206\u6790\u4e0e\u62a5\u544a"} icon="file-text"><div className="flex flex-wrap gap-md">
-          <Button asChild variant="secondary"><a href={mapHref}>{"\u5730\u56fe\u8c03\u67e5"}</a></Button>
           <Button asChild variant="secondary"><a href={"/api/product-preview/station/" + s.id + "/period/report?period=" + q.period + "&format=html"} download>{"\u5355\u7ad9\u5468\u671f\u62a5\u544a"}</a></Button>
           <Button onClick={() => navigate({ tab: "business" })}>{"\u5355\u7ad9\u7ecf\u8425\u7528\u91cf"}</Button>
         </div></PanelCard>

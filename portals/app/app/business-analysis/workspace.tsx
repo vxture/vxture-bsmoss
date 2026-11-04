@@ -34,7 +34,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
        <time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time>
      </div>
      <div className="flex items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
-       <Button asChild variant="outline"><a href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
+       <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}
      </div>
    </div>
@@ -76,7 +76,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
            { id: "energy", header: "\u7535\u8017 / kWh", cell: (r: BusinessDemo["metricRows"][number]) => r.energyKWh === null ? "\u2014" : n(r.energyKWh, 2) },
            { id: "efficiency", header: "kWh/GiB", cell: (r: BusinessDemo["metricRows"][number]) => r.value === null ? "\u2014" : n(r.value, 3) },
          ]),
-       ]} rowActions={r => <ActionMenu label={"\u5206\u6790\u64cd\u4f5c\uff1a" + r.name} items={[{ id: "detail", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push("/sites/" + encodeURIComponent(r.id) + "?tab=runtime&hour=" + q.hour) }, { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => router.push(businessMapHref(demo.kind, q, r.id)) }]} />} empty={<EmptyState title={"\u6682\u65e0\u5339\u914d\u7ad9\u5740"} />} />
+       ]} rowActions={r => <ActionMenu label={"\u5206\u6790\u64cd\u4f5c\uff1a" + r.name} items={[{ id: "detail", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push("/sites/" + encodeURIComponent(r.id) + "?tab=runtime&hour=" + q.hour) }, { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => window.open(businessMapHref(demo.kind, q, r.id), "_blank", "noopener,noreferrer") }]} />} empty={<EmptyState title={"\u6682\u65e0\u5339\u914d\u7ad9\u5740"} />} />
        <Pagination aria-label={"\u5206\u6790\u660e\u7ec6\u5206\u9875"} className="business-analysis-pagination pt-lg" page={current} pageCount={pages} countLabel={n(visible.length) + " \u5ea7\u7ad9\u5740"} onPageChange={setPage} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} />
      </PanelCard>
    </> : u ? <>

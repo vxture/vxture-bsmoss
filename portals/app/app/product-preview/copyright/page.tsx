@@ -7,7 +7,7 @@ export default function CopyrightPage() {
   if (process.env.BSMOSS_PRODUCT_PREVIEW !== 'on') notFound();
   return <main style={{minHeight:'100dvh',background:'#09171d',color:'#b8c9bb',padding:'48px 24px',fontFamily:'Arial, sans-serif'}}>
     <article style={{maxWidth:760,margin:'0 auto',lineHeight:1.9}}>
-      <a href="/product-preview" style={{color:'#a8c79a',fontSize:13}}>{'\u8fd4\u56de\u5de5\u4f5c\u53f0'}</a>
+      <a target="_blank" rel="noopener noreferrer" href="/product-preview" style={{color:'#a8c79a',fontSize:13}}>{'\u6253\u5f00\u7ad9\u7f51\u5730\u56fe'}</a>
       <p style={{letterSpacing:2,color:'#819b88'}}>BS-MOSS</p>
       <h1 style={{fontSize:24,color:'#d0dcbc'}}>{'\u5730\u56fe\u6765\u6e90\u4e0e\u7248\u6743\u58f0\u660e'}</h1>
       <h2 style={{fontSize:17}}>{'\u6807\u51c6\u5e95\u56fe'}</h2>

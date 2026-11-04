@@ -38,8 +38,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
     <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8"} description={"\u9655\u897f\u7701 \u00b7 " + demo.date}
         secondary={<StatusBadge tone="info" size="sm">{"\u6f14\u793a\u6570\u636e"}</StatusBadge>}
-        action={<div className="flex flex-wrap gap-sm"><Button asChild size="xl"><a href="/board"><Icon name="chart-bar" size="sm" />{"\u51b3\u7b56\u5927\u5c4f"}</a></Button>
-          <Button asChild size="xl" variant="secondary"><a href="/product-preview?hour=18"><Icon name="map-pin" size="sm" />{"\u8fdb\u5165\u7ad9\u7f51\u5730\u56fe"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />
+        action={<Button asChild size="xl"><a href="/board"><Icon name="chart-bar" size="sm" />{"\u51b3\u7b56\u5927\u5c4f"}</a></Button>} />
       <MetricGrid columns={4} aria-label={"\u7ad9\u7f51\u6982\u51b5"} items={[
         { id: "sites", label: "\u6f14\u793a\u7ad9\u5740", value: number(usage.physicalSites), description: "\u5ea7", icon: "map-pin" },
         { id: "relations", label: "\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb", value: number(usage.serviceRelations), description: "\u6761", icon: "database", tone: "info" },
@@ -83,24 +82,23 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
       <div className="grid min-w-0 gap-md xl:grid-cols-2">
         <PanelCard title={"\u5730\u5e02\u4e1a\u52a1\u5206\u5e03"} description={"18:00 \u00b7 \u6309\u6d41\u91cf\u6392\u5e8f"} tone="neutral" className="min-w-0">
           <DataTable rows={demo.cities} rowKey={row => row.id} columns={[
-            { id: "city", header: "\u5730\u5e02", cell: row => <a className="text-foreground hover:text-primary-text" href={"/product-preview?city=" + row.id + "&hour=18"}>{row.name}</a> },
+            { id: "city", header: "\u5730\u5e02", cell: row => <a className="text-foreground hover:text-primary-text" target="_blank" rel="noopener noreferrer" href={"/product-preview?city=" + row.id + "&hour=18"}>{row.name}</a> },
             { id: "sites", header: "\u7ad9\u5740", align: "numeric", cell: row => number(row.count) },
             { id: "load", header: "\u8d1f\u8f7d\u7387", align: "numeric", cell: row => percent(row.load) },
             { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.bytes / 1073741824, 1) },
           ]} />
         </PanelCard>
-        <PanelCard title={"\u7ad9\u5740\u72b6\u6001\u89c2\u5bdf"} description={"18:00 \u00b7 \u6a21\u62df\u72b6\u6001"} tone="warning" className="min-w-0" action={more("/product-preview?hour=18")}>
+        <PanelCard title={"\u7ad9\u5740\u72b6\u6001\u89c2\u5bdf"} description={"18:00 \u00b7 \u6a21\u62df\u72b6\u6001"} tone="warning" className="min-w-0">
           <DataTable rows={demo.priorities} rowKey={row => row.id} columns={[
-            { id: "site", header: "\u7ad9\u5740", cell: row => <a className="flex flex-col gap-2xs text-foreground hover:text-primary-text" href={"/product-preview?hour=18&site=" + row.id}><span>{row.name}</span><span className="text-label-micro text-muted-foreground">{row.city}</span></a> },
+            { id: "site", header: "\u7ad9\u5740", cell: row => <a className="flex flex-col gap-2xs text-foreground hover:text-primary-text" target="_blank" rel="noopener noreferrer" href={"/product-preview?hour=18&site=" + row.id}><span>{row.name}</span><span className="text-label-micro text-muted-foreground">{row.city}</span></a> },
             { id: "status", header: "\u72b6\u6001", cell: row => <StatusBadge size="sm" tone={row.status === "critical" ? "danger" : row.status === "warning" ? "warning" : "success"}>{row.status === "critical" ? "\u91cd\u70b9" : row.status === "warning" ? "\u5173\u6ce8" : "\u6b63\u5e38"}</StatusBadge> },
             { id: "load", header: "\u8d1f\u8f7d\u7387", align: "numeric", cell: row => percent(row.load) },
             { id: "data", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => number(row.trafficGiB, 1) },
           ]} />
         </PanelCard>
       </div>
-      <section className="grid gap-md sm:grid-cols-2 xl:grid-cols-4" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
+      <section className="grid gap-md sm:grid-cols-2 xl:grid-cols-3" aria-label={"\u5feb\u6377\u5de5\u4f5c\u533a"}>
         <EntryCard href="/sites" icon="building" title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u53f0\u8d26\u3001\u6863\u6848\u3001\u8d44\u6e90\u4e0e\u670d\u52a1\u5173\u7cfb"} />
-        <EntryCard href="/product-preview?hour=18" icon="map-pin" title={"\u7ad9\u7f51\u5730\u56fe"} description={"\u7a7a\u95f4\u5b9a\u4f4d\u3001\u9009\u533a\u5bf9\u6bd4\u4e0e\u5355\u7ad9\u5206\u6790"} />
         <EntryCard href="/usage-reports" icon="file-text" title={"\u5468\u671f\u62a5\u544a\u6f14\u793a"} description={"\u65e5\u5468\u6708\u5206\u6790\u4e0e\u8bc1\u636e\u5bfc\u51fa"} />
         <EntryCard href="/analysis" icon="chart-line-up" title={"\u6b63\u5f0f\u5468\u671f\u5206\u6790"} description={"\u5e73\u53f0\u6388\u6743\u8303\u56f4\u5185\u7684\u6307\u6807\u4e0e\u8bc1\u636e"} />
       </section>

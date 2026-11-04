@@ -58,7 +58,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
             <NativeSelect aria-label={"\u5927\u5c4f\u5730\u5e02"} value={demo.cityId} onChange={event => { setPlaying(false); navigate(event.target.value, demo.hour); }} wrapperClassName="w-auto">
               <option value="all">{"\u9655\u897f\u5168\u7701"}</option>{demo.region.cities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
             </NativeSelect>
-            <Button asChild variant="secondary"><a href={scope()}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5de5\u4f5c\u53f0"}</a></Button>
+            <Button asChild variant="secondary"><a target="_blank" rel="noopener noreferrer" href={scope()}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5de5\u4f5c\u53f0"}</a></Button>
             <Button variant="ghost" aria-label={full ? "\u9000\u51fa\u5168\u5c4f" : "\u8fdb\u5165\u5168\u5c4f"} onClick={async () => {
               try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); setFullscreenError(false); }
               catch { setFullscreenError(true); }
@@ -82,7 +82,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
             className="min-w-0">
             <div className="flex justify-end pb-md"><SegmentedControl items={themes} value={theme} onChange={setTheme} size="sm" ariaLabel={"\u5927\u5c4f\u4e13\u9898"} /></div>
             <div className="decision-map overflow-hidden rounded-md"><NetworkMap demo={demo} theme={theme}
-              onPick={id => { setPlaying(false); router.push(scope("&site=" + encodeURIComponent(id))); }} /></div>
+              onPick={id => { setPlaying(false); window.open(scope("&site=" + encodeURIComponent(id)), "_blank", "noopener,noreferrer"); }} /></div>
             <div className="flex flex-wrap items-center justify-between gap-sm pt-md text-body-small text-muted-foreground">
               <span>{n(s.count) + " \u5ea7\u7ad9\u5740"}</span>
               {theme === "status" ? <div className="flex gap-sm"><StatusBadge tone="success" size="sm">{"\u6b63\u5e38 " + n(s.normal)}</StatusBadge>
@@ -99,7 +99,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
               </Button>)}</div>
             </PanelCard>
             <PanelCard title={"\u91cd\u70b9\u7ad9\u5740"} icon="flag" description={context + " \u00b7 \u6309\u72b6\u6001\u4e0e\u6d41\u91cf\u6392\u5e8f"} tone="warning">
-              <div className="flex flex-col gap-sm">{demo.snapshot.ranking.slice(0, 3).map(item => <a key={item.id} href={scope("&site=" + encodeURIComponent(item.id))}
+              <div className="flex flex-col gap-sm">{demo.snapshot.ranking.slice(0, 3).map(item => <a key={item.id} target="_blank" rel="noopener noreferrer" href={scope("&site=" + encodeURIComponent(item.id))}
                 className="flex items-center justify-between gap-sm text-body-small text-foreground no-underline hover:text-primary-text">
                 <span className="min-w-0 truncate">{item.name}</span><StatusBadge tone={item.status === "critical" ? "danger" : item.status === "warning" ? "warning" : "success"} size="sm">
                   {item.status === "critical" ? "\u91cd\u70b9" : item.status === "warning" ? "\u5173\u6ce8" : "\u6b63\u5e38"}</StatusBadge>
@@ -117,7 +117,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
               <span className="text-label-small">23</span></div>
           </PanelCard>
           <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf"} icon="chart-pie" description={context + " \u00b7 \u6d41\u91cf\u5360\u6bd4"} className="min-w-0">
-            <div className="flex flex-col gap-md">{demo.usage.rows.map(row => <a key={row.code} href={scope("&usage=hour&operator=" + row.code)} className="flex flex-col gap-2xs no-underline">
+            <div className="flex flex-col gap-md">{demo.usage.rows.map(row => <a key={row.code} target="_blank" rel="noopener noreferrer" href={scope("&usage=hour&operator=" + row.code)} className="flex flex-col gap-2xs no-underline">
               <div className="flex justify-between gap-sm text-body-small"><span className="text-foreground">{names[row.code]}</span>
                 <span className="tabular-nums text-muted-foreground">{n(row.bytes / 1073741824, 1) + " GiB \u00b7 " + pct(s.bytes ? row.bytes / s.bytes : null)}</span></div>
               <Progress value={s.bytes ? row.bytes / s.bytes * 100 : 0} aria-label={names[row.code] + "\u6d41\u91cf\u5360\u6bd4"} />

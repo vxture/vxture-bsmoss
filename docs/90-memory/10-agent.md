@@ -1049,3 +1049,9 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 ## launcher站网地图新标签页（2026-11-04）
 
 用户要求三个通用模块中的站网地图newtab打开。只给launcher全局卡片id=map传官方EntryCard原生target=_blank及rel=noopener noreferrer，原href／自动收起保持；首页与大屏target为空，其他业务页地图下钻未改。设计232／实施680同步。生产构建含类型通过tmp/launcher-map-newtab-build.log；CUA从/sites?view=relations点击实际生成新tab60到/product-preview?hour=18，原tab59 URL及关系视图保留、launcher收起，地图正常呈现无默认站址。三全局卡片DOM属性逐项确认，证据artifacts/launcher-map-newtab-qa，测试tab59／60已关闭，用户tab45保留。纯原生链接变更无新增测试／权限／依赖／数据或DB改动；文档编号／diff／提交扫描收尾，最终63333SHA以health为准，无push或外部部署。
+
+## 全站地图入口审计及新标签页统一（2026-11-04）
+
+用户要求统计全部地图入口并判断必要性。按独立源码交互位置21处，删除门户页头地图／状态观察通用详情／快捷地图卡片3处与档案来源页签地图调查1处，剩17＝launcher1＋业务上下文14＋指标配置／版权辅助2。共享分析组件按实际路由展开原25／剩21，循环数据行不计功能入口；完整分项见实施730，设计232同步。首页快捷区宽屏改3列，档案运营商菜单改“地图时段用量”。原生链接target=_blank及noopener noreferrer；官方ActionMenu无href接口，三个业务菜单和大屏点位回调同步window.open＋noopener,noreferrer。保留现有参数构造、预览开关和默认无选站。
+
+build含类型（tmp/map-entry-audit-build.log）、148编号／ASCII／diff通过。CUA实际普通区域链接、档案运营商菜单Enter、容量行菜单与核验行菜单各开新tab且来源不变、目标参数正确；逐页锚点属性全通过：首页15条数据下钻／通用0，大屏9数据链接、能效／用量／报告各1、档案资料1、核验详情1、辅助各1、launcher1。大屏canvas点位仅源码／构建验证，未实际点测。warn/error空，截图artifacts/map-entry-audit-qa/{launcher,map}.png及checks.json，临时tab61至65关闭、用户45保留；两个菜单即时tab列表尚未更新，下一次状态读取已确认新tab，无产品失败。核验同站多线索按钮名重复导致工具严格定位拦截，改限定首行成功。无权限／依赖／数据／DDL改动，不重复业务或PG测试。最终本地Git／63333身份以health为准，无push、外部部署、goal或自动任务。
