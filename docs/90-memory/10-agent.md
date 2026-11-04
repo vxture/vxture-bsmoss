@@ -1041,3 +1041,7 @@ CUA1440／1042／787／390无文档横溢，四页无地图canvas；launcher直�
 用户要求整体页面padding从24收敛12并使用DS token。新增局部product-page-inset，消费calc(var(--space-lg) / 2)，标准密度实测12；ShellPageContainer显式套该类，台账／档案／核验及错误空态同步。旧正式分析／模板根padding、报告／任务列表padding及详情外margin各断点同值，不改卡片内距、header、launcher或地图全画布，不覆写DS token。实施650补记。编辑脚本曾因PowerShell单项数组展开误作字符替换，立即diff发现，仅恢复本轮三文件后用精确补丁修正；最终diff和生产build类型均通过，无残留错误。
 
 生产构建含类型通过tmp/page-inset-build.log；纯布局不重复业务／PG／接口测试。CUA1042首页／台账／档案两层／容量／核验／配置／报告空态及390核验实际padding均12px，文档宽等视口、warn/error空。artifacts/page-inset-qa含desktop／sites／mobile及checks.json；viewport已reset、临时tab57关闭。147文档编号、19源码ASCII／diff和提交扫描收尾；本地Git及63333最终SHA以health为准，无依赖／权限／数据或真实部署变化，未push／外部上线，不恢复自动任务。
+
+## 页面留白恢复24px（2026-11-04，覆盖上一条12px偏好）
+
+用户查看后要求统一24px。product-page-inset及旧分析／报告／模板／任务的同批外留白全部改用DS var(--space-lg)，不再除2；标准密度24px，保留统一容器、断点一致及地图／header／组件内距边界。实施650明确当前24并保留历史记录。生产build含类型通过tmp/page-inset-24-build.log，CUA1042／390实测24px且无文档横溢、warn/error空。截图和checks在artifacts/page-inset-24-qa，viewport已reset、临时tab58关闭。纯布局无新增测试／业务／依赖／权限／DB变化，文档编号／diff／提交扫描收尾，无外部部署或push，最终运行SHA见health。

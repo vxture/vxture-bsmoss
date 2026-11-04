@@ -3,8 +3,8 @@
 @import "@vxture/design-system/styles/brands/vxture.css";
 @import "@vxture/design-system/styles/workbench.css";
 
-/* Product page gutter: half the DS large inset (12px at default density).
+/* Product page gutter: the DS large inset (24px at default density).
    Keep component insets, floating overlays and the full-canvas map independent. */
 .product-page-inset {
-  padding: calc(var(--space-lg) / 2);
+  padding: var(--space-lg);
 }
