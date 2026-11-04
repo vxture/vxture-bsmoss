@@ -8,3 +8,8 @@
 .product-page-inset {
   padding: var(--space-lg);
 }
+
+/* Usage analysis fills the panel body; ECharts observes its available size. */
+.overview-usage-chart {
+  min-height: calc(var(--spacing-media-3xl) + var(--spacing-media-lg));
+}

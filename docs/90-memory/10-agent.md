@@ -1117,3 +1117,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户澄清前曾本地尝试当前北京时间小时选择及自动刷新，尚未启动该版预览；已完整移除clock helper、effect、服务／page参数与相关试验测试，最终仅布局文案及对应HTTP断言。试验单测因比较报告downloadHref小时不同而失败，不计最终结果；试验构建完成但被最终快照构建替代。无自动时段、轮询或墙钟来源推进残留。
 
 最终生产build含类型及31HTTP全通过tmp/overview-snapshot-time-{build,http}.log；CUA1280／904／390无文档横溢，三卡0次18:00、手动重读快照不变、运营7项明细保留统计窗口；warn/error空。证据artifacts/overview-snapshot-time-qa含desktop／width904／mobile及checks，viewport reset、临时tab74关闭、用户页保留。152文档编号、源码ASCII／diff与提交扫描收尾；无依赖／权限／数据／DDL变更、不重复PG或新增布局镜像测试，无push／外部部署／生产上线。下一业务切片仍B01-04。
+
+## 用量趋势图填充与鼠标跟随提示（2026-11-04）
+
+用户要求完整用量分析链接上移、图表占满高度，以及数值提示跟随鼠标。实施770追加：官方Card／CardContent／SectionHeader组合替换本卡PanelCard；操作区含原指标切换及分析链接，窄屏换行，无底部链接。DS BarChart当前固定80px绘图区及右上角读数、无tooltip接口，本页用既有ECharts6专用UsageTrend适配，不改DS／依赖。颜色字体间距圆角从DS计算样式读取，避免rem／calc原始token解析错误。最小高度DS192＋80＝272px、flex自适应，ResizeObserver／主题观察及销毁清理；指针提示边界避让、Home／End／左右键和SR读数，失焦隐藏，24时数据及单位／来源快照不变。
+
+最终生产build含类型通过tmp/overview-usage-chart-build.log。CUA1280／904／390绘图区272px、无文档横溢；同一10点柱原生点击两处移动指针，提示y519.98变480.98，右缘23点提示在图内；通话End读23:00／67.37万分钟、短信左键读18:00／12.83万条，完整分析实际进入operator-usage并保持范围／小时。warn/error空，artifacts/overview-usage-chart-qa含tooltip／width904／mobile及checks，viewport reset／临时tab75关闭。未使用合成事件或浏览器状态注入。152编号、源码ASCII／diff及提交扫描收尾；纯布局不重复PG／业务测试，无数据／权限／DDL／依赖改动、无push／外部部署／生产上线，下一业务切片仍B01-04；最终63333身份见health。

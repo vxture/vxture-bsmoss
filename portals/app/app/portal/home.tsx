@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart, Button, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard, Progress,
-  SegmentedControl, ShellPageContainer } from "@vxture/design-system";
+import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard, Progress,
+  SectionHeader, SegmentedControl, ShellPageContainer, toneEdgeClasses } from "@vxture/design-system";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
 import { DEFAULT_SITE_QUERY, siteListHref } from "../domains/site-registry/rules";
 import type { PortalDemo } from "./demo";
 import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
 import OverviewMetrics from "./overview-metrics";
+import UsageTrend from "./usage-trend";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
 const number = (v: number, digits = 0) => v.toLocaleString("zh-CN", { maximumFractionDigits: digits });
@@ -90,12 +91,18 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
       <OverviewMetrics demo={demo} scope={scope} />
       <OverviewAttention key={q.cityId + q.countyId} demo={demo} />
       <div className="grid min-w-0 gap-md xl:grid-cols-3">
-        <PanelCard title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} className="min-w-0 xl:col-span-2" tone="brand"
-          action={<SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />}>
-          {usage.physicalSites ? <BarChart key={metric} data={series} formatValue={fmt} peakLabel={"\u5cf0\u503c"} aria-label={"24\u5c0f\u65f6" + metricName + "\u8d8b\u52bf"} />
+        <Card className={"min-w-0 gap-md border-t-medium xl:col-span-2 " + toneEdgeClasses.brand}>
+          <CardContent><div className="flex flex-wrap items-center justify-between gap-md border-b border-dashed border-border pb-md">
+            <SectionHeader level={3} divider={false} title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} />
+            <div className="flex flex-wrap items-center justify-end gap-sm">
+              <SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />
+              {more(businessHref("operator-usage", scope), "\u5b8c\u6574\u7528\u91cf\u5206\u6790")}
+            </div></div></CardContent>
+          <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {usage.physicalSites ? <UsageTrend key={metric} data={series} formatValue={fmt} name={metricName} unit={unit} />
             : <EmptyState title={"\u6682\u65e0\u7528\u91cf\u7edf\u8ba1\u5bf9\u8c61"} />}
-          <div className="flex justify-end pt-sm">{more(businessHref("operator-usage", scope), "\u5b8c\u6574\u7528\u91cf\u5206\u6790")}</div>
-        </PanelCard>
+          </CardContent>
+        </Card>
         <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf\u7ed3\u6784"} description={"\u5168\u65e5" + metricName + "\u5360\u6bd4 \u00b7 " + unit} tone="neutral" className="min-w-0">
           <div className="flex flex-col gap-md" data-overview-structure={metric}>
             {!usage.physicalSites ? <EmptyState title={"\u6682\u65e0\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"} /> : operators.map(row => <a className="flex flex-col gap-xs rounded-sm text-foreground no-underline hover:text-primary-text focus-visible:outline-ring" href={businessHref("operator-usage", { ...scope, operator: row.code })} key={row.code}>
