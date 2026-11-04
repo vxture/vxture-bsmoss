@@ -8,6 +8,7 @@ import { reviewHref } from "../domains/usage-verification/links";
 import { overviewSignals } from "./overview-rules";
 import { REPORT_SUMMARY_VERSION, summarizeOverviewReport, type OverviewReportSummary } from "./report-summary";
 import generatedReports from "./generated-reports.json";
+import { overviewMetricFacts } from "./metric-rules";
 
 // No measurement store, credentials, permissions or mutable records belong here.
 export function portalDemoSummary(input: Record<string, string | string[] | undefined> = {}) {
@@ -36,6 +37,7 @@ export function portalDemoSummary(input: Record<string, string | string[] | unde
     date: DEMO_DATE, hour: query.hour, version: snapshot.version,
     query, region: DEMO_REGION, status: snapshot.summary, usage,
     runtime: { battery: current.filter(m => m.power === "battery").length, hot: current.filter(m => m.temperature >= 35).length },
+    metrics: overviewMetricFacts(cohort, query.hour),
     signals: overviewSignals(cohort, query.hour),
     verification: { dataset: REVIEW_DATASET, cutoff: REVIEW_CUTOFF, window: calendarWindow("day"), query: reviewQuery,
       total: cases.length, sites: new Set(cases.map(c => c.site.id)).size,

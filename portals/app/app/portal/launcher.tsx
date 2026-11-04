@@ -6,12 +6,14 @@ import { EntryCard, Icon, Popover, PopoverTrigger, Separator, ShellIconButton, S
 import { portalBusinessGroups, portalDomain, portalNavigation, type PortalDomain, type PortalEntry, type PortalPage } from "./navigation";
 import "./header.css";
 export const portalIcons: Record<PortalPage, IconName> = {
+  "overview-display": "faders",
   "usage-review": "search",
   capacity: "gauge", efficiency: "lightning", "operator-usage": "chart-pie", "usage-reports": "newspaper",
   home: "house-line", board: "chart-bar", sites: "building", map: "map-pin", analysis: "chart-line-up", reports: "file-text",
   aggregation: "database", "report-jobs": "calendar", templates: "stack", settings: "faders",
 };
 const descriptions: Record<PortalPage, string> = {
+  "overview-display": "\u9996\u9875\u6307\u6807\u3001\u6392\u5e8f\u4e0e\u5355\u4f4d",
   "usage-review": "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570",
   capacity: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", efficiency: "\u4f9b\u7535\u4e0e\u80fd\u8017\u89c2\u5bdf", "operator-usage": "\u8fd0\u8425\u5546\u72ec\u7acb\u7528\u91cf", "usage-reports": "\u5468\u671f\u62a5\u544a\u4e0e\u5bfc\u51fa",
   sites: "\u53f0\u8d26\u3001\u8d44\u6e90\u4e0e\u7edf\u4e00\u6863\u6848",
@@ -20,7 +22,7 @@ const descriptions: Record<PortalPage, string> = {
   templates: "\u6307\u6807\u53e3\u5f84\u4e0e\u62a5\u544a\u6a21\u677f", aggregation: "\u805a\u5408\u8bb0\u5f55\u4e0e\u5931\u8d25\u6062\u590d", "report-jobs": "\u751f\u6210\u3001\u5bfc\u51fa\u4e0e\u6267\u884c\u8bb0\u5f55",
 };
 const managementGroups: { title: string; description: string; icon: IconName; pages: PortalPage[] }[] = [
-  { title: "\u914d\u7f6e\u7ba1\u7406", description: "\u6307\u6807\u3001\u6a21\u677f\u4e0e\u663e\u793a\u914d\u7f6e", icon: "settings", pages: ["settings", "templates"] },
+  { title: "\u914d\u7f6e\u7ba1\u7406", description: "\u6307\u6807\u3001\u6a21\u677f\u4e0e\u663e\u793a\u914d\u7f6e", icon: "settings", pages: ["settings", "overview-display", "templates"] },
   { title: "\u4efb\u52a1\u7ba1\u7406", description: "\u6267\u884c\u8bb0\u5f55\u4e0e\u53d7\u5ba1\u6062\u590d", icon: "database", pages: ["aggregation", "report-jobs"] },
 ];
 const panelLabels: Record<PortalDomain, string> = { business: "\u4e1a\u52a1\u5e94\u7528", management: "\u914d\u7f6e\u7ba1\u7406\u5bfc\u822a" };

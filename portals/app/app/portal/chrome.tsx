@@ -17,7 +17,7 @@ export default function ProductChrome({ active, preview, children, identity, log
   const nav = portalNavigation(preview, domain), current = nav.find(item => item.id === active);
   const items = nav.map(item => ({ ...item, icon: icons[item.id] }));
   const sections = management ? [
-    { title: "\u914d\u7f6e\u7ba1\u7406", items: items.filter(item => ["settings", "templates"].includes(item.id)) },
+    { title: "\u914d\u7f6e\u7ba1\u7406", items: items.filter(item => ["settings", "overview-display", "templates"].includes(item.id)) },
     { title: "\u4efb\u52a1\u7ba1\u7406", dividerBefore: true, items: items.filter(item => ["aggregation", "report-jobs"].includes(item.id)) },
     { title: "\u4e1a\u52a1\u5e94\u7528", dividerBefore: true, items: [{ id: "return-business", label: "\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528", href: "/", icon: "arrow-left" as const }] },
   ] : [];

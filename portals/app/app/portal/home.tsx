@@ -8,6 +8,7 @@ import { businessHref, type BusinessScope } from "../business-analysis/links";
 import { DEFAULT_SITE_QUERY, siteListHref } from "../domains/site-registry/rules";
 import type { PortalDemo } from "./demo";
 import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
+import OverviewMetrics from "./overview-metrics";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
 const number = (v: number, digits = 0) => v.toLocaleString("zh-CN", { maximumFractionDigits: digits });
@@ -86,23 +87,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
         { id: "attention", label: "\u8fd0\u884c\u72b6\u6001\u5173\u6ce8", help: "\u6309\u7ad9\u5740\u72b6\u6001\u7edf\u8ba1\u5173\u6ce8\u4e0e\u5f02\u5e38\uff1b\u4e0b\u65b9\u4e13\u9898\u6309\u6307\u6807\u9608\u503c\u72ec\u7acb\u5224\u5b9a\uff0c\u5404\u4e13\u9898\u6570\u91cf\u4e0d\u76f8\u52a0\u3002", value: <a href="#overview-attention" className="hover:underline">{number(status.warning + status.critical)}</a>,
           description: "\u5173\u6ce8 " + number(status.warning) + " / \u5f02\u5e38 " + number(status.critical), icon: "gauge", tone: "warning" },
       ]} /></div>
-      <section className="grid min-w-0 gap-md lg:grid-cols-3" aria-label={"\u4e09\u57df\u8fd0\u884c\u6458\u8981"}>
-        <MetricListCard title={"\u7ecf\u8425\u670d\u52a1"} description={"\u5168\u65e5\u7d2f\u8ba1 \u00b7 00:00\u201324:00"} icon="chart-bar" tone="brand" metrics={[
-          { key: "data", label: "\u6d41\u91cf / TiB", value: number(usage.totals.bytes / 1099511627776, 2) },
-          { key: "voice", label: "\u901a\u8bdd / \u4e07\u5206\u949f", value: number(usage.totals.voiceSeconds / 600000, 2) },
-          { key: "sms", label: "\u77ed\u4fe1 / \u4e07\u6761", value: number(usage.totals.sms / 10000, 2) },
-        ]} footer={more(businessHref("operator-usage", scope), "\u8fd0\u8425\u5546\u7528\u91cf")} />
-        <MetricListCard title={"\u8fd0\u8425\u72b6\u6001"} description={"\u72b6\u6001\u65f6\u70b9 \u00b7 " + hour} icon="gauge" tone="info" metrics={[
-          { key: "connection", label: "\u63a5\u901a\u7387", value: percent(status.connectionRate) },
-          { key: "load", label: "\u8d44\u6e90\u8d1f\u8f7d", value: percent(status.load) },
-          { key: "normal", label: "\u6b63\u5e38 / \u5ea7", value: number(status.normal) },
-        ]} footer={more(businessHref("capacity", scope), "\u5bb9\u91cf\u4e0e\u8d28\u91cf")} />
-        <MetricListCard title={"\u8fd0\u884c\u53c2\u6570"} description={"\u7535\u8017\u4e3a\u5168\u65e5\u7d2f\u8ba1 \u00b7 \u72b6\u6001 " + hour} icon="lightning" tone="success" metrics={[
-          { key: "energy", label: "\u7535\u8017 / kWh", value: usage.energyWh === null ? "\u2014" : number(usage.energyWh / 1000, 1) },
-          { key: "battery", label: "\u5907\u7528\u4f9b\u7535 / \u5ea7", value: number(demo.runtime.battery) },
-          { key: "temperature", label: "\u226535\u00b0C / \u5ea7", value: number(demo.runtime.hot) },
-        ]} footer={more(businessHref("efficiency", scope), "\u8fd0\u884c\u4e0e\u80fd\u6548")} />
-      </section>
+      <OverviewMetrics demo={demo} scope={scope} />
       <OverviewAttention key={q.cityId + q.countyId} demo={demo} />
       <div className="grid min-w-0 gap-md xl:grid-cols-3">
         <PanelCard title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} className="min-w-0 xl:col-span-2" tone="brand"

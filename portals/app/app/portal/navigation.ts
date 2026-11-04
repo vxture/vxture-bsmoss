@@ -1,4 +1,4 @@
-export type PortalPage = "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "overview-display" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -7,7 +7,7 @@ export interface BusinessModule {
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["settings", "templates", "aggregation", "report-jobs"].includes(page) ? "management" : "business";
+  return ["overview-display", "settings", "templates", "aggregation", "report-jobs"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
@@ -24,6 +24,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
     { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
+    ...(preview ? [{ id: "overview-display" as const, label: "\u8fd0\u884c\u603b\u89c8\u663e\u793a", href: "/settings/overview", group: "management" as const }] : []),
     { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
     { id: "aggregation", label: "\u805a\u5408\u4efb\u52a1", href: "/settings/operations/aggregation", group: "management" },
     { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/settings/operations/reports", group: "management" },

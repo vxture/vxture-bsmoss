@@ -31,6 +31,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const r=await fetch(url+'/?reportPeriod=month');assert.equal(r.status,200);
       const html=await r.text();
       for(const marker of ['data-overview-report=','data-overview-attention=','bsmoss-demo-review-scenarios-v1','DEMO-MONTH-']) assert.ok(!html.includes(marker));
+      assert.ok(!html.includes('data-overview-metrics='));
+      const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(!settings.includes('data-overview-display-settings'));
     });
     await t.test("usage verification never exposes its isolated scenario evidence with preview off",async()=>{
       const r=await fetch(url+'/usage-review'); assert.equal(r.status,200);
@@ -206,6 +208,10 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const home=await root.text();assert.ok(home.includes('data-portal-mode="demo"'));assert.ok(home.includes('2026-10-25'));
       assert.ok(home.includes('data-overview-attention="capacity"'));assert.ok(home.includes('data-overview-verification'));
       assert.ok(home.includes('data-overview-report="day"'));assert.ok(home.includes('bsmoss-demo-review-scenarios-v1'));
+      assert.ok(home.includes('data-overview-metrics="bsmoss-overview-metrics-v1"'));
+      assert.ok(home.includes('\u8f83\u6628\u65e5'));
+      const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));
+      const config=await (await fetch(url+'/settings')).text();assert.ok(config.includes('href="/settings/overview"'));
       for(const period of ['week','month']) {
         const report=await (await fetch(url+'/?reportPeriod='+period)).text();
         assert.ok(report.includes('data-overview-report="'+period+'"'));
