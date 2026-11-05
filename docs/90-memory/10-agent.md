@@ -1254,3 +1254,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 最终生产build含类型tmp/header-region-build.log通过；16相关单测tmp/header-region-unit.log及32HTTP tmp/header-region-http.log通过（新增cookie首屏／显式优先／全省重置／非法父子回归），无重复PG。CUA雁塔跨launcher到容量实际16站，刷新同县；10无参数入口均同县，配置宝鸡后回台账140、树长安62、业务重置仍同县；蓝田档案固定归属不影响全局、切全省回1080列表。新地图雁塔首次16站/0.68TiB且无site、改宝鸡后总览继承。1280/904/390×5页15组无文档／header横溢，每页1H1／1选择器，warn/error空。证据artifacts/header-region-qa/sites.png为最终新tab完整header，checks.json含范围与布局；复用tab的capacity截图顶栏绘制缺失不作为视觉成功，保留诊断。搜索初次名称不匹配，按实际combobox名称重验成功。viewport恢复，临时99/100/101/102关闭、用户tab72/93保留。
 
 实施820、规格50同步。无新依赖／DDL／权限／事实来源变更，无push／外部部署／生产上线／新聊天／自动任务；下一业务仍B01-04，陕西／费用预留／退役P2／无旧库迁移保持。最终63333身份见Git及health。
+
+## 区域选择全状态移除下拉箭头（2026-11-05）
+
+用户要求整体不要箭头。公共RegionSelector直接删除触发器chevron-down节点及专用group，常态／悬停／聚焦／按下／展开均不再显示或占位；区域图标、文字、DS淡底及交互轮廓保留，级联弹层内的下级指示保持。规格50及实施800同步覆盖旧策略。
+
+生产构建含类型通过tmp/region-selector-no-arrow-build.log；CUA常态／展开／Escape收起均仅1个区域svg，宽174.61px不变、左右padding16px对称；展开截图artifacts/region-selector-no-arrow-qa/open.png。搜索框role定位无匹配后按已验证触发器发送Escape成功，验证tab103已关闭、用户原页保留。纯外观不新增镜像单测或重复业务HTTP／PG；无依赖／权限／DDL／业务事实／外部部署变化。

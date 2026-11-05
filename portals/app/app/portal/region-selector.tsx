@@ -20,10 +20,10 @@ export default function RegionSelector({ region, value, onChange, disabled = fal
     setOpen(next);
   }}>
     <PopoverTrigger asChild><Button id={id} type="button" variant="ghost" disabled={disabled}
-      className={"region-selector-trigger group/region min-w-0 max-w-full justify-start gap-sm bg-muted hover:border-control-border active:border-control-border focus-visible:border-control-border data-[state=open]:border-control-border " + (className ?? "")}
+      className={"region-selector-trigger min-w-0 max-w-full justify-start gap-sm bg-muted hover:border-control-border active:border-control-border focus-visible:border-control-border data-[state=open]:border-control-border " + (className ?? "")}
       aria-label={"\u9009\u62e9\u533a\u57df\uff1a" + label} title={label}>
       <Icon name="city" size="sm" className="shrink-0 text-muted-foreground" />
-      <span className="truncate">{label}</span><Icon name="chevron-down" size="sm" className="hidden shrink-0 text-muted-foreground group-hover/region:block group-active/region:block group-focus-visible/region:block group-data-[state=open]/region:block" />
+      <span className="truncate">{label}</span>
     </Button></PopoverTrigger>
     <PopoverContent align="start" width="xl" className="region-selector-popover p-0" aria-label={"\u533a\u57df\u9009\u62e9"}>
       <Command shouldFilter={false} loop defaultValue={selected.countyId !== "all" ? "county-" + selected.countyId : selected.cityId !== "all" ? "city-" + selected.cityId : "all-cities"} label={"\u7701\u5e02\u53bf\u533a\u57df\u9009\u62e9"}>
