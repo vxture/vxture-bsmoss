@@ -1200,3 +1200,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户指出隐藏下拉箭头后右侧空白偏多，并询问背景色。本批覆盖上一条箭头占位策略：公共RegionSelector常态继续透明底，保留city图标；hover／展开采用官方ghost淡底。箭头改DS xs绝对定位在既有右内距，取消文档流占位，按钮按图标＋文字及对称px-md定宽，无新增CSS／token覆盖／业务查询变化。实施800同步。
 
 生产build含类型已通过tmp/region-selector-inset-build.log，155文档编号通过tmp/region-selector-inset-docs.log。CUA常态左右可见内容内距均16.67px，padding各16px，icon1／arrow0／底边透明；展开arrow1／官方淡底，前后同95.33px宽。390长路径“陕西省·西安市·雁塔区”左右内距仍16.67px、宽174.61px，文档宽390无横溢，warn/error空。截图artifacts/region-selector-inset-qa含normal／open／mobile；viewport恢复、临时tab89关闭、用户tab72保留。纯样式不新增镜像单测／不重复业务HTTP或PG；无数据／权限／DDL／依赖／上线状态变化，最终63333以本批Git和health收尾为准。
+
+## 区域常态淡底与箭头独立展开（2026-11-05）
+
+用户纠正上批理解：隐藏箭头不占位是为了常态背景留白对称，显示箭头需要舒展空间，并非挤进原内距。本批覆盖上一条透明底／绝对定位／等宽策略：公共选择器采用DS bg-muted常态淡底，city图标保留；箭头常态hidden，hover／active／focus-visible／展开时block进入文档流，sm图标＋gap-sm自然增宽，外侧仍px-md对称。规格50和实施800同步，不改DS内部样式／token／筛选逻辑。
+
+生产build含类型通过tmp/region-selector-reveal-build.log，155编号通过。CUA常态background非透明、箭头display:none、宽95.33px／左右内距16.67px；展开宽121.33px、16px箭头与文字间隔10px、外侧内距仍16.67px；Escape收起成功。390长路径常态174.61px、展开200.61px／文字完整／间隔10px，文档宽390无横溢；warn/error空。证据artifacts/region-selector-reveal-qa含normal／open／hover／mobile及checks.json。viewport恢复，临时tab90关闭、用户原页保留。纯样式不重复业务HTTP／PG、不新增镜像单测，无依赖／权限／数据／DDL／外部上线状态变化，最终63333身份见Git及health。
