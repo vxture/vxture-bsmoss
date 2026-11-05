@@ -48,7 +48,7 @@ export function registryDemo(input: Record<string, string | string[] | undefined
     })])),
     summary: { sites: filtered.length, relations: relationRows.length, shared: filtered.filter(s => s.operators.length >= 2).length,
       multi: filtered.filter(s => s.operators.length >= 3).length, attention: filtered.filter(s => s.current.status !== "normal").length },
-    regions: { cities: DEMO_REGION.cities.map(c => ({ id: c.id, name: c.name, count: all.filter(s => s.cityId === c.id).length })),
+    regions: { id: DEMO_REGION.id, name: DEMO_REGION.name, cities: DEMO_REGION.cities.map(c => ({ id: c.id, name: c.name, count: all.filter(s => s.cityId === c.id).length })),
       counties: DEMO_REGION.counties.map(c => ({ id: c.id, cityId: c.cityId, name: c.name, count: all.filter(s => s.countyId === c.id).length })) },
   };
 }

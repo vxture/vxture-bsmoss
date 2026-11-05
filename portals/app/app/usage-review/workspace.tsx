@@ -1,4 +1,5 @@
 "use client";
+import RegionSelector from "../portal/region-selector";
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
 import { useRouter } from "next/navigation";
@@ -32,8 +33,7 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
         <NativeSelect aria-label={"\u6838\u9a8c\u6307\u6807"} wrapperClassName="w-auto" value={q.metric} onChange={e => navigate({ metric: e.target.value as ReviewQuery["metric"] })}>{Object.entries(metricNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>
       </div>
     </form><div className="flex shrink-0 flex-wrap items-center gap-md">
-      <NativeSelect aria-label={"\u6838\u9a8c\u5730\u5e02"} wrapperClassName="w-auto" value={q.scope.cityId} onChange={e => navigate({}, { cityId: e.target.value, countyId: "all", selection: undefined })}><option value="all">{"\u9655\u897f\u7701 \u00b7 \u5168\u90e8\u5730\u5e02"}</option>{model.region.cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
-      <NativeSelect aria-label={"\u6838\u9a8c\u533a\u53bf"} wrapperClassName="w-auto" value={q.scope.countyId} disabled={q.scope.cityId === "all"} onChange={e => navigate({}, { countyId: e.target.value, selection: undefined })}><option value="all">{"\u5168\u90e8\u533a\u53bf"}</option>{model.region.counties.filter(c => c.cityId === q.scope.cityId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
+      <RegionSelector region={model.region} value={q.scope} disabled={pending} onChange={value => navigate({}, { ...value, selection: undefined })} />
       <NativeSelect aria-label={"\u6838\u9a8c\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.scope.operator} onChange={e => navigate({}, { operator: e.target.value as ReviewQuery["scope"]["operator"] })}>{Object.entries(operatorNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>
       <SegmentedControl ariaLabel={"\u6838\u9a8c\u5468\u671f"} value={q.period} onChange={period => navigate({ period })} items={[{ value: "day", label: "\u65e5" }, { value: "week", label: "\u5468" }, { value: "month", label: "\u6708" }]} />
       <NativeSelect aria-label={"\u6838\u9a8c\u72b6\u6001"} wrapperClassName="w-auto" value={q.status} onChange={e => navigate({ status: e.target.value as ReviewQuery["status"] })}>{Object.entries(statusNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>

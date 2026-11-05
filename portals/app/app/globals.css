@@ -79,3 +79,30 @@
 .overview-usage-chart {
   min-height: 0;
 }
+
+/* Shared region composition: DS overlay sizes/spacing, no primitive overrides. */
+.region-selector-popover {
+  width: calc(var(--container-overlay-lg) + var(--container-overlay-sm));
+  max-width: min(var(--radix-popover-content-available-width), calc(100vw - var(--space-md) * 2));
+  max-height: var(--radix-popover-content-available-height);
+  overflow: hidden;
+}
+.region-selector-cascade { max-height: none; }
+.region-selector-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) repeat(2, minmax(0, 1fr));
+  max-height: none;
+}
+.region-selector-level {
+  height: calc(var(--spacing-media-3xl) + var(--spacing-media-lg));
+  max-height: calc(var(--radix-popover-content-available-height) - var(--space-control-xl) - var(--space-control-xl));
+  overflow-y: auto;
+  border-left: var(--border-width-thin) solid var(--border);
+  scrollbar-width: thin;
+}
+.region-selector-results { max-height: calc(var(--spacing-media-3xl) + var(--spacing-media-lg)); }
+@media (max-width: 47.999rem) {
+  .region-selector-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .region-selector-province { grid-column: 1 / -1; border-bottom: var(--border-width-thin) solid var(--border); }
+  .region-selector-level { max-height: calc(var(--radix-popover-content-available-height) - var(--space-control-xl) * 3 - var(--space-lg)); }
+}

@@ -1,4 +1,5 @@
 "use client";
+import RegionSelector from "../portal/region-selector";
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
 import MetricRowsCard from "../portal/metric-rows-card";
@@ -37,8 +38,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}</>}
      toolbar={<form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
-     <NativeSelect aria-label={"\u5206\u6790\u5730\u5e02"} wrapperClassName="w-auto" value={q.cityId} onChange={e => navigate({ cityId: e.target.value, countyId: "all", selection: undefined })}><option value="all">{"\u9655\u897f\u7701 \u00b7 \u5168\u90e8\u5730\u5e02"}</option>{demo.region.cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
-     <NativeSelect aria-label={"\u5206\u6790\u533a\u53bf"} wrapperClassName="w-auto" value={q.countyId} disabled={q.cityId === "all"} onChange={e => navigate({ countyId: e.target.value, selection: undefined })}><option value="all">{"\u5168\u90e8\u533a\u53bf"}</option>{demo.region.counties.filter(c => c.cityId === q.cityId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
+     <RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate({ ...value, selection: undefined })} />
      <NativeSelect aria-label={"\u5206\u6790\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value as BusinessScope["operator"] })}>{Object.entries(operatorNames).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</NativeSelect>
      {topicMode || q.period === "hour" ? <NativeSelect aria-label={"\u5206\u6790\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect> : null}
      {!topicMode && <SegmentedControl ariaLabel={"\u5206\u6790\u5468\u671f"} value={q.period} onChange={period => navigate({ period })} items={[...(demo.kind === "operator-usage" ? [{ value: "hour" as const, label: "\u65f6" }] : []), { value: "day", label: "\u65e5" }, { value: "week", label: "\u5468" }, { value: "month", label: "\u6708" }]} />}

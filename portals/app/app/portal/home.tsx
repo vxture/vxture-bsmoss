@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, NativeSelect, PanelCard, Progress,
+import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, PanelCard, Progress,
   SectionHeader, SegmentedControl, ShellPageContainer, toneEdgeClasses } from "@vxture/design-system";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
 import { DEFAULT_SITE_QUERY, siteListHref } from "../domains/site-registry/rules";
@@ -10,6 +10,7 @@ import type { PortalDemo } from "./demo";
 import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
 import OverviewMetrics from "./overview-metrics";
 import PageHeading from "./page-heading";
+import RegionSelector from "./region-selector";
 import UsageTrend from "./usage-trend";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
@@ -61,12 +62,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
             <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
           </Button>}
         context={<time dateTime={demo.date + "T" + hour + ":00+08:00"} title={"\u72b6\u6001\u6307\u6807\u91c7\u7528\u8be5\u65f6\u70b9\u5feb\u7167\uff1b\u65e5\u7d2f\u8ba1\u6307\u6807\u4e0e\u5168\u65e5\u8d8b\u52bf\u7edf\u8ba1\u7a97\u53e3\u4e3a\u5f53\u65e5 00:00\u201324:00\u3002"}>{"\u5206\u6790\u5feb\u7167 " + demo.date + " " + hour}</time>}
-        toolbar={<div className="flex min-w-0 flex-wrap items-center gap-sm" aria-label={"\u603b\u89c8\u8303\u56f4\u4e0e\u65f6\u95f4"}><NativeSelect wrapperClassName="w-auto" aria-label={"\u603b\u89c8\u5730\u5e02"} value={q.cityId} disabled={pending} onChange={e => navigate(e.target.value, "all")}>
-            <option value="all">{"\u9655\u897f\u7701 \u00b7 \u5168\u90e8\u5730\u5e02"}</option>{demo.region.cities.map(city => <option key={city.id} value={city.id}>{city.name}</option>)}
-          </NativeSelect>
-          <NativeSelect wrapperClassName="w-auto" aria-label={"\u603b\u89c8\u533a\u53bf"} value={q.countyId} disabled={pending || q.cityId === "all"} onChange={e => navigate(q.cityId, e.target.value)}>
-            <option value="all">{"\u5168\u90e8\u533a\u53bf"}</option>{demo.region.counties.filter(county => county.cityId === q.cityId).map(county => <option key={county.id} value={county.id}>{county.name}</option>)}
-          </NativeSelect></div>} />
+        toolbar={<div className="flex min-w-0 flex-wrap items-center gap-sm" aria-label={"\u603b\u89c8\u8303\u56f4\u4e0e\u65f6\u95f4"}><RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate(value.cityId, value.countyId)} /></div>} />
       <section className="sm:hidden" aria-label={"\u7ad9\u7f51\u8d44\u6e90"}>
         <MetricListCard title={"\u7ad9\u7f51\u8d44\u6e90"} icon="building" metrics={[
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: <a href={siteListHref(siteQuery)}>{number(usage.physicalSites)}</a> },

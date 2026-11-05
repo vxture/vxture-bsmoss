@@ -36,3 +36,19 @@ test("board rejects unsupported provinces, duplicate fields, forged scope and in
     { hour: ["12", "18"] }, { city: ["610100"] }, { workspaceId: "forged" }, { site: "SX-DEMO-001" }])
     assert.throws(() => parseBoardQuery(input));
 });
+
+test("county selection reconciles points, all 24 hours and operator totals", () => {
+  const demo = boardDemo({ city: "610100", county: "610113", hour: "12" });
+  assert.equal(demo.countyId, "610113");
+  assert.equal(demo.snapshot.summary.count, 16);
+  assert.ok(demo.snapshot.points.every(point => point.countyId === "610113"));
+  assert.equal(demo.usage.physicalSites, demo.snapshot.summary.count);
+  for (const key of ["bytes", "voiceSeconds", "sms"] as const) {
+    assert.equal(demo.usage.totals[key], demo.snapshot.summary[key]);
+    assert.equal(demo.series[12][key], demo.snapshot.summary[key]);
+  }
+  for (const point of demo.series)
+    assert.deepEqual(point, { hour: point.hour, ...queryMap(parseBoardQuery({ city: "610100", county: "610113", hour: String(point.hour) })).summary });
+  for (const input of [{ city: "610300", county: "610113" }, { county: "610113" }, { city: "610100", county: ["610113"] }])
+    assert.throws(() => parseBoardQuery(input));
+});

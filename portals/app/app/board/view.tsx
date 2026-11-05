@@ -1,9 +1,11 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import RegionSelector from "../portal/region-selector";
+import { regionLabel } from "../portal/region-selection";
 import PageHeading from "../portal/page-heading";
 import { useRouter } from "next/navigation";
-import { BarChart, Button, Icon, MetricListCard, NativeSelect, PanelCard, Progress, SegmentedControl,
+import { BarChart, Button, Icon, MetricListCard, PanelCard, Progress, SegmentedControl,
   ShellPageContainer, Slider, StatusBadge } from "@vxture/design-system";
 import type { BoardDemo } from "./model";
 import type { BoardTheme } from "./network-map";
@@ -23,8 +25,9 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
   const [full, setFull] = useState(false), [fullscreenError, setFullscreenError] = useState(false);
   const [hour, setHour] = useState(demo.hour);
   useEffect(() => { setHour(demo.hour); }, [demo.hour]);
-  const navigate = (city: string, nextHour: number) => {
+  const navigate = (city: string, nextHour: number, county = city === demo.cityId ? demo.countyId : "all") => {
     const params = new URLSearchParams({ hour: String(nextHour) }); if (city !== "all") params.set("city", city);
+    if (county !== "all") params.set("county", county);
     router.replace("/board?" + params, { scroll: false });
   };
   useEffect(() => {
@@ -33,16 +36,17 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
     return () => clearTimeout(timer);
     // Advance only after the new server snapshot arrives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, demo.hour, demo.cityId]);
+  }, [playing, demo.hour, demo.cityId, demo.countyId]);
   useEffect(() => {
     const change = () => setFull(document.fullscreenElement === root.current);
     document.addEventListener("fullscreenchange", change);
     return () => document.removeEventListener("fullscreenchange", change);
   }, []);
   const city = demo.region.cities.find(item => item.id === demo.cityId);
+  const selectedRegion = regionLabel(demo.region, demo);
   const s = demo.snapshot.summary;
   const context = demo.hour.toString().padStart(2, "0") + ":00";
-  const scope = (extra = "") => "/product-preview?hour=" + demo.hour + (city ? "&city=" + city.id : "") + extra;
+  const scope = (extra = "") => "/product-preview?hour=" + demo.hour + (city ? "&city=" + city.id : "") + (demo.countyId !== "all" ? "&county=" + demo.countyId : "") + extra;
   const unit = theme === "traffic" ? "GiB" : theme === "energy" ? "kWh" : "%";
   const value = (item: BoardDemo["cities"][number]) => theme === "traffic" ? n(item.bytes / 1073741824, 1) :
     theme === "energy" ? item.energyWh === null ? "\u2014" : n(item.energyWh / 1000, 1) : pct(item.load);
@@ -54,14 +58,12 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
     <ShellPageContainer className="product-page-inset max-w-none">
       <div className="flex min-w-0 flex-col gap-lg">
         <PageHeading title={"\u51b3\u7b56\u5206\u6790"} description={"\u7ad9\u7f51\u7efc\u5408\u6001\u52bf\u4e0e\u533a\u57df\u8fd0\u8425\u6bd4\u8f83"}
-          context={<><span>{city?.name ?? "\u9655\u897f\u7701"}</span><time>{demo.date + " " + context}</time></>}
+          context={<><span>{selectedRegion}</span><time>{demo.date + " " + context}</time></>}
           actions={<><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={scope()}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5de5\u4f5c\u53f0"}</a></Button>
             <Button variant="ghost" size="icon-md" aria-label={full ? "\u9000\u51fa\u5168\u5c4f" : "\u8fdb\u5165\u5168\u5c4f"} onClick={async () => {
               try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); setFullscreenError(false); }
               catch { setFullscreenError(true); }
-            }}><Icon name={full ? "minimize" : "maximize"} size="sm" /></Button></>} toolbar={<div className="flex flex-wrap items-center gap-sm"><NativeSelect aria-label={"\u51b3\u7b56\u5206\u6790\u5730\u5e02"} value={demo.cityId} onChange={event => { setPlaying(false); navigate(event.target.value, demo.hour); }} wrapperClassName="w-auto">
-              <option value="all">{"\u9655\u897f\u5168\u7701"}</option>{demo.region.cities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </NativeSelect></div>} />
+            }}><Icon name={full ? "minimize" : "maximize"} size="sm" /></Button></>} toolbar={<div className="flex flex-wrap items-center gap-sm"><RegionSelector region={demo.region} value={demo} onChange={value => { setPlaying(false); navigate(value.cityId, demo.hour, value.countyId); }} /></div>} />
         {fullscreenError && <p role="status" className="text-body-small text-muted-foreground">{"\u5f53\u524d\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5168\u5c4f\uff0c\u53ef\u7ee7\u7eed\u4f7f\u7528\u5f53\u524d\u89c6\u56fe\u3002"}</p>}
         <section className="grid gap-md lg:grid-cols-3" aria-label={"\u51b3\u7b56\u5206\u6790\u4e09\u7c7b\u6307\u6807"}>
           <MetricListCard title={"\u7ecf\u8425\u670d\u52a1"} icon="chart-bar" tone="brand" description={context + " \u00b7 \u65f6\u6bb5\u7528\u91cf"}
@@ -75,7 +77,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
               { key: "sites", label: "\u7ad9\u5740 / \u5ea7", value: n(s.count) }, { key: "relations", label: "\u670d\u52a1\u5173\u7cfb / \u6761", value: n(demo.usage.serviceRelations) }]} />
         </section>
         <div className="decision-board-grid">
-          <PanelCard title={(city?.name ?? "\u9655\u897f") + "\u7ad9\u7f51\u6001\u52bf"} icon="map-pin"
+          <PanelCard title={(selectedRegion) + "\u7ad9\u7f51\u6001\u52bf"} icon="map-pin"
             description={themes.find(item => item.value === theme)!.label + " \u00b7 " + context}
             className="min-w-0">
             <div className="flex justify-end pb-md"><SegmentedControl items={themes} value={theme} onChange={setTheme} size="sm" ariaLabel={"\u51b3\u7b56\u5206\u6790\u4e13\u9898"} /></div>
@@ -89,10 +91,10 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
             </div>
           </PanelCard>
           <div className="flex min-w-0 flex-col gap-md">
-            <PanelCard title={"\u5730\u5e02\u5bf9\u6bd4"} icon="city" description={(theme === "status" ? "\u8d44\u6e90\u8d1f\u8f7d" : theme === "traffic" ? "\u65f6\u6bb5\u6d41\u91cf" : "\u7269\u7406\u7535\u8017") + " \u00b7 " + unit}
+            <PanelCard title={"\u5730\u5e02\u5bf9\u6bd4"} icon="city" description={(demo.countyId !== "all" ? "\u5168\u5e02\u53e3\u5f84 \u00b7 " : "") + (theme === "status" ? "\u8d44\u6e90\u8d1f\u8f7d" : theme === "traffic" ? "\u65f6\u6bb5\u6d41\u91cf" : "\u7269\u7406\u7535\u8017") + " \u00b7 " + unit}
               action={city ? <Button variant="ghost" size="sm" onClick={() => navigate("all", demo.hour)}>{"\u5168\u7701"}</Button> : undefined}>
               <div className="flex flex-col gap-sm">{orderedCities.map(item => <Button key={item.id} variant={item.id === demo.cityId ? "secondary" : "ghost"}
-                className="w-full justify-between" onClick={() => { setPlaying(false); navigate(item.id, demo.hour); }}>
+                className="w-full justify-between" onClick={() => { setPlaying(false); navigate(item.id, demo.hour, "all"); }}>
                 <span>{item.name}</span><span className="tabular-nums text-muted-foreground">{value(item)}</span>
               </Button>)}</div>
             </PanelCard>
