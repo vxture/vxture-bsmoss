@@ -5,7 +5,7 @@ import { portalBusinessGroups, portalDomain, portalNavigation } from "./navigati
 test("business and configuration navigation are disjoint and management routes share their own domain", () => {
   for (const preview of [false, true]) {
     const business = portalNavigation(preview), management = portalNavigation(preview, "management");
-    assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "map", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review"] : ["home", "board", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review"]);
+    assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "map", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review", "review-history"] : ["home", "board", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review"]);
     assert.deepEqual(management.map(entry => entry.id), preview ? ["settings", "overview-display", "templates", "aggregation", "report-jobs"] : ["settings", "templates", "aggregation", "report-jobs"]);
     for (const entry of management) {
       assert.equal(portalDomain(entry.id), "management");
@@ -31,7 +31,7 @@ test("global destinations stand apart from business groups and planned modules h
     for (const id of preview ? ["sites", "analysis", "reports", "capacity", "efficiency", "operator-usage", "usage-reports", "usage-review"] : ["sites", "analysis", "reports"])
       assert.equal(modules.filter(item => item.page === id).length, 1);
     assert.equal(modules.find(item => item.key === "usage-review")?.planned, preview ? undefined : true);
-    assert.equal(modules.find(item => item.key === "review-history")?.planned, true);
+    assert.equal(modules.find(item => item.key === "review-history")?.planned, preview ? undefined : true);
     for (const item of modules.filter(item => item.page !== "map")) assert.ok(!item.href?.startsWith("/product-preview"));
   }
 });

@@ -1,4 +1,4 @@
-export type PortalPage = "overview-display" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -23,6 +23,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "analysis", label: "\u7ecf\u8425\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
     { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
+    ...(preview ? [{ id: "review-history" as const, label: "\u6838\u9a8c\u8bb0\u5f55", href: "/review-history", group: "business" as const }] : []),
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
     ...(preview ? [{ id: "overview-display" as const, label: "\u8fd0\u884c\u603b\u89c8\u663e\u793a", href: "/settings/overview", group: "management" as const }] : []),
     { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
@@ -56,7 +57,7 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
     ] },
     { key: "verification", title: "\u5f02\u5e38\u6838\u9a8c", icon: "shield-check", description: "\u53d1\u73b0\u3001\u8bc1\u636e\u4e0e\u590d\u6838", modules: [
       ...(preview ? page("usage-review", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570") : [planned("usage-review", "\u7528\u91cf\u6838\u9a8c", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570")]),
-      planned("review-history", "\u6838\u9a8c\u8bb0\u5f55", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2"),
+      ...(preview ? page("review-history", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2") : [planned("review-history", "\u6838\u9a8c\u8bb0\u5f55", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2")]),
     ] },
     { key: "reporting", title: "\u62a5\u544a\u4e2d\u5fc3", icon: "file-text", description: "\u5468\u671f\u6210\u679c\u4e0e\u8ffd\u6eaf", modules: [
       ...page("reports", "file-text", "\u62a5\u544a\u5e93\u4e0e\u5386\u53f2\u7248\u672c"),

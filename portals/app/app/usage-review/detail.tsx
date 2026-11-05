@@ -9,7 +9,12 @@ import { operatorNames } from "../sites/labels";
 import { kindNames, metricNames, quantity, deviation, reasonNames, qualityNames, timeLabel, windowLabel } from "./labels";
 import { FindingBadge } from "./workspace";
 import "./review.css";
-export default function ReviewDetail({ model }: { model: ReviewDetailModel }) {
+import {useReviewRecords} from './use-records';
+import RecordActions from './record-actions';
+import {recordProjection} from '../domains/usage-verification/event-service';
+import {statusNames} from './labels';
+export default function ReviewDetail({ model,recordSession,eventNumber }: { model: ReviewDetailModel;recordSession?:string;eventNumber?:number }) {
+  const records=useReviewRecords(model.item.source,recordSession),projection=recordProjection(records.data?.logs.find(l=>l.caseId===model.item.id),model.item);
   const { item: c, query: q } = model, [raw, setRaw] = useState(false), first = c.windows[0], metric = c.metric;
   const rawUnit = metric === "bytes" ? "B" : metric === "voiceSeconds" ? "s" : "\u6761", scale = metric === "bytes" ? 1073741824 : metric === "voiceSeconds" ? 60 : 1;
   const chartUnit = metric === "bytes" ? "GiB" : metric === "voiceSeconds" ? "\u5206\u949f" : "\u6761";
@@ -19,10 +24,10 @@ export default function ReviewDetail({ model }: { model: ReviewDetailModel }) {
     c.kind === "zero_run" ? "\u8fde\u7eed\u6709\u6548\u7a97\u53e3\u4e3a\u96f6\uff0c\u9700\u8981\u786e\u8ba4\u4e1a\u52a1\u539f\u56e0" : "\u7528\u91cf\u53d8\u5316\u8fbe\u5230\u7b5b\u67e5\u95e8\u69db\uff0c\u9700\u8981\u6838\u5bf9\u4e1a\u52a1\u539f\u56e0";
   return <div data-usage-review="detail" className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-lg overflow-auto">
     <PageHeading title={c.site.name} description={c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}
-      navigation={<div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button></div>} secondary={<><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{"\u5f85\u6838\u9a8c"}</StatusBadge></>}
+      navigation={<div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)+(records.selected?"&recordSession="+records.selected:"")}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button></div>} secondary={<><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{records.data?statusNames[projection.state]:"\u8bfb\u53d6\u8bb0\u5f55\u4e2d"}</StatusBadge></>}
       region={<span className="text-body-small text-muted-foreground">{model.region.cities.find(s => s.id === c.site.cityId)?.name + " / " + model.region.counties.find(s => s.id === c.site.countyId)?.name}</span>}
       context={<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>}
-      actions={<><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></>} />
+      actions={<><Button asChild variant="outline"><a href={"/review-history?"+reviewHref(q).split("?")[1]+(records.selected?"&recordSession="+records.selected:"")}>{"\u6838\u9a8c\u8bb0\u5f55"}</a></Button><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></>} />
     <div className="grid min-w-0 shrink-0 gap-lg xl:grid-cols-3">
       <div className="flex min-w-0 flex-col gap-lg xl:col-span-2">
         <PanelCard title={heading} icon="search" tone={c.category === "quality" ? "warning" : c.category === "insufficient" ? "neutral" : "info"} description={windowLabel(c.start, c.end)}>
@@ -57,11 +62,11 @@ export default function ReviewDetail({ model }: { model: ReviewDetailModel }) {
         ]} /></PanelCard></CollapsibleContent></Collapsible>
       </div>
       <aside className="flex min-w-0 flex-col gap-lg" aria-label={"\u6838\u9a8c\u4f9d\u636e\u4e0e\u5904\u7406\u72b6\u6001"}>
+        <RecordActions key={records.selected??records.data?.active??"loading"} item={c} records={records} eventNumber={recordSession&&(records.selected??records.data?.active)!==recordSession?undefined:eventNumber}/>
         <PanelCard title={"\u7b5b\u67e5\u89c4\u5219"} icon="shield-check"><dl className="flex flex-col gap-md text-body-small"><div><dt className="text-muted-foreground">{"\u7ebf\u7d22\u7c7b\u578b"}</dt><dd>{kindNames[c.kind]}</dd></div><div><dt className="text-muted-foreground">{"\u76f8\u5bf9\u95e8\u69db"}</dt><dd>{"\u2265 " + WAVE_POLICY.relativeBps / 100 + "%"}</dd></div><div><dt className="text-muted-foreground">{"\u7edd\u5bf9\u95e8\u69db"}</dt><dd>{"\u2265 " + quantity(WAVE_POLICY.minimum[metric], metric) + " (" + WAVE_POLICY.minimum[metric] + " " + rawUnit + ")"}</dd></div><div><dt className="text-muted-foreground">{"\u57fa\u7ebf"}</dt><dd>{"\u524d4\u5468\u540c\u661f\u671f\u540c\u65f6\u69fd\uff0c\u81f3\u5c113\u4e2a\u6709\u6548\u6837\u672c\u53d6\u4e2d\u4f4d\u6570"}</dd></div><div><dt className="text-muted-foreground">{"\u96f6\u91cf\u6761\u4ef6"}</dt><dd>{"\u8fde\u7eed\u22653\u4e2a\u6709\u6548\u5b8c\u6574\u5c0f\u65f6\uff0c\u9010\u7a97\u53c2\u8003\u4e3a\u6b63"}</dd></div></dl></PanelCard>
         <PanelCard title={"\u4f9d\u636e\u8ffd\u6eaf"} icon="file-text" className="min-w-0"><dl className="flex flex-col gap-md break-all text-body-small">{[
           ["\u6838\u9a8c\u7f16\u53f7", c.id], ["\u8bc1\u636e\u4fee\u8ba2", String(c.evidenceRevision)], ["\u6837\u4f8b\u6765\u6e90", c.source], ["\u89c4\u5219\u7248\u672c", c.policyVersion], ["\u57fa\u7ebf\u7248\u672c", c.baselineVersion], ["\u670d\u52a1\u5173\u7cfb", c.serviceRelation], ["\u6837\u4f8b\u6620\u5c04\u7248\u672c", c.mappingVersion], ["\u8bc1\u636e\u6458\u8981", c.evidenceDigest],
         ].map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key}</dt><dd>{value}</dd></div>)}</dl></PanelCard>
-        <PanelCard title={"\u539f\u56e0\u4e0e\u590d\u6838"} icon="list-checks"><p className="text-body text-muted-foreground">{"\u5f53\u524d\u5f00\u653e\u8bc1\u636e\u67e5\u8be2\u3002\u539f\u56e0\u786e\u8ba4\u3001\u590d\u6838\u548c\u8bb0\u5f55\u5386\u53f2\u5c06\u5728\u4e0b\u4e00\u5207\u7247\u63a5\u5165\u3002"} </p></PanelCard>
       </aside>
     </div>
   </div>;

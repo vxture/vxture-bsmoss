@@ -1,5 +1,17 @@
 # 后续代理入口
 
+## B01-04本机核验人工记录完成（2026-11-05，最新执行）
+
+用户“继续下一批”接续BA04后最新排序，实施870/设计235/规格90。UV隔离场景库新增纯事件规则、service/store与原生IndexedDB：确认→待复核→通过/退回、重开，原因/说明/固定demo-visitor及实际本机操作时间，每事件精确原证据快照。schema1，严格命令不接actor/workspace/目标状态/测量/时间；同事务活动会话fence、revision CAS、命令回执和事件原子，complete后成功。旧command精确重放不退head、同ID异内容拒绝、旧依据不能直接复核、存储损坏/不可用只读不假成功。未知结果原命令重试，跨tab通知只重读；旧草稿固定动作/版本，另一页更新后锁定并要求放弃重核。
+
+/review-history仅preview开放，只列实际发生事件对象，状态/原因/周期/指标/运营商/地域与归档会话可查；点击定位同UV详情历史事件/原证据。用量核验状态先过滤再分页，保留原inputQuery页码用于本机投影。列表/详情/记录的archive会话往返保留，UUID严格v4，非法会话/event/权限字段拒绝。新会话仅切active，旧记录不删且禁止写。HE经营历史依据仍只读，不转换或冒充UV案件。无匿名服务端写API、正式权限/身份、PG/DDL、依赖或来源变化。
+
+626全量单测、末次事件/导航回归、双层types/production build与42HTTP通过；17原生浏览器IDB检查含并发单胜、rollback/receipt原子、旧命令/旧证据、关闭重开、dataset隔离/归档与损坏失败。脚本scripts/review-record-browser.mjs在loopback63334与唯一测试DB运行，不碰应用DB。163文档编号、交付/SCA一致及61表静态镜像守卫通过。无schema变化未重跑PG，不冒充在线SCA。最终日志tmp/review-events-{unit,regression,types,build,http,guards,docs}.log，提交/健康/清理以artifacts/formal-checkpoints/review-records.json为准。
+
+实际UI完成confirm/approve/reopen/confirm/return五事件及刷新保留；第二页编辑approve时第一页面通过，第二页仍锁定approve而非自动reopen。记录列表一个实际对象，定位#5及当时原量；新会话空、旧会话只读可看且list/detail/history往返正确。本机QA旧会话8c3b637a-e53c-4038-80d7-f0aba583748d归档保留，active新会话为空，不虚构业务处理结果。本轮viewport.set返回成功但实际一直1280，904/390不计通过；初拟mobile截图已改default命名，checks记实际尺寸，窄屏放下一切片补验收。初次HTTP旧只读断言失败已修，最终42通过；构建期间未以旧候选结果冒充末次。
+
+B01-04本机功能完成，B01整体in_progress；下一优先B01-05地图/档案/运营商分析/核验双向上下文和来源识别并补窄屏，再B02报告库/B04通用收口。正式身份/授权来源/PG事件及权限属B06，环境/Beta/容量恢复/UAT与生产批准仍待。历史有效期/新增退出归因仍欠，陕西合成、费用预留、退役P2、新产品无迁移保持。未push/外部部署/生产上线，未新建聊天或自动任务。临时浏览器页/63334及视口收尾见检查点，用户页保留；63333运行版本bsmoss-local-review-records及SHA以health为准。
+
 ## 经营分析BA04完成（2026-11-05，最新执行）
 
 用户“继续第二批P4”接续BA04，实施860。同资源/周期容量质量及物理能耗关联调查，capacity/efficiency显式history=1历史模式及完整条件返回，原固定快照保留。接通/尝试、占用/容量先汇总再比率；物理电耗每站每小时只计一次，单运营商能耗null不分摊；温度等时样本、备用供电站时样本不当事件时长，联合观察非因果。history-v4，calendar-v3测量不变；省级默认跨域构建预生成，固定合成站址/月缓存。

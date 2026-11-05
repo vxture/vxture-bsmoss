@@ -9,12 +9,14 @@ import { regionLink } from "./region-scope";
 import type { RegionSelection } from "./region-selection";
 export const portalIcons: Record<PortalPage, IconName> = {
   "overview-display": "faders",
+  "review-history": "list-checks",
   "usage-review": "search",
   capacity: "gauge", efficiency: "lightning", "operator-usage": "chart-pie", "usage-reports": "newspaper",
   home: "house-line", board: "chart-bar", sites: "building", map: "map-pin", analysis: "chart-line-up", reports: "file-text",
   aggregation: "database", "report-jobs": "calendar", templates: "stack", settings: "faders",
 };
 const descriptions: Record<PortalPage, string> = {
+  "review-history": "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2",
   "overview-display": "\u9996\u9875\u6307\u6807\u3001\u6392\u5e8f\u4e0e\u5355\u4f4d",
   "usage-review": "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570",
   capacity: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", efficiency: "\u4f9b\u7535\u4e0e\u80fd\u8017\u89c2\u5bdf", "operator-usage": "\u8fd0\u8425\u5546\u72ec\u7acb\u7528\u91cf", "usage-reports": "\u5468\u671f\u62a5\u544a\u4e0e\u5bfc\u51fa",

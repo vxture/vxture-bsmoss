@@ -10,7 +10,7 @@ import { parseReviewQuery, type ReviewQuery } from "./query";
 export const REVIEW_DATASET = "bsmoss-demo-review-scenarios-v1";
 export const REVIEW_CUTOFF = "2026-11-01T00:00:00+08:00";
 export interface ReviewCase extends UsageFinding {
-  id: string; evidenceRevision: 1; evidenceDigest: string; source: typeof REVIEW_DATASET; policyVersion: string; baselineVersion: string;
+  id: string; evidenceRevision: number; evidenceDigest: string; source: typeof REVIEW_DATASET; policyVersion: string; baselineVersion: string;
   site: Pick<DemoSite, "id" | "name" | "cityId" | "countyId" | "lng" | "lat">; operator: Operator; metric: BusinessMetric;
   serviceRelation: string; mappingVersion: string; state: "open";
 }
@@ -66,7 +66,7 @@ export function reviewDemo(input: Record<string, string | string[] | undefined>)
   const rows = scoped.filter(c => (query.metric === "all" || c.metric === query.metric) && (query.category === "all" || c.category === query.category) && (query.status === "all" || c.state === query.status))
     .sort((a, b) => b.start.localeCompare(a.start) || a.id.localeCompare(b.id));
   const pages = Math.max(1, Math.ceil(rows.length / 20)), page = Math.min(query.page, pages);
-  return { query: { ...query, page }, total: rows.length, pages, rows: rows.slice((page - 1) * 20, page * 20), region: DEMO_REGION,
+  return { query:{...query,page}, inputQuery:query, cases:scoped, total: rows.length, pages, rows: rows.slice((page - 1) * 20, page * 20), region: DEMO_REGION,
     counts: { business: rows.filter(c => c.category === "business").length, quality: rows.filter(c => c.category === "quality").length, insufficient: rows.filter(c => c.category === "insufficient").length },
     cutoff: REVIEW_CUTOFF, dataset: REVIEW_DATASET,
     scopeName: DEMO_REGION.counties.find(c => c.id === query.scope.countyId)?.name ?? DEMO_REGION.cities.find(c => c.id === query.scope.cityId)?.name ?? DEMO_REGION.name };

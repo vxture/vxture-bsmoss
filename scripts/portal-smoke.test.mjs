@@ -27,6 +27,11 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('local review records and writes are unavailable outside explicit preview',async()=>{
+      assert.equal((await fetch(url+'/review-history')).status,404);
+      assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
+      const html=await(await fetch(url+'/usage-review')).text();assert.ok(!html.includes('bsmoss-demo-review-v1'));assert.ok(!html.includes('data-review-history'));
+    });
     await t.test("annual analysis fails closed when the explicit preview adapter is off",async()=>{
       const r=await fetch(url+'/analysis?range=12m');assert.equal(r.status,200);
       const html=await r.text();assert.ok(!html.includes('data-history-analysis'));
@@ -151,6 +156,18 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('local review workflow renders no invented events and validates event/session routing',async()=>{
+      const list=await(await fetch(url+'/usage-review?period=month')).text();
+      const id=list.match(/\/usage-review\/(UV-[a-f0-9]{24})/)?.[1];assert.ok(id);
+      const records=await(await fetch(url+'/review-history')).text();assert.ok(records.includes('data-review-history'));assert.ok(records.includes('\u6b63\u5728\u8bfb\u53d6\u8bb0\u5f55'));
+      const detail=await(await fetch(url+'/usage-review/'+id+'?period=month')).text();assert.ok(detail.includes('\u539f\u56e0\u4e0e\u590d\u6838'));assert.ok(detail.includes('name="')||detail.includes('aria-label="'));
+      for(const query of ['recordSession=forged','recordSession='+ '-'.repeat(36),'event=0','event=1&event=2','recordSession=x&workspace=forged']){
+        const html=await(await fetch(url+'/usage-review/'+id+'?'+query)).text();assert.ok(html.includes('role="alert"'));assert.ok(!html.includes('aria-label="\u539f\u56e0\u4e0e\u590d\u6838\u64cd\u4f5c"'));
+      }
+      const invalidList=await(await fetch(url+'/usage-review?recordSession='+ '-'.repeat(36))).text();assert.ok(invalidList.includes('role="alert"'));
+      const bad=await(await fetch(url+'/review-history?recordSession=forged')).text();assert.ok(bad.includes('\u7b5b\u9009\u6761\u4ef6\u65e0\u6548'));
+      assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
+    });
     await t.test('historical reports pin exact context, all members and offline counters across cross-domain views',async()=>{
       const scope='city=610100&county=610113&range=custom&from=2026-10-25&to=2026-10-25&metric=bytes&view=cohorts&band=upper&page=2';
       const page=await (await fetch(url+'/analysis/report?'+scope)).text();assert.ok(page.includes('data-history-report'));
@@ -220,7 +237,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test("usage review list and evidence are independent, strictly scoped and preserve return context",async()=>{
       const response=await fetch(url+'/usage-review');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('data-usage-review="list"'));
-      assert.ok(html.includes('\u53ea\u8bfb'));assert.ok(!html.includes('maplibregl-canvas'));
+      assert.ok(html.includes('\u6f14\u793a\u8bb0\u5f55\u00b7\u672c\u673a'));assert.ok(!html.includes('maplibregl-canvas'));
       const match=html.match(/href="(\/usage-review\/UV-[a-f0-9]{24}\?[^"]+)"/);assert.ok(match);
       const detailPath=match[1].replaceAll('&amp;','&');
       const detail=await (await fetch(url+detailPath)).text();
