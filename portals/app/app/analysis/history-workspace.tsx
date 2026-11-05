@@ -9,11 +9,12 @@ import {n,pct,operatorNames,sceneNames,siteTypeNames} from "../sites/labels";
 import {DAY_MS,dateNumber,isoDay} from "../domains/map-demo/history-calendar";
 import {historyChange,type HistoryMetric} from "../domains/map-demo/history-rules";
 import type {HistoryModel} from "./history-model";
-import {historyHref} from "./history-links";
+import {historyHref,historyReportHref} from "./history-links";
 import {sharingNames,viewItems} from "./history-labels";
 import HistoryOperators from "./history-operators";
 import HistoryCohorts from "./history-cohorts";
 import HistoryStation from "./history-station";
+import HistoryContextPanel from "./history-context-panel";
 import "./history.css";
 const metrics=[{value:"bytes",label:"\u6d41\u91cf"},{value:"voiceSeconds",label:"\u901a\u8bdd"},{value:"sms",label:"\u77ed\u4fe1"}] as const;
 const titles={city:"\u5730\u5e02\u7ecf\u8425\u5bf9\u6bd4",county:"\u533a\u53bf\u7ecf\u8425\u5bf9\u6bd4",site:"\u7ad9\u5740\u7ecf\u8425\u5bf9\u6bd4",operator:"\u8fd0\u8425\u5546\u670d\u52a1\u7ed3\u6784"};
@@ -39,6 +40,7 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
     <PageHeading title={data.siteName?"\u5355\u7ad9\u7ecf\u8425\u5206\u6790":"\u7ecf\u8425\u5206\u6790"} description={"\u670d\u52a1\u4ea7\u51fa\u3001\u533a\u57df\u5dee\u5f02\u4e0e\u540c\u671f\u53d8\u5316"}
       context={<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={data.cutoff}>{isoDay(dateNumber(data.coverage.end)-DAY_MS)}</time></span>}
       actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u7ecf\u8425\u5206\u6790"} disabled={pending} onClick={()=>start(()=>router.refresh())}><Icon name="refresh" size="sm" className={pending?"animate-spin":undefined}/></Button>
+        <Button asChild variant="outline"><a href={historyReportHref(q)}>{"\u5386\u53f2\u62a5\u544a"}</a></Button>
         {q.site&&<Button asChild variant="outline"><a href={"/sites/"+encodeURIComponent(q.site)+"?tab=business"}><Icon name="building" size="sm"/>{"\u7ad9\u5740\u6863\u6848"}</a></Button>}</>}
       toolbar={<div className="flex flex-col gap-md py-sm">
         <div className="flex flex-wrap items-center justify-between gap-md">
@@ -88,6 +90,7 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
       </div>
     </PanelCard>
     {data.station&&<HistoryStation data={data} navigate={navigate}/>}
+    <HistoryContextPanel data={data}/>
     {q.view==="region"&&<PanelCard title={titles[data.kind]} icon={data.kind==="site"?"building":data.kind==="operator"?"users":"city"} className="min-w-0"
       description={data.kind==="operator"?"\u8fd0\u8425\u5546\u540d\u79f0\u53ef\u7b5b\u9009\uff1b\u5404\u9879\u4e1a\u52a1\u72ec\u7acb\u7edf\u8ba1":"\u6309\u5f53\u524d\u6307\u6807\u603b\u91cf\u6392\u5e8f \u00b7 \u70b9\u51fb\u540d\u79f0\u9010\u5c42\u4e0b\u94bb"}>
       <DataTable rows={visible} rowKey={r=>r.id} columns={[

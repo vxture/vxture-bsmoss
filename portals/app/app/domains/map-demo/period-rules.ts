@@ -71,6 +71,10 @@ export function calendarSource(site:DemoSite) {
     return {day,demand,age,legacy};
   }
   const factorFor=(p:ReturnType<typeof profile>,code:Operator)=>p.demand*(1+((p.day+OPERATOR_CODES.indexOf(code))%5-2)*0.007)*(p.legacy?1:Math.pow(1+(OPERATOR_CODES.indexOf(code)-1)*0.002,p.age));
+  const physicalSample=(date:string,hour:number,p:ReturnType<typeof profile>)=>{
+    const base=bases[hour].physical;
+    return date===DEMO_DATE?base:{...base,energyWh:Math.round(base.energyWh!*(0.88+0.12*p.demand)),temperature:Math.round((base.temperature+(p.day%7-3)*0.3)*10)/10};
+  };
   const days=new Map<string,ReturnType<typeof profile>&{hours:({all:HourMetrics;operators:Map<Operator,HourMetrics>}|undefined)[]}>();
   const sample=(date:string,hour:number,operator:OperatorFilter='all'):HourMetrics=>{
     if(!Number.isInteger(hour)||hour<0||hour>23)throw Error('invalid_calendar_sample');
@@ -82,11 +86,11 @@ export function calendarSource(site:DemoSite) {
     }
     let cached=dayData.hours[hour];
     if(!cached){
-      const {physical,operators}=bases[hour],{day,demand}=dayData;
+      const {physical,operators}=bases[hour];
       if(date===DEMO_DATE)cached={all:physical,operators:new Map(operators.map(p=>[p.code,p.base]))};
       else {
         const sums=emptyCounters(),metrics=new Map<Operator,HourMetrics>();
-        const environment={...physical,energyWh:Math.round(physical.energyWh!*(0.88+0.12*demand)),temperature:Math.round((physical.temperature+(day%7-3)*0.3)*10)/10};
+        const environment=physicalSample(date,hour,dayData);
         for(const {code,base} of operators){
           const factor=factorFor(dayData,code);
           const bytes=Math.round(base.bytes*factor),upBytes=Math.round(base.upBytes*factor),attempts=Math.round(base.attempts*factor);
@@ -118,7 +122,13 @@ export function calendarSource(site:DemoSite) {
       return {code,counters};
     });
   };
-  return {sample,daily};
+  const physicalDaily=(date:string)=>{
+    const p=profile(date),rows=bases.map((_,hour)=>physicalSample(date,hour,p));
+    return {energyWh:rows.reduce((n,r)=>n+r.energyWh!,0),temperatureSumTenths:rows.reduce((n,r)=>n+Math.round(r.temperature*10),0),
+      temperatureMinTenths:Math.min(...rows.map(r=>Math.round(r.temperature*10))),temperatureMaxTenths:Math.max(...rows.map(r=>Math.round(r.temperature*10))),
+      physicalSamples:24,batterySamples:rows.filter(r=>r.power==='battery').length};
+  };
+  return {sample,daily,physicalDaily};
 }
 export function calendarSampler(site:DemoSite) {
   return calendarSource(site).sample;

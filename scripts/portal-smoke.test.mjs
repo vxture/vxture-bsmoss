@@ -134,10 +134,14 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const r=await fetch(url+'/usage-review/history?site=SX-DEMO-001');assert.equal(r.status,404);
       assert.ok(!(await r.text()).includes('data-history-evidence'));
     });
+    await t.test('historical cross-domain and reports are gated without weakening formal endpoints',async()=>{
+      for(const path of ['/analysis/report','/api/product-preview/history-report'])assert.equal((await fetch(url+path)).status,404);
+      for(const path of ['/capacity?history=1','/efficiency?history=1'])assert.ok(!(await (await fetch(url+path)).text()).includes('data-history-context'));
+    });
     await t.test('cohort and operator analysis fail closed with preview disabled',async()=>{
       for(const view of ['operators','cohorts']) {
         const response=await fetch(url+'/analysis?view='+view);assert.equal(response.status,200);
-        const html=await response.text();assert.ok(!html.includes('data-history-analysis'));assert.ok(!html.includes('data-history-'+view));assert.ok(!html.includes('bsmoss-history-v3'));
+        const html=await response.text();assert.ok(!html.includes('data-history-analysis'));assert.ok(!html.includes('data-history-'+view));assert.ok(!html.includes('bsmoss-history-v4'));
       }
     });
     await t.test('decision board fails closed with preview disabled',async()=>{
@@ -147,6 +151,24 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('historical reports pin exact context, all members and offline counters across cross-domain views',async()=>{
+      const scope='city=610100&county=610113&range=custom&from=2026-10-25&to=2026-10-25&metric=bytes&view=cohorts&band=upper&page=2';
+      const page=await (await fetch(url+'/analysis/report?'+scope)).text();assert.ok(page.includes('data-history-report'));
+      const digest=page.match(/data-report-snapshot="([a-f0-9]{64})"/)?.[1];assert.ok(digest);
+      const endpoint=url+'/api/product-preview/history-report?'+scope+'&snapshot='+digest;
+      const jsonResponse=await fetch(endpoint+'&format=json');assert.equal(jsonResponse.status,200);assert.equal(jsonResponse.headers.get('x-bsmoss-snapshot'),digest);
+      const report=await jsonResponse.json();assert.equal(report.digest,digest);assert.equal(report.payload.data.scope.band,'upper');assert.equal(report.payload.data.scope.page,2);
+      const members=report.payload.data.cross.members;assert.equal(members.length,report.payload.data.physicalSites);
+      for(const key of ['bytes','voiceSeconds','sms'])assert.equal(members.reduce((n,r)=>n+BigInt(r.values[key]),0n),BigInt(report.payload.data.totals[key]));
+      const htmlResponse=await fetch(endpoint+'&format=html');assert.equal(htmlResponse.status,200);assert.match(htmlResponse.headers.get('content-disposition'),/attachment; filename="bsmoss-HR-/);
+      assert.match(htmlResponse.headers.get('content-security-policy'),/default-src 'none'/);const html=await htmlResponse.text();
+      const raw=html.match(/<script id="bsmoss-history-snapshot" type="application\/json">([\s\S]*?)<\/script>/)?.[1];assert.deepEqual(JSON.parse(raw),report);
+      for(const kind of ['capacity','efficiency']){const cross=await (await fetch(url+'/'+kind+'?history=1&'+scope)).text();assert.ok(cross.includes('data-history-context'));assert.ok(cross.includes('from=2026-10-25'));assert.ok(cross.includes('band=upper'));}
+      assert.equal((await fetch(endpoint.replace(digest,'0'.repeat(64))+'&format=html')).status,409);
+      for(const extra of ['&format=pdf','&snapshot=duplicate','&returnTo=https://evil.example','&site=forged','&month=2026-10'])assert.equal((await fetch(endpoint+extra)).status,400);
+      assert.equal((await fetch(url+'/api/product-preview/history-report?'+scope)).status,400);
+      assert.equal((await fetch(url+'/api/analysis')).status,401);assert.equal((await fetch(url+'/api/reports')).status,401);
+    });
     await t.test('single-station history and verification share exact evidence scope, references and return context',async()=>{
       const scope='city=610100&county=610113&site=SX-DEMO-001&range=month&month=2026-10&evidence=2026-10-25&slot=18&operator=mobile&peerLevel=province';
       const panel=await (await fetch(url+'/analysis?'+scope)).text();assert.ok(panel.includes('data-station-history'));assert.ok(panel.includes('/usage-review/history?'));
@@ -162,7 +184,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
     await t.test('operator and cohort workspaces preserve scope, distributions and strict filters',async()=>{
       const base='/analysis?city=610100&county=610113&range=month&month=2026-10';
-      const operators=await (await fetch(url+base+'&view=operators')).text();assert.ok(operators.includes('data-history-operators'));assert.ok(!operators.includes('data-history-cohorts'));assert.ok(operators.includes('bsmoss-history-v3'));
+      const operators=await (await fetch(url+base+'&view=operators')).text();assert.ok(operators.includes('data-history-operators'));assert.ok(!operators.includes('data-history-cohorts'));assert.ok(operators.includes('bsmoss-history-v4'));
       const cohorts=await (await fetch(url+base+'&view=cohorts&groupBy=sharing&band=growth&sort=decline&page=2')).text();assert.ok(cohorts.includes('data-history-cohorts'));assert.ok(cohorts.includes('data-cohort-members'));assert.ok(!cohorts.includes('data-history-operators'));
       const empty=await (await fetch(url+base+'&view=cohorts&scene=urban&siteType=ground')).text();assert.ok(empty.includes('data-history-cohorts'));assert.ok(!empty.includes('data-history-operators'));
       const old=await (await fetch(url+'/analysis?view=operators&range=month&month=2024-11&city=610100&county=610113')).text();assert.ok(old.includes('data-history-operators'));assert.ok(old.includes('\u5f53\u524d\u8303\u56f4\u65e0\u53ef\u7528\u540c\u6bd4\u8d21\u732e'));

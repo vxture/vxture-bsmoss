@@ -19,3 +19,5 @@ export function historyHref(scope:HistoryScope,patch:Record<string,string|undefi
   return '/analysis?'+p;
 }
 export const historyEvidenceHref=(scope:HistoryScope,patch:Record<string,string|undefined>={})=>historyHref(scope,patch).replace('/analysis?','/usage-review/history?');
+export const historyReportHref=(scope:HistoryScope)=>historyHref(scope).replace('/analysis?','/analysis/report?');
+export const historyContextHref=(scope:HistoryScope,kind:'capacity'|'efficiency')=>historyHref(scope).replace('/analysis?','/'+kind+'?history=1&');

@@ -74,7 +74,7 @@ test('distribution selection affects member list only, pagination bounds and ord
 test('prepared province and scoped model keep per-site aggregates server-side and preserve operator baselines',()=>{
   const prepared=historyModel({view:'cohorts',metric:'sms'});
   assert.equal(Object.hasOwn(prepared,'siteRows'),false);assert.equal(prepared.cohorts.members.length,20);
-  assert.equal(prepared.version,'bsmoss-history-v3');assert.equal(prepared.physicalSites,1080);
+  assert.equal(prepared.version,'bsmoss-history-v4');assert.equal(prepared.physicalSites,1080);
   assert.equal(prepared.operators.reduce((n,r)=>n+BigInt(r.previous!.bytes),0n),BigInt(prepared.previous!.bytes));
   const city=historyModel({city:'610100',range:'month',month:'2026-10',scene:'urban',view:'operators'});
   assert.ok(city.cohorts.members.every(r=>r.scene==='urban'));assert.ok(city.operators.every(r=>r.previous!==null));
