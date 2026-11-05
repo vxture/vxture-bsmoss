@@ -1216,3 +1216,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 生产build含类型通过tmp/workspace-layers-build.log、31HTTP通过tmp/workspace-layers-http.log、156编号通过tmp/workspace-layers-docs.log。CUA20页面×1280／904／390共60组，无文档／正文／标题横溢，唯一可见H1，无嵌套正文padding；总览1280外16／内16 48 80，390外8／内8 16 80。1042地域面板x16顶64底855，四周外安全距16；正文宽754内30.16，收起宽1010内40.4。业务与配置侧栏开关、page2与aria、服务关系切换、档案经营用量URL／aria均成功。档案标题正文x56.40一致，正文滚到底1272.67且底80；总览实际末项至根底80；核验表内滚动分页距底80；390台账卡片纵滚5412可达分页。地图等异步canvas出现后1、外框／正文内距0、site空；warn/error空。证据artifacts/workspace-layers-qa含60组checks和站址／总览／配置／档案截图。viewport恢复、验证tab关闭、用户原页保留；不可聚焦标题和同名入口的初始定位失败不计成功，均改按可聚焦链接／region和限定页签复核。
 
 纯全局布局不新增镜像单测／重复PG，无push／外部部署／生产上线／新聊天／自动任务；下一业务仍B01-04，陕西／快照分析／费用预留／退役P2／无旧库迁移保持。最终63333身份以本批Git及health为准。
+
+## 站址地域面板开关重新归位（2026-11-05）
+
+用户指出标题与地域之间的收起按钮不合理。按钮改放陕西·资源标题栏最右侧，官方ShellIconButton／sidebar图标沿用；标题及全省数量同排。收起后左侧只剩41.33px方形展开入口、自适应高度，正文占其余宽度，页面标题旁只留地域面包屑。两态同一个button保留焦点，aria-controls固定tree节点，树hidden不卸载；县级选择和URL不变，窄屏沿用筛选无需侧栏入口。实施810追加覆盖原标题内按钮策略。
+
+生产build含类型通过tmp/site-region-toggle-build.log、156文档编号通过tmp/site-region-toggle-docs.log。CUA1042按钮24px且insidePanel=true／insideHeading=false、标题栏无横溢；收起树hidden／焦点保留、面板41.33方形，Enter重新展开，雁塔aria-pressed=true／city县URL不变。实际切服务关系成功，同县参数保持；1280／904／390无文档或标题横溢，窄屏面板隐藏且标题无残留开关。warn/error空，artifacts/site-region-toggle-qa含expanded／collapsed／checks。viewport恢复、临时tab94关闭、用户页保留。源码ASCII／diff／提交扫描收尾，纯结构布局不新增镜像单测或重复31HTTP／PG；无业务数据／权限／DDL／依赖／外部上线变化，最终63333身份见Git及health。
