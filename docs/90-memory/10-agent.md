@@ -1194,3 +1194,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户要求常态不显示边线／下拉箭头，仅hover／active显示，并随后明确前置区域icon要保留。最终公共RegionSelector使用DS ghost按钮，前置city图标常驻，箭头opacity0占位、透明边框；hover／active／focus-visible／data-state=open显示control-border及箭头，官方聚焦／展开／禁用反馈保留，未改CSS／token／依赖。此前本地一度移除图标、未提交，经用户纠正恢复并重建；实施800及规格50以保留图标为准。
 
 最终生产build含类型通过tmp/region-selector-quiet-build.log。CUA常态icon1／arrow0／border与bg透明；展开icon1／arrow1／control-border可见，前后同121.33×24px及同坐标，无抖动。图标恢复前已验证Escape关闭后hover及键盘focus反馈／搜索雁塔联动URL；恢复图标后复核常态／展开及手机390长路径，icon1／arrow0且文档390无横溢。warn/error空，artifacts/region-selector-quiet-qa的normal／mobile／checks均已覆盖为保留图标的最终版。viewport恢复、测试tab87／88关闭，用户tab72保留。纯样式不新增镜像单测／不重复业务HTTP或PG；155文档编号／ASCII／diff和提交扫描收尾，无数据／权限／DDL／上线状态变化。最终63333以本批Git及health为准。
+
+## 区域触发器对称留白（2026-11-05）
+
+用户指出隐藏下拉箭头后右侧空白偏多，并询问背景色。本批覆盖上一条箭头占位策略：公共RegionSelector常态继续透明底，保留city图标；hover／展开采用官方ghost淡底。箭头改DS xs绝对定位在既有右内距，取消文档流占位，按钮按图标＋文字及对称px-md定宽，无新增CSS／token覆盖／业务查询变化。实施800同步。
+
+生产build含类型已通过tmp/region-selector-inset-build.log，155文档编号通过tmp/region-selector-inset-docs.log。CUA常态左右可见内容内距均16.67px，padding各16px，icon1／arrow0／底边透明；展开arrow1／官方淡底，前后同95.33px宽。390长路径“陕西省·西安市·雁塔区”左右内距仍16.67px、宽174.61px，文档宽390无横溢，warn/error空。截图artifacts/region-selector-inset-qa含normal／open／mobile；viewport恢复、临时tab89关闭、用户tab72保留。纯样式不新增镜像单测／不重复业务HTTP或PG；无数据／权限／DDL／依赖／上线状态变化，最终63333以本批Git和health收尾为准。
