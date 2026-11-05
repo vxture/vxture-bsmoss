@@ -3,6 +3,8 @@ import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {Button,Collapsible,CollapsibleContent,CollapsibleTrigger,DataTable,EmptyState,Icon,Input,NativeSelect,PanelCard,ShellPageContainer} from "@vxture/design-system";
 import PageHeading from "../../portal/page-heading";
+import {InvestigationReturn,useInvestigationLinks} from '../../portal/investigation';
+import {relatedDossierHref,relatedReviewHref} from '../../portal/investigation-targets';
 import UsageTrend from "../../portal/usage-trend";
 import type {StationEvidence} from "../../domains/map-demo/station-history-service";
 import type {HistoryScope} from "../../domains/map-demo/history-rules";
@@ -14,14 +16,15 @@ import "../../analysis/history.css";
 const waveNames={within:"\u8303\u56f4\u5185",up:"\u7528\u91cf\u7a81\u589e",down:"\u7528\u91cf\u7a81\u964d",from_zero:"\u4ece\u96f6\u65b0\u589e",both_zero:"\u672c\u671f\u4e0e\u53c2\u8003\u5747\u96f6",insufficient:"\u57fa\u7ebf\u4e0d\u8db3"};
 export default function HistoryEvidenceDetail({data:e,scope:q}:{data:StationEvidence;scope:HistoryScope}) {
   const router=useRouter(),[pending,start]=useTransition(),[raw,setRaw]=useState(false);
-  const navigate=(patch:Record<string,string|undefined>)=>{if(!pending)start(()=>router.push(historyEvidenceHref(q,patch),{scroll:false}));};
+  const {carry,keep}=useInvestigationLinks(historyEvidenceHref(q));
+  const navigate=(patch:Record<string,string|undefined>)=>{if(!pending)start(()=>router.push(keep(historyEvidenceHref(q,patch)),{scroll:false}));};
   const metric=q.metric,scale=metric==="bytes"?1073741824:metric==="voiceSeconds"?60:1,unit=metric==="bytes"?"GiB":metric==="voiceSeconds"?"\u5206\u949f":"\u6761";
   const selected=e.selected;
   return <div data-history-evidence aria-busy={pending}><fieldset disabled={pending} className="min-w-0"><ShellPageContainer className="product-page-inset max-w-none gap-lg">
-    <PageHeading title={"\u5355\u7ad9\u6838\u9a8c\u4f9d\u636e"} description={e.site.name+" \u00b7 "+e.site.id+" \u00b7 "+metricNames[metric]}
-      navigation={<Button asChild variant="link"><a href={historyHref(q,{evidence:e.date,slot:String(e.slot)})}><Icon name="chevron-left" size="sm"/>{"\u8fd4\u56de\u7ecf\u8425\u5206\u6790"}</a></Button>}
+    <InvestigationReturn source="history"/><PageHeading title={"\u5355\u7ad9\u6838\u9a8c\u4f9d\u636e"} description={e.site.name+" \u00b7 "+e.site.id+" \u00b7 "+metricNames[metric]}
+      navigation={<Button asChild variant="link"><a href={keep(historyHref(q,{evidence:e.date,slot:String(e.slot)}))}><Icon name="chevron-left" size="sm"/>{"\u8fd4\u56de\u7ecf\u8425\u5206\u6790"}</a></Button>}
       context={<span>{"\u6570\u636e\u622a\u81f3 "+isoDay(dateNumber(e.cutoff)-DAY_MS)}</span>}
-      actions={<Button asChild variant="outline"><a href={"/sites/"+encodeURIComponent(e.site.id)+"?tab=business"}>{"\u7ad9\u5740\u6863\u6848"}</a></Button>}
+      actions={<><Button asChild variant="outline"><a href={carry(relatedDossierHref(e.site.id,{...q.query,hour:e.slot}))}>{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a href={carry(relatedReviewHref({...q.query,hour:e.slot},"month",e.site.id,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button></>}
       toolbar={<div className="flex flex-wrap items-center gap-md py-md">
         <Input type="date" className="history-date-input" aria-label={"\u6838\u9a8c\u65e5\u671f"} value={e.date} min={q.window.start} max={isoDay(dateNumber(q.window.end)-DAY_MS)} onChange={event=>{if(event.target.value&&event.target.validity.valid)navigate({evidence:event.target.value,slot:undefined});}}/>
         <NativeSelect wrapperClassName="w-auto" aria-label={"\u6838\u9a8c\u65f6\u6bb5"} value={String(e.slot)} onChange={event=>navigate({slot:event.target.value})}>{e.hours.map(h=><option value={h.hour} key={h.hour}>{String(h.hour).padStart(2,"0")+":00"}</option>)}</NativeSelect>

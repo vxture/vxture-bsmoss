@@ -1,6 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
+import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
+import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
 import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
 import { ActionMenu, BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, NativeSelect, PanelCard,
@@ -16,8 +18,10 @@ const tone = (status: string) => status === "critical" ? "danger" as const : sta
 export default function SiteDossier({ demo }: { demo: DossierDemo }) {
   const router = useRouter(), [pending, start] = useTransition(), [metric, setMetric] = useState<UsageMetric>("bytes");
   const { site: s, query: q, period: p } = demo, m = s.current;
-  const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteDetailHref(s.id, q, patch), { scroll: false }));
-  const mapParams = new URLSearchParams({ city: s.cityId, county: s.countyId, site: s.id, hour: String(q.hour) });
+  const {carry,keep}=useInvestigationLinks(siteDetailHref(s.id,q));
+  const scope={cityId:q.city,countyId:q.county,operator:q.operator as import('../domains/map-demo/types').OperatorFilter,hour:q.hour,search:'',selection:undefined};
+  const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(keep(siteDetailHref(s.id, q, patch)), { scroll: false }));
+  const mapParams = new URLSearchParams({ city: s.cityId, county: s.countyId, site: s.id, operator:q.operator, usage:q.period, hour: String(q.hour) });
   const mapHref = "/product-preview?" + mapParams;
   const periodLabel = p.usage.window.start.slice(0, 10) + " \u2014 " + p.days[p.days.length - 1].date;
   const unit = metric === "bytes" ? "GiB" : metric === "voiceSeconds" ? "\u5206\u949f" : "\u6761";
@@ -72,14 +76,14 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
   return <div className="site-workspace product-page-inset product-page-split flex h-full w-full min-w-0 flex-col gap-md text-body" data-site-dossier-mode="demo" aria-busy={pending}>
     <div className="shrink-0">
       <PageHeading title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
-        navigation={<div className="flex flex-wrap items-center gap-sm"><Button asChild variant="ghost" size="md"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button></div>}
+        navigation={<div className="flex flex-wrap items-center gap-sm"><Button asChild variant="ghost" size="md"><a href={keep(siteListHref(q))}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button></div>}
         region={<span>{s.cityName + "\u00b7" + s.countyName}</span>}
         context={<time dateTime={demo.date + "T" + time + ":00+08:00"}>{demo.date + " " + time}</time>}
         secondary={<StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge>}
-        actions={<Button asChild variant="outline" size="md"><a target="_blank" rel="noopener noreferrer" href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>}
-        toolbar={<div className="flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
+        actions={<><Button asChild variant="outline" size="md"><a target="_blank" rel="noopener noreferrer" href={carry(mapHref)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button><Button asChild variant="outline"><a href={carry(relatedReviewHref(scope,q.period,s.id))}>{"\u6838\u9a8c\u7ebf\u7d22"}</a></Button><Button asChild variant="outline"><a href={carry("/analysis?"+new URLSearchParams({city:q.city,county:q.county,site:s.id,operator:q.operator}))}>{"\u7ecf\u8425\u5206\u6790"}</a></Button></>}
+        toolbar={<div className="flex flex-col gap-md"><InvestigationReturn source="snapshot"/>{q.operator!=="all"&&<p className="text-body-small text-muted-foreground">{"\u5168\u7ad9\u6863\u6848\u5305\u542b\u5168\u90e8\u8fd0\u8425\u5546\uff1b\u5173\u8054\u8c03\u67e5\u4fdd\u7559\uff1a"+operatorNames[q.operator]}</p>}<div className="flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
-      </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>} />
+      </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div></div>} />
     </div>
     <div className="site-dossier-scroll product-page-scroll-body min-h-0 min-w-0 flex-1 overflow-y-auto" role="region" tabIndex={0} aria-label={tabNames[q.tab]}>
       {q.tab === "overview" && <div className="flex flex-col gap-lg">
@@ -107,7 +111,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
         <PanelCard title={"\u670d\u52a1\u53e3\u5f84"} icon="info"><DetailList><DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u7269\u7406\u7ad9\u5740"}>{"1 \u5ea7"}</DetailRow><DetailRow label={"\u670d\u52a1\u5173\u7cfb"}>{s.operators.length + " \u6761"}</DetailRow><DetailRow label={"\u7ecf\u8425\u6570\u636e"}>{"\u6309\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7edf\u8ba1"}</DetailRow><DetailRow label={"\u7ad9\u5740\u7535\u8017"}>{"\u7269\u7406\u7ad9\u603b\u8868\uff0c\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u8fd0\u8425\u5546\u670d\u52a1\u660e\u7ec6"} icon="users" description={time + " \u00b7 \u5168\u90e8\u5728\u7ad9\u8fd0\u8425\u5546"}><DataTable labels={{ rowActions: "\u64cd\u4f5c" }} columns={serviceColumns} rows={demo.relations} rowKey={r => r.id}
           className="site-action-table" rowActions={r => <ActionMenu label={operatorNames[r.code] + "\u670d\u52a1\u64cd\u4f5c"} items={[
-            { id: "hourly-usage", label: "\u5730\u56fe\u65f6\u6bb5\u7528\u91cf", icon: "chart-line-up", onSelect: () => window.open(mapHref + "&operator=" + r.code + "&usage=hour", "_blank", "noopener,noreferrer") },
+            { id: "hourly-usage", label: "\u5730\u56fe\u65f6\u6bb5\u7528\u91cf", icon: "chart-line-up", onSelect: () => window.open(carry("/product-preview?"+new URLSearchParams({city:s.cityId,county:s.countyId,site:s.id,hour:String(q.hour),operator:r.code,usage:"hour"})), "_blank", "noopener,noreferrer") },
           ]} />} /></PanelCard>
       </div>}
       {q.tab === "runtime" && <div className="flex flex-col gap-lg">

@@ -82,7 +82,7 @@ test("scope precedes pagination, case identity survives day/week/month and filte
 test("strict queries reject ambiguous scope, unsupported periods and forged authority; links preserve exact supported context", () => {
   for (const bad of [{ city: "110100" }, { county: "610113" }, { city: "610300", county: "610113" }, { city: ["610100", "610200"] },
     { metric: "energy" }, { period: "hour" }, { status: "fixed" }, { category: "critical" }, { page: "0" }, { page: "01" }, { page: "10000" },
-    { workspaceId: "forged" }, { evidence: "forged" }, { permissions: "all" }, { hour: "18" }, { search: "a".repeat(81) }]) assert.throws(() => parseReviewQuery(bad));
+    { workspaceId: "forged" }, { evidence: "forged" }, { permissions: "all" }, { hour: "24" }, { search: "a".repeat(81) }]) assert.throws(() => parseReviewQuery(bad));
   const q = parseReviewQuery({ city: "610100", county: "610113", operator: "mobile", period: "week", category: "quality", page: "2", selection: "circle:108.95,34.26,10000" });
   assert.deepEqual(parseReviewQuery(Object.fromEntries(new URL(reviewHref(q), "http://localhost").searchParams)), q);
   const map = new URL(reviewMapHref(q), "http://localhost"); assert.equal(map.searchParams.get("site"), null); assert.equal(map.searchParams.get("selection"), "circle:108.95,34.26,10000");

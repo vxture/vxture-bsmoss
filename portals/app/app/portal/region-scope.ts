@@ -23,6 +23,9 @@ export function inheritRegionInput(input: RegionInput, value: RegionSelection): 
   return input.city !== undefined || input.county !== undefined ? input : { ...input, city: value.cityId, county: value.countyId };
 }
 export const REGION_PAGES = ["/", "/board", "/sites", "/capacity", "/efficiency", "/operator-usage", "/usage-reports", "/usage-review", "/review-history", "/analysis", "/reports", "/product-preview"];
+export function isRegionPage(path: string): boolean {
+  return REGION_PAGES.includes(path) || /^\/(sites|usage-review)\/[^/]+$/.test(path) || path === "/analysis/report";
+}
 export function regionLink(href: string, value: RegionSelection): string {
   const [path, query = ""] = href.split("?");
   if (!REGION_PAGES.includes(path)) return href;
@@ -33,7 +36,7 @@ export function regionLink(href: string, value: RegionSelection): string {
 export function changedRegionHref(path: string, query: string, value: RegionSelection): string {
   const detail = /^\/(sites|usage-review)\/[^/]+$/.exec(path);
   const target = path==="/analysis/report"?"/analysis":detail ? "/" + detail[1] : path, params = new URLSearchParams(detail||path==="/analysis/report" ? "" : query);
-  for (const key of ["page", "site", "selection", "compare", "bbox", "search", "report", "revision", "evidence", "slot", "peerLevel", "recordSession", "event"]) params.delete(key);
+  for (const key of ["page", "site", "selection", "compare", "bbox", "search", "report", "revision", "evidence", "slot", "peerLevel", "recordSession", "event", "investigation"]) params.delete(key);
   params.set("city", value.cityId); params.set("county", value.countyId);
   return target + "?" + params;
 }

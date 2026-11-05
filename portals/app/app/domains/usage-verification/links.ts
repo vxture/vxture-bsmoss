@@ -1,7 +1,8 @@
 import { serializeSelection } from "../map-demo/geometry";
 import type { ReviewQuery } from "./query";
 export function reviewParams(q: ReviewQuery) {
-  const p = new URLSearchParams({ city: q.scope.cityId, county: q.scope.countyId, operator: q.scope.operator, period: q.period, metric: q.metric, category: q.category, status: q.status, page: String(q.page) });
+  const p = new URLSearchParams({ city: q.scope.cityId, county: q.scope.countyId, operator: q.scope.operator, period: q.period, metric: q.metric, category: q.category, status: q.status, page: String(q.page),hour:String(q.scope.hour) });
+  if(q.site)p.set("site",q.site);
   if (q.scope.search) p.set("search", q.scope.search);
   if (q.scope.selection) p.set("selection", serializeSelection(q.scope.selection));
   return p;

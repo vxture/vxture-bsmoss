@@ -1,3 +1,5 @@
+import {readInvestigation} from '../portal/investigation-server';
+import {InvestigationProvider} from '../portal/investigation';
 import ProductFrame from "../portal/header";
 import WorkspaceAvailability from "../portal/availability";
 import { cookies } from "next/headers";
@@ -14,8 +16,8 @@ import "./analysis.css";
 export const dynamic = "force-dynamic";
 export default async function AnalysisPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (process.env.BSMOSS_PRODUCT_PREVIEW === "on") {
-    let data;
-    try { data = historyModel(await rememberedRegionInput(await searchParams)); }
+    let data,journey;
+    try { const extracted=readInvestigation(await searchParams);journey=extracted.journey;data = historyModel(await rememberedRegionInput(extracted.input)); }
     catch {
       return <ProductFrame active="analysis" preview><ShellPageContainer className="product-page-inset max-w-none">
         <PageHeading title={"\u7ecf\u8425\u5206\u6790"} description={"\u670d\u52a1\u4ea7\u51fa\u3001\u533a\u57df\u5dee\u5f02\u4e0e\u540c\u671f\u53d8\u5316"} />
@@ -25,7 +27,7 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
         </PanelCard></div>
       </ShellPageContainer></ProductFrame>;
     }
-    return <ProductFrame active="analysis" preview><HistoryWorkspace key={JSON.stringify(data.scope)} data={data}/></ProductFrame>;
+    return <ProductFrame active="analysis" preview><InvestigationProvider journey={journey}><HistoryWorkspace key={JSON.stringify(data.scope)} data={data}/></InvestigationProvider></ProductFrame>;
   }
   const cfg = getOidcConfig(), sid = (await cookies()).get(cfg.cookieName)?.value;
   return <ProductFrame active="analysis">

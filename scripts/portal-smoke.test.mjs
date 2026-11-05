@@ -156,6 +156,20 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('investigation routes preserve the bounded origin, exact station and distinct evidence sources',async()=>{
+      const origin='/usage-review/UV-8d664440f0a922d512b7614f?period=month&recordSession=8c3b637a-e53c-4038-80d7-f0aba583748d&event=5';
+      const investigation=encodeURIComponent(JSON.stringify({v:1,href:origin}));
+      for(const path of ['/sites/SX-DEMO-001?tab=business','/operator-usage?period=week','/analysis?site=SX-DEMO-001&range=month&month=2026-10','/usage-review/history?site=SX-DEMO-001&range=month&month=2026-10','/capacity?history=1&site=SX-DEMO-001','/analysis/report?site=SX-DEMO-001']){
+        const response=await fetch(url+path+'&investigation='+investigation);assert.equal(response.status,200,path);const html=await response.text();assert.ok(html.includes('data-investigation'),path);assert.ok(html.includes('event=5'),path);assert.ok(html.includes('recordSession='),path);assert.ok(!html.includes('role="alert"'),path);
+      }
+      const exact=await(await fetch(url+'/usage-review?site=DEMO-00037&period=month&investigation='+investigation)).text();assert.ok(exact.includes('DEMO-00037'));assert.ok(exact.includes('data-investigation'));assert.ok(exact.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6838\u9a8c\u7ebf\u7d22'));
+      const map=await(await fetch(url+'/product-preview?hour=7&investigation='+investigation)).text();assert.ok(map.includes('data-investigation'));assert.ok(map.includes('event=5'));
+      for(const origin of ['https://evil.example','/settings','/sites?city=610100&county=610300','/sites?investigation=x','/sites?city=all&city=610100']){
+        const bad=encodeURIComponent(JSON.stringify({v:1,href:origin}));const html=await(await fetch(url+'/sites?investigation='+bad)).text();assert.ok(html.includes('role="alert"'));assert.ok(!html.includes('data-site-dossier-mode'));assert.equal((await fetch(url+'/product-preview?investigation='+bad)).status,404);
+      }
+      assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
+    });
+
     await t.test('local review workflow renders no invented events and validates event/session routing',async()=>{
       const list=await(await fetch(url+'/usage-review?period=month')).text();
       const id=list.match(/\/usage-review\/(UV-[a-f0-9]{24})/)?.[1];assert.ok(id);

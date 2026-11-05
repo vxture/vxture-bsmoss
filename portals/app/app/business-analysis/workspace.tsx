@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
+import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
+import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
 import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
 import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell } from "@vxture/design-system";
@@ -23,7 +25,8 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const [metric, setMetric] = useState<"bytes" | "voiceSeconds" | "sms">("bytes"), [search, setSearch] = useState(q.search);
  const [level, setLevel] = useState("all"), [page, setPage] = useState(1), [policy, setPolicy] = useState(false);
  const topicMode = demo.kind === "capacity" || demo.kind === "efficiency", u = demo.usage, t = demo.snapshot.topic;
- const navigate = (patch: Partial<BusinessScope>) => start(() => router.push(businessHref(demo.kind, { ...q, ...patch }), { scroll: false }));
+ const {carry,keep}=useInvestigationLinks(businessHref(demo.kind,q));
+ const navigate = (patch: Partial<BusinessScope>) => start(() => router.push(keep(businessHref(demo.kind, { ...q, ...patch })), { scroll: false }));
  const ratio = (value: number | null, label: string) => <div className="flex flex-col gap-xs"><span className="text-right text-body-small tabular-nums text-muted-foreground">{pct(value)}</span>{value !== null && <Progress value={value * 100} aria-label={label} />}</div>;
  const visible = demo.metricRows.filter(r => level === "all" || r.level === level), pages = Math.max(1, Math.ceil(visible.length / 20)), current = Math.min(page, pages);
  const unit = metric === "bytes" ? "GiB" : metric === "voiceSeconds" ? "\u5c0f\u65f6" : "\u6761";
@@ -31,12 +34,13 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const trend = u ? u.trend.map(p => ({ key: p.key, label: p.label, value: p[metric] / scale })) : demo.trend;
  const comparison = demo.report?.comparison;
  return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
-   <PageHeading title={labels[demo.kind]} description={descriptions[demo.kind]}
+   <InvestigationReturn source="snapshot"/><PageHeading title={labels[demo.kind]} description={descriptions[demo.kind]}
      secondary={q.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
 
      context={<time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time>}
      actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
-       <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
+       <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={carry(businessMapHref(demo.kind, q))}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
+       <Button asChild variant="outline"><a href={carry(relatedReviewHref(q,q.period))}>{"\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}</>}
      toolbar={<form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
      <NativeSelect aria-label={"\u5206\u6790\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value as BusinessScope["operator"] })}>{Object.entries(operatorNames).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</NativeSelect>
@@ -61,7 +65,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      <Collapsible open={policy} onOpenChange={setPolicy}><CollapsibleTrigger asChild><Button variant="ghost"><Icon name="shield-check" size="sm" />{"\u5224\u5b9a\u53e3\u5f84"}<Icon name={policy ? "chevron-up" : "chevron-down"} size="sm" /></Button></CollapsibleTrigger><CollapsibleContent><p className="py-md text-body-small text-muted-foreground">{rules[q.topic] + " \u4ec5\u63d0\u4f9b\u6838\u9a8c\u7ebf\u7d22\u3002"}</p></CollapsibleContent></Collapsible>
      <PanelCard title={"\u7ad9\u5740\u5206\u6790\u660e\u7ec6"} icon="building" description={"\u4e25\u91cd\u4f18\u5148 \u00b7 \u540c\u7ea7\u6309\u4e13\u9898\u6307\u6807\u964d\u5e8f"} className="min-w-0" action={<NativeSelect aria-label={"\u4e13\u9898\u72b6\u6001\u7b5b\u9009"} wrapperClassName="w-auto" value={level} onChange={e => { setLevel(e.target.value); setPage(1); }}><option value="all">{"\u5168\u90e8\u72b6\u6001"}</option>{Object.entries(levels).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</NativeSelect>}>
        <DataTable rows={visible.slice((current - 1) * 20, current * 20)} rowKey={r => r.id} indexStart={(current - 1) * 20 + 1} labels={{ rowActions: "\u64cd\u4f5c" }} columns={[
-         { id: "site", header: "\u7ad9\u5740", cell: r => <TableTitleCell title={r.name} description={r.id} icon="building" onTitleClick={() => router.push("/sites/" + encodeURIComponent(r.id) + "?tab=runtime&hour=" + q.hour)} /> },
+         { id: "site", header: "\u7ad9\u5740", cell: r => <TableTitleCell title={r.name} description={r.id} icon="building" onTitleClick={() => router.push(carry(relatedDossierHref(r.id,q,q.period,"runtime")))} /> },
          { id: "region", header: "\u533a\u57df", cell: r => <TableTitleCell title={r.city} description={r.county} layout="stacked" /> },
          { id: "level", header: "\u4e13\u9898\u72b6\u6001", cell: r => <StatusBadge size="sm" tone={r.level === "critical" ? "danger" : r.level === "warning" ? "warning" : r.level === "normal" ? "success" : "neutral"}>{levels[r.level]}</StatusBadge> },
          ...(q.topic === "capacity" ? [
@@ -74,7 +78,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
            { id: "energy", header: "\u7535\u8017 / kWh", cell: (r: BusinessDemo["metricRows"][number]) => r.energyKWh === null ? "\u2014" : n(r.energyKWh, 2) },
            { id: "efficiency", header: "kWh/GiB", cell: (r: BusinessDemo["metricRows"][number]) => r.value === null ? "\u2014" : n(r.value, 3) },
          ]),
-       ]} rowActions={r => <ActionMenu label={"\u5206\u6790\u64cd\u4f5c\uff1a" + r.name} items={[{ id: "detail", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push("/sites/" + encodeURIComponent(r.id) + "?tab=runtime&hour=" + q.hour) }, { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => window.open(businessMapHref(demo.kind, q, r.id), "_blank", "noopener,noreferrer") }]} />} empty={<EmptyState title={"\u6682\u65e0\u5339\u914d\u7ad9\u5740"} />} />
+       ]} rowActions={r => <ActionMenu label={"\u5206\u6790\u64cd\u4f5c\uff1a" + r.name} items={[{ id: "detail", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(carry(relatedDossierHref(r.id,q,q.period,"runtime"))) }, { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => window.open(carry(businessMapHref(demo.kind, q, r.id)), "_blank", "noopener,noreferrer") }]} />} empty={<EmptyState title={"\u6682\u65e0\u5339\u914d\u7ad9\u5740"} />} />
        <Pagination aria-label={"\u5206\u6790\u660e\u7ec6\u5206\u9875"} className="business-analysis-pagination pt-lg" page={current} pageCount={pages} countLabel={n(visible.length) + " \u5ea7\u7ad9\u5740"} onPageChange={setPage} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} />
      </PanelCard>
    </> : u ? <>
@@ -101,8 +105,8 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
        <p className="pt-sm text-body-small text-muted-foreground">{comparison.comparable ? "\u540c\u8303\u56f4\u540c\u7ad9\u7fa4\u6bd4\u8f83\uff1b\u96f6\u57fa\u6570\u4e0d\u8ba1\u767e\u5206\u6bd4\uff0c\u5929\u6570\u4e0d\u540c\u65f6\u7ed3\u5408\u65e5\u5747\u73af\u6bd4\u3002" : "\u5f53\u524d\u8303\u56f4\u4e0d\u5177\u5907\u53ef\u6bd4\u6761\u4ef6\uff0c\u4e0d\u8ba1\u7b97\u73af\u6bd4\u3002"}</p>
      </PanelCard>}
      {demo.report && <div className="grid min-w-0 gap-md xl:grid-cols-2"><PanelCard title={"\u62a5\u544a\u8ffd\u6eaf"} icon="file-text"><div className="flex flex-col gap-md break-words text-body-small"><span>{"\u62a5\u544a\u7f16\u53f7\uff1a" + demo.report.id}</span><span>{"\u6a21\u677f\u7248\u672c\uff1a" + demo.report.templateVersion}</span><span>{"\u6837\u672c\u6570\uff1a" + n(demo.report.runtime.samples)}</span><span>{"\u7269\u7406\u7535\u8017\uff1a" + (u.energyWh === null ? "\u672a\u5206\u644a" : n(u.energyWh / 1000, 2) + " kWh")}</span><StatusBadge tone="warning" size="sm">{"\u8349\u7a3f \u00b7 \u5f85\u590d\u6838"}</StatusBadge></div></PanelCard>
-       <PanelCard title={"\u9ad8\u7528\u91cf\u7ad9\u5740"} icon="building" className="min-w-0"><DataTable rows={demo.report.ranking} rowKey={r => r.id} columns={[{ id: "site", header: "\u7ad9\u5740", cell: r => <Button asChild variant="link"><a href={"/sites/" + encodeURIComponent(r.id) + "?tab=business&period=" + q.period}>{r.name}</a></Button> }, { id: "bytes", header: "\u6d41\u91cf / GiB", cell: r => n(Number(r.bytes) / 1073741824, 2) }]} /></PanelCard></div>}
-     <div className="flex flex-wrap justify-end gap-sm"><Button asChild variant="secondary"><a href={businessHref(demo.kind === "usage-reports" ? "operator-usage" : "usage-reports", q)}><Icon name={demo.kind === "usage-reports" ? "chart-line-up" : "file-text"} size="sm" />{demo.kind === "usage-reports" ? "\u67e5\u770b\u7528\u91cf\u5206\u6790" : "\u67e5\u770b\u5468\u671f\u62a5\u544a"}</a></Button></div>
+       <PanelCard title={"\u9ad8\u7528\u91cf\u7ad9\u5740"} icon="building" className="min-w-0"><DataTable rows={demo.report.ranking} rowKey={r => r.id} columns={[{ id: "site", header: "\u7ad9\u5740", cell: r => <Button asChild variant="link"><a href={carry(relatedDossierHref(r.id,q,q.period))}>{r.name}</a></Button> }, { id: "bytes", header: "\u6d41\u91cf / GiB", cell: r => n(Number(r.bytes) / 1073741824, 2) }]} /></PanelCard></div>}
+     <div className="flex flex-wrap justify-end gap-sm"><Button asChild variant="secondary"><a href={keep(businessHref(demo.kind === "usage-reports" ? "operator-usage" : "usage-reports", q))}><Icon name={demo.kind === "usage-reports" ? "chart-line-up" : "file-text"} size="sm" />{demo.kind === "usage-reports" ? "\u67e5\u770b\u7528\u91cf\u5206\u6790" : "\u67e5\u770b\u5468\u671f\u62a5\u544a"}</a></Button></div>
    </> : null}
  </ShellPageContainer></div>;
 }

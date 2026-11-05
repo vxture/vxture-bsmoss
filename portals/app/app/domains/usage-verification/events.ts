@@ -1,6 +1,7 @@
 import type {ReviewCase} from './demo';
 import {deriveUsageFindings} from './rules';
 export const REVIEW_REASONS=['demand','holiday','network','planned_stop','source_gap','mapping','history','false_positive','other'] as const;
+export function parseRecordReason(value:unknown):string {if(value===undefined)return 'all';if(typeof value!=='string'||!['all',...REVIEW_REASONS].includes(value))throw Error('invalid_review_reason');return value;}
 export type Reason=typeof REVIEW_REASONS[number];
 export type ReviewState='open'|'awaiting_review'|'closed';
 export type ReviewAction='confirm'|'approve'|'return'|'reopen';

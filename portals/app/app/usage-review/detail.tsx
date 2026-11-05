@@ -10,12 +10,17 @@ import { kindNames, metricNames, quantity, deviation, reasonNames, qualityNames,
 import { FindingBadge } from "./workspace";
 import "./review.css";
 import {useReviewRecords} from './use-records';
+import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
+import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
+import {businessHref} from "../business-analysis/links";
 import RecordActions from './record-actions';
 import {recordProjection} from '../domains/usage-verification/event-service';
 import {statusNames} from './labels';
 export default function ReviewDetail({ model,recordSession,eventNumber }: { model: ReviewDetailModel;recordSession?:string;eventNumber?:number }) {
   const records=useReviewRecords(model.item.source,recordSession),projection=recordProjection(records.data?.logs.find(l=>l.caseId===model.item.id),model.item);
   const { item: c, query: q } = model, [raw, setRaw] = useState(false), first = c.windows[0], metric = c.metric;
+  const session=records.selected?'&recordSession='+records.selected:'',origin=reviewHref(q,c.id)+session+(eventNumber?'&event='+eventNumber:'');
+  const {carry,keep}=useInvestigationLinks(origin),related={...q.scope,operator:c.operator,hour:Number(timeLabel(c.start).slice(11,13))};
   const rawUnit = metric === "bytes" ? "B" : metric === "voiceSeconds" ? "s" : "\u6761", scale = metric === "bytes" ? 1073741824 : metric === "voiceSeconds" ? 60 : 1;
   const chartUnit = metric === "bytes" ? "GiB" : metric === "voiceSeconds" ? "\u5206\u949f" : "\u6761";
   const chart = [...first.references.filter(r => r.quality === "verified" && r.complete && r.value !== null).sort((a, b) => Date.parse(a.start) - Date.parse(b.start)).map(r => ({ key: r.start, label: timeLabel(r.start).slice(5, 10), value: Number(r.value) / scale })),
@@ -24,10 +29,10 @@ export default function ReviewDetail({ model,recordSession,eventNumber }: { mode
     c.kind === "zero_run" ? "\u8fde\u7eed\u6709\u6548\u7a97\u53e3\u4e3a\u96f6\uff0c\u9700\u8981\u786e\u8ba4\u4e1a\u52a1\u539f\u56e0" : "\u7528\u91cf\u53d8\u5316\u8fbe\u5230\u7b5b\u67e5\u95e8\u69db\uff0c\u9700\u8981\u6838\u5bf9\u4e1a\u52a1\u539f\u56e0";
   return <div data-usage-review="detail" className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-lg overflow-auto">
     <PageHeading title={c.site.name} description={c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}
-      navigation={<div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)+(records.selected?"&recordSession="+records.selected:"")}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button></div>} secondary={<><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{records.data?statusNames[projection.state]:"\u8bfb\u53d6\u8bb0\u5f55\u4e2d"}</StatusBadge></>}
+      navigation={<div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={keep(reviewHref(q)+session)}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button></div>} secondary={<><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{records.data?statusNames[projection.state]:"\u8bfb\u53d6\u8bb0\u5f55\u4e2d"}</StatusBadge></>}
       region={<span className="text-body-small text-muted-foreground">{model.region.cities.find(s => s.id === c.site.cityId)?.name + " / " + model.region.counties.find(s => s.id === c.site.countyId)?.name}</span>}
       context={<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>}
-      actions={<><Button asChild variant="outline"><a href={"/review-history?"+reviewHref(q).split("?")[1]+(records.selected?"&recordSession="+records.selected:"")}>{"\u6838\u9a8c\u8bb0\u5f55"}</a></Button><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></>} />
+      actions={<><Button asChild variant="outline"><a href={keep("/review-history?"+reviewHref(q).split("?")[1]+session)}>{"\u6838\u9a8c\u8bb0\u5f55"}</a></Button><Button asChild variant="outline"><a href={carry(relatedDossierHref(c.site.id,related,q.period))}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={carry(reviewMapHref({...q,scope:related},c.site.id))}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button><Button asChild variant="outline"><a href={carry(businessHref("operator-usage",{...related,period:q.period,topic:"capacity"}))}>{"\u8fd0\u8425\u5546\u7528\u91cf"}</a></Button><Button asChild variant="outline"><a href={carry("/analysis?"+new URLSearchParams({city:related.cityId,county:related.countyId,operator:c.operator,site:c.site.id,metric:c.metric,range:"custom",from:timeLabel(c.start).slice(0,10),to:timeLabel(c.start).slice(0,10)}))}>{"\u5386\u53f2\u5173\u8054\u5206\u6790"}</a></Button></>} toolbar={<InvestigationReturn source="uv"/>} />
     <div className="grid min-w-0 shrink-0 gap-lg xl:grid-cols-3">
       <div className="flex min-w-0 flex-col gap-lg xl:col-span-2">
         <PanelCard title={heading} icon="search" tone={c.category === "quality" ? "warning" : c.category === "insufficient" ? "neutral" : "info"} description={windowLabel(c.start, c.end)}>

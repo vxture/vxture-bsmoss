@@ -2,7 +2,7 @@
 import { useEffect, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeRegion, type RegionCatalog, type RegionSelection } from "./region-selection";
-import { changedRegionHref, encodeRegionPreference, REGION_PAGES, type RegionPreference } from "./region-scope";
+import { changedRegionHref, encodeRegionPreference, isRegionPage, type RegionPreference } from "./region-scope";
 
 export function rememberBrowserRegion(cookieName: string, catalog: RegionCatalog, value: RegionSelection) {
   try {
@@ -11,7 +11,7 @@ export function rememberBrowserRegion(cookieName: string, catalog: RegionCatalog
 }
 export function useHeaderRegion(preference: RegionPreference) {
   const path = usePathname(), params = useSearchParams(), router = useRouter(), [pending, start] = useTransition();
-  const aggregate = REGION_PAGES.includes(path), catalog = preference.catalog;
+  const aggregate = isRegionPage(path), catalog = preference.catalog;
   const explicit = aggregate && (params.has("city") || params.has("county"));
   const requested = explicit ? { cityId: params.get("city") ?? "all", countyId: params.get("county") ?? "all" } : preference.selection;
   const value = catalog ? normalizeRegion(catalog, requested) : preference.selection;

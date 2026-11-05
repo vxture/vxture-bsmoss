@@ -8,6 +8,8 @@ import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
 import PageHeading from "../portal/page-heading";
+import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
+import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
 import SiteFilters from "./filters";
 import "./sites.css";
 export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
@@ -51,8 +53,10 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
   const [pending, start] = useTransition(), [search, setSearch] = useState(q.search), [expanded, setExpanded] = useState<readonly string[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
-  const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(siteListHref(q, { page: 1, ...patch }), { scroll: false }));
-  const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => siteDetailHref(s.id, q, { tab });
+  const {carry,keep}=useInvestigationLinks(siteListHref(q));
+  const review=(s:SiteRecord)=>carry(relatedReviewHref({cityId:q.city,countyId:q.county,operator:q.operator as import('../domains/map-demo/types').OperatorFilter,hour:q.hour,search:q.search},'day',s.id));
+  const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(keep(siteListHref(q, { page: 1, ...patch })), { scroll: false }));
+  const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => carry(siteDetailHref(s.id, q, { tab }));
   const ratioIndicator = (value: number | null, label: string, caption?: string) => <div className="flex w-full flex-col gap-xs">
     <div className="flex items-center justify-end gap-sm text-body-small text-muted-foreground">
       {caption && <span className="mr-auto">{caption}</span>}<span className="tabular-nums">{pct(value)}</span>
@@ -68,6 +72,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
     { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview")) },
     { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime")) },
     { id: "usage", label: "\u7ecf\u8425\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(detail(s, "business")) },
+    {id:"review",label:"\u6838\u9a8c\u7ebf\u7d22",icon:"search",onSelect:()=>router.push(review(s))},
   ]} />;
   const columns: DataTableColumn<SiteRecord>[] = [
     { id: "name", header: "\u7ad9\u5740", sortable: true, cell: s => <TableTitleCell title={s.name} description={s.id} icon="building" onTitleClick={() => router.push(detail(s))} tooltip={s.name} /> },
@@ -133,7 +138,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
             </Button>
             <CollapsibleTrigger asChild><Button variant="outline" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="outline" className="max-xl:w-control-md max-xl:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} title={"\u7ad9\u7f51\u5730\u56fe"} target="_blank" rel="noopener noreferrer" href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden xl:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button></>}
-          toolbar={registryTools} />
+          toolbar={<div className="flex flex-col gap-md"><InvestigationReturn source="snapshot"/>{registryTools}</div>} />
         <CollapsibleContent><div className="pt-sm" role="group" aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"}><MetricListCard title={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90"} icon="building" metrics={[
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(demo.summary.sites) + " \u5ea7" },
           { key: "relations", label: "\u670d\u52a1\u5173\u7cfb", value: n(demo.summary.relations) + " \u6761" },

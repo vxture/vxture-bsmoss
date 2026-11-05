@@ -2,6 +2,9 @@
 import dynamic from 'next/dynamic';
 import { useCallback } from 'react';
 import { Button } from '@vxture/design-system';
+import {useInvestigationLinks} from '../../portal/investigation';
+import {mapInvestigationHref} from '../../portal/investigation-links';
+import {relatedDossierHref,relatedReviewHref} from '../../portal/investigation-targets';
 import StationPeriodPanel from './station-period-panel.tsx';
 import { X, ArrowUpRight, Maximize2, Minimize2, RadioTower, Zap, Activity, ShieldCheck, AlertTriangle, ArrowRight, BatteryCharging, Thermometer, Phone, MessageSquare, Database, ChevronRight, CircleCheck, Info } from 'lucide-react';
 import type { StationDetail, Operator } from '../../domains/map-demo/types.ts';
@@ -14,6 +17,7 @@ const PROFILES:Record<string,string>={urban:'\u57ce\u533a\u5546\u5708',hub:'\u4e
 const n=(value:number,digits=1)=>value.toLocaleString('zh-CN',{maximumFractionDigits:digits});
 export default function StationPanel({detail,loading,error,kind,onRetry}:{kind:AnalysisPanel;detail:StationDetail|null;loading:boolean;error:string|null;onRetry:()=>void}) {
   const state=useWorkbench();
+  const {carry}=useInvestigationLinks(mapInvestigationHref(state));
   const period=state.stationPeriods[kind];
   const onHour=useCallback((hour:number)=>useWorkbench.getState().set({hour,playing:false}),[]);
   const expanded=state.expandedPanel===kind;
@@ -32,7 +36,8 @@ export default function StationPanel({detail,loading,error,kind,onRetry}:{kind:A
     {state.returnToReport&&<button className="mw-return-report" onClick={()=>state.set({reportOpen:true,returnToReport:false,selectedId:null})}>{'\u8fd4\u56de\u5468\u671f\u62a5\u544a'}<ArrowUpRight size={12}/></button>}
     <div className="mw-site-heading"><div className="mw-site-symbol"><RadioTower size={24}/></div><div><h2>{site.name}</h2><p>{site.id}<span>{PROFILES[site.profile]}</span></p></div></div>
     <div className="mw-site-tags"><span className={'mw-status '+current.status}><i/>{status}</span><span>{site.operators.length+' \u5bb6\u8fd0\u8425\u5546\u5171\u4eab'}</span><span>{'\u865a\u6784\u7ad9\u5740'}</span>
-      <Button asChild size="sm" variant="ghost"><a href={'/sites/'+encodeURIComponent(site.id)+'?city='+site.cityId+'&county='+site.countyId+'&hour='+state.hour}>{'\u7edf\u4e00\u7ad9\u5740\u6863\u6848'}</a></Button>
+      <Button asChild size="sm" variant="ghost"><a href={carry(relatedDossierHref(site.id,state,period,kind==='business'?'business':'runtime'))}>{'\u7edf\u4e00\u7ad9\u5740\u6863\u6848'}</a></Button>
+      <Button asChild size="sm" variant="ghost"><a href={carry(relatedReviewHref({...state,selection:state.selection??undefined},period,site.id))}>{"\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
     </div>
     <div className="mw-panel-actions"><button onClick={()=>state.openPanel(other,true)}>{'\u5207\u6362\u81f3'+(other==='runtime'?'\u8fd0\u884c\u68c0\u67e5':'\u7ecf\u8425\u7edf\u8ba1')}<ArrowRight size={12}/></button><button disabled={other==='runtime'?state.runtimeOpen:state.businessOpen} onClick={()=>state.openPanel(other)}>{other==='runtime'&&state.runtimeOpen||other==='business'&&state.businessOpen?'\u5df2\u5e76\u6392':'\u5e76\u6392\u6253\u5f00'}{other==='runtime'?<Activity size={12}/>:<Database size={12}/>}</button></div>
     <div className="mw-station-period-picker"><span>{'\u5206\u6790\u5468\u671f'}</span><div role="group" aria-label={title+'\u5206\u6790\u5468\u671f'}>{([{key:'snapshot',label:'\u65f6\u6bb5'},{key:'day',label:'\u65e5'},{key:'week',label:'\u5468'},{key:'month',label:'\u6708'}] as const).map(p=><button key={p.key} aria-pressed={period===p.key} onClick={()=>{state.set({stationPeriods:{...state.stationPeriods,[kind]:p.key},playing:false});}}>{p.label}</button>)}</div></div>
