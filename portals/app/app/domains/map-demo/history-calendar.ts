@@ -1,7 +1,7 @@
 // Versioned synthetic coverage, independent of the host clock.
 export const HISTORY_START = '2024-11-01';
 export const HISTORY_END = '2026-11-01';
-export const HISTORY_VERSION = 'bsmoss-history-v2';
+export const HISTORY_VERSION = 'bsmoss-history-v3';
 export const DAY_MS = 86400000;
 export function dateNumber(value: string): number {
   const n = Date.parse(value + 'T00:00:00Z');

@@ -13,6 +13,7 @@ import {historyHref} from "./history-links";
 import {sharingNames,viewItems} from "./history-labels";
 import HistoryOperators from "./history-operators";
 import HistoryCohorts from "./history-cohorts";
+import HistoryStation from "./history-station";
 import "./history.css";
 const metrics=[{value:"bytes",label:"\u6d41\u91cf"},{value:"voiceSeconds",label:"\u901a\u8bdd"},{value:"sms",label:"\u77ed\u4fe1"}] as const;
 const titles={city:"\u5730\u5e02\u7ecf\u8425\u5bf9\u6bd4",county:"\u533a\u53bf\u7ecf\u8425\u5bf9\u6bd4",site:"\u7ad9\u5740\u7ecf\u8425\u5bf9\u6bd4",operator:"\u8fd0\u8425\u5546\u670d\u52a1\u7ed3\u6784"};
@@ -80,12 +81,13 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
       >
       <div className="history-trend flex min-w-0 flex-col"><UsageTrend data={data.series.map(row=>({key:row.key,label:row.key,value:Number(row[metric])/scale}))}
         name={label} unit={unit} labelSuffix="" ariaLabel={label+"\u5386\u53f2\u8d8b\u52bf"} labelEvery={q.window.grain==="month"?2:5}
-        formatValue={v=>n(v,2)} onSelect={q.window.grain==="month"?key=>navigate({range:"month",month:key}):undefined}/></div>
+        formatValue={v=>n(v,2)} onSelect={q.window.grain==="month"?key=>navigate({range:"month",month:key}):q.site?key=>navigate({evidence:key,slot:undefined}):undefined}/></div>
       <div className="flex flex-wrap justify-between gap-sm pt-sm text-body-small text-muted-foreground">
         <span>{label+"\u65e5\u5747 "+n(current/q.window.days/scale,2)+" "+unit}</span>
         <span>{"\u65e5\u5747\u540c\u6bd4 "+changeText(change.dailyRate)}</span>
       </div>
     </PanelCard>
+    {data.station&&<HistoryStation data={data} navigate={navigate}/>}
     {q.view==="region"&&<PanelCard title={titles[data.kind]} icon={data.kind==="site"?"building":data.kind==="operator"?"users":"city"} className="min-w-0"
       description={data.kind==="operator"?"\u8fd0\u8425\u5546\u540d\u79f0\u53ef\u7b5b\u9009\uff1b\u5404\u9879\u4e1a\u52a1\u72ec\u7acb\u7edf\u8ba1":"\u6309\u5f53\u524d\u6307\u6807\u603b\u91cf\u6392\u5e8f \u00b7 \u70b9\u51fb\u540d\u79f0\u9010\u5c42\u4e0b\u94bb"}>
       <DataTable rows={visible} rowKey={r=>r.id} columns={[

@@ -14,7 +14,8 @@ export type HistoryGroup='scene'|'siteType'|'sharing';
 export type HistoryBand='all'|'zero'|'lower'|'middleLow'|'middleHigh'|'upper'|'decline'|'stable'|'growth'|'unknown';
 export interface HistoryScope {query:MapQuery;range:HistoryRange;window:HistoryWindow;metric:HistoryMetric;site?:string;
   view:HistoryView;groupBy:HistoryGroup;scene:'all'|Profile;siteType:'all'|HistorySiteType;sharing:'all'|HistorySharing;
-  band:HistoryBand;sort:'total'|'intensity'|'growth'|'decline';page:number}
+  band:HistoryBand;sort:'total'|'intensity'|'growth'|'decline';page:number;
+  peerLevel:'scope'|'city'|'province';evidence?:string;slot?:number}
 export const emptyHistory=():Exact=>({bytes:0n,voiceSeconds:0,sms:0});
 function add(target:Exact,value:HistoryValues) {
   target.bytes+=BigInt(value.bytes);target.voiceSeconds+=value.voiceSeconds;target.sms+=value.sms;

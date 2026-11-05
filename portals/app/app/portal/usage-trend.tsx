@@ -3,14 +3,15 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { EChartsType } from "echarts/core";
 
 type Point = { key: string; label: string; value: number };
-export default function UsageTrend({ data, formatValue, name, unit, labelSuffix = ":00", ariaLabel, labelEvery = 4, onSelect }: {
+export default function UsageTrend({ data, formatValue, name, unit, labelSuffix = ":00", ariaLabel, labelEvery = 4, onSelect, selectedKey }: {
   data: readonly Point[]; formatValue: (value: number) => string; name: string; unit: string;
-  labelSuffix?: string; ariaLabel?: string; labelEvery?: number; onSelect?: (key: string) => void;
+  labelSuffix?: string; ariaLabel?: string; labelEvery?: number; onSelect?: (key: string) => void; selectedKey?: string;
 }) {
   const node = useRef<HTMLDivElement>(null), instance = useRef<EChartsType | null>(null);
   const tokens = useRef<HTMLSpanElement>(null);
   const peak = data.reduce((best, d, i) => d.value > data[best].value ? i : best, 0);
-  const [cursor, setCursor] = useState(peak);
+  const selected = selectedKey === undefined ? -1 : data.findIndex(d => d.key === selectedKey);
+  const [cursor, setCursor] = useState(selected < 0 ? peak : selected);
   const readout = (index: number) => data[index].label + labelSuffix + " " + name + " " + formatValue(data[index].value) + " " + unit;
   useEffect(() => {
     const element = node.current;
