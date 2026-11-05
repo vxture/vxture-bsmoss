@@ -130,6 +130,12 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         for(const sample of ['data-sites-mode="demo"','data-site-dossier-mode="demo"','TT-SX-DEMO-','bsmoss-site-registry-demo-v1']) assert.ok(!html.includes(sample));
       }
     });
+    await t.test('cohort and operator analysis fail closed with preview disabled',async()=>{
+      for(const view of ['operators','cohorts']) {
+        const response=await fetch(url+'/analysis?view='+view);assert.equal(response.status,200);
+        const html=await response.text();assert.ok(!html.includes('data-history-analysis'));assert.ok(!html.includes('data-history-'+view));assert.ok(!html.includes('bsmoss-history-v2'));
+      }
+    });
     await t.test('decision board fails closed with preview disabled',async()=>{
       const response=await fetch(url+'/board');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('\u51b3\u7b56\u5206\u6790\u5c1a\u672a\u5f00\u653e'));
@@ -137,6 +143,17 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('operator and cohort workspaces preserve scope, distributions and strict filters',async()=>{
+      const base='/analysis?city=610100&county=610113&range=month&month=2026-10';
+      const operators=await (await fetch(url+base+'&view=operators')).text();assert.ok(operators.includes('data-history-operators'));assert.ok(!operators.includes('data-history-cohorts'));assert.ok(operators.includes('bsmoss-history-v2'));
+      const cohorts=await (await fetch(url+base+'&view=cohorts&groupBy=sharing&band=growth&sort=decline&page=2')).text();assert.ok(cohorts.includes('data-history-cohorts'));assert.ok(cohorts.includes('data-cohort-members'));assert.ok(!cohorts.includes('data-history-operators'));
+      const empty=await (await fetch(url+base+'&view=cohorts&scene=urban&siteType=ground')).text();assert.ok(empty.includes('data-history-cohorts'));assert.ok(!empty.includes('data-history-operators'));
+      const old=await (await fetch(url+'/analysis?view=operators&range=month&month=2024-11&city=610100&county=610113')).text();assert.ok(old.includes('data-history-operators'));assert.ok(old.includes('\u5f53\u524d\u8303\u56f4\u65e0\u53ef\u7528\u540c\u6bd4\u8d21\u732e'));
+      for(const query of ['view=invalid','groupBy=operator','scene=invalid','siteType=invalid','sharing=shared','band=invalid','sort=invalid','page=0','view=cohorts&view=operators']) {
+        const invalid=await (await fetch(url+base+'&'+query)).text();assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-history-analysis'));
+      }
+      assert.equal((await fetch(url+'/api/analysis')).status,401);
+    });
     await t.test("annual business analysis exposes scoped history, validates windows and preserves incomplete baselines",async()=>{
       const r=await fetch(url+'/analysis?city=all&county=all');assert.equal(r.status,200);
       const html=await r.text();assert.ok(html.includes('data-history-analysis'));assert.ok(html.includes('2025-11-01'));

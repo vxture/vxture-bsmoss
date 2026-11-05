@@ -1,6 +1,7 @@
 import {calendarSource} from './period-rules.ts';
 import {DAY_MS,HISTORY_END,HISTORY_START,HISTORY_VERSION,dateNumber,isoDay,monthEnd,yearBefore} from './history-calendar.ts';
-import type {DemoSite,MapQuery,Operator} from './types.ts';
+import type {DemoSite,MapQuery,Operator,Profile} from './types.ts';
+import type {HistorySharing,HistorySiteType} from './site-attributes.ts';
 
 export type HistoryRange='12m'|'year'|'quarter'|'month'|'custom';
 export type HistoryMetric='bytes'|'voiceSeconds'|'sms';
@@ -8,7 +9,12 @@ export type HistoryValues={bytes:string;voiceSeconds:number;sms:number};
 type Exact={bytes:bigint;voiceSeconds:number;sms:number};
 export type HistorySample={code:Operator;values:HistoryValues};
 export interface HistoryWindow {start:string;end:string;days:number;grain:'month'|'day'}
-export interface HistoryScope {query:MapQuery;range:HistoryRange;window:HistoryWindow;metric:HistoryMetric;site?:string}
+export type HistoryView='region'|'operators'|'cohorts';
+export type HistoryGroup='scene'|'siteType'|'sharing';
+export type HistoryBand='all'|'zero'|'lower'|'middleLow'|'middleHigh'|'upper'|'decline'|'stable'|'growth'|'unknown';
+export interface HistoryScope {query:MapQuery;range:HistoryRange;window:HistoryWindow;metric:HistoryMetric;site?:string;
+  view:HistoryView;groupBy:HistoryGroup;scene:'all'|Profile;siteType:'all'|HistorySiteType;sharing:'all'|HistorySharing;
+  band:HistoryBand;sort:'total'|'intensity'|'growth'|'decline';page:number}
 export const emptyHistory=():Exact=>({bytes:0n,voiceSeconds:0,sms:0});
 function add(target:Exact,value:HistoryValues) {
   target.bytes+=BigInt(value.bytes);target.voiceSeconds+=value.voiceSeconds;target.sms+=value.sms;
@@ -67,8 +73,9 @@ export function analyzeHistory(sites:readonly DemoSite[],scope:HistoryScope,read
   const kind:'city'|'county'|'site'|'operator'=scope.site?'operator':scope.query.countyId!=='all'?'site':scope.query.cityId!=='all'?'county':'city';
   const previous=previousHistoryWindow(scope.window);
   function collect(window:HistoryWindow,seriesEnabled:boolean) {
-    const total=emptyHistory(),series=new Map<string,Exact>(),children=new Map<string,{total:Exact;sites:Set<string>}>(),operators=new Map<Operator,Exact>();
+    const total=emptyHistory(),series=new Map<string,Exact>(),children=new Map<string,{total:Exact;sites:Set<string>}>(),operators=new Map<Operator,{total:Exact;sites:Set<string>}>(),siteRows:{id:string;values:HistoryValues}[]=[];
     for(const site of sites){
+      const siteTotal=emptyHistory();
       const source=calendarSource(site);
       let cursor=window.start;
       while(cursor<window.end){
@@ -78,7 +85,9 @@ export function analyzeHistory(sites:readonly DemoSite[],scope:HistoryScope,read
         for(const {code,values} of rows){
           if(scope.query.operator!=='all'&&scope.query.operator!==code)continue;
           add(total,values);
-          if(!operators.has(code))operators.set(code,emptyHistory());add(operators.get(code)!,values);
+          add(siteTotal,values);
+          if(!operators.has(code))operators.set(code,{total:emptyHistory(),sites:new Set()});
+          add(operators.get(code)!.total,values);operators.get(code)!.sites.add(site.id);
           if(seriesEnabled){const key=window.grain==='month'?month:cursor;if(!series.has(key))series.set(key,emptyHistory());add(series.get(key)!,values);}
           const key=kind==='city'?site.cityId:kind==='county'?site.countyId:kind==='site'?site.id:code;
           if(!children.has(key))children.set(key,{total:emptyHistory(),sites:new Set()});
@@ -86,19 +95,21 @@ export function analyzeHistory(sites:readonly DemoSite[],scope:HistoryScope,read
         }
         cursor=whole?end:isoDay(dateNumber(cursor)+DAY_MS);
       }
+      siteRows.push({id:site.id,values:serialize(siteTotal)});
     }
     // Empty scopes still retain the selected temporal axis, not fabricated data.
     if(seriesEnabled)for(let d=window.start;d<window.end;d=window.grain==='month'?monthEnd(d.slice(0,7)):isoDay(dateNumber(d)+DAY_MS)){
       const key=window.grain==='month'?d.slice(0,7):d;if(!series.has(key))series.set(key,emptyHistory());
     }
     return {total:serialize(total),series:[...series].sort(([a],[b])=>a.localeCompare(b)).map(([key,v])=>({key,...serialize(v)})),
-      children:[...children].map(([id,v])=>({id,sites:v.sites.size,...serialize(v.total)})),operators:[...operators].map(([code,v])=>({code,...serialize(v)}))};
+      children:[...children].map(([id,v])=>({id,sites:v.sites.size,...serialize(v.total)})),operators:[...operators].map(([code,v])=>({code,sites:v.sites.size,...serialize(v.total)})),siteRows};
   }
   const current=collect(scope.window,true),base=previous?collect(previous,false):null;
   return {mode:'demo' as const,version:HISTORY_VERSION,cutoff:HISTORY_END+'T00:00:00+08:00',coverage:{start:HISTORY_START,end:HISTORY_END},scope,
     physicalSites:sites.length,serviceRelations:sites.reduce((n,s)=>n+(scope.query.operator==='all'?s.operators.length:1),0),
     expectedSiteDays:sites.length*scope.window.days,observedSiteDays:sites.length*scope.window.days,
-    totals:current.total,previous:base?.total??null,previousWindow:previous,series:current.series,operators:current.operators,kind,
+    totals:current.total,previous:base?.total??null,previousWindow:previous,series:current.series,operators:current.operators.map(row=>({...row,previous:base?.operators.find(r=>r.code===row.code)??null})),kind,
+    siteRows:current.siteRows.map(row=>({...row,previous:base?.siteRows.find(r=>r.id===row.id)?.values??null})),
     children:current.children.map(row=>({...row,previous:base?.children.find(r=>r.id===row.id)??null}))};
 }
 export type HistoryAnalysis=ReturnType<typeof analyzeHistory>;
