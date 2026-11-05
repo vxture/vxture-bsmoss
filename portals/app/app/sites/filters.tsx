@@ -1,18 +1,16 @@
 "use client";
-import RegionSelector from "../portal/region-selector";
 import { useState } from "react";
 import { Button, Icon, Label, NativeSelect, Popover, PopoverContent, PopoverTrigger } from "@vxture/design-system";
-import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, type SiteQuery } from "../domains/site-registry/rules";
 import { operatorNames, sceneNames, statusNames } from "./labels";
 
-type Filters = Pick<SiteQuery, "city" | "county" | "operator" | "sharing" | "scene" | "status">;
-const values = (q: Filters): Filters => ({ city: q.city, county: q.county, operator: q.operator, sharing: q.sharing, scene: q.scene, status: q.status });
-export default function SiteFilters({ query, regions, onApply }: {
-  query: SiteQuery; regions: RegistryDemo["regions"]; onApply: (patch: Filters) => void;
+type Filters = Pick<SiteQuery, "operator" | "sharing" | "scene" | "status">;
+const values = (q: Filters): Filters => ({ operator: q.operator, sharing: q.sharing, scene: q.scene, status: q.status });
+export default function SiteFilters({ query, onApply }: {
+  query: SiteQuery; onApply: (patch: Filters) => void;
 }) {
   const [open, setOpen] = useState(false), [draft, setDraft] = useState<Filters>(() => values(query));
-  const count = [query.city, query.operator, query.sharing, query.scene, query.status].filter(v => v !== "all").length;
+  const count = [query.operator, query.sharing, query.scene, query.status].filter(v => v !== "all").length;
   return <Popover open={open} onOpenChange={next => { if (next) setDraft(values(query)); setOpen(next); }}>
     <PopoverTrigger asChild><Button variant={count ? "secondary" : "outline"} aria-label={"\u7ad9\u5740\u7b5b\u9009"}>
       <Icon name="faders" size="sm" />{"\u7b5b\u9009"}{count ? " (" + count + ")" : ""}
@@ -21,7 +19,6 @@ export default function SiteFilters({ query, regions, onApply }: {
       <div className="flex flex-col gap-md">
         <span className="text-heading-2 font-semibold">{"\u7ad9\u5740\u7b5b\u9009"}</span>
         <div className="grid grid-cols-2 gap-md">
-          <div className="col-span-2 flex min-w-0 flex-col gap-xs"><Label htmlFor="site-filter-region">{"\u533a\u57df"}</Label><RegionSelector id="site-filter-region" region={regions} value={{ cityId: draft.city, countyId: draft.county }} onChange={value => setDraft({ ...draft, city: value.cityId, county: value.countyId })} /></div>
           <div className="flex flex-col gap-xs"><Label htmlFor="site-filter-sharing">{"\u5171\u4eab\u65b9\u5f0f"}</Label>
             <NativeSelect id="site-filter-sharing" aria-label={"\u5171\u4eab\u65b9\u5f0f"} value={draft.sharing} onChange={e => setDraft({ ...draft, sharing: e.target.value })}>
               <option value="all">{"\u5168\u90e8"}</option><option value="single">{"\u72ec\u4eab\u7ad9\u5740"}</option><option value="shared">{"\u4e24\u5bb6\u53ca\u4ee5\u4e0a"}</option><option value="multi">{"\u4e09\u5bb6\u53ca\u4ee5\u4e0a"}</option>

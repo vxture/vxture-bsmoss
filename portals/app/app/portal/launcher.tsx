@@ -5,6 +5,8 @@ import { EntryCard, Icon, Popover, PopoverTrigger, Separator, ShellIconButton, S
   ShellPanelSection, type IconName } from "@vxture/design-system";
 import { portalBusinessGroups, portalDomain, portalNavigation, type PortalDomain, type PortalEntry, type PortalPage } from "./navigation";
 import "./header.css";
+import { regionLink } from "./region-scope";
+import type { RegionSelection } from "./region-selection";
 export const portalIcons: Record<PortalPage, IconName> = {
   "overview-display": "faders",
   "usage-review": "search",
@@ -26,13 +28,13 @@ const managementGroups: { title: string; description: string; icon: IconName; pa
   { title: "\u4efb\u52a1\u7ba1\u7406", description: "\u6267\u884c\u8bb0\u5f55\u4e0e\u53d7\u5ba1\u6062\u590d", icon: "database", pages: ["aggregation", "report-jobs"] },
 ];
 const panelLabels: Record<PortalDomain, string> = { business: "\u4e1a\u52a1\u5e94\u7528", management: "\u914d\u7f6e\u7ba1\u7406\u5bfc\u822a" };
-export default function ProductLauncher({ active, preview }: { active: PortalPage; preview: boolean }) {
+export default function ProductLauncher({ active, preview, regionSelection }: { active: PortalPage; preview: boolean; regionSelection?: RegionSelection }) {
   const [open, setOpen] = useState(false);
   const firstEntry = useRef<HTMLAnchorElement>(null);
   const domain = portalDomain(active), management = domain === "management";
   const nav = portalNavigation(preview, domain);
   const card = (item: PortalEntry) => <EntryCard key={item.id} ref={item.id === nav[0]?.id ? firstEntry : undefined}
-    title={item.label} description={descriptions[item.id]} icon={portalIcons[item.id]} href={item.href}
+    title={item.label} description={descriptions[item.id]} icon={portalIcons[item.id]} href={regionSelection ? regionLink(item.href, regionSelection) : item.href}
     target={item.id === "map" ? "_blank" : undefined} rel={item.id === "map" ? "noopener noreferrer" : undefined}
     aria-current={item.id === active ? "page" : undefined}
     meta={item.id === active ? <Icon name="check-circle" size="sm" aria-label={"\u5f53\u524d\u9875\u9762"} /> : undefined}
@@ -61,7 +63,7 @@ export default function ProductLauncher({ active, preview }: { active: PortalPag
             <ShellPanelRow icon={group.icon as IconName} label={group.title} className="text-muted-foreground" />
             <ShellPanelSection divided={false} className="gap-md">
               {group.modules.map(item => <EntryCard key={item.key} title={item.label} description={item.description} icon={item.icon as IconName}
-                  href={item.planned ? undefined : item.href} aria-current={item.page === active ? "page" : undefined}
+                  href={item.planned ? undefined : item.href && regionSelection ? regionLink(item.href, regionSelection) : item.href} aria-current={item.page === active ? "page" : undefined}
                   role={item.planned ? "link" : undefined} aria-disabled={item.planned || undefined} tabIndex={item.planned ? -1 : undefined}
                   meta={item.planned ? <StatusBadge tone="neutral" size="sm">{"\u89c4\u5212\u4e2d"}</StatusBadge> : undefined}
                   className={(item.page === active ? "p-md bg-primary-muted" : "p-md") + (item.planned ? " cursor-not-allowed" : "")}

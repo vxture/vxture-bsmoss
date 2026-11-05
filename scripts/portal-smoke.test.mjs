@@ -131,6 +131,19 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test("remembered regions scope the first server render and explicit links take precedence",async()=>{
+      const headers={cookie:'bsmoss-region-v1-preview=v1.610000.610100.610113'};
+      for(const path of ['/','/sites','/capacity','/board','/usage-review','/product-preview']) {
+        const response=await fetch(url+path,{headers});assert.equal(response.status,200);
+        const html=await response.text();
+        if(path!=='/product-preview') assert.ok(html.includes('aria-label="\u9009\u62e9\u533a\u57df\uff1a\u9655\u897f\u7701\u00b7\u897f\u5b89\u5e02\u00b7\u96c1\u5854\u533a"'),path);
+        if(path==='/sites') {assert.ok(html.includes('16 \u5ea7\u7ad9\u5740'));assert.ok(!html.includes('SX-DEMO-003'));}
+      }
+      const explicit=await (await fetch(url+'/sites?city=610300',{headers})).text();
+      assert.ok(explicit.includes('140 \u5ea7\u7ad9\u5740'));assert.ok(!explicit.includes('aria-label="\u9009\u62e9\u533a\u57df\uff1a\u9655\u897f\u7701\u00b7\u897f\u5b89\u5e02\u00b7\u96c1\u5854\u533a"'));
+      const reset=await (await fetch(url+'/sites?city=all&county=all',{headers})).text();assert.ok(reset.includes('1,080 \u5ea7\u7ad9\u5740'));
+      const invalid=await (await fetch(url+'/sites?city=610300&county=610113',{headers})).text();assert.ok(invalid.includes('\u7ad9\u5740\u7b5b\u9009\u65e0\u6548'));
+    });
     await t.test("usage review list and evidence are independent, strictly scoped and preserve return context",async()=>{
       const response=await fetch(url+'/usage-review');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('data-usage-review="list"'));

@@ -1,5 +1,5 @@
 "use client";
-import RegionSelector from "../portal/region-selector";
+
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
 import MetricRowsCard from "../portal/metric-rows-card";
@@ -33,7 +33,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
    <PageHeading title={labels[demo.kind]} description={descriptions[demo.kind]}
      secondary={q.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
-     region={<RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate({ ...value, selection: undefined })} />}
+
      context={<time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time>}
      actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>

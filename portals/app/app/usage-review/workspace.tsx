@@ -1,5 +1,4 @@
 "use client";
-import RegionSelector from "../portal/region-selector";
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
 import { useRouter } from "next/navigation";
@@ -23,7 +22,7 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
   ]} />;
   return <div data-usage-review="list" aria-busy={pending} className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-md">
     <PageHeading title={"\u7528\u91cf\u6838\u9a8c"} description={"\u7528\u91cf\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570\u7ebf\u7d22"} secondary={<StatusBadge tone="neutral" size="sm">{"\u53ea\u8bfb"}</StatusBadge>}
-      region={<><RegionSelector region={model.region} value={q.scope} disabled={pending} onChange={value => navigate({}, { ...value, selection: undefined })} />{q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}</>}
+      region={q.scope.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
       context={<><span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span></>}
       actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u6838\u9a8c\u5217\u8868"} disabled={pending} onClick={() => start(() => router.refresh())}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref(q)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></>}
       toolbar={<div className="flex min-w-0 flex-col gap-md"><form role="search" aria-label={"\u7528\u91cf\u6838\u9a8c\u7b5b\u9009"} onSubmit={e => { e.preventDefault(); navigate({}, { search }); }} className="flex shrink-0 flex-wrap items-center gap-md">

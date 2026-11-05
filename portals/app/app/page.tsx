@@ -1,3 +1,4 @@
+import { rememberedRegionInput } from "./portal/region-preference";
 import PageHeading from "./portal/page-heading";
 import { getOidcConfig } from "./auth/lib/config";
 import ProductFrame from "./portal/header";
@@ -10,7 +11,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   // Synthetic resources are loaded only for the explicitly enabled preview.
   let demo = null;
   if (preview) {
-    try { demo = (await import("./portal/demo")).portalDemoSummary(await searchParams); }
+    try { demo = (await import("./portal/demo")).portalDemoSummary(await rememberedRegionInput(await searchParams)); }
     catch (error) {
       if (!(error instanceof Error && error.message.startsWith("invalid_"))) throw error;
       return <ProductFrame active="home" preview><ShellPageContainer className="product-page-inset max-w-none"><PageHeading title={"\u8fd0\u884c\u603b\u89c8"} />

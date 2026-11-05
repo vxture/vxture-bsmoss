@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import RegionSelector from "../portal/region-selector";
+
 import { regionLabel } from "../portal/region-selection";
 import PageHeading from "../portal/page-heading";
 import { useRouter } from "next/navigation";
@@ -25,9 +25,9 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
   const [full, setFull] = useState(false), [fullscreenError, setFullscreenError] = useState(false);
   const [hour, setHour] = useState(demo.hour);
   useEffect(() => { setHour(demo.hour); }, [demo.hour]);
+  useEffect(() => { setPlaying(false); }, [demo.cityId, demo.countyId]);
   const navigate = (city: string, nextHour: number, county = city === demo.cityId ? demo.countyId : "all") => {
-    const params = new URLSearchParams({ hour: String(nextHour) }); if (city !== "all") params.set("city", city);
-    if (county !== "all") params.set("county", county);
+    const params = new URLSearchParams({ hour: String(nextHour), city, county });
     router.replace("/board?" + params, { scroll: false });
   };
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
     <ShellPageContainer className="product-page-inset max-w-none">
       <div className="flex min-w-0 flex-col gap-lg">
         <PageHeading title={"\u51b3\u7b56\u5206\u6790"} description={"\u7ad9\u7f51\u7efc\u5408\u6001\u52bf\u4e0e\u533a\u57df\u8fd0\u8425\u6bd4\u8f83"}
-          region={<RegionSelector region={demo.region} value={demo} onChange={value => { setPlaying(false); navigate(value.cityId, demo.hour, value.countyId); }} />}
+
           context={<time>{demo.date + " " + context}</time>}
           actions={<><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={scope()}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5de5\u4f5c\u53f0"}</a></Button>
             <Button variant="ghost" size="icon-md" aria-label={full ? "\u9000\u51fa\u5168\u5c4f" : "\u8fdb\u5165\u5168\u5c4f"} onClick={async () => {

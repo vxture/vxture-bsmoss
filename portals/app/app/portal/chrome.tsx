@@ -8,10 +8,15 @@ import { portalDomain, portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher, { portalIcons as icons } from "./launcher";
 import ProductAccount, { type HeaderIdentity } from "./account";
 import ProductWorkspace from "./workspace";
+import RegionSelector from "./region-selector";
+import { useHeaderRegion } from "./header-region";
+import { regionLink, type RegionPreference } from "./region-scope";
 
-export default function ProductChrome({ active, preview, children, identity, loginEnabled, consoleHref }: {
+export default function ProductChrome({ active, preview, children, identity, loginEnabled, consoleHref, regionPreference }: {
   active: PortalPage; preview: boolean; children: ReactNode; identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string;
+  regionPreference: RegionPreference;
 }) {
+  const scope = useHeaderRegion(regionPreference);
   const [collapsed, setCollapsed] = useState(false);
   const mobile = useMediaQuery("(max-width: 767px)");
   const domain = portalDomain(active), management = domain === "management";
@@ -24,22 +29,22 @@ export default function ProductChrome({ active, preview, children, identity, log
   ] : [];
   return <ShellViewport sidebarMode="hidden" sidebar={null}
     header={<ShellHeader leading={<>
-      <ProductLauncher active={active} preview={preview} />
-      <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
+      <ProductLauncher active={active} preview={preview} regionSelection={scope.value} />
+      <a href={regionLink("/", scope.value)} className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
           <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
-        <span className="hidden truncate text-heading-2 font-semibold text-muted-foreground sm:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
+        <span className="hidden truncate text-heading-2 font-semibold text-muted-foreground lg:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>
       </a>
       <div className="flex min-w-0 items-center gap-sm">
         <ShellHeaderDivider />
-        <span className="truncate whitespace-nowrap text-label font-semibold text-muted-foreground sm:text-heading-2">{management ? "\u914d\u7f6e\u7ba1\u7406 \u00b7 " : ""}{current?.label}</span>
-        {preview ? <StatusBadge tone="info" size="sm">{"\u6f14\u793a"}</StatusBadge> : null}
+        {regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
+        {preview ? <StatusBadge tone="info" size="sm" className="hidden sm:inline-flex">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<>
       <ShellHeaderTools label={"\u64cd\u4f5c\u5de5\u5177"} linkComponent={Link}
-        help={{ label: "\u5e2e\u52a9\u6587\u6863", href: "https://docs.vxture.com" }}
+        help={mobile ? undefined : { label: "\u5e2e\u52a9\u6587\u6863", href: "https://docs.vxture.com" }}
         settings={{ label: "\u914d\u7f6e\u7ba1\u7406", href: "/settings" }}
-        notifications={{ label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f",
+        notifications={mobile ? undefined : { label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f",
           children: <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p> }} />
       <ProductAccount identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
     </>} />}>

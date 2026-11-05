@@ -1244,3 +1244,13 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户要求真正浏览器边界、鼠标贴边即可唤出、取消多层外壳，以及关闭不先显示完整按钮再缩回。本批覆盖容器内窄条：RegionEdgeDock通过body portal固定left0，DS header-md以下至视口底部、space-md16px透明感应区；常态按钮仅露4px且隐藏图标，贴边从上方滑出单个官方Button＋chevron-right，无外框／阴影／多重按钮。关闭直接挂载translateX-36／transition:none，无focus-within回弹；仅唤出用DS150ms。键盘关闭转交焦点但保持收起，Enter重开后焦点回面板开关。资源树hidden保留及URL／县筛选维持，窄屏入口隐藏，正文零占宽。
 
 生产构建含类型tmp/site-region-viewport-edge-build.log通过；首轮ShellIconButton的onClick契约不接受事件，已改官方Button并重建通过。CUA1280／1042 portal直属body、感应区left0/top48/宽16、按钮窄条right4/top80/40×48；1042正文1010=工作区1010。x1,y350贴边可唤出上方按钮，终态left0/icon1，透明感应层无背景／边框／阴影；关闭立即false/-36/0s，键盘关闭focused=true且仍false/-36/0s，Enter重开成功并保留雁塔URL。服务关系切换保持收起及县参数；390隐藏入口无横溢，warn/error空。截图artifacts/site-region-viewport-edge-qa含idle/revealed，viewport恢复、临时tab98关闭、用户页保留。实施810同步，纯UI不新增镜像测试或重复HTTP/PG；无数据／权限／依赖／DDL／外部上线变化，下一业务仍B01-04，最终63333身份见Git及health。
+
+## Header全局区域与跨板块记忆（2026-11-05）
+
+用户批准区域提升header替换功能域名称，页面H1／副标题保留。新增region-scope纯规则、region-preference服务端按请求缓存及身份隔离、useHeaderRegion同步URL/cookie。总览／决策／台账／四分析／核验列表服务端无参数先继承记忆后生成数据，显式URL含all优先，非法参数继续原校验；launcher和品牌链接带区域，URL规范化含city/county。第一方一年cookie，正式用户sub/组织/工作空间摘要隔离，预览访客独立。正式目录不拿合成资源替代授权目录；正式/analysis及/reports继续门槛，仅保留区域上下文，行政地域读模型过滤未接入不宣称完成。
+
+页面去重复区域组件／站址面包屑及筛选内地域；地域树与header同步，业务重置保留区域。详情保留对象归属、header改区返回列表。独立地图共享记忆和组件，无参数新tab继承，首次摘要也按区域生成，避免全省闪现；换区清选区／对比／站址，默认不选站。决策改区停止回放。窄屏优先品牌／区域／配置／用户，长路径截断并完整弹层展示；功能名只留页面标题。
+
+最终生产build含类型tmp/header-region-build.log通过；16相关单测tmp/header-region-unit.log及32HTTP tmp/header-region-http.log通过（新增cookie首屏／显式优先／全省重置／非法父子回归），无重复PG。CUA雁塔跨launcher到容量实际16站，刷新同县；10无参数入口均同县，配置宝鸡后回台账140、树长安62、业务重置仍同县；蓝田档案固定归属不影响全局、切全省回1080列表。新地图雁塔首次16站/0.68TiB且无site、改宝鸡后总览继承。1280/904/390×5页15组无文档／header横溢，每页1H1／1选择器，warn/error空。证据artifacts/header-region-qa/sites.png为最终新tab完整header，checks.json含范围与布局；复用tab的capacity截图顶栏绘制缺失不作为视觉成功，保留诊断。搜索初次名称不匹配，按实际combobox名称重验成功。viewport恢复，临时99/100/101/102关闭、用户tab72/93保留。
+
+实施820、规格50同步。无新依赖／DDL／权限／事实来源变更，无push／外部部署／生产上线／新聊天／自动任务；下一业务仍B01-04，陕西／费用预留／退役P2／无旧库迁移保持。最终63333身份见Git及health。

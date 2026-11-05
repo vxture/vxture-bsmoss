@@ -1,6 +1,8 @@
 'use client';
 import dynamic from 'next/dynamic';
 import RegionSelector from '../../portal/region-selector';
+import { rememberBrowserRegion } from '../../portal/header-region';
+import type { RegionPreference } from '../../portal/region-scope';
 import { useCallback, useEffect, useState } from 'react';
 import { RadioTower, Globe2, Activity, BarChart3, Zap, Search, ChevronDown, SlidersHorizontal, Layers, ArrowUpRight, Play, Pause, ChevronLeft, ChevronRight, MapPin, RotateCcw, Check, CircleHelp, X, LoaderCircle, Database, ScanLine, BoxSelect, Columns3, Radar, Table2, FileText } from 'lucide-react';
 import { useWorkbench } from '../../domains/map-demo/workbench-store.ts';
@@ -31,7 +33,7 @@ function queryString(state:ReturnType<typeof useWorkbench.getState>,region:Regio
   if(viewport&&state.topicOpen)p.set('topic',state.topic);
   return p.toString();
 }
-export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:string;countyId:string}[];region:RegionDefinition;initialSnapshot:MapSnapshot}) {
+export default function Workbench({region,initialSnapshot,scenes,regionPreference}:{scenes:{id:string;countyId:string}[];region:RegionDefinition;initialSnapshot:MapSnapshot;regionPreference:RegionPreference}) {
   const state=useWorkbench();
   const [snapshot,setSnapshot]=useState(initialSnapshot),[detail,setDetail]=useState<StationDetail|null>(null);
   const [mapLoading,setMapLoading]=useState(false),[detailLoading,setDetailLoading]=useState(false),[error,setError]=useState<string|null>(null),[mapError,setMapError]=useState(false);
@@ -40,8 +42,9 @@ export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:st
   const [settings,setSettings]=useState(false),[help,setHelp]=useState(false),[hydrated,setHydrated]=useState(false);
   useEffect(()=>{
     const p=new URLSearchParams(window.location.search);
-    const hour=Number(p.get('hour')??18),cityId=p.get('city')??'all',operator=p.get('operator')??'all';
-    const id=p.get('site'),countyId=p.get('county')??'all';
+    const explicit=p.has('city')||p.has('county');
+    const hour=Number(p.get('hour')??18),cityId=p.get('city')??(explicit?'all':regionPreference.selection.cityId),operator=p.get('operator')??'all';
+    const id=p.get('site'),countyId=p.get('county')??(explicit?'all':regionPreference.selection.countyId);
     const patch:Parameters<typeof state.set>[0]={hour:Number.isInteger(hour)&&hour>=0&&hour<=23?hour:18,
       cityId:region.cities.some(c=>c.id===cityId)?cityId:'all',operator:Object.hasOwn(OP_NAMES,operator)?operator as OperatorFilter:'all'};
     patch.countyId=region.counties.some(c=>c.id===countyId&&c.cityId===patch.cityId)?countyId:'all';
@@ -62,7 +65,8 @@ export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:st
   },[region]);
   useEffect(()=>{
     if(!hydrated)return;
-    const p=new URLSearchParams();if(state.cityId!=='all')p.set('city',state.cityId);if(state.countyId!=='all')p.set('county',state.countyId);if(state.operator!=='all')p.set('operator',state.operator);
+    const p=new URLSearchParams({city:state.cityId,county:state.countyId});if(state.operator!=='all')p.set('operator',state.operator);
+    rememberBrowserRegion(regionPreference.cookieName,region,state);
     if(state.selection)p.set('selection',serializeSelection(state.selection));
     if(state.compareIds.length)p.set('compare',state.compareIds.join(','));
     if(state.topicOpen)p.set('topic',state.topic);
@@ -110,7 +114,7 @@ export default function Workbench({region,initialSnapshot,scenes}:{scenes:{id:st
   };
   return <main className={"mw-app mw-hud "+(state.leftOpen?"mw-left-open ":"")+(state.detailOpen?"mw-detail-open ":"")+(state.compareOpen||state.usageOpen||state.reportOpen?"mw-compare-open ":"")+(state.topicOpen?"mw-topic-open ":"")+(state.selectionOpen?"mw-area-open ":"")} data-demo-version={initialSnapshot.version}>
     <nav className="mw-rail" aria-label={'\u5de5\u4f5c\u53f0\u5bfc\u822a'}><div className="mw-rail-brand"><RadioTower size={26}/></div><div className="mw-rail-main"><button className={state.leftOpen?"active":""} title={"\u56fe\u5c42\u4e0e\u7ad9\u70b9"} aria-label={"\u56fe\u5c42\u4e0e\u7ad9\u70b9"} onClick={()=>state.set({leftOpen:!state.leftOpen})}><Layers size={19}/><span>{"\u56fe\u5c42"}</span></button><button className={state.theme==='status'?'active':''} title={'\u7ad9\u7f51\u8fd0\u884c\u6001\u52bf'} aria-label={'\u7ad9\u7f51\u8fd0\u884c\u6001\u52bf'} onClick={()=>{state.set({theme:'status'});state.openPanel('runtime');}}><Globe2 size={21}/><span>{'\u6001\u52bf'}</span></button><button className={state.theme==='traffic'?'active':''} title={'\u7ecf\u8425\u670d\u52a1\u5206\u6790'} aria-label={'\u7ecf\u8425\u670d\u52a1\u5206\u6790'} onClick={()=>{state.set({theme:'traffic'});state.openPanel('business');}}><BarChart3 size={21}/><span>{'\u7ecf\u8425'}</span></button><button className={state.theme==='energy'?'active':''} title={'\u8fd0\u884c\u53c2\u6570\u5206\u6790'} aria-label={'\u8fd0\u884c\u53c2\u6570\u5206\u6790'} onClick={()=>{state.set({theme:'energy'});state.openPanel('runtime');}}><Zap size={21}/><span>{'\u8fd0\u884c'}</span></button><button className={state.drawing||state.selection?'active':''} aria-label={'\u6846\u9009\u5206\u6790'} title={'\u6846\u9009\u5206\u6790'} onClick={()=>state.drawing?state.cancelSelection():state.beginSelection()}><BoxSelect size={19}/></button><button className={state.compareOpen?"active":""} aria-label={"\u7ad9\u70b9\u5bf9\u6bd4"} title={"\u7ad9\u70b9\u5bf9\u6bd4"} onClick={()=>state.set({compareOpen:!state.compareOpen,search:""})}><Columns3 size={19}/>{state.compareIds.length>0&&<small className="mw-compare-count">{state.compareIds.length}</small>}</button><button className={state.topicOpen?"active":""} aria-label={"\u4e13\u9898\u5206\u6790"} title={"\u4e13\u9898\u5206\u6790"} onClick={()=>state.set({topicOpen:!state.topicOpen})}><Radar size={19}/></button><button className={state.usageOpen?"active":""} aria-label={"\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5"} title={"\u8fd0\u8425\u5546\u4f7f\u7528\u6838\u67e5"} onClick={()=>state.set({usageOpen:!state.usageOpen})}><Table2 size={19}/></button><button className={state.reportOpen?"active":""} aria-label={"\u5468\u671f\u5206\u6790\u62a5\u544a"} title={"\u5468\u671f\u5206\u6790\u62a5\u544a"} onClick={()=>state.set({reportOpen:!state.reportOpen})}><FileText size={19}/></button></div><div className="mw-rail-bottom"><button className={settings?'active':''} title={'\u663e\u793a\u8bbe\u7f6e'} aria-label={'\u663e\u793a\u8bbe\u7f6e'} onClick={()=>setSettings(!settings)}><SlidersHorizontal size={19}/></button><button title={'\u4f7f\u7528\u5e2e\u52a9'} aria-label={'\u4f7f\u7528\u5e2e\u52a9'} onClick={()=>setHelp(!help)}><CircleHelp size={19}/></button><div className="mw-avatar">{'\u5854'}</div></div></nav>
-    <header className="mw-header"><a href="/" className="mw-product" aria-label={"\u8fd4\u56de\u8fd0\u884c\u603b\u89c8"} title={"\u8fd4\u56de\u8fd0\u884c\u603b\u89c8"}><strong>{'\u89c2\u6f9c'}</strong><div className="mw-product-subline"><span>BS-MOSS</span><small>{'\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1'}</small></div></a><div className="mw-header-divider"/><div className="mw-region-heading"><RegionSelector region={region} value={state} onChange={value=>state.set({...value,selectedId:null,expanded:false,search:''})}/></div><div className="mw-header-right"><span className="mw-fixed-date">{'2026.10.25 / \u5468\u65e5'}</span><span className="mw-demo-badge"><i/>{'\u6f14\u793a\u6570\u636e'}</span><span className="mw-header-planning">{'\u9655\u897f\u89c4\u5212 \u00b7 \u7ea6 11 \u4e07\u7ad9\u5740'}</span></div></header>
+    <header className="mw-header"><a href="/" className="mw-product" aria-label={"\u8fd4\u56de\u8fd0\u884c\u603b\u89c8"} title={"\u8fd4\u56de\u8fd0\u884c\u603b\u89c8"}><strong>{'\u89c2\u6f9c'}</strong><div className="mw-product-subline"><span>BS-MOSS</span><small>{'\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1'}</small></div></a><div className="mw-header-divider"/><div className="mw-region-heading"><RegionSelector region={region} value={state} onChange={value=>state.set({...value,selection:null,selectionOpen:false,compareIds:[],compareOpen:false,selectedId:null,expanded:false,search:''})}/></div><div className="mw-header-right"><span className="mw-fixed-date">{'2026.10.25 / \u5468\u65e5'}</span><span className="mw-demo-badge"><i/>{'\u6f14\u793a\u6570\u636e'}</span><span className="mw-header-planning">{'\u9655\u897f\u89c4\u5212 \u00b7 \u7ea6 11 \u4e07\u7ad9\u5740'}</span></div></header>
     <section className="mw-stage">
       <MapCanvas region={region} points={state.topicOpen?topicPoints:currentSnapshot?snapshot.points:[]} selected={detail?.site??null} onPick={mapPick} context={<div className="mw-map-context"><span><i/>{'\u5730\u7406\u89c6\u56fe'}</span><small>{state.topicOpen?TOPIC_NAMES[state.topic]:state.theme==='status'?'\u8fd0\u884c\u72b6\u6001':state.theme==='traffic'?'\u53cc\u5411\u6d41\u91cf \u00b7 GiB':'\u7ad9\u5740\u65f6\u6bb5\u7535\u8017 \u00b7 kWh'}</small>{mapLoading&&<LoaderCircle size={12} className="mw-spin"/>}</div>}/>
       <section className="mw-left-panel"><div className="mw-floating-heading"><span>{"\u56fe\u5c42\u4e0e\u7ad9\u70b9"}</span><small>{summary.count+" \u7ad9"}</small><button className="mw-icon-button" aria-label={"\u6536\u8d77\u56fe\u5c42\u9762\u677f"} onClick={()=>state.set({leftOpen:false})}><X size={13}/></button></div>

@@ -39,7 +39,7 @@ export function parseSiteQuery(input: Record<string, string | string[] | undefin
   return q;
 }
 export function siteQueryString(q: SiteQuery, patch: Partial<SiteQuery> = {}) {
-  const params = new URLSearchParams(), next = { ...q, ...patch };
+  const next = { ...q, ...patch }, params = new URLSearchParams({ city: next.city, county: next.county });
   for (const key of Object.keys(DEFAULT_SITE_QUERY) as (keyof SiteQuery)[])
     if (next[key] !== DEFAULT_SITE_QUERY[key]) params.set(key, String(next[key]));
   return params.toString();

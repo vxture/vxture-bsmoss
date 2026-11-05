@@ -10,7 +10,7 @@ import type { PortalDemo } from "./demo";
 import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
 import OverviewMetrics from "./overview-metrics";
 import PageHeading from "./page-heading";
-import RegionSelector from "./region-selector";
+
 import UsageTrend from "./usage-trend";
 
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
@@ -37,13 +37,6 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   const hour = String(demo.hour).padStart(2, "0") + ":00";
   const scope: BusinessScope = { ...q, period: "day", topic: "capacity" };
   const siteQuery = { ...DEFAULT_SITE_QUERY, city: q.cityId, county: q.countyId, hour: q.hour };
-  const navigate = (city: string, county: string) => {
-    const params = new URLSearchParams();
-    if (city !== "all") params.set("city", city);
-    if (county !== "all") params.set("county", county);
-    if (demo.report.period !== "day") params.set("reportPeriod", demo.report.period);
-    start(() => router.push("/" + (params.size ? "?" + params : ""), { scroll: false }));
-  };
   const unit = metric === "bytes" ? "TiB" : metric === "voiceSeconds" ? "\u4e07\u5206\u949f" : "\u4e07\u6761";
   const fmt = (value: number) => number(metric === "bytes" ? value / 1099511627776 : metric === "voiceSeconds" ? value / 600000 : value / 10000, 2);
   const metricName = metrics.find(item => item.value === metric)!.label, total = usage.totals[metric];
@@ -62,7 +55,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
             <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
           </Button>}
         context={<time dateTime={demo.date + "T" + hour + ":00+08:00"} title={"\u72b6\u6001\u6307\u6807\u91c7\u7528\u8be5\u65f6\u70b9\u5feb\u7167\uff1b\u65e5\u7d2f\u8ba1\u6307\u6807\u4e0e\u5168\u65e5\u8d8b\u52bf\u7edf\u8ba1\u7a97\u53e3\u4e3a\u5f53\u65e5 00:00\u201324:00\u3002"}>{"\u5206\u6790\u5feb\u7167 " + demo.date + " " + hour}</time>}
-        region={<RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate(value.cityId, value.countyId)} />} />
+        />
       <section className="sm:hidden" aria-label={"\u7ad9\u7f51\u8d44\u6e90"}>
         <MetricListCard title={"\u7ad9\u7f51\u8d44\u6e90"} icon="building" metrics={[
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: <a href={siteListHref(siteQuery)}>{number(usage.physicalSites)}</a> },
