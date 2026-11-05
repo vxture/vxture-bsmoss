@@ -32,3 +32,5 @@
 窄屏保留完整四按钮，左右安全距space-xs，区域触发器允许收缩到父容器并截断，保留图标、完整title／无障碍名称和级联弹层。桌面沿用space-lg页边及48px Header；不变更全画布地图独立工具或业务数据口径。
 
 验证发现刷新后主题CSS恢复但偏好context仍为服务端缺省，按钮与账户偏好显示不一致。根Providers首次挂载后以浏览器key重建官方ThemeProvider，继续由DS恢复已有偏好，无新增偏好键或全局token覆盖；再次验证深色刷新、浅色刷新与账户偏好一致。最终生产build含类型及32HTTP通过tmp/header-button-group-{build,http}.log；390／904／1280三档四按钮均24px／图标16px，组内4px／头像间16px，无文档横溢。消息开关、帮助_blank、配置跳转和账户面板检查通过，warn/error空；证据artifacts/header-button-group-qa。初次窄屏区域侵入组已修正，初次刷新主题不一致结果不计成功。
+
+用户随后明确更正尺寸：四按钮外轮廓及点击区域统一32×32px，内部图标保持16×16px。本次通过官方组件className应用DS size-control-xl，仅扩大控件盒，保留icon-md配方的sm图标，不使用会连带放大图标的尺寸配方。组内gap-2xs与组到头像gap-md保持；本节覆盖此前24px按钮结论。

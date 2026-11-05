@@ -1268,3 +1268,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 发现刷新后实际深色而官方偏好context仍服务端缺省，根Providers首次浏览器挂载后重建官方ThemeProvider，使既有持久偏好与图标／账户面板一致；未新增偏好键。最终build含类型tmp/header-button-group-build.log及32HTTP tmp/header-button-group-http.log全通过。CUA390／904／1280三档无文档横溢、四项尺寸和间距一致；深色刷新／浅色刷新、消息开关、配置跳转、账户偏好一致、帮助_blank验证通过，warn/error空。初次窄屏遮挡已修，初次主题恢复失败不计成功。artifacts/header-button-group-qa含desktop／mobile及checks，viewport恢复、临时参考与验证页清理，用户原页保留。
 
 规格50／实施660同步，无依赖／权限／DDL／业务数据口径变更，无push／外部部署／生产上线；下一业务仍B01-04。
+
+## Header工具32px外轮廓／16px图标（2026-11-05）
+
+用户纠正四工具按钮外轮廓应32px，随后明确内部图案16px。仅在四个官方按钮className统一size-control-xl，保留icon-md配方与sm图标，点击区域32×32、图标16×16；组内4px及头像间16px保持。初次control-lg实测28px已纠正为control-xl，未把该中间结果计成功。规格50及实施660同步覆盖先前24px结论。
+
+最终生产build含类型tmp/header-tools-32-build.log通过，157编号通过。CUA1280／904／390逐项四按钮均32×32、svg16×16、文档无横溢；消息实际开关成功，warn/error空，截图和实测checks在artifacts/header-tools-32-qa。刷新初始化时一轮手机隐藏过渡0尺寸已丢弃，实际可见后复核32／16。viewport恢复、108／109临时页关闭，用户页保留。纯尺寸不新增镜像单测或重复HTTP／PG；无依赖／权限／DDL／业务数据变化，无push或外部部署。

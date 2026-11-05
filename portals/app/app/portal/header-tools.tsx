@@ -8,12 +8,13 @@ import { Button, Drawer, Icon, ShellIconButton, ShellIconGroup, ShellThemeToggle
 export default function ProductHeaderTools() {
   const { theme, setMode } = useTheme();
   const [messagesOpen, setMessagesOpen] = useState(false);
-  const linkClass = "text-muted-foreground hover:text-foreground";
+  const buttonClass = "size-control-xl";
+  const linkClass = buttonClass + " text-muted-foreground hover:text-foreground";
   return <>
     <ShellIconGroup label={"\u64cd\u4f5c\u5de5\u5177"}>
-      <ShellThemeToggle currentTheme={theme} onThemeChange={setMode}
+      <ShellThemeToggle currentTheme={theme} onThemeChange={setMode} className={buttonClass}
         lightLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6d45\u8272"} darkLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6df1\u8272"} />
-      <ShellIconButton icon="bell" label={"\u6d88\u606f"} active={messagesOpen}
+      <ShellIconButton icon="bell" label={"\u6d88\u606f"} active={messagesOpen} className={buttonClass}
         aria-haspopup="dialog" aria-expanded={messagesOpen} onClick={() => setMessagesOpen(true)} />
       <Button asChild variant="ghost" size="icon-md" className={linkClass}>
         <a href="https://docs.vxture.com" target="_blank" rel="noopener noreferrer" aria-label={"\u5e2e\u52a9"} title={"\u5e2e\u52a9"}><Icon name="help" size="sm" /></a>
