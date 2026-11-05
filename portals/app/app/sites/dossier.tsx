@@ -69,8 +69,8 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       </div>)}</div>
     </div>
   </PanelCard>;
-  return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-site-dossier-mode="demo" aria-busy={pending}>
-    <div className="shrink-0 bg-card product-page-inset">
+  return <div className="site-workspace product-page-inset product-page-split flex h-full w-full min-w-0 flex-col gap-md text-body" data-site-dossier-mode="demo" aria-busy={pending}>
+    <div className="shrink-0">
       <PageHeading title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
         navigation={<div className="flex flex-wrap items-center gap-sm"><Button asChild variant="ghost" size="md"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button></div>}
         region={<span>{s.cityName + "\u00b7" + s.countyName}</span>}
@@ -81,7 +81,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
       </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>} />
     </div>
-    <div className="site-dossier-scroll min-h-0 min-w-0 flex-1 overflow-y-auto product-page-inset" role="region" tabIndex={0} aria-label={tabNames[q.tab]}>
+    <div className="site-dossier-scroll product-page-scroll-body min-h-0 min-w-0 flex-1 overflow-y-auto" role="region" tabIndex={0} aria-label={tabNames[q.tab]}>
       {q.tab === "overview" && <div className="flex flex-col gap-lg">
         <MetricGrid columns={4} items={[
           { id: "operators", icon: "users", label: "\u5171\u4eab\u8fd0\u8425\u5546", value: s.operators.length, description: "\u5bb6" },

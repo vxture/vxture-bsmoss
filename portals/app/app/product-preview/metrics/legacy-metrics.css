@@ -1177,7 +1177,7 @@
 .legacy-metrics .content.product-page-inset {
   max-width: none;
   margin-inline: 0;
-  padding: var(--space-lg) var(--bsmoss-page-inset-inline);
+  padding: var(--bsmoss-page-inset-top) var(--bsmoss-page-inset-inline) var(--space-6xl);
 }
 
 .legacy-metrics [data-page-heading] { font-family: var(--font-sans); margin-bottom: var(--space-lg); }

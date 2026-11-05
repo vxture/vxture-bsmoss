@@ -1206,3 +1206,13 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户纠正上批理解：隐藏箭头不占位是为了常态背景留白对称，显示箭头需要舒展空间，并非挤进原内距。本批覆盖上一条透明底／绝对定位／等宽策略：公共选择器采用DS bg-muted常态淡底，city图标保留；箭头常态hidden，hover／active／focus-visible／展开时block进入文档流，sm图标＋gap-sm自然增宽，外侧仍px-md对称。规格50和实施800同步，不改DS内部样式／token／筛选逻辑。
 
 生产build含类型通过tmp/region-selector-reveal-build.log，155编号通过。CUA常态background非透明、箭头display:none、宽95.33px／左右内距16.67px；展开宽121.33px、16px箭头与文字间隔10px、外侧内距仍16.67px；Escape收起成功。390长路径常态174.61px、展开200.61px／文字完整／间隔10px，文档宽390无横溢；warn/error空。证据artifacts/region-selector-reveal-qa含normal／open／hover／mobile及checks.json。viewport恢复，临时tab90关闭、用户原页保留。纯样式不重复业务HTTP／PG、不新增镜像单测，无依赖／权限／数据／DDL／外部上线状态变化，最终63333身份见Git及health。
+
+## 工作区与正文双层留白全局修正（2026-11-05）
+
+用户批准全局修正外层8–16px、正文左右约48px／顶部8–16px／DS底部安全区。实施810及规格50覆盖旧单层24／40／56px规则。新增ProductWorkspace结构组合；ProductChrome中header仍用ShellViewport，配置导航用官方ShellSidebarFrame／ShellSidebarNav放入外框槽。外框桌面space-md16／手机space-xs8；正文独立滚动且透明，product-page-inset左右clamp(space-md,4cqi,space-3xl)随实际正文宽度16–48，顶部16／小容器8，末尾space-6xl标准80（用户所称70按已同意DS token落地），不改DS token或内部CSS。
+
+站址树移除旧共享正文padding；右侧独立容器计算cqi，收起后自然展开。档案根只保留一层内距，标题及正文同级对齐、去标题白底；底部80在滚动正文末尾，不在页首重复。普通业务／二级／核验／配置和门槛页共享新框架；指标辅助内容与版权页补外框，地图不套框。无查询／数据／权限／依赖／DDL变化。
+
+生产build含类型通过tmp/workspace-layers-build.log、31HTTP通过tmp/workspace-layers-http.log、156编号通过tmp/workspace-layers-docs.log。CUA20页面×1280／904／390共60组，无文档／正文／标题横溢，唯一可见H1，无嵌套正文padding；总览1280外16／内16 48 80，390外8／内8 16 80。1042地域面板x16顶64底855，四周外安全距16；正文宽754内30.16，收起宽1010内40.4。业务与配置侧栏开关、page2与aria、服务关系切换、档案经营用量URL／aria均成功。档案标题正文x56.40一致，正文滚到底1272.67且底80；总览实际末项至根底80；核验表内滚动分页距底80；390台账卡片纵滚5412可达分页。地图等异步canvas出现后1、外框／正文内距0、site空；warn/error空。证据artifacts/workspace-layers-qa含60组checks和站址／总览／配置／档案截图。viewport恢复、验证tab关闭、用户原页保留；不可聚焦标题和同名入口的初始定位失败不计成功，均改按可聚焦链接／region和限定页签复核。
+
+纯全局布局不新增镜像单测／重复PG，无push／外部部署／生产上线／新聊天／自动任务；下一业务仍B01-04，陕西／快照分析／费用预留／退役P2／无旧库迁移保持。最终63333身份以本批Git及health为准。

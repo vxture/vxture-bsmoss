@@ -1,4 +1,5 @@
 .site-workspace { overflow: hidden; }
+.site-registry-content { container-type: inline-size; }
 /* Business text and actions share one role; IDs, timestamps and notes stay small.
    Scope to this domain (including its portalled filters), never alter DS tokens. */
 .site-workspace :is(button, [data-slot="button"]),
@@ -102,4 +103,5 @@
 }
 @media (max-width: 639px) {
   .site-workspace { height: auto; min-height: 100%; overflow: visible; }
+  .site-registry-content > .product-page-inset { height: auto; min-height: 100%; }
 }

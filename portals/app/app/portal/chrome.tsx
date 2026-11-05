@@ -3,10 +3,11 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellProductTitle, ShellHeaderTools,
-  ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
+  ShellSidebarFrame, ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
 import { portalDomain, portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher, { portalIcons as icons } from "./launcher";
 import ProductAccount, { type HeaderIdentity } from "./account";
+import ProductWorkspace from "./workspace";
 
 export default function ProductChrome({ active, preview, children, identity, loginEnabled, consoleHref }: {
   active: PortalPage; preview: boolean; children: ReactNode; identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string;
@@ -21,7 +22,7 @@ export default function ProductChrome({ active, preview, children, identity, log
     { title: "\u4efb\u52a1\u7ba1\u7406", dividerBefore: true, items: items.filter(item => ["aggregation", "report-jobs"].includes(item.id)) },
     { title: "\u4e1a\u52a1\u5e94\u7528", dividerBefore: true, items: [{ id: "return-business", label: "\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528", href: "/", icon: "arrow-left" as const }] },
   ] : [];
-  return <ShellViewport sidebarMode={!management || mobile ? "hidden" : collapsed ? "collapsed" : "expanded"}
+  return <ShellViewport sidebarMode="hidden" sidebar={null}
     header={<ShellHeader leading={<>
       <ProductLauncher active={active} preview={preview} />
       <a href="/" className="flex min-w-0 items-center gap-md no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
@@ -41,12 +42,15 @@ export default function ProductChrome({ active, preview, children, identity, log
         notifications={{ label: "\u6d88\u606f", title: "\u6d88\u606f", closeLabel: "\u5173\u95ed\u6d88\u606f",
           children: <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p> }} />
       <ProductAccount identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
-    </>} />}
-    sidebar={management ? <div className="hidden h-full min-h-0 md:flex md:flex-col">
+    </>} />}>
+    <ProductWorkspace navigation={management && !mobile ? <ShellSidebarFrame mode={collapsed ? "collapsed" : "expanded"} className="min-h-0">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card/68">
       <ShellSidebarNav sections={sections} collapsed={collapsed} onToggleCollapsed={() => setCollapsed(value => !value)}
         isActive={href => href === current?.href} storageKeyPrefix={"bsmoss-" + domain}
         labels={{ expandNav: "\u5c55\u5f00\u5bfc\u822a", collapseNav: "\u6536\u8d77\u5bfc\u822a", expandAllGroups: "\u5c55\u5f00\u5206\u7ec4", collapseAllGroups: "\u6536\u8d77\u5206\u7ec4" }} />
-    </div> : null}>
-    {children}
+      </div>
+    </ShellSidebarFrame> : null}>
+      {children}
+    </ProductWorkspace>
   </ShellViewport>;
 }

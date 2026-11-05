@@ -1,6 +1,7 @@
 "use client";
 import { Button as HeadingButton } from "@vxture/design-system";
 import PageHeading from "../portal/page-heading";
+import ProductWorkspace from "../portal/workspace";
 import { useEffect, useRef, useState } from "react";
 import {
   CATEGORY_LABELS,
@@ -390,7 +391,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
             <span className="avatar small-avatar">{"\u89c8"}</span>
           </div>
         </header>
-        <main className="content product-page-inset" aria-busy={busy}>
+        <ProductWorkspace className="product-workspace-auxiliary"><main className="content product-page-inset" aria-busy={busy}>
           <PageHeading title={CATEGORY_LABELS[category] + "\u5468\u671f\u5206\u6790"} description={"\u4e1a\u52a1\u3001\u72b6\u6001\u4e0e\u8fd0\u884c\u6307\u6807\u5468\u671f\u5206\u6790"}
             actions={<HeadingButton variant="outline" size="md" onClick={() => dialog.current?.showModal()}>{"\u914d\u7f6e\u663e\u793a"}</HeadingButton>} />
           <nav
@@ -756,7 +757,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
               }
             </span>
           </footer>
-        </main>
+        </main></ProductWorkspace>
       </div>
       <dialog ref={dialog} className="config-dialog">
         <div className="config-header">

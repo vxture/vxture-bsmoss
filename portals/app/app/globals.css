@@ -3,26 +3,44 @@
 @import "@vxture/design-system/styles/brands/vxture.css";
 @import "@vxture/design-system/styles/workbench.css";
 
-/* Page inset plus a responsive horizontal gutter, shared by list/detail views.
-   Component insets, floating overlays and the full-canvas map stay independent. */
+/* Two independent layers: workspace safety for detached navigation, then the
+   reading inset inside the actual content width. Never apply these to maps. */
+.product-workspace {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+.product-workspace-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  container-type: inline-size;
+}
+.product-workspace-standalone { height: 100dvh; }
+.product-workspace-auxiliary { height: auto; }
 .product-page-inset {
-  --bsmoss-page-inset-inline: var(--space-lg);
+  --bsmoss-page-inset-inline: clamp(var(--space-md), 4cqi, var(--space-3xl));
+  --bsmoss-page-inset-top: var(--space-md);
   min-width: 0;
   width: 100%;
   max-width: none;
-  padding: var(--space-lg) var(--bsmoss-page-inset-inline);
+  padding: var(--bsmoss-page-inset-top) var(--bsmoss-page-inset-inline) var(--space-6xl);
 }
-
-@media (min-width: 48rem) {
-  .product-page-inset {
-    --bsmoss-page-inset-inline: calc(var(--space-lg) + var(--space-md));
-  }
+.product-page-split { padding-bottom: 0; }
+.product-page-scroll-body { padding-bottom: var(--space-6xl); }
+.product-workspace-content,
+.product-workspace-content .product-page-scroll-body { scrollbar-width: none; }
+.product-workspace-content::-webkit-scrollbar,
+.product-workspace-content .product-page-scroll-body::-webkit-scrollbar { display: none; }
+@container (max-width: 40rem) {
+  .product-page-inset { --bsmoss-page-inset-top: var(--space-xs); }
 }
-
-@media (min-width: 80rem) {
-  .product-page-inset {
-    --bsmoss-page-inset-inline: calc(var(--space-lg) + var(--space-xl));
-  }
+@media (max-width: 47.999rem) {
+  .product-workspace { gap: var(--space-xs); padding: var(--space-xs); }
 }
 
 /* Shared title/scope and time/actions, with content tools below the divider. */

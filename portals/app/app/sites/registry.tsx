@@ -74,7 +74,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
           </div>
         </form>;
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
-    <div className="product-page-inset flex min-h-0 flex-1 gap-lg">
+    <div className="flex min-h-0 flex-1">
       <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel w-sidebar-expanded shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
         <div className="flex items-center justify-between gap-sm border-b border-border p-lg"><span className="flex items-center gap-sm text-label font-semibold"><Icon name="building" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></div>
         <div className="site-region-scroll min-h-0 flex-1 overflow-y-auto p-md" tabIndex={0} role="region" aria-label={"\u5730\u57df\u6811\u6eda\u52a8\u533a"}>
@@ -90,7 +90,8 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         </div>
         <p className="border-t border-border p-md text-body-small text-muted-foreground">{"\u533a\u57df\u6570\u5b57\u4e3a\u7ad9\u5740\u8d44\u6e90\u603b\u6570"}</p>
       </aside>
-      <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="flex min-h-0 min-w-0 flex-1 flex-col gap-md">
+      <section aria-label={"\u7ad9\u5740\u4e1a\u52a1\u53f0\u8d26"} className="site-registry-content min-h-0 min-w-0 flex-1">
+        <div className="product-page-inset flex h-full min-h-0 flex-col gap-md">
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
         <PageHeading title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u7ad9\u5740\u8d44\u6e90\u53f0\u8d26\u4e0e\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}
 
@@ -151,6 +152,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
           </div>
         </div>
         <Pagination aria-label={"\u53f0\u8d26\u5206\u9875"} countLabel={n(demo.count) + (q.view === "sites" ? " \u5ea7\u7ad9\u5740" : " \u6761\u5173\u7cfb")} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} className="site-registry-pagination shrink-0" page={q.page} pageCount={demo.pages} total={demo.count} onPageChange={page => navigate({ page })} />
+        </div>
       </section>
     </div>
   </div>;

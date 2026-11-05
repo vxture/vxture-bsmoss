@@ -1,4 +1,5 @@
 import PageHeading from "../../portal/page-heading";
+import ProductWorkspace from "../../portal/workspace";
 import { Button, PanelCard } from "@vxture/design-system";
 import { notFound } from 'next/navigation';
 
@@ -7,7 +8,7 @@ export const metadata = { title: 'BS-MOSS | Map sources and copyright' };
 
 export default function CopyrightPage() {
   if (process.env.BSMOSS_PRODUCT_PREVIEW !== 'on') notFound();
-  return <main className="product-page-inset flex min-h-dvh flex-col gap-lg bg-background text-foreground">
+  return <ProductWorkspace className="product-workspace-standalone"><main className="product-page-inset flex flex-col gap-lg bg-background text-foreground">
     <article className="flex min-w-0 flex-col gap-lg">
       <PageHeading title={'\u5730\u56fe\u6765\u6e90\u4e0e\u7248\u6743\u58f0\u660e'} actions={<Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href="/product-preview">{'\u6253\u5f00\u7ad9\u7f51\u5730\u56fe'}</a></Button>} />
       <PanelCard title={'\u6807\u51c6\u5e95\u56fe'} icon="file-text"><div className="flex flex-col gap-md text-body text-muted-foreground">
@@ -23,5 +24,5 @@ export default function CopyrightPage() {
       <p>{'\u7ad9\u5740\u70b9\u4f4d\u3001\u901a\u8bdd\u3001\u6d41\u91cf\u3001\u77ed\u4fe1\u3001\u8fd0\u8425\u6307\u6807\u4e0e\u8bbe\u5907\u72b6\u6001\u4e3a\u5408\u6210\u6570\u636e\uff0c\u4e0d\u4ee3\u8868\u771f\u5b9e\u8fd0\u8425\u5546\u6216\u7ad9\u5740\u7684\u751f\u4ea7\u6570\u636e\u3002'}</p>
       </div></PanelCard>
     </article>
-  </main>;
+  </main></ProductWorkspace>;
 }
