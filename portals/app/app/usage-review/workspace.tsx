@@ -7,7 +7,6 @@ import { ActionMenu, Button, Collapsible, CollapsibleContent, CollapsibleTrigger
 import type { ReviewListModel, ReviewCase } from "../domains/usage-verification/demo";
 import { reviewHref, reviewMapHref } from "../domains/usage-verification/links";
 import type { ReviewQuery } from "../domains/usage-verification/query";
-import { calendarLabel } from "../domains/map-demo/period-rules";
 import { operatorNames } from "../sites/labels";
 import { categoryNames, kindNames, metricNames, quantity, deviation, statusNames, timeLabel, windowLabel } from "./labels";
 import "./review.css";
@@ -24,7 +23,8 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
   ]} />;
   return <div data-usage-review="list" aria-busy={pending} className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-md">
     <PageHeading title={"\u7528\u91cf\u6838\u9a8c"} description={"\u7528\u91cf\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570\u7ebf\u7d22"} secondary={<StatusBadge tone="neutral" size="sm">{"\u53ea\u8bfb"}</StatusBadge>}
-      context={<><span>{model.scopeName}</span><span>{calendarLabel(q.period)}</span><span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>{q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}</>}
+      region={<><RegionSelector region={model.region} value={q.scope} disabled={pending} onChange={value => navigate({}, { ...value, selection: undefined })} />{q.scope.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}</>}
+      context={<><span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span></>}
       actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u6838\u9a8c\u5217\u8868"} disabled={pending} onClick={() => start(() => router.refresh())}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref(q)}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></>}
       toolbar={<div className="flex min-w-0 flex-col gap-md"><form role="search" aria-label={"\u7528\u91cf\u6838\u9a8c\u7b5b\u9009"} onSubmit={e => { e.preventDefault(); navigate({}, { search }); }} className="flex shrink-0 flex-wrap items-center gap-md">
       <SegmentedControl ariaLabel={"\u6838\u9a8c\u5206\u7c7b"} value={q.category} onChange={category => navigate({ category })} items={Object.entries(categoryNames).map(([value, label]) => ({ value: value as ReviewQuery["category"], label }))} />
@@ -33,7 +33,6 @@ export default function ReviewWorkspace({ model }: { model: ReviewListModel }) {
         <NativeSelect aria-label={"\u6838\u9a8c\u6307\u6807"} wrapperClassName="w-auto" value={q.metric} onChange={e => navigate({ metric: e.target.value as ReviewQuery["metric"] })}>{Object.entries(metricNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>
       </div>
     </form><div className="flex shrink-0 flex-wrap items-center gap-md">
-      <RegionSelector region={model.region} value={q.scope} disabled={pending} onChange={value => navigate({}, { ...value, selection: undefined })} />
       <NativeSelect aria-label={"\u6838\u9a8c\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.scope.operator} onChange={e => navigate({}, { operator: e.target.value as ReviewQuery["scope"]["operator"] })}>{Object.entries(operatorNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>
       <SegmentedControl ariaLabel={"\u6838\u9a8c\u5468\u671f"} value={q.period} onChange={period => navigate({ period })} items={[{ value: "day", label: "\u65e5" }, { value: "week", label: "\u5468" }, { value: "month", label: "\u6708" }]} />
       <NativeSelect aria-label={"\u6838\u9a8c\u72b6\u6001"} wrapperClassName="w-auto" value={q.status} onChange={e => navigate({ status: e.target.value as ReviewQuery["status"] })}>{Object.entries(statusNames).map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect>

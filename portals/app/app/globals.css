@@ -25,49 +25,59 @@
   }
 }
 
-/* Shared page heading slots use DS type, spacing and divider roles. */
+/* Shared title/scope and time/actions, with content tools below the divider. */
 .product-page-heading {
   display: flex;
   flex: 0 0 auto;
   min-width: 0;
   flex-direction: column;
   gap: var(--space-md);
+}
+.product-page-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: var(--space-lg);
+  min-width: 0;
   padding-bottom: var(--space-md);
   border-bottom: var(--border-width-thin) dashed var(--border);
 }
-.product-page-title-row {
+.product-page-utilities {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-md) var(--space-lg);
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-sm);
   min-width: 0;
+  max-width: var(--container-overlay-xl);
 }
-.product-page-utilities,
 .product-page-actions,
 .product-page-navigation,
-.product-page-context {
+.product-page-context,
+.product-page-region {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-xs) var(--space-sm);
   min-width: 0;
 }
-.product-page-title-row > section { flex: 1 1 var(--container-overlay-sm); }
-.product-page-utilities { flex: 0 1 auto; max-width: 65%; justify-content: flex-end; }
-.product-page-actions { justify-content: flex-end; gap: var(--space-sm); }
-.product-page-context { justify-content: flex-end; gap: var(--space-xs) var(--space-sm); }
+.product-page-region { max-width: 100%; }
+.product-page-actions { justify-content: flex-end; margin-top: auto; }
+.product-page-context { justify-content: flex-end; text-align: right; }
 .product-page-navigation,
-.product-page-context {
+.product-page-context,
+.product-page-region {
   font-size: var(--body-small-font-size);
   line-height: var(--body-small-line-height);
   color: var(--muted-foreground);
 }
 .product-page-toolbar { min-width: 0; }
-.product-page-toolbar > form { margin: 0; padding-block: 0; }
+.product-page-toolbar > form { margin: 0; padding-block: var(--space-xs); }
 @media (max-width: 47.999rem) {
-  .product-page-title-row > section { flex-basis: 100%; }
-  .product-page-utilities { width: 100%; max-width: 100%; justify-content: space-between; }
-  .product-page-context, .product-page-actions { justify-content: flex-start; }
+  .product-page-title-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+  .product-page-utilities { flex-direction: row; align-items: center; flex-wrap: wrap; width: 100%; max-width: none; }
+  .product-page-context { justify-content: flex-start; text-align: left; }
+  .product-page-actions { margin-top: 0; margin-left: auto; }
 }
 
 /* The operator breakdown sets the shared row height, including stacked cards. */

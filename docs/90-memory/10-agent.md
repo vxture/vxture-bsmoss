@@ -1176,3 +1176,14 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 生产build含类型通过tmp/region-selector-build.log；7项规则／决策测试通过（包含24时县级与queryMap逐点一致、跨市及伪参数拒绝），31HTTP通过tmp/region-selector-http.log；155文档编号通过。CUA默认1280、1042和390实际验证：西安→雁塔URL与16站／58服务、全市清县／全省重置、浏览宝鸡后Escape原值不变且焦点恢复、名称／编码／分词／空结果、Enter实际切至宝鸡、长列表周至可选；六分析页面逐页选雁塔URL和范围正确，手机文档390无横溢、最终popup358px。站址子浮层选雁塔时URL未改、父应用后变city／county；地图异步完成16站及同范围指标、canvas1、site空，决策地图所有链接_blank带县。最终重新打开已选县可见，warn/error空；artifacts/region-selector-qa含cascade／search／mobile及checks.json；viewport已恢复、临时tab85关闭、用户原页保留。
 
 源码ASCII／diff及提交检查收尾，未新增依赖／权限／DDL／事实口径，不重复PG；无push／外部部署／生产上线／新聊天或自动任务。下一业务仍B01-04，费用预留、退役P2、快照分析和无旧库迁移保持。最终63333身份以本批Git及health为准。
+
+
+## 标题区矩阵布局定稿（2026-11-05）
+
+用户用草图指定：标题＋区域左上、时间右上；副标题左下、全局按钮右下；虚线以下才是内容操作行与正文。本批覆盖前两版布局：PageHeading新增region公共槽位通过官方ViewHeader secondary承载，title-row grid两列；右侧context／actions纵向上下对齐、actions底沿与副标题齐，虚线移到title-row，toolbar在其后。窄屏按内容换行，右工具组独立一行；无地域／时间不造占位。全部采用DS字／间距／按钮／细线，页面56／40／24保持，未覆盖DS组件内部CSS或token。
+
+首页、四业务分析、核验、决策分析将区域从内容筛选行提升标题旁，去重复范围；站址面包屑及侧栏开关在标题旁、时间独立；档案／核验详情地域由返回导航移至region，档案右上补同源快照、小时选择不再重复日期。系统仍为快照分析，右上沿用分析快照／数据截至，不用墙钟作为刷新数据时间。实施790及规格50同步。
+
+最终生产build含类型通过tmp/page-heading-grid-build.log；CUA20路由×1280／904／390共60组无页面／标题／工具横溢，toolbar均在虚线下。首页桌面标题与区域y72／72.59，来源时间y72，操作底沿129.29与副标题底沿129.29一致；904雁塔周报告同排、全局按钮下排靠右。月切换后选宝鸡保持period=month、county=all，导出同范围月参数。1042站址收起面板成功、内容展开；详情经营用量切换及hour12后URL／选中／右上快照均12点。手机390完整雁塔路径同标题行，无横溢；首页重读仍2026-10-25 18:00。warn/error空，证据artifacts/page-heading-grid-qa含overview／report／sites／detail／mobile及checks。初次详情查询“经营分析”无匹配，按实际“经营用量”重验成功；异步初始旧URL／未选月不当作成功。viewport恢复、临时tab86关闭，用户tab72保留。
+
+纯布局不重复已通过31HTTP／PG、不新增镜像单测。155编号／源码ASCII／diff与提交扫描收尾。无依赖／权限／数据／DDL变化，无push／外部部署／生产上线、新聊天或自动任务；下一业务仍B01-04，陕西／费用预留／退役P2／无旧库迁移保持。最终63333身份见Git及health。

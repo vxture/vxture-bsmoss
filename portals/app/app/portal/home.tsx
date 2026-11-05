@@ -62,7 +62,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
             <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
           </Button>}
         context={<time dateTime={demo.date + "T" + hour + ":00+08:00"} title={"\u72b6\u6001\u6307\u6807\u91c7\u7528\u8be5\u65f6\u70b9\u5feb\u7167\uff1b\u65e5\u7d2f\u8ba1\u6307\u6807\u4e0e\u5168\u65e5\u8d8b\u52bf\u7edf\u8ba1\u7a97\u53e3\u4e3a\u5f53\u65e5 00:00\u201324:00\u3002"}>{"\u5206\u6790\u5feb\u7167 " + demo.date + " " + hour}</time>}
-        toolbar={<div className="flex min-w-0 flex-wrap items-center gap-sm" aria-label={"\u603b\u89c8\u8303\u56f4\u4e0e\u65f6\u95f4"}><RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate(value.cityId, value.countyId)} /></div>} />
+        region={<RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate(value.cityId, value.countyId)} />} />
       <section className="sm:hidden" aria-label={"\u7ad9\u7f51\u8d44\u6e90"}>
         <MetricListCard title={"\u7ad9\u7f51\u8d44\u6e90"} icon="building" metrics={[
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: <a href={siteListHref(siteQuery)}>{number(usage.physicalSites)}</a> },

@@ -58,12 +58,13 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
     <ShellPageContainer className="product-page-inset max-w-none">
       <div className="flex min-w-0 flex-col gap-lg">
         <PageHeading title={"\u51b3\u7b56\u5206\u6790"} description={"\u7ad9\u7f51\u7efc\u5408\u6001\u52bf\u4e0e\u533a\u57df\u8fd0\u8425\u6bd4\u8f83"}
-          context={<><span>{selectedRegion}</span><time>{demo.date + " " + context}</time></>}
+          region={<RegionSelector region={demo.region} value={demo} onChange={value => { setPlaying(false); navigate(value.cityId, demo.hour, value.countyId); }} />}
+          context={<time>{demo.date + " " + context}</time>}
           actions={<><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={scope()}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5de5\u4f5c\u53f0"}</a></Button>
             <Button variant="ghost" size="icon-md" aria-label={full ? "\u9000\u51fa\u5168\u5c4f" : "\u8fdb\u5165\u5168\u5c4f"} onClick={async () => {
               try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); setFullscreenError(false); }
               catch { setFullscreenError(true); }
-            }}><Icon name={full ? "minimize" : "maximize"} size="sm" /></Button></>} toolbar={<div className="flex flex-wrap items-center gap-sm"><RegionSelector region={demo.region} value={demo} onChange={value => { setPlaying(false); navigate(value.cityId, demo.hour, value.countyId); }} /></div>} />
+            }}><Icon name={full ? "minimize" : "maximize"} size="sm" /></Button></>} />
         {fullscreenError && <p role="status" className="text-body-small text-muted-foreground">{"\u5f53\u524d\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u5168\u5c4f\uff0c\u53ef\u7ee7\u7eed\u4f7f\u7528\u5f53\u524d\u89c6\u56fe\u3002"}</p>}
         <section className="grid gap-md lg:grid-cols-3" aria-label={"\u51b3\u7b56\u5206\u6790\u4e09\u7c7b\u6307\u6807"}>
           <MetricListCard title={"\u7ecf\u8425\u670d\u52a1"} icon="chart-bar" tone="brand" description={context + " \u00b7 \u65f6\u6bb5\u7528\u91cf"}

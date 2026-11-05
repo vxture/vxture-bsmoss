@@ -94,13 +94,14 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
         <PageHeading title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u7ad9\u5740\u8d44\u6e90\u53f0\u8d26\u4e0e\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}
 
-          context={<> <ShellIconButton icon="sidebar" className="site-region-toggle hidden shrink-0 lg:inline-flex" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle} /><Breadcrumb aria-label={"\u5f53\u524d\u5730\u57df"} className="min-w-0">
+          region={<> <ShellIconButton icon="sidebar" className="site-region-toggle hidden shrink-0 lg:inline-flex" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-panel" onClick={onRegionToggle} /><Breadcrumb aria-label={"\u5f53\u524d\u5730\u57df"} className="min-w-0">
               <BreadcrumbList className="flex-nowrap gap-xs whitespace-nowrap">
                 <BreadcrumbItem>{city ? <BreadcrumbLink href={siteListHref(q, { city: "all", county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ city: "all", county: "all" }); }}>{"\u9655\u897f\u7701"}</BreadcrumbLink> : <BreadcrumbPage>{"\u9655\u897f\u7701"}</BreadcrumbPage>}</BreadcrumbItem>
                 {city && <><BreadcrumbSeparator /><BreadcrumbItem>{county ? <BreadcrumbLink href={siteListHref(q, { county: "all", page: 1 })} onClick={e => { e.preventDefault(); navigate({ county: "all" }); }}>{city.name}</BreadcrumbLink> : <BreadcrumbPage>{city.name}</BreadcrumbPage>}</BreadcrumbItem></>}
                 {county && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{county.name}</BreadcrumbPage></BreadcrumbItem></>}
               </BreadcrumbList>
-            </Breadcrumb><span className="inline-flex flex-wrap items-center gap-xs"><span>{"\u6570\u636e\u622a\u81f3"}</span><time className="tabular-nums" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"}>{dataTime}</time></span></>}
+            </Breadcrumb></>}
+          context={<span className="inline-flex flex-wrap items-center gap-xs"><span>{"\u6570\u636e\u622a\u81f3"}</span><time className="tabular-nums" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"}>{dataTime}</time></span>}
           actions={<><Button variant="ghost" size="icon-md" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26"}>
               <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
             </Button>

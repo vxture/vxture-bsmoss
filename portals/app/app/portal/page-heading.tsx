@@ -1,18 +1,19 @@
 import type { ReactNode } from "react";
 import { ViewHeader } from "@vxture/design-system";
 
-// Page-level business composition of the official DS header. Keep headings,
-// context, actions and filters in stable slots rather than per-page flex rows.
-export default function PageHeading({ title, description, secondary, actions, context, navigation, toolbar }: {
-  title: ReactNode; description?: ReactNode; secondary?: ReactNode;
+// Official DS header composition: scope beside title, time above global actions,
+// and an optional content toolbar after the title's dashed divider.
+export default function PageHeading({ title, description, secondary, region, actions, context, navigation, toolbar }: {
+  title: ReactNode; description?: ReactNode; secondary?: ReactNode; region?: ReactNode;
   actions?: ReactNode; context?: ReactNode; navigation?: ReactNode;
   toolbar?: ReactNode;
 }) {
   return <div className="product-page-heading" data-page-heading>
     {navigation && <div className="product-page-navigation">{navigation}</div>}
     <div className="product-page-title-row">
-      <ViewHeader title={title} description={description} secondary={secondary}
-        divider={false} className="min-w-0 flex-1 pb-0" />
+      <ViewHeader title={title} description={description}
+        secondary={<>{region && <div className="product-page-region">{region}</div>}{secondary}</>}
+        divider={false} className="min-w-0 pb-0" />
       {(context || actions) && <div className="product-page-utilities">
         {context && <div className="product-page-context">{context}</div>}
         {actions && <div className="product-page-actions" role="group" aria-label={"\u9875\u9762\u64cd\u4f5c"}>{actions}</div>}

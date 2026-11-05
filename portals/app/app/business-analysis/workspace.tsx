@@ -33,12 +33,12 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
    <PageHeading title={labels[demo.kind]} description={descriptions[demo.kind]}
      secondary={q.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
-     context={<><span>{demo.scopeName}</span><time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time></>}
+     region={<RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate({ ...value, selection: undefined })} />}
+     context={<time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time>}
      actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}</>}
      toolbar={<form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
-     <RegionSelector region={demo.region} value={q} disabled={pending} onChange={value => navigate({ ...value, selection: undefined })} />
      <NativeSelect aria-label={"\u5206\u6790\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value as BusinessScope["operator"] })}>{Object.entries(operatorNames).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</NativeSelect>
      {topicMode || q.period === "hour" ? <NativeSelect aria-label={"\u5206\u6790\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect> : null}
      {!topicMode && <SegmentedControl ariaLabel={"\u5206\u6790\u5468\u671f"} value={q.period} onChange={period => navigate({ period })} items={[...(demo.kind === "operator-usage" ? [{ value: "hour" as const, label: "\u65f6" }] : []), { value: "day", label: "\u65e5" }, { value: "week", label: "\u5468" }, { value: "month", label: "\u6708" }]} />}
