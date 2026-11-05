@@ -32,16 +32,17 @@
   min-width: 0;
   flex-direction: column;
   gap: var(--space-md);
-  padding-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
   border-bottom: var(--border-width-thin) dashed var(--border);
 }
 .product-page-title-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-md) var(--space-lg);
   min-width: 0;
 }
+.product-page-utilities,
 .product-page-actions,
 .product-page-navigation,
 .product-page-context {
@@ -51,7 +52,10 @@
   gap: var(--space-sm) var(--space-md);
   min-width: 0;
 }
-.product-page-actions { justify-content: flex-end; margin-left: auto; gap: var(--space-sm); }
+.product-page-title-row > section { flex: 1 1 var(--container-overlay-sm); }
+.product-page-utilities { flex: 0 1 auto; max-width: 65%; justify-content: flex-end; }
+.product-page-actions { justify-content: flex-end; gap: var(--space-sm); }
+.product-page-context { justify-content: flex-end; gap: var(--space-xs) var(--space-sm); }
 .product-page-navigation,
 .product-page-context {
   font-size: var(--body-small-font-size);
@@ -61,8 +65,9 @@
 .product-page-toolbar { min-width: 0; }
 .product-page-toolbar > form { margin: 0; padding-block: 0; }
 @media (max-width: 47.999rem) {
-  .product-page-title-row > section { flex-basis: min(100%, var(--container-overlay-md)); }
-  .product-page-actions { width: 100%; justify-content: flex-start; margin-left: 0; }
+  .product-page-title-row > section { flex-basis: 100%; }
+  .product-page-utilities { width: 100%; max-width: 100%; justify-content: space-between; }
+  .product-page-context, .product-page-actions { justify-content: flex-start; }
 }
 
 /* The operator breakdown sets the shared row height, including stacked cards. */

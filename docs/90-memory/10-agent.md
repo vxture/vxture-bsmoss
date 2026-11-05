@@ -1158,3 +1158,10 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 生产build含类型通过tmp/page-heading-build.log、31HTTP通过tmp/page-heading-http.log。初始非DS refresh-cw名称已修正refresh；档案脚本误定位已从本批前HEAD恢复后限定标题区重做，最终服务卡diff无改变。CUA20路由×1280／904／390共60组，无页面／标题横溢，H1 18px、描述14px、操作按钮24px、地图链接_blank；实际1042侧栏及概况开关、台账切换、周报告URL／aria、档案经营tab／返回成功。新开地图tab83 canvas1／共享标题0／site空；warn/error空，viewport恢复、82／83临时tab关闭、用户原页保留。证据artifacts/page-heading-qa。授权工作区仅门槛页＋编译，不声称真实登录联调；最终受权工作区标签／模板名小修不改门户可见布局。
 
 无数据／权限／DDL／依赖变化，不重复PG／新增布局镜像单测；无push／外部部署／生产上线／新聊天或自动任务。下一业务仍B01-04，陕西／快照分析／费用预留／退役P2／无旧库迁移不变。最终63333身份以Git和health收尾为准。
+
+
+## 标题区布局重排（2026-11-05）
+
+用户指出信息已统一、布局未设计。承认上批堆叠松散后直接改共享PageHeading／globals为两层：左标题＋副标题，右上下文＋操作横向成组垂直居中；下层筛选，返回导航在上。工具组内容自适应，窄屏全宽换行，分隔前space-md，页面56／40／24及DS字体／按钮不改。实施790及规格50追加覆盖旧排布。
+
+生产build含类型通过tmp/page-heading-layout-build.log。CUA20×1280／904／390共60组无页面／标题／工具横溢；首页桌面155.75降至113.96px、手机153.96；额外看1042侧栏台账、904报告日期与长操作、390档案。刷新快照不变、warn/error空；artifacts/page-heading-layout-qa保存overview／report／mobile和checks，viewport恢复、tab84关闭、用户页保留。纯共享布局不重复31HTTP／PG／镜像单测，无数据／权限／依赖／DDL／生产上线变化，下一业务仍B01-04。最终63333身份见health。

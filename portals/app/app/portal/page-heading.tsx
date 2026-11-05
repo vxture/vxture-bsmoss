@@ -13,9 +13,11 @@ export default function PageHeading({ title, description, secondary, actions, co
     <div className="product-page-title-row">
       <ViewHeader title={title} description={description} secondary={secondary}
         divider={false} className="min-w-0 flex-1 pb-0" />
-      {actions && <div className="product-page-actions" role="group" aria-label={"\u9875\u9762\u64cd\u4f5c"}>{actions}</div>}
+      {(context || actions) && <div className="product-page-utilities">
+        {context && <div className="product-page-context">{context}</div>}
+        {actions && <div className="product-page-actions" role="group" aria-label={"\u9875\u9762\u64cd\u4f5c"}>{actions}</div>}
+      </div>}
     </div>
-    {context && <div className="product-page-context">{context}</div>}
     {toolbar && <div className="product-page-toolbar">{toolbar}</div>}
   </div>;
 }
