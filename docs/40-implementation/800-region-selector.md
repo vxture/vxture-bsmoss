@@ -30,3 +30,8 @@ normalizeRegion防止无效上级、跨市区县残留；服务端既有严格�
 源码：portals/app/app/portal/region-selector.tsx、region-selection.ts；仅局部业务组合CSS使用DS间距、字体、overlay和media语义token。最小目录不含坐标，避免组件绑定地图库。
 
 纯规则测试覆盖三级路径、非法父子关系、名称／代码／完整路径检索及唯一目录。决策分析测试增加区县数据一致及非法／跨市参数拒绝。构建、HTTP回归和浏览器实际交互结果记入agent memory；截图及可追溯检查在artifacts/region-selector-qa。
+
+
+## 常态纯内容显示（2026-11-05）
+
+按用户补充，公共选择器触发器采用官方DS ghost按钮：常态显示前置区域图标及地域文字（按用户随后纠正保留图标）；透明边框，箭头透明但保留尺寸。hover／active／键盘focus-visible／弹层展开时显示control-border及下拉箭头；通过DS语义工具类实现，保留官方焦点反馈、禁用语义、可访问名称及点击热区。状态切换不增删边框或箭头占位，因此不引起标题布局跳动。所有采用公共组件的页面同步，无业务查询变化。

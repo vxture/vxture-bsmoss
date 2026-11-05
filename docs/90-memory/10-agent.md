@@ -1187,3 +1187,10 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 最终生产build含类型通过tmp/page-heading-grid-build.log；CUA20路由×1280／904／390共60组无页面／标题／工具横溢，toolbar均在虚线下。首页桌面标题与区域y72／72.59，来源时间y72，操作底沿129.29与副标题底沿129.29一致；904雁塔周报告同排、全局按钮下排靠右。月切换后选宝鸡保持period=month、county=all，导出同范围月参数。1042站址收起面板成功、内容展开；详情经营用量切换及hour12后URL／选中／右上快照均12点。手机390完整雁塔路径同标题行，无横溢；首页重读仍2026-10-25 18:00。warn/error空，证据artifacts/page-heading-grid-qa含overview／report／sites／detail／mobile及checks。初次详情查询“经营分析”无匹配，按实际“经营用量”重验成功；异步初始旧URL／未选月不当作成功。viewport恢复、临时tab86关闭，用户tab72保留。
 
 纯布局不重复已通过31HTTP／PG、不新增镜像单测。155编号／源码ASCII／diff与提交扫描收尾。无依赖／权限／数据／DDL变化，无push／外部部署／生产上线、新聊天或自动任务；下一业务仍B01-04，陕西／费用预留／退役P2／无旧库迁移保持。最终63333身份见Git及health。
+
+
+## 区域触发器常态弱化并保留图标（2026-11-05）
+
+用户要求常态不显示边线／下拉箭头，仅hover／active显示，并随后明确前置区域icon要保留。最终公共RegionSelector使用DS ghost按钮，前置city图标常驻，箭头opacity0占位、透明边框；hover／active／focus-visible／data-state=open显示control-border及箭头，官方聚焦／展开／禁用反馈保留，未改CSS／token／依赖。此前本地一度移除图标、未提交，经用户纠正恢复并重建；实施800及规格50以保留图标为准。
+
+最终生产build含类型通过tmp/region-selector-quiet-build.log。CUA常态icon1／arrow0／border与bg透明；展开icon1／arrow1／control-border可见，前后同121.33×24px及同坐标，无抖动。图标恢复前已验证Escape关闭后hover及键盘focus反馈／搜索雁塔联动URL；恢复图标后复核常态／展开及手机390长路径，icon1／arrow0且文档390无横溢。warn/error空，artifacts/region-selector-quiet-qa的normal／mobile／checks均已覆盖为保留图标的最终版。viewport恢复、测试tab87／88关闭，用户tab72保留。纯样式不新增镜像单测／不重复业务HTTP或PG；155文档编号／ASCII／diff和提交扫描收尾，无数据／权限／DDL／上线状态变化。最终63333以本批Git及health为准。
