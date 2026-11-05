@@ -22,3 +22,13 @@
 后续按三条批注调整：页面名与演示标签从右端移入header左侧槽，以官方竖向分隔符区分品牌；观澜使用display-xs，系统名称使用heading-1单行展示，删除顶栏BS-MOSS。字号全部沿用DS语义档位，品牌块内不增加竖线。787×871为重点检查尺寸，同时核验宽屏和390手机；本次仅排版，业务及权限未改，不重复单测／数据库／worker验证。构建、类型和HTTP与浏览器证据记录在header-sizing日志、artifacts/header-sizing-qa及对应检查点。
 
 用户继续反馈观澜过大，改用ShellProductTitle官方20px产品标题，系统名称保持18px。系统中文名称更新为“站址多域运营监管”，同步共享品牌常量、门户及两个预览页面名称；产品代码与英文全称保留。
+
+## 控制台工具按钮组与间距（2026-11-05）
+
+用户指定参考console.vxture.com/zh-CN，右侧明确为主题、消息、帮助、配置四个按钮组成一组。参考URL在当前浏览器跳至登录页，因此不声称已核验登录后线上视觉；本地平台ConsoleHeader作为同源布局参考。采用发布DS的ShellIconGroup、ShellThemeToggle、ShellIconButton、Button和Drawer组合，不复制基础组件、不调整DS内部样式。原ShellHeaderTools固定帮助在消息前，无法满足用户顺序，因此在产品侧组合官方部件。
+
+四项同为icon-md控件与sm图标，组内gap-2xs、组与用户面板gap-md；整组悬停／键盘聚焦沿官方accent反馈。Header槽间gap-xs沿官方布局，品牌与系统名及区域内部收敛gap-xs。主题使用实际解析主题并写回现有偏好；消息沿用未接入提示，不伪造通知，帮助新标签进入现有文档站，配置仍当前页进入/settings。头像不计入四按钮组。
+
+窄屏保留完整四按钮，左右安全距space-xs，区域触发器允许收缩到父容器并截断，保留图标、完整title／无障碍名称和级联弹层。桌面沿用space-lg页边及48px Header；不变更全画布地图独立工具或业务数据口径。
+
+验证发现刷新后主题CSS恢复但偏好context仍为服务端缺省，按钮与账户偏好显示不一致。根Providers首次挂载后以浏览器key重建官方ThemeProvider，继续由DS恢复已有偏好，无新增偏好键或全局token覆盖；再次验证深色刷新、浅色刷新与账户偏好一致。最终生产build含类型及32HTTP通过tmp/header-button-group-{build,http}.log；390／904／1280三档四按钮均24px／图标16px，组内4px／头像间16px，无文档横溢。消息开关、帮助_blank、配置跳转和账户面板检查通过，warn/error空；证据artifacts/header-button-group-qa。初次窄屏区域侵入组已修正，初次刷新主题不一致结果不计成功。

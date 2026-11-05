@@ -7,7 +7,14 @@
 .portal-launcher-business {
   width: min(var(--container-page-xl), var(--radix-popover-content-available-width));
 }
-.portal-header-region { max-width: var(--container-overlay-md); }
+.portal-header-region {
+  flex-shrink: 1;
+  max-width: min(var(--container-overlay-md), 100%);
+}
 @media (max-width: 47.999rem) {
-  .portal-header-region { max-width: var(--container-overlay-xs); }
+  .portal-header-region {
+    max-width: min(var(--container-overlay-xs), 100%);
+    padding-inline: var(--space-xs);
+    gap: var(--space-xs);
+  }
 }

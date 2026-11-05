@@ -1,0 +1,30 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Button, Drawer, Icon, ShellIconButton, ShellIconGroup, ShellThemeToggle, useTheme } from "@vxture/design-system";
+
+// Console shell composition; product order is theme, messages, help, settings.
+export default function ProductHeaderTools() {
+  const { theme, setMode } = useTheme();
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const linkClass = "text-muted-foreground hover:text-foreground";
+  return <>
+    <ShellIconGroup label={"\u64cd\u4f5c\u5de5\u5177"}>
+      <ShellThemeToggle currentTheme={theme} onThemeChange={setMode}
+        lightLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6d45\u8272"} darkLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6df1\u8272"} />
+      <ShellIconButton icon="bell" label={"\u6d88\u606f"} active={messagesOpen}
+        aria-haspopup="dialog" aria-expanded={messagesOpen} onClick={() => setMessagesOpen(true)} />
+      <Button asChild variant="ghost" size="icon-md" className={linkClass}>
+        <a href="https://docs.vxture.com" target="_blank" rel="noopener noreferrer" aria-label={"\u5e2e\u52a9"} title={"\u5e2e\u52a9"}><Icon name="help" size="sm" /></a>
+      </Button>
+      <Button asChild variant="ghost" size="icon-md" className={linkClass}>
+        <Link href="/settings" aria-label={"\u914d\u7f6e\u7ba1\u7406"} title={"\u914d\u7f6e\u7ba1\u7406"}><Icon name="settings" size="sm" /></Link>
+      </Button>
+    </ShellIconGroup>
+    <Drawer open={messagesOpen} onClose={() => setMessagesOpen(false)} side="right" width="sm"
+      title={"\u6d88\u606f"} closeLabel={"\u5173\u95ed\u6d88\u606f"}>
+      <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p>
+    </Drawer>
+  </>;
+}

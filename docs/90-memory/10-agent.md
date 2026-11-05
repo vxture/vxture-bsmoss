@@ -1260,3 +1260,11 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户要求整体不要箭头。公共RegionSelector直接删除触发器chevron-down节点及专用group，常态／悬停／聚焦／按下／展开均不再显示或占位；区域图标、文字、DS淡底及交互轮廓保留，级联弹层内的下级指示保持。规格50及实施800同步覆盖旧策略。
 
 生产构建含类型通过tmp/region-selector-no-arrow-build.log；CUA常态／展开／Escape收起均仅1个区域svg，宽174.61px不变、左右padding16px对称；展开截图artifacts/region-selector-no-arrow-qa/open.png。搜索框role定位无匹配后按已验证触发器发送Escape成功，验证tab103已关闭、用户原页保留。纯外观不新增镜像单测或重复业务HTTP／PG；无依赖／权限／DDL／业务事实／外部部署变化。
+
+## 控制台风格四按钮组（2026-11-05）
+
+用户要求参考console.vxture.com/zh-CN修订Header按钮组及组件间距，固定主题／消息／帮助／配置四项。线上参考跳登录，转查本地平台ConsoleHeader同源实现，复用发布DS ShellIconGroup／ShellThemeToggle／ShellIconButton／Button／Drawer，头像独立。组内gap-2xs4px、头像间gap-md16、24px按钮／16px图标；品牌与区域及槽间gap-xs，桌面外24／手机8、Header48。窄屏四项不隐藏，区域可收缩截断，保留图标和完整title／无障碍名。原工具组件固定帮助先于消息，因此产品组合官方部件满足用户顺序。消息仍未接入提示，帮助原站_blank、配置/settings。
+
+发现刷新后实际深色而官方偏好context仍服务端缺省，根Providers首次浏览器挂载后重建官方ThemeProvider，使既有持久偏好与图标／账户面板一致；未新增偏好键。最终build含类型tmp/header-button-group-build.log及32HTTP tmp/header-button-group-http.log全通过。CUA390／904／1280三档无文档横溢、四项尺寸和间距一致；深色刷新／浅色刷新、消息开关、配置跳转、账户偏好一致、帮助_blank验证通过，warn/error空。初次窄屏遮挡已修，初次主题恢复失败不计成功。artifacts/header-button-group-qa含desktop／mobile及checks，viewport恢复、临时参考与验证页清理，用户原页保留。
+
+规格50／实施660同步，无依赖／权限／DDL／业务数据口径变更，无push／外部部署／生产上线；下一业务仍B01-04。
