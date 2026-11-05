@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "node ../../scripts/prepare-map-assets.mjs && node ../../scripts/portal.mjs dev",
-    "build": "node ../../scripts/prepare-map-assets.mjs && node --import tsx ../../scripts/prepare-overview-reports.mjs && next build",
+    "build": "node ../../scripts/prepare-map-assets.mjs && node --import tsx ../../scripts/prepare-overview-reports.mjs && node --import tsx ../../scripts/prepare-history.mjs && next build",
     "start": "node ../../scripts/portal.mjs start",
     "type-check": "tsc --noEmit"
   },

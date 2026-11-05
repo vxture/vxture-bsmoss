@@ -1,9 +1,9 @@
 {
   "schema": "bsmoss-overview-reports-v1",
-  "version": "shaanxi-scenario-v1/bsmoss-demo-calendar-v2/bsmoss-demo-daily-v3/bsmoss-demo-period-report-v3/bsmoss-demo-period-comparison-v2",
+  "version": "shaanxi-scenario-v1/bsmoss-demo-calendar-v3/bsmoss-demo-daily-v3/bsmoss-demo-period-report-v3/bsmoss-demo-period-comparison-v2",
   "reports": {
     "day": {
-      "id": "DEMO-DAY-38eab5eb033728465ab6",
+      "id": "DEMO-DAY-74f15bf0ec33bc43d914",
       "period": "day",
       "templateVersion": "bsmoss-demo-daily-v3",
       "window": {
@@ -40,7 +40,7 @@
             "timezone": "Asia/Shanghai"
           },
           "days": 1,
-          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "ruleVersion": "bsmoss-demo-calendar-v3",
           "physicalSites": 1080,
           "serviceRelations": 3902,
           "expectedSamples": 25920,
@@ -106,7 +106,7 @@
       "downloadHref": "/api/product-preview/reports?hour=18&cityId=all&countyId=all&format=html"
     },
     "week": {
-      "id": "DEMO-WEEK-0ee40f50f154310623b1",
+      "id": "DEMO-WEEK-0a90d48d566ed2bc9ed2",
       "period": "week",
       "templateVersion": "bsmoss-demo-period-report-v3",
       "window": {
@@ -149,7 +149,7 @@
             "timezone": "Asia/Shanghai"
           },
           "days": 7,
-          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "ruleVersion": "bsmoss-demo-calendar-v3",
           "physicalSites": 1080,
           "serviceRelations": 3902,
           "expectedSamples": 181440,
@@ -217,7 +217,7 @@
       "downloadHref": "/api/product-preview/reports?hour=18&cityId=all&countyId=all&period=week&format=html"
     },
     "month": {
-      "id": "DEMO-MONTH-e0198bae245f89fd428a",
+      "id": "DEMO-MONTH-3a7ac416d46274091018",
       "period": "month",
       "templateVersion": "bsmoss-demo-period-report-v3",
       "window": {
@@ -284,7 +284,7 @@
             "timezone": "Asia/Shanghai"
           },
           "days": 30,
-          "ruleVersion": "bsmoss-demo-calendar-v2",
+          "ruleVersion": "bsmoss-demo-calendar-v3",
           "physicalSites": 1080,
           "serviceRelations": 3902,
           "expectedSamples": 777600,

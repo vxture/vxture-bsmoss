@@ -3,6 +3,7 @@ import {DEMO_DATE,DEMO_VERSION,siteHour} from './rules.ts';
 import {OPERATOR_CODES,type DemoSite,type HourMetrics,type MapQuery,type OperatorFilter} from './types.ts';
 import type {UsageCounters} from './operator-rules.ts';
 import type {Operator} from './types.ts';
+import {historicalDate} from './history-calendar.ts';
 export type CalendarCounters=Omit<UsageCounters,'bytes'|'upBytes'|'downBytes'>&{bytes:string;upBytes:string;downBytes:string};
 export interface CalendarUsage {
   contextKey:string;mode:'demo';version:string;ruleVersion:string;period:ReportPeriod;
@@ -15,7 +16,7 @@ export interface CalendarUsage {
   calendar:{anchorDate:string;days:number;granularity:'hour'|'day';sampleCutoff:string;sampleStatus:'complete_synthetic';expectedPhysicalSamples:number;observedPhysicalSamples:number};
 }
 export type ReportPeriod='day'|'week'|'month';
-export const CALENDAR_RULE_VERSION='bsmoss-demo-calendar-v2';
+export const CALENDAR_RULE_VERSION='bsmoss-demo-calendar-v3';
 export const SAMPLE_CUTOFF='2026-11-01T00:00:00+08:00';
 const DAY=86400000;
 export function parseReportPeriod(value:string):ReportPeriod {
@@ -57,18 +58,27 @@ export function exactCounters(s:ExactCounters):CalendarCounters {
 export const calendarRates=(v:Pick<UsageCounters,'attempts'|'connected'|'used'|'capacity'>)=>({connectionRate:v.attempts?v.connected/v.attempts:null,load:v.capacity?v.used/v.capacity:null});
 
 // Per-request, per-site cache: never stores mutable tenant or global evidence.
-export function calendarSampler(site:DemoSite) {
+export function calendarSource(site:DemoSite) {
   const bases=Array.from({length:24},(_,hour)=>({physical:siteHour(site,hour),operators:site.operators.map(code=>({code,base:siteHour(site,hour,code)}))}));
-  const days=new Map<string,{demand:number;day:number;hours:({all:HourMetrics;operators:Map<Operator,HourMetrics>}|undefined)[]}>();
-  return (date:string,hour:number,operator:OperatorFilter='all'):HourMetrics=>{
+  function profile(date:string) {
+    const parsed=historicalDate(date),day=parsed.getUTCDate(),weekday=parsed.getUTCDay(),weekend=weekday===0||weekday===6;
+    const shape=site.profile==='industrial'?(weekend?0.72:1.08):site.profile==='hub'?(weekend?0.9:1.1):weekend?1.09:0.96;
+    const legacy=date>='2026-09-01';
+    const month=parsed.getUTCMonth(),age=(parsed.getUTCFullYear()-2026)*12+month-9;
+    const season=1+0.14*Math.sin((month+(site.profile==='mountain'?3:0))*Math.PI/6);
+    const growth=Math.pow(1+((Number(site.cityId.slice(2,4))+site.seed%7)%9-3)*0.004,age);
+    const demand=shape*(0.9+day*0.003)*(1+((day*7+site.seed)%13-6)*0.009)*(legacy?(date.startsWith('2026-09')?0.94:1):season*growth);
+    return {day,demand,age,legacy};
+  }
+  const factorFor=(p:ReturnType<typeof profile>,code:Operator)=>p.demand*(1+((p.day+OPERATOR_CODES.indexOf(code))%5-2)*0.007)*(p.legacy?1:Math.pow(1+(OPERATOR_CODES.indexOf(code)-1)*0.002,p.age));
+  const days=new Map<string,ReturnType<typeof profile>&{hours:({all:HourMetrics;operators:Map<Operator,HourMetrics>}|undefined)[]}>();
+  const sample=(date:string,hour:number,operator:OperatorFilter='all'):HourMetrics=>{
     if(!Number.isInteger(hour)||hour<0||hour>23)throw Error('invalid_calendar_sample');
     if(operator!=='all'&&!site.operators.includes(operator))throw Error('operator_not_applicable');
     let dayData=days.get(date);
     if(!dayData){
-      if(!/^2026-(09|10)-(0[1-9]|[12][0-9]|3[01])$/.test(date)||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date)throw Error('invalid_calendar_sample');
-      const day=Number(date.slice(-2)),weekday=new Date(date+'T00:00:00Z').getUTCDay(),weekend=weekday===0||weekday===6;
-      const profile=site.profile==='industrial'?(weekend?0.72:1.08):site.profile==='hub'?(weekend?0.9:1.1):weekend?1.09:0.96;
-      dayData={day,demand:profile*(0.9+day*0.003)*(1+((day*7+site.seed)%13-6)*0.009)*(date.startsWith('2026-09')?0.94:1),hours:[]};days.set(date,dayData);
+      const p=profile(date);
+      dayData={...p,hours:[]};days.set(date,dayData);
     }
     let cached=dayData.hours[hour];
     if(!cached){
@@ -78,7 +88,7 @@ export function calendarSampler(site:DemoSite) {
         const sums=emptyCounters(),metrics=new Map<Operator,HourMetrics>();
         const environment={...physical,energyWh:Math.round(physical.energyWh!*(0.88+0.12*demand)),temperature:Math.round((physical.temperature+(day%7-3)*0.3)*10)/10};
         for(const {code,base} of operators){
-          const factor=demand*(1+((day+OPERATOR_CODES.indexOf(code))%5-2)*0.007);
+          const factor=factorFor(dayData,code);
           const bytes=Math.round(base.bytes*factor),upBytes=Math.round(base.upBytes*factor),attempts=Math.round(base.attempts*factor);
           const connected=base.attempts?Math.min(attempts,Math.floor(attempts*base.connected/base.attempts)):0;
           const counters={bytes,upBytes,downBytes:bytes-upBytes,attempts,connected,voiceSeconds:connected*(base.connected?base.voiceSeconds/base.connected:0),sms:Math.round(base.sms*factor),used:Math.min(base.capacity,Math.round(base.used*factor)),capacity:base.capacity};
@@ -90,6 +100,28 @@ export function calendarSampler(site:DemoSite) {
     }
     return operator==='all'?cached.all:cached.operators.get(operator)!;
   };
+  // Roll up the exact same hourly integer formula without allocating hourly
+  // objects or retaining a full year of sample caches.
+  const daily=(date:string):{code:Operator;counters:UsageCounters}[]=>{
+    const p=profile(date);
+    return site.operators.map((code,index)=>{
+      const counters=emptyCounters(),factor=factorFor(p,code);
+      for(let h=0;h<24;h++){
+        const b=bases[h].operators[index].base;
+        if(date===DEMO_DATE){addCounters(counters,b);continue;}
+        const bytes=Math.round(b.bytes*factor),upBytes=Math.round(b.upBytes*factor),attempts=Math.round(b.attempts*factor);
+        const connected=b.attempts?Math.min(attempts,Math.floor(attempts*b.connected/b.attempts)):0;
+        counters.bytes+=bytes;counters.upBytes+=upBytes;counters.downBytes+=bytes-upBytes;
+        counters.attempts+=attempts;counters.connected+=connected;counters.voiceSeconds+=connected*(b.connected?b.voiceSeconds/b.connected:0);
+        counters.sms+=Math.round(b.sms*factor);counters.used+=Math.min(b.capacity,Math.round(b.used*factor));counters.capacity+=b.capacity;
+      }
+      return {code,counters};
+    });
+  };
+  return {sample,daily};
+}
+export function calendarSampler(site:DemoSite) {
+  return calendarSource(site).sample;
 }
 export function analyzeCalendarUsage(sites:readonly DemoSite[],query:MapQuery,period:ReportPeriod,observe?:(site:DemoSite,date:string,hour:number,metrics:HourMetrics)=>void,basis:'current'|'previous'='current'):CalendarUsage {
   const window=calendarWindow(period,basis),codes=OPERATOR_CODES.filter(code=>query.operator==='all'||code===query.operator);

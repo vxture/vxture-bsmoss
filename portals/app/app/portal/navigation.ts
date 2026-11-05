@@ -20,7 +20,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "efficiency", label: "\u8fd0\u884c\u4e0e\u80fd\u6548", href: "/efficiency", group: "business" },
     { id: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", href: "/operator-usage", group: "business" },
     { id: "usage-reports", label: "\u7528\u91cf\u62a5\u544a", href: "/usage-reports", group: "business" },
-    { id: "analysis", label: "\u5468\u671f\u5206\u6790", href: "/analysis", group: "business" },
+    { id: "analysis", label: "\u7ecf\u8425\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
     { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
@@ -51,7 +51,7 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
       ] : [planned("runtime", "\u8fd0\u884c\u72b6\u6001", "gauge", "\u6b63\u5f0f\u76d1\u7ba1\u89c6\u56fe\u5f85\u63a5\u5165")]),
     ] },
     { key: "business", title: "\u7ecf\u8425\u5206\u6790", icon: "chart-line-up", description: "\u7528\u91cf\u3001\u7ed3\u6784\u4e0e\u8d8b\u52bf", modules: [
-      ...page("analysis", "chart-line-up", "\u6388\u6743\u5468\u671f\u6307\u6807\u4e0e\u8bc1\u636e"),
+      ...page("analysis", "chart-line-up", "\u533a\u57df\u8d21\u732e\u3001\u5e74\u5ea6\u8d8b\u52bf\u4e0e\u5355\u7ad9\u7ecf\u8425"),
       ...(preview ? [{ key: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", icon: "chart-pie", description: "\u901a\u8bdd\u3001\u6d41\u91cf\u4e0e\u77ed\u4fe1", page: "operator-usage" as const, href: "/operator-usage" }] : []),
     ] },
     { key: "verification", title: "\u5f02\u5e38\u6838\u9a8c", icon: "shield-check", description: "\u53d1\u73b0\u3001\u8bc1\u636e\u4e0e\u590d\u6838", modules: [

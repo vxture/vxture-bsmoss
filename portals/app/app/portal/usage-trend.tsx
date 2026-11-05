@@ -3,14 +3,15 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { EChartsType } from "echarts/core";
 
 type Point = { key: string; label: string; value: number };
-export default function UsageTrend({ data, formatValue, name, unit }: {
+export default function UsageTrend({ data, formatValue, name, unit, labelSuffix = ":00", ariaLabel, labelEvery = 4, onSelect }: {
   data: readonly Point[]; formatValue: (value: number) => string; name: string; unit: string;
+  labelSuffix?: string; ariaLabel?: string; labelEvery?: number; onSelect?: (key: string) => void;
 }) {
   const node = useRef<HTMLDivElement>(null), instance = useRef<EChartsType | null>(null);
   const tokens = useRef<HTMLSpanElement>(null);
   const peak = data.reduce((best, d, i) => d.value > data[best].value ? i : best, 0);
   const [cursor, setCursor] = useState(peak);
-  const readout = (index: number) => data[index].label + ":00 " + name + " " + formatValue(data[index].value) + " " + unit;
+  const readout = (index: number) => data[index].label + labelSuffix + " " + name + " " + formatValue(data[index].value) + " " + unit;
   useEffect(() => {
     const element = node.current;
     if (!element) return;
@@ -39,7 +40,7 @@ export default function UsageTrend({ data, formatValue, name, unit }: {
             },
           },
           xAxis: { type: "category", data: data.map(d => d.label), axisTick: { show: false },
-            axisLine: { lineStyle: { color: token("--chart-axis") } }, axisLabel: { interval: 3, color: token("--muted-foreground"), margin: gap } },
+            axisLine: { lineStyle: { color: token("--chart-axis") } }, axisLabel: { interval: labelEvery - 1, color: token("--muted-foreground"), margin: gap } },
           yAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: formatValue, color: token("--muted-foreground") },
             splitLine: { lineStyle: { color: token("--chart-grid") } } },
           series: [{ type: "bar", name, data: data.map(d => d.value), barCategoryGap: "24%",
@@ -51,11 +52,12 @@ export default function UsageTrend({ data, formatValue, name, unit }: {
       resize = new ResizeObserver(() => { chart.resize(); render(); }); resize.observe(element);
       theme = new MutationObserver(() => { chart.resize(); render(); });
       theme.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
-      chart.on("click", params => { if (typeof params.dataIndex === "number") setCursor(params.dataIndex); });
+      chart.on("click", params => { if (typeof params.dataIndex === "number") { setCursor(params.dataIndex); onSelect?.(data[params.dataIndex].key); } });
     });
     return () => { disposed = true; resize?.disconnect(); theme?.disconnect(); instance.current?.dispose(); instance.current = null; };
-  }, [data, formatValue, name, unit]);
+  }, [data, formatValue, name, unit, labelSuffix, labelEvery, onSelect]);
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" && onSelect) { event.preventDefault(); onSelect(data[cursor].key); return; }
     let next = cursor;
     if (event.key === "ArrowRight") next = Math.min(data.length - 1, cursor + 1);
     else if (event.key === "ArrowLeft") next = Math.max(0, cursor - 1);
@@ -65,7 +67,7 @@ export default function UsageTrend({ data, formatValue, name, unit }: {
     event.preventDefault(); setCursor(next);
     instance.current?.dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: next });
   };
-  return <div className="relative flex min-h-0 min-w-0 flex-1 flex-col" role="group" aria-label={"24\u5c0f\u65f6" + name + "\u8d8b\u52bf"}>
+  return <div className="relative flex min-h-0 min-w-0 flex-1 flex-col" role="group" aria-label={ariaLabel ?? "24\u5c0f\u65f6" + name + "\u8d8b\u52bf"}>
     <span ref={tokens} aria-hidden="true" className="pointer-events-none invisible absolute m-xs gap-sm rounded-sm border border-border p-md text-body-small" />
     <div ref={node} className="overview-usage-chart min-w-0 flex-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
       role="img" tabIndex={0} aria-label={readout(cursor)} onKeyDown={move}

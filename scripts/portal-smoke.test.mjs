@@ -27,6 +27,12 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test("annual analysis fails closed when the explicit preview adapter is off",async()=>{
+      const r=await fetch(url+'/analysis?range=12m');assert.equal(r.status,200);
+      const html=await r.text();assert.ok(!html.includes('data-history-analysis'));
+      assert.ok(!html.includes('bsmoss-history-v1'));assert.ok(!html.includes('2024-11-01'));
+      assert.equal((await fetch(url+'/api/analysis')).status,401);
+    });
     await t.test("overview never exposes cached synthetic report summaries with preview off",async()=>{
       const r=await fetch(url+'/?reportPeriod=month');assert.equal(r.status,200);
       const html=await r.text();
@@ -131,6 +137,17 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test("annual business analysis exposes scoped history, validates windows and preserves incomplete baselines",async()=>{
+      const r=await fetch(url+'/analysis?city=all&county=all');assert.equal(r.status,200);
+      const html=await r.text();assert.ok(html.includes('data-history-analysis'));assert.ok(html.includes('2025-11-01'));
+      assert.ok(html.includes('\u5730\u5e02\u7ecf\u8425\u5bf9\u6bd4'));assert.ok(!html.includes('maplibregl-canvas'));
+      const county=await (await fetch(url+'/analysis?city=610100&county=610113&range=month&month=2026-10')).text();
+      assert.ok(county.includes('\u7ad9\u5740\u7ecf\u8425\u5bf9\u6bd4'));assert.ok(county.includes('2026-10-01'));
+      const invalid=await (await fetch(url+'/analysis?city=610300&county=610113')).text();
+      assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-history-analysis'));
+      const old=await (await fetch(url+'/analysis?range=month&month=2024-11&city=610100&county=610113')).text();
+      assert.ok(old.includes('\u7f3a\u5c11\u5b8c\u6574\u4e0a\u5e74\u540c\u671f\u57fa\u671f'));
+    });
     await t.test("remembered regions scope the first server render and explicit links take precedence",async()=>{
       const headers={cookie:'bsmoss-region-v1-preview=v1.610000.610100.610113'};
       for(const path of ['/','/sites','/capacity','/board','/usage-review','/product-preview']) {

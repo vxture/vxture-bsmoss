@@ -1,0 +1,300 @@
+{
+  "version": "bsmoss-history-v1",
+  "calendarVersion": "bsmoss-demo-calendar-v3",
+  "analysis": {
+    "mode": "demo",
+    "version": "bsmoss-history-v1",
+    "cutoff": "2026-11-01T00:00:00+08:00",
+    "coverage": {
+      "start": "2024-11-01",
+      "end": "2026-11-01"
+    },
+    "scope": {
+      "query": {
+        "regionId": "610000",
+        "cityId": "all",
+        "countyId": "all",
+        "operator": "all",
+        "hour": 18,
+        "search": ""
+      },
+      "range": "12m",
+      "window": {
+        "start": "2025-11-01",
+        "end": "2026-11-01",
+        "days": 365,
+        "grain": "month"
+      },
+      "metric": "bytes"
+    },
+    "physicalSites": 1080,
+    "serviceRelations": 3902,
+    "expectedSiteDays": 394200,
+    "observedSiteDays": 394200,
+    "totals": {
+      "bytes": "207064377070914598",
+      "voiceSeconds": 386961482563,
+      "sms": 623425857
+    },
+    "previous": {
+      "bytes": "197394613260738941",
+      "voiceSeconds": 369590393550,
+      "sms": 594453436
+    },
+    "previousWindow": {
+      "start": "2024-11-01",
+      "end": "2025-11-01",
+      "days": 365,
+      "grain": "month"
+    },
+    "series": [
+      {
+        "key": "2025-11",
+        "bytes": "14790325279589831",
+        "voiceSeconds": 27797943711,
+        "sms": 44760949
+      },
+      {
+        "key": "2025-12",
+        "bytes": "16231994802468616",
+        "voiceSeconds": 30498168370,
+        "sms": 49103342
+      },
+      {
+        "key": "2026-01",
+        "bytes": "17385339087538063",
+        "voiceSeconds": 32612216494,
+        "sms": 52523797
+      },
+      {
+        "key": "2026-02",
+        "bytes": "16620746538400326",
+        "voiceSeconds": 31103193114,
+        "sms": 50109520
+      },
+      {
+        "key": "2026-03",
+        "bytes": "19242312318865187",
+        "voiceSeconds": 35918655626,
+        "sms": 57882611
+      },
+      {
+        "key": "2026-04",
+        "bytes": "18817095766542976",
+        "voiceSeconds": 35061048939,
+        "sms": 56501220
+      },
+      {
+        "key": "2026-05",
+        "bytes": "19110569186466512",
+        "voiceSeconds": 35567517109,
+        "sms": 57328483
+      },
+      {
+        "key": "2026-06",
+        "bytes": "17676433941740673",
+        "voiceSeconds": 32903288638,
+        "sms": 53019433
+      },
+      {
+        "key": "2026-07",
+        "bytes": "17229117793150784",
+        "voiceSeconds": 32117375535,
+        "sms": 51732814
+      },
+      {
+        "key": "2026-08",
+        "bytes": "16213911454798702",
+        "voiceSeconds": 30297945368,
+        "sms": 48808982
+      },
+      {
+        "key": "2026-09",
+        "bytes": "16053369318899954",
+        "voiceSeconds": 30023219363,
+        "sms": 48372657
+      },
+      {
+        "key": "2026-10",
+        "bytes": "17693161582452974",
+        "voiceSeconds": 33060910296,
+        "sms": 53282049
+      }
+    ],
+    "operators": [
+      {
+        "code": "mobile",
+        "bytes": "92443863628350438",
+        "voiceSeconds": 174050806768,
+        "sms": 279101611
+      },
+      {
+        "code": "telecom",
+        "bytes": "63925129580577151",
+        "voiceSeconds": 119651951223,
+        "sms": 192302965
+      },
+      {
+        "code": "unicom",
+        "bytes": "33107995422827066",
+        "voiceSeconds": 61209451494,
+        "sms": 99035014
+      },
+      {
+        "code": "broadcast",
+        "bytes": "16554801520575266",
+        "voiceSeconds": 30246973043,
+        "sms": 49872585
+      },
+      {
+        "code": "other",
+        "bytes": "1032586918584677",
+        "voiceSeconds": 1802300035,
+        "sms": 3113682
+      }
+    ],
+    "kind": "city",
+    "children": [
+      {
+        "id": "610100",
+        "sites": 240,
+        "bytes": "45970637595301518",
+        "voiceSeconds": 85572195745,
+        "sms": 138288326,
+        "previous": {
+          "id": "610100",
+          "sites": 240,
+          "bytes": "43708748651633169",
+          "voiceSeconds": 81745609027,
+          "sms": 131523244
+        }
+      },
+      {
+        "id": "610300",
+        "sites": 140,
+        "bytes": "25769923369003612",
+        "voiceSeconds": 48313653638,
+        "sms": 77894615,
+        "previous": {
+          "id": "610300",
+          "sites": 140,
+          "bytes": "23860769292136806",
+          "voiceSeconds": 44932958015,
+          "sms": 72147545
+        }
+      },
+      {
+        "id": "610400",
+        "sites": 170,
+        "bytes": "32992073240455235",
+        "voiceSeconds": 61606158035,
+        "sms": 99203498,
+        "previous": {
+          "id": "610400",
+          "sites": 170,
+          "bytes": "31040196291250902",
+          "voiceSeconds": 57971218168,
+          "sms": 93303979
+        }
+      },
+      {
+        "id": "610200",
+        "sites": 30,
+        "bytes": "5314956817090949",
+        "voiceSeconds": 10069605671,
+        "sms": 16135747,
+        "previous": {
+          "id": "610200",
+          "sites": 30,
+          "bytes": "4870020373016304",
+          "voiceSeconds": 9208173360,
+          "sms": 14768447
+        }
+      },
+      {
+        "id": "610500",
+        "sites": 90,
+        "bytes": "17487337476896043",
+        "voiceSeconds": 32657124157,
+        "sms": 52515921,
+        "previous": {
+          "id": "610500",
+          "sites": 90,
+          "bytes": "16573146727321525",
+          "voiceSeconds": 30631525091,
+          "sms": 49797948
+        }
+      },
+      {
+        "id": "610600",
+        "sites": 105,
+        "bytes": "21467450391550731",
+        "voiceSeconds": 40126835487,
+        "sms": 64278934,
+        "previous": {
+          "id": "610600",
+          "sites": 105,
+          "bytes": "20713965065360134",
+          "voiceSeconds": 38990086731,
+          "sms": 62070184
+        }
+      },
+      {
+        "id": "610700",
+        "sites": 100,
+        "bytes": "18355001990762230",
+        "voiceSeconds": 34795374704,
+        "sms": 55614031,
+        "previous": {
+          "id": "610700",
+          "sites": 100,
+          "bytes": "17930799178444668",
+          "voiceSeconds": 34204242426,
+          "sms": 54335617
+        }
+      },
+      {
+        "id": "610800",
+        "sites": 70,
+        "bytes": "13703213391897367",
+        "voiceSeconds": 25434529743,
+        "sms": 41268979,
+        "previous": {
+          "id": "610800",
+          "sites": 70,
+          "bytes": "13523862795019624",
+          "voiceSeconds": 24869365639,
+          "sms": 40728482
+        }
+      },
+      {
+        "id": "610900",
+        "sites": 65,
+        "bytes": "12318590406045148",
+        "voiceSeconds": 22886740281,
+        "sms": 37125475,
+        "previous": {
+          "id": "610900",
+          "sites": 65,
+          "bytes": "12183787755828257",
+          "voiceSeconds": 22656430197,
+          "sms": 36750919
+        }
+      },
+      {
+        "id": "611000",
+        "sites": 70,
+        "bytes": "13685192391911765",
+        "voiceSeconds": 25499265102,
+        "sms": 41100331,
+        "previous": {
+          "id": "611000",
+          "sites": 70,
+          "bytes": "12989317130727552",
+          "voiceSeconds": 24380784896,
+          "sms": 39027071
+        }
+      }
+    ]
+  }
+}
