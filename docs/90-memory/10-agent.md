@@ -1222,3 +1222,7 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户指出标题与地域之间的收起按钮不合理。按钮改放陕西·资源标题栏最右侧，官方ShellIconButton／sidebar图标沿用；标题及全省数量同排。收起后左侧只剩41.33px方形展开入口、自适应高度，正文占其余宽度，页面标题旁只留地域面包屑。两态同一个button保留焦点，aria-controls固定tree节点，树hidden不卸载；县级选择和URL不变，窄屏沿用筛选无需侧栏入口。实施810追加覆盖原标题内按钮策略。
 
 生产build含类型通过tmp/site-region-toggle-build.log、156文档编号通过tmp/site-region-toggle-docs.log。CUA1042按钮24px且insidePanel=true／insideHeading=false、标题栏无横溢；收起树hidden／焦点保留、面板41.33方形，Enter重新展开，雁塔aria-pressed=true／city县URL不变。实际切服务关系成功，同县参数保持；1280／904／390无文档或标题横溢，窄屏面板隐藏且标题无残留开关。warn/error空，artifacts/site-region-toggle-qa含expanded／collapsed／checks。viewport恢复、临时tab94关闭、用户页保留。源码ASCII／diff／提交扫描收尾，纯结构布局不新增镜像单测或重复31HTTP／PG；无业务数据／权限／DDL／依赖／外部上线变化，最终63333身份见Git及health。
+
+## 地域收起态仅显示图标（2026-11-05）
+
+用户要求收起后不显示按钮外壳。本批将地域aside的背景／边框／圆角／裁剪仅放在展开分支，收起透明无边线，只留sidebar图标及原点击热区，官方hover／focus反馈和切换逻辑不变。实施810补充。生产build含类型通过tmp/site-region-bare-icon-build.log，156编号通过tmp/site-region-bare-icon-docs.log；CUA1042常态aside底透明／border0／radius0、按钮底透明，无文档横溢，Enter可重新展开，warn/error空。截图及checks在artifacts/site-region-bare-icon-qa，viewport恢复、临时tab95关闭、用户页保留。纯外观不新增镜像单测／重复HTTP或PG，无数据／权限／依赖／DDL／外部上线变化；最终63333身份见Git与health。

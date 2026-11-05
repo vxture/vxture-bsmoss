@@ -75,7 +75,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         </form>;
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
     <div className="flex min-h-0 flex-1">
-      <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel hidden shrink-0 flex-col overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 lg:flex " + (regionOpen ? "w-sidebar-expanded" : "self-start")}>
+      <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel hidden shrink-0 flex-col lg:flex " + (regionOpen ? "w-sidebar-expanded overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20" : "self-start")}>
         <div className={"flex items-center gap-sm " + (regionOpen ? "border-b border-border p-md" : "p-xs")}>
           {regionOpen && <><span className="flex items-center gap-sm text-label font-semibold"><Icon name="building" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="ml-auto text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></>}
           <ShellIconButton icon="sidebar" className="site-region-toggle shrink-0" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-tree" onClick={onRegionToggle} />
