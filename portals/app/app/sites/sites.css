@@ -1,21 +1,28 @@
 .site-workspace { overflow: hidden; }
 .site-registry-content { container-type: inline-size; }
-/* The closed navigation docks in the existing workspace edge, outside flow.
-   Its exposed icon remains actionable; hover/focus reveals the whole handle. */
+/* The closed navigation leaves only a slim edge near the panel heading.
+   It stays outside flow; hover/focus reveals the actionable icon. */
 .site-region-dock {
   position: absolute;
   left: 0;
-  top: 50%;
+  top: var(--space-md);
   z-index: 10;
   width: var(--space-control-2xl);
   min-height: var(--space-control-3xl);
   align-items: flex-end;
   justify-content: center;
-  padding: var(--space-2xs);
-  transform: translate(calc(-1 * var(--space-md)), -50%);
+  transform: translateX(calc(-100% + var(--space-2xs)));
 }
 .site-region-dock:hover,
-.site-region-dock:focus-within { transform: translate(0, -50%); }
+.site-region-dock:focus-within { transform: translateX(0); }
+.site-region-dock > div { width: 100%; }
+.site-region-dock .site-region-toggle {
+  width: 100%;
+  min-height: var(--space-control-3xl);
+  opacity: 0;
+}
+.site-region-dock:hover .site-region-toggle,
+.site-region-dock:focus-within .site-region-toggle { opacity: 1; }
 /* Business text and actions share one role; IDs, timestamps and notes stay small.
    Scope to this domain (including its portalled filters), never alter DS tokens. */
 .site-workspace :is(button, [data-slot="button"]),
