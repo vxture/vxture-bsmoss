@@ -1,11 +1,12 @@
 "use client";
+import PageHeading from "../portal/page-heading";
 
-import { EntryCard, PanelCard, ShellPageContainer, ViewHeader } from "@vxture/design-system";
+import { EntryCard, PanelCard, ShellPageContainer } from "@vxture/design-system";
 import ProductPreferences from "../portal/preferences";
 
 export default function ConfigurationPage({ preview }: { preview: boolean }) {
-  return <ShellPageContainer className="product-page-inset"><div className="flex flex-col gap-lg">
-    <ViewHeader title={"\u914d\u7f6e\u7ba1\u7406"} description={"\u6307\u6807\u6a21\u677f\u3001\u4efb\u52a1\u76d1\u7ba1\u4e0e\u663e\u793a\u504f\u597d"} />
+  return <ShellPageContainer className="product-page-inset"><div className="flex min-w-0 flex-col gap-lg">
+    <PageHeading title={"\u914d\u7f6e\u7ba1\u7406"} description={"\u6307\u6807\u6a21\u677f\u3001\u4efb\u52a1\u76d1\u7ba1\u4e0e\u663e\u793a\u504f\u597d"} />
     <div className="grid items-start gap-lg lg:grid-cols-3">
       <PanelCard title={"\u663e\u793a\u8bbe\u7f6e"} description={"\u81ea\u52a8\u4fdd\u5b58\u5230\u5f53\u524d\u6d4f\u89c8\u5668"} tone="neutral"><ProductPreferences /></PanelCard>
       <div className="flex flex-col gap-md lg:col-span-2">

@@ -1,4 +1,6 @@
 "use client";
+import { Button, Icon, SectionHeader } from "@vxture/design-system";
+import PageHeading from "../../../portal/page-heading";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { JobStateFilter, JobListPage, JobDetail, RecoverJob, RecoveryResult, RecoveryRecord } from "../../../domains/supervision/jobs";
 import { reportJson, ReportClientError } from "../../../reports/client";
@@ -72,8 +74,11 @@ export default function AggregateJobsWorkspace() {
     return () => c.abort();
   }, [status, cursor, epoch]);
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <div className="jobs-workspace product-page-inset"><aside className="jobs-library" aria-label={"\u805a\u5408\u4efb\u52a1\u5217\u8868"}>
-    <div className="reports-row"><h1>{"\u805a\u5408\u4efb\u52a1"}</h1><button onClick={refresh} disabled={loading}>{"\u5237\u65b0"}</button></div>
+  return <div className="flex min-w-0 flex-col gap-lg product-page-inset">
+    <PageHeading title={"\u805a\u5408\u4efb\u52a1"} description={"\u805a\u5408\u6267\u884c\u3001\u5931\u8d25\u5904\u7f6e\u4e0e\u590d\u6838\u8bb0\u5f55"}
+      actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
+    <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u805a\u5408\u4efb\u52a1\u5217\u8868"}>
+    <SectionHeader title={"\u805a\u5408\u4efb\u52a1\u5217\u8868"} />
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u72b6\u6001"}>{(["all", "pending", "leased", "dead", "succeeded"] as const).map(s => <button key={s} aria-pressed={status === s} onClick={() => { setStatus(s); setCursor(null); setPages([]); setSelected(null); }}>{jobLabel(s)}</button>)}</div>
     <p className="reports-muted">{"\u5f53\u524d\u6388\u6743\u8303\u56f4\uff0c\u6309\u521b\u5efa\u65f6\u95f4\u5012\u5e8f\u3002"}</p>
     {error && <p className="reports-error" role="alert">{error}</p>}{loading ? <p role="status">{"\u6b63\u5728\u8bfb\u53d6\u4efb\u52a1\u2026"}</p> : page && !page.items.length ? <p className="reports-muted">{"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6b64\u7c7b\u4efb\u52a1\u3002"}</p> : null}
@@ -83,5 +88,5 @@ export default function AggregateJobsWorkspace() {
     <nav className="reports-row" aria-label={"\u4efb\u52a1\u5206\u9875"}><button disabled={loading || !pages.length} onClick={() => { setCursor(pages.at(-1)!); setPages(p => p.slice(0, -1)); }}>{"\u4e0a\u4e00\u9875"}</button><small>{pages.length + 1}</small>
       <button disabled={loading || !page?.next} onClick={() => { setPages(p => [...p, cursor]); setCursor(page!.next); }}>{"\u4e0b\u4e00\u9875"}</button></nav>
   </aside>{selected ? <JobInspection key={selected} jobId={selected} epoch={epoch} onChoose={setSelected} onChanged={refresh} />
-    : <section className="reports-empty"><span className="reports-eyebrow">OPERATIONS</span><h2>{"\u8ba9\u6bcf\u6b21\u5904\u7f6e\u6709\u636e\u53ef\u67e5"}</h2><p>{"\u9009\u62e9\u4efb\u52a1\uff0c\u67e5\u770b\u6267\u884c\u5386\u53f2\u3001\u5931\u8d25\u539f\u56e0\u548c\u590d\u6838\u8bb0\u5f55\u3002"}</p></section>}</div>;
+    : <section className="reports-empty"><span className="reports-eyebrow">OPERATIONS</span><h2>{"\u8ba9\u6bcf\u6b21\u5904\u7f6e\u6709\u636e\u53ef\u67e5"}</h2><p>{"\u9009\u62e9\u4efb\u52a1\uff0c\u67e5\u770b\u6267\u884c\u5386\u53f2\u3001\u5931\u8d25\u539f\u56e0\u548c\u590d\u6838\u8bb0\u5f55\u3002"}</p></section>}</div></div>;
 }

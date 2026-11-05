@@ -1,4 +1,6 @@
 "use client";
+import { Button, Icon, SectionHeader } from "@vxture/design-system";
+import PageHeading from "../portal/page-heading";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReportListPage } from "../domains/reports/list";
 import type { StoredReport } from "../domains/reports/store";
@@ -33,9 +35,12 @@ export default function ReportWorkspace({ initialSelection = null, invalidLink =
     } catch (e) { if (!c.signal.aborted) setError(reportErrorText(e)); }
     finally { if (!c.signal.aborted) setGenerating(false); }
   }
-  return <div className="reports-workspace product-page-inset">
+  return <div className="flex min-w-0 flex-col gap-lg product-page-inset">
+    <PageHeading title={"\u5468\u671f\u62a5\u544a"} description={"\u5468\u671f\u62a5\u544a\u5f52\u6863\u4e0e\u7248\u672c\u6838\u9a8c"}
+      actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refreshList} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
+    <div className="reports-workspace">
     <aside className="reports-library" aria-label={"\u62a5\u544a\u5217\u8868"}>
-      <div className="reports-row"><h1>{"\u5468\u671f\u62a5\u544a"}</h1><button onClick={refreshList} disabled={loading}>{"\u5237\u65b0"}</button></div>
+      <SectionHeader title={"\u5468\u671f\u62a5\u544a\u5217\u8868"} />
       <p className="reports-muted">{"\u5217\u8868\u663e\u793a\u751f\u6210\u65f6\u7684\u5b8c\u6574\u6027\uff0c\u6253\u5f00\u8be6\u60c5\u6838\u9a8c\u6700\u65b0\u72b6\u6001\u3002"}</p>
       {invalidLink && <p role="alert" className="reports-error">{"\u62a5\u544a\u94fe\u63a5\u53c2\u6570\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9\u62a5\u544a\u3002"}</p>}
       {error && <p role="alert" className="reports-error">{error}</p>}
@@ -58,5 +63,5 @@ export default function ReportWorkspace({ initialSelection = null, invalidLink =
     </aside>
     {selection ? <ReportDetail key={selection.id + ":" + selection.revision} reportId={selection.id} initialRevision={selection.revision} onChanged={refreshList} />
       : <section className="reports-empty"><span className="reports-eyebrow">PERIODIC INSIGHTS</span><h2>{"\u4ece\u6570\u636e\u5230\u53ef\u6838\u9a8c\u7684\u7ed3\u8bba"}</h2><p>{"\u9009\u62e9\u4e00\u4efd\u62a5\u544a\uff0c\u67e5\u770b\u7ecf\u8425\u670d\u52a1\u3001\u8fd0\u8425\u72b6\u6001\u548c\u8fd0\u884c\u53c2\u6570\u3002"}</p></section>}
-  </div>;
+  </div></div>;
 }

@@ -1,4 +1,6 @@
 "use client";
+import { Button as HeadingButton } from "@vxture/design-system";
+import PageHeading from "../portal/page-heading";
 import { useEffect, useRef, useState } from "react";
 import {
   CATEGORY_LABELS,
@@ -389,27 +391,8 @@ export function Preview({ initial }: { initial: PreviewData }) {
           </div>
         </header>
         <main className="content product-page-inset" aria-busy={busy}>
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">MULTI-DOMAIN OBSERVATORY</div>
-              <h1>
-                {CATEGORY_LABELS[category]}
-                <span>{"\u5468\u671f\u5206\u6790"}</span>
-              </h1>
-              <p>
-                {
-                  "\u4ece\u4e1a\u52a1\u627f\u8f7d\u5230\u8bbe\u5907\u8fd0\u884c\uff0c\u8ba9\u6bcf\u4e00\u4e2a\u6307\u6807\u6709\u636e\u53ef\u5faa\u3002"
-                }
-              </p>
-            </div>
-            <button
-              className="button"
-              onClick={() => dialog.current?.showModal()}
-            >
-              <Icon name="gear" />
-              {"\u914d\u7f6e\u663e\u793a"}
-            </button>
-          </div>
+          <PageHeading title={CATEGORY_LABELS[category] + "\u5468\u671f\u5206\u6790"} description={"\u4e1a\u52a1\u3001\u72b6\u6001\u4e0e\u8fd0\u884c\u6307\u6807\u5468\u671f\u5206\u6790"}
+            actions={<HeadingButton variant="outline" size="md" onClick={() => dialog.current?.showModal()}>{"\u914d\u7f6e\u663e\u793a"}</HeadingButton>} />
           <nav
             className="mobile-category"
             aria-label={"\u6307\u6807\u5206\u7c7b"}

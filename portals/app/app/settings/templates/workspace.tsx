@@ -1,4 +1,6 @@
 "use client";
+import { Button, Input } from "@vxture/design-system";
+import PageHeading from "../../portal/page-heading";
 import { useRef, useState } from "react";
 import type { TemplateCandidate, TemplatePreview, TemplateRead, TemplatePublicationCommand, TemplateSelectionCommand } from "../../domains/views/templates";
 import type { TemplatePublicationReceipt, TemplateSelectionReceipt } from "../../domains/views/template-store";
@@ -8,7 +10,7 @@ import { editableTemplate, newTemplate } from "./editor-model";
 
 type Pending = { kind: "publish"; command: TemplatePublicationCommand } | { kind: "select"; command: TemplateSelectionCommand };
 const text = {
-  title: "\u6a21\u677f\u7ba1\u7406", intro: "\u5148\u6821\u9a8c\u914d\u7f6e\uff0c\u518d\u53d1\u5e03\u7248\u672c\u3002\u9ed8\u8ba4\u7248\u672c\u5207\u6362\u5355\u72ec\u7559\u75d5\u3002",
+  title: "\u6307\u6807\u4e0e\u6a21\u677f", intro: "\u5148\u6821\u9a8c\u914d\u7f6e\uff0c\u518d\u53d1\u5e03\u7248\u672c\u3002\u9ed8\u8ba4\u7248\u672c\u5207\u6362\u5355\u72ec\u7559\u75d5\u3002",
   code: "\u6a21\u677f\u7f16\u7801", version: "\u7248\u672c\uff08\u7559\u7a7a\u8bfb\u6700\u65b0\uff09", load: "\u8bfb\u53d6\u7248\u672c", draft: "\u914d\u7f6e\u8349\u7a3f", validate: "\u6821\u9a8c\u914d\u7f6e",
   review: "\u5ba1\u9605\u4f9d\u636e", publish: "\u53d1\u5e03\u65b0\u7248\u672c", select: "\u8bbe\u4e3a\u5206\u6790\u9ed8\u8ba4", retry: "\u91cd\u8bd5\u539f\u547d\u4ee4", busy: "\u5904\u7406\u4e2d\u2026",
   invalid: "\u8bf7\u68c0\u67e5\u6a21\u677f JSON \u53ca\u5b57\u6bb5\u3002", unavailable: "\u64cd\u4f5c\u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u53ef\u91cd\u8bd5\u539f\u547d\u4ee4\u3002",
@@ -74,10 +76,9 @@ export default function TemplateWorkspace() {
       templateVersion: loaded.template.version, templateSha256: loaded.template.sha256, validationSha256: preview.validationSha256, expected: loaded.selection, reviewRef: review } });
   }
   const unchanged = loaded?.template && candidate && JSON.stringify(loaded.template.candidate) === JSON.stringify(candidate);
-  return <div className="templates-workspace product-page-inset"><header><span className="reports-eyebrow">TEMPLATE GOVERNANCE</span><h1>{text.title}</h1><p className="reports-muted">{text.intro}</p></header>
-    <section className="templates-reader"><label>{text.code}<input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
-      <label>{text.version}<input value={version} disabled={locked} inputMode="numeric" onChange={e => { setVersion(e.target.value); setLoaded(null); clearValidation(); }} /></label>
-      <button disabled={locked || !code} onClick={() => void load()}>{text.load}</button></section>
+  return <div className="templates-workspace product-page-inset"><PageHeading title={text.title} description={text.intro} toolbar={<section className="templates-reader py-0"><label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.code}<Input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
+      <label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.version}<Input value={version} disabled={locked} inputMode="numeric" onChange={e => { setVersion(e.target.value); setLoaded(null); clearValidation(); }} /></label>
+      <Button variant="outline" size="md" disabled={locked || !code} onClick={() => void load()}>{text.load}</Button></section>} />
     {loaded && <div className="templates-current">{loaded.template && <p><b>{loaded.template.code} v{loaded.template.version}</b> / {loaded.template.publishedBy} / {reportTime(loaded.template.publishedAt)}</p>}
       <p>{text.current}: {loaded.selection ? `${loaded.selection.code} v${loaded.selection.version}` : text.noSelection}</p></div>}
     {error && <p className="reports-error" role="alert">{error}</p>}{notice && <p className="reports-notice" role="status">{notice}</p>}

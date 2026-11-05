@@ -1,9 +1,10 @@
 "use client";
 import { useState, useTransition } from "react";
+import PageHeading from "../portal/page-heading";
 import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
 import { ActionMenu, BarChart, Button, DataTable, DetailList, DetailRow, Icon, MetricGrid, NativeSelect, PanelCard,
-  Progress, SegmentedControl, StatusBadge, ViewHeader, type DataTableColumn } from "@vxture/design-system";
+  Progress, SegmentedControl, StatusBadge, type DataTableColumn } from "@vxture/design-system";
 import type { DossierDemo } from "../domains/site-registry/demo-store";
 import { changeLabel, windowLabel } from "../domains/map-demo/period-comparison-display";
 import { SITE_TABS, siteDetailHref, siteListHref, type SiteQuery } from "../domains/site-registry/rules";
@@ -69,14 +70,14 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     </div>
   </PanelCard>;
   return <div className="site-workspace flex h-full w-full min-w-0 flex-col text-body" data-site-dossier-mode="demo" aria-busy={pending}>
-    <div className="shrink-0 border-b border-border bg-card product-page-inset">
-      <div className="mb-sm flex items-center gap-sm text-body-small text-muted-foreground"><Button asChild variant="ghost" size="sm"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>
-      <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
+    <div className="shrink-0 bg-card product-page-inset">
+      <PageHeading title={s.name} description={s.id + " \u00b7 " + sceneNames[s.profile]}
+        navigation={<div className="flex flex-wrap items-center gap-sm"><Button asChild variant="ghost" size="md"><a href={siteListHref(q)}><Icon name="arrow-left" size="sm" />{"\u7ad9\u5740\u53f0\u8d26"}</a></Button><Icon name="chevron-right" size="xs" /><span>{s.cityName}</span><Icon name="chevron-right" size="xs" /><span>{s.countyName}</span></div>}
         secondary={<StatusBadge tone={tone(m.status)} size="sm">{statusNames[m.status]}</StatusBadge>}
-        action={<Button asChild variant="secondary"><a target="_blank" rel="noopener noreferrer" href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>} />
-      <div className="mt-md flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
+        actions={<Button asChild variant="outline" size="md"><a target="_blank" rel="noopener noreferrer" href={mapHref}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button>}
+        toolbar={<div className="flex flex-wrap items-center justify-between gap-md"><div role="navigation" aria-label={"\u7ad9\u5740\u6863\u6848\u5206\u5c42"} className="flex flex-wrap gap-xs">
         {SITE_TABS.map(tab => <Button key={tab} size="sm" variant={q.tab === tab ? "secondary" : "ghost"} aria-current={q.tab === tab ? "page" : undefined} onClick={() => navigate({ tab })}>{tabNames[tab]}</Button>)}
-      </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{demo.date + " \u00b7 " + String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>
+      </div><NativeSelect aria-label={"\u6863\u6848\u72b6\u6001\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{demo.date + " \u00b7 " + String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect></div>} />
     </div>
     <div className="site-dossier-scroll min-h-0 min-w-0 flex-1 overflow-y-auto product-page-inset" role="region" tabIndex={0} aria-label={tabNames[q.tab]}>
       {q.tab === "overview" && <div className="flex flex-col gap-lg">

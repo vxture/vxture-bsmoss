@@ -1149,3 +1149,12 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 最终生产build含类型、31项HTTP、153文档编号通过，tmp/page-layout-{build,http,docs}.log；33源码ASCII及diff通过。CUA20路由／视图×1280／904／390共60组无页面横溢、唯一可见H1／无内距嵌套，实际内距56／40／24；六档案页签×两档12次以URL及aria-current确认，页首正文宽一致；390实际日周月URL／选中／窗口／下载同步，周月长数字完整。1042台账收起后x40全宽展开；核验列表内部滚动分页、详情滚动和非法筛选可重置；地图canvas1／共享内距0／无默认选站，warn/error空。证据artifacts/page-layout-qa含checks.json及各页截图。首轮发现数字省略和档案滚动条宽差后修复重验；周期工具等待两次超时，随后URL及aria状态确认正常，早期旧周期快照不算成功。无真实凭据，正式工作区仅验门槛页及构建，不声称真实授权后联调。最终63333以Git和health为准，1920指标辅助页与父区等宽、无最大宽度限制；测试tab81已关闭／viewport已恢复，用户tab保留。
 
 本批仅布局与可读性，不推进B01／B04业务完成状态；下一业务仍B01-04原因确认／复核／记录。陕西范围、快照分析、费用预留、退役P2、新产品无旧库迁移保持；无依赖／权限／事实／DDL变化，不重复PG；无push／外部部署／生产上线、新聊天／goal／重复自动任务。
+
+
+## 页面标题区统一（2026-11-05）
+
+用户要求全面规范标题／副标题／标题到主操作及相关细节。实施790、规格50追加。新增PageHeading作为官方DS ViewHeader业务组合，navigation／title＋description＋secondary／actions／context／toolbar稳定槽位；H1 heading-1、描述body muted，DS细虚线和sm／md／lg间距；宽屏左右、窄屏操作左对齐换行。Button default仅主操作、outline地图／关联、ghost刷新／全屏，md／icon-md标准24px。覆盖业务／配置／档案／核验证据及辅助页；报告和任务H1移至整体顶部、原生标题按钮／输入改DS，旧CSS排除标题后代；未接入／登录分支保留模块标题，状态入卡。台账侧栏按钮仍面包屑前、地图newtab，地图画布保持独立，24／40／56水平内距不变。
+
+生产build含类型通过tmp/page-heading-build.log、31HTTP通过tmp/page-heading-http.log。初始非DS refresh-cw名称已修正refresh；档案脚本误定位已从本批前HEAD恢复后限定标题区重做，最终服务卡diff无改变。CUA20路由×1280／904／390共60组，无页面／标题横溢，H1 18px、描述14px、操作按钮24px、地图链接_blank；实际1042侧栏及概况开关、台账切换、周报告URL／aria、档案经营tab／返回成功。新开地图tab83 canvas1／共享标题0／site空；warn/error空，viewport恢复、82／83临时tab关闭、用户原页保留。证据artifacts/page-heading-qa。授权工作区仅门槛页＋编译，不声称真实登录联调；最终受权工作区标签／模板名小修不改门户可见布局。
+
+无数据／权限／DDL／依赖变化，不重复PG／新增布局镜像单测；无push／外部部署／生产上线／新聊天或自动任务。下一业务仍B01-04，陕西／快照分析／费用预留／退役P2／无旧库迁移不变。最终63333身份以Git和health收尾为准。

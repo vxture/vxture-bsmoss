@@ -1,5 +1,6 @@
 "use client";
-import { BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, Icon, PanelCard, StatusBadge, ViewHeader } from "@vxture/design-system";
+import { BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, Icon, PanelCard, StatusBadge } from "@vxture/design-system";
+import PageHeading from "../portal/page-heading";
 import { useState } from "react";
 import type { ReviewDetailModel } from "../domains/usage-verification/demo";
 import { reviewHref, reviewMapHref } from "../domains/usage-verification/links";
@@ -17,12 +18,10 @@ export default function ReviewDetail({ model }: { model: ReviewDetailModel }) {
   const heading = c.kind === "missing" ? "\u5f53\u524d\u7a97\u53e3\u7f3a\u5c11\u53ef\u7528\u8f93\u5165\uff0c\u5148\u6838\u5bf9\u6765\u6e90\u4e0e\u8d28\u91cf" : c.kind === "insufficient" ? "\u5386\u53f2\u6709\u6548\u53c2\u8003\u4e0d\u8db3\uff0c\u6682\u4e0d\u5224\u65ad\u4e1a\u52a1\u53d8\u5316" :
     c.kind === "zero_run" ? "\u8fde\u7eed\u6709\u6548\u7a97\u53e3\u4e3a\u96f6\uff0c\u9700\u8981\u786e\u8ba4\u4e1a\u52a1\u539f\u56e0" : "\u7528\u91cf\u53d8\u5316\u8fbe\u5230\u7b5b\u67e5\u95e8\u69db\uff0c\u9700\u8981\u6838\u5bf9\u4e1a\u52a1\u539f\u56e0";
   return <div data-usage-review="detail" className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-lg overflow-auto">
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-md">
-      <div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button><span className="text-body-small text-muted-foreground">{model.region.cities.find(s => s.id === c.site.cityId)?.name + " / " + model.region.counties.find(s => s.id === c.site.countyId)?.name}</span></div>
-      <div className="flex flex-wrap items-center gap-sm"><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></div>
-    </div>
-    <div className="flex shrink-0 flex-wrap items-center gap-md"><ViewHeader title={c.site.name} divider={false} className="pb-0" /><span className="text-body-small text-muted-foreground">{c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}</span><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{"\u5f85\u6838\u9a8c"}</StatusBadge></div>
-    <p className="text-body-small text-muted-foreground">{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></p>
+    <PageHeading title={c.site.name} description={c.site.id + " \u00b7 " + operatorNames[c.operator] + " \u00b7 " + metricNames[metric]}
+      navigation={<div className="flex min-w-0 flex-wrap items-center gap-sm"><Button asChild variant="ghost"><a href={reviewHref(q)}><Icon name="arrow-left" size="sm" />{"\u8fd4\u56de\u6838\u9a8c\u5217\u8868"}</a></Button><span className="text-body-small text-muted-foreground">{model.region.cities.find(s => s.id === c.site.cityId)?.name + " / " + model.region.counties.find(s => s.id === c.site.countyId)?.name}</span></div>} secondary={<><FindingBadge item={c} /><StatusBadge tone="neutral" size="sm">{"\u5f85\u6838\u9a8c"}</StatusBadge></>}
+      context={<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span>}
+      actions={<><Button asChild variant="outline"><a href={"/sites/" + c.site.id + "?tab=business&period=" + q.period}><Icon name="building" size="sm" />{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={reviewMapHref({ ...q, scope: { ...q.scope, operator: c.operator } }, c.site.id)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5b9a\u4f4d"}</a></Button></>} />
     <div className="grid min-w-0 shrink-0 gap-lg xl:grid-cols-3">
       <div className="flex min-w-0 flex-col gap-lg xl:col-span-2">
         <PanelCard title={heading} icon="search" tone={c.category === "quality" ? "warning" : c.category === "insufficient" ? "neutral" : "info"} description={windowLabel(c.start, c.end)}>

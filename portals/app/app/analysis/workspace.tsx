@@ -1,4 +1,6 @@
 "use client";
+import { Button, Input } from "@vxture/design-system";
+import PageHeading from "../portal/page-heading";
 import { useEffect, useRef, useState } from "react";
 import type { AnalysisWorkspace as Workspace, AnalysisPanel, SaveAnalysisPreference } from "../domains/views/analysis";
 import type { Panel, Preference } from "../domains/views/resolve";
@@ -80,10 +82,9 @@ export default function AnalysisWorkspace() {
     document.addEventListener("keydown", key);
     return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", key); previous?.focus(); };
   }, [editing, disabled]);
-  return <div className="analysis-workspace product-page-inset"><div className="analysis-heading"><div><span className="reports-eyebrow">OPERATION INSIGHTS</span><h1>{"\u5468\u671f\u5206\u6790"}</h1></div>
-    <form className="analysis-toolbar" onSubmit={e => { e.preventDefault(); const next = Date.parse(time + ":00+08:00"); if (Number.isFinite(next)) { setMessage(""); setAt(new Date(next).toISOString()); setEpoch(n => n + 1); } }}>
-      <label>{"\u5206\u6790\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09"}<input type="datetime-local" min="1992-01-01T00:00" required value={time} disabled={disabled} onChange={e => setTime(e.target.value)} /></label><button disabled={disabled}>{"\u67e5\u8be2"}</button><button type="button" disabled={busy} onClick={refresh}>{"\u5237\u65b0"}</button>
-      <button type="button" disabled={disabled || !data?.template} onClick={() => { setDraft(editablePanels.map(e => editable(e.panel))); setEditing(true); }}>{"\u4e2a\u4eba\u663e\u793a"}</button></form></div>
+  return <div className="analysis-workspace product-page-inset"><PageHeading title={"\u5468\u671f\u5206\u6790"} description={"\u6307\u6807\u5468\u671f\u8d8b\u52bf\u4e0e\u8ba1\u91cf\u4f9d\u636e"} toolbar={<form className="analysis-toolbar" onSubmit={e => { e.preventDefault(); const next = Date.parse(time + ":00+08:00"); if (Number.isFinite(next)) { setMessage(""); setAt(new Date(next).toISOString()); setEpoch(n => n + 1); } }}>
+      <label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{"\u5206\u6790\u65f6\u95f4\uff08\u5317\u4eac\u65f6\u95f4\uff09"}<Input type="datetime-local" min="1992-01-01T00:00" required value={time} disabled={disabled} onChange={e => setTime(e.target.value)} /></label><Button size="md" type="submit" variant="default" disabled={disabled}>{"\u67e5\u8be2"}</Button><Button size="md" variant="outline" type="button" disabled={busy} onClick={refresh}>{"\u5237\u65b0"}</Button>
+      <Button size="md" variant="outline" type="button" disabled={disabled || !data?.template} onClick={() => { setDraft(editablePanels.map(e => editable(e.panel))); setEditing(true); }}>{"\u4e2a\u4eba\u663e\u793a"}</Button></form>} />
     {message && <p role="status" className="analysis-message">{message}</p>}{error && <p role="alert" className="reports-error">{error}</p>}
     {pending && !busy && <div className="reports-notice"><p>{"\u4fdd\u5b58\u7ed3\u679c\u5f85\u786e\u8ba4\uff0c\u91cd\u8bd5\u4f1a\u590d\u7528\u539f\u547d\u4ee4\u3002"}</p><button onClick={() => void save(pending)}>{"\u91cd\u8bd5\u540c\u4e00\u547d\u4ee4"}</button></div>}
     {!data ? !error && <p role="status" className="reports-empty">{"\u6b63\u5728\u6838\u9a8c\u5468\u671f\u6570\u636e\u2026"}</p> : !data.template ? <section className="reports-empty"><h2>{"\u6682\u65e0\u5206\u6790\u914d\u7f6e"}</h2><p>{"\u7531\u7ba1\u7406\u4eba\u5458\u914d\u7f6e\u6307\u6807\u4e0e\u6570\u636e\u6765\u6e90\u540e\u5c55\u793a\u3002"}</p></section> : <>

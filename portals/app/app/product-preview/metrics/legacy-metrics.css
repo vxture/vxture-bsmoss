@@ -18,37 +18,37 @@
 .legacy-metrics {
   margin: 0;
 }
-.legacy-metrics button,
-.legacy-metrics select,
-.legacy-metrics input {
+.legacy-metrics button:not(.product-page-heading *),
+.legacy-metrics select:not(.product-page-heading *),
+.legacy-metrics input:not(.product-page-heading *) {
   font: inherit;
 }
-.legacy-metrics button,
-.legacy-metrics select {
+.legacy-metrics button:not(.product-page-heading *),
+.legacy-metrics select:not(.product-page-heading *) {
   cursor: pointer;
 }
-.legacy-metrics button {
+.legacy-metrics button:not(.product-page-heading *) {
   color: inherit;
 }
-.legacy-metrics button:disabled,
-.legacy-metrics select:disabled {
+.legacy-metrics button:not(.product-page-heading *):disabled,
+.legacy-metrics select:not(.product-page-heading *):disabled {
   cursor: wait;
   opacity: 0.5;
 }
-.legacy-metrics button:focus-visible,
-.legacy-metrics a:focus-visible,
-.legacy-metrics select:focus-visible,
-.legacy-metrics input:focus-visible {
+.legacy-metrics button:not(.product-page-heading *):focus-visible,
+.legacy-metrics a:not(.product-page-heading *):focus-visible,
+.legacy-metrics select:not(.product-page-heading *):focus-visible,
+.legacy-metrics input:not(.product-page-heading *):focus-visible {
   outline: 3px solid #46b89d;
   outline-offset: 3px;
 }
-.legacy-metrics button {
+.legacy-metrics button:not(.product-page-heading *) {
   transition:
     background 0.15s,
     border-color 0.15s,
     box-shadow 0.15s;
 }
-.legacy-metrics button:hover {
+.legacy-metrics button:not(.product-page-heading *):hover {
   filter: brightness(0.98);
 }
 .legacy-metrics .app-shell {
@@ -273,13 +273,13 @@
   font-size: 9px;
   font-weight: 600;
 }
-.legacy-metrics h1 {
+.legacy-metrics h1:not(.product-page-heading *) {
   font-size: 27px;
   font-weight: 600;
   letter-spacing: 1px;
   margin: 11px 0;
 }
-.legacy-metrics h1 span {
+.legacy-metrics h1:not(.product-page-heading *) span {
   font-size: 15px;
   color: #8d9d99;
   font-weight: 400;
@@ -1024,10 +1024,10 @@
     align-items: start;
     gap: 10px;
   }
-  .legacy-metrics h1 {
+  .legacy-metrics h1:not(.product-page-heading *) {
     font-size: 22px;
   }
-  .legacy-metrics h1 span {
+  .legacy-metrics h1:not(.product-page-heading *) span {
     display: block;
     margin: 9px 0 0;
     padding: 0;
@@ -1179,3 +1179,5 @@
   margin-inline: 0;
   padding: var(--space-lg) var(--bsmoss-page-inset-inline);
 }
+
+.legacy-metrics [data-page-heading] { font-family: var(--font-sans); margin-bottom: var(--space-lg); }

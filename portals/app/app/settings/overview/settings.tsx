@@ -1,6 +1,7 @@
 "use client";
+import PageHeading from "../../portal/page-heading";
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Icon, NativeSelect, PanelCard, ShellPageContainer, StatusBadge, ViewHeader } from "@vxture/design-system";
+import { Button, Checkbox, Icon, NativeSelect, PanelCard, ShellPageContainer, StatusBadge } from "@vxture/design-system";
 import { CATEGORIES, type Category } from "../../domains/catalog/registry";
 import { categoryNames, defaultOverviewDisplay, OVERVIEW_METRICS, overviewUnit, type OverviewDisplayPreference, type OverviewUnit } from "../../portal/metric-catalog";
 import { useOverviewDisplay } from "../../portal/overview-display";
@@ -19,14 +20,11 @@ export default function OverviewDisplaySettings() {
     [items[index], items[target]] = [items[target], items[index]]; update(category, items);
   };
   return <ShellPageContainer className="product-page-inset max-w-none"><div className="flex min-w-0 flex-col gap-lg" data-overview-display-settings>
-    <ViewHeader className="max-sm:flex-col max-sm:items-stretch" title={"\u8fd0\u884c\u603b\u89c8\u663e\u793a"} description={"\u6bcf\u7c7b\u9009\u62e92\u20134\u9879\uff0c\u8c03\u6574\u987a\u5e8f\u4e0e\u5408\u6cd5\u5355\u4f4d\uff1b\u4fdd\u5b58\u5230\u5f53\u524d\u6d4f\u89c8\u5668\u3002"} action={<Button asChild variant="outline"><a href="/">{"\u67e5\u770b\u8fd0\u884c\u603b\u89c8"}</a></Button>} />
-    <div className="flex flex-wrap items-center justify-between gap-md">
-      <p className="text-body-small text-muted-foreground">{"\u4ec5\u8c03\u6574\u4e2a\u4eba\u9996\u9875\u5c55\u793a\uff0c\u7edf\u8ba1\u8303\u56f4\u3001\u91c7\u96c6\u3001\u9608\u503c\u4e0e\u62a5\u544a\u6a21\u677f\u4fdd\u6301\u539f\u53e3\u5f84\u3002"}</p>
-      <div className="flex flex-wrap items-center gap-sm"><StatusBadge size="sm" tone={dirty ? "warning" : "neutral"}>{dirty ? "\u6709\u672a\u4fdd\u5b58\u4fee\u6539" : "\u5f53\u524d\u5e03\u5c40"}</StatusBadge>
-        <Button variant="outline" onClick={() => { setDraft(defaultOverviewDisplay()); setNotice("\u5df2\u6062\u590d\u9ed8\u8ba4\uff0c\u8bf7\u4fdd\u5b58\u540e\u751f\u6548\u3002"); }}>{"\u6062\u590d\u9ed8\u8ba4"}</Button>
-        <Button disabled={!dirty && !invalid} onClick={() => { if (save(draft)) setNotice("\u9996\u9875\u663e\u793a\u914d\u7f6e\u5df2\u4fdd\u5b58\u3002"); }}>{"\u4fdd\u5b58\u914d\u7f6e"}</Button>
-      </div>
-    </div>
+    <PageHeading title={"\u8fd0\u884c\u603b\u89c8\u663e\u793a"} description={"\u6307\u6807\u9009\u62e9\u3001\u6392\u5e8f\u4e0e\u5355\u4f4d\u914d\u7f6e"}
+      secondary={<StatusBadge size="sm" tone={dirty ? "warning" : "neutral"}>{dirty ? "\u6709\u672a\u4fdd\u5b58\u4fee\u6539" : "\u5f53\u524d\u5e03\u5c40"}</StatusBadge>}
+      context={<span>{"\u6bcf\u7c7b2\u20134\u9879 \u00b7 \u4ec5\u5f71\u54cd\u5f53\u524d\u6d4f\u89c8\u5668\u7684\u9996\u9875\u5c55\u793a"}</span>}
+      actions={<><Button asChild variant="outline"><a href="/">{"\u67e5\u770b\u8fd0\u884c\u603b\u89c8"}</a></Button><Button variant="outline" onClick={() => { setDraft(defaultOverviewDisplay()); setNotice("\u5df2\u6062\u590d\u9ed8\u8ba4\uff0c\u8bf7\u4fdd\u5b58\u540e\u751f\u6548\u3002"); }}>{"\u6062\u590d\u9ed8\u8ba4"}</Button>
+        <Button disabled={!dirty && !invalid} onClick={() => { if (save(draft)) setNotice("\u9996\u9875\u663e\u793a\u914d\u7f6e\u5df2\u4fdd\u5b58\u3002"); }}>{"\u4fdd\u5b58\u914d\u7f6e"}</Button></>} />
     {(notice || message) && <p role="status" className="text-body-small text-muted-foreground">{notice || message}</p>}
     <div className="grid min-w-0 items-start gap-lg xl:grid-cols-2 2xl:grid-cols-3">
       {CATEGORIES.map(category => <PanelCard key={category} className="min-w-0" title={categoryNames[category]} description={draft.selections[category].length + "\u9879\u5df2\u9009 / " + OVERVIEW_METRICS.filter(d => d.category === category).length + "\u9879\u53ef\u9009"} tone="neutral">

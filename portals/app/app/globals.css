@@ -25,6 +25,46 @@
   }
 }
 
+/* Shared page heading slots use DS type, spacing and divider roles. */
+.product-page-heading {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: var(--border-width-thin) dashed var(--border);
+}
+.product-page-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md) var(--space-lg);
+  min-width: 0;
+}
+.product-page-actions,
+.product-page-navigation,
+.product-page-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  min-width: 0;
+}
+.product-page-actions { justify-content: flex-end; margin-left: auto; gap: var(--space-sm); }
+.product-page-navigation,
+.product-page-context {
+  font-size: var(--body-small-font-size);
+  line-height: var(--body-small-line-height);
+  color: var(--muted-foreground);
+}
+.product-page-toolbar { min-width: 0; }
+.product-page-toolbar > form { margin: 0; padding-block: 0; }
+@media (max-width: 47.999rem) {
+  .product-page-title-row > section { flex-basis: min(100%, var(--container-overlay-md)); }
+  .product-page-actions { width: 100%; justify-content: flex-start; margin-left: 0; }
+}
+
 /* The operator breakdown sets the shared row height, including stacked cards. */
 .overview-usage-panel:has(.overview-usage-chart) {
   contain: size;

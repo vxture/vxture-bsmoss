@@ -11,8 +11,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const cfg = getOidcConfig(), sid = (await cookies()).get(cfg.cookieName)?.value;
   const link = reportSelection(await searchParams), returnTo = "/reports" + (link.selection ? "?report=" + encodeURIComponent(link.selection.id) + "&revision=" + link.selection.revision : "");
   return <ProductFrame active="reports">
-    {!cfg.enabled ? <WorkspaceAvailability title={"\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e"} message={"\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u540e\uff0c\u53ef\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u6570\u636e\u4e0e\u53d1\u5e03\u8bb0\u5f55\u3002"} />
-      : !sid ? <WorkspaceAvailability title={"\u767b\u5f55\u540e\u67e5\u770b\u62a5\u544a"} loginHref={"/auth/login?returnTo=" + encodeURIComponent(returnTo)} />
+    {!cfg.enabled ? <WorkspaceAvailability title={"\u5468\u671f\u62a5\u544a"} description={"\u5468\u671f\u62a5\u544a\u5f52\u6863\u4e0e\u7248\u672c\u6838\u9a8c"} stateTitle={"\u6b63\u5f0f\u62a5\u544a\u5c1a\u672a\u5f00\u653e"} message={"\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u540e\uff0c\u53ef\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u6570\u636e\u4e0e\u53d1\u5e03\u8bb0\u5f55\u3002"} />
+      : !sid ? <WorkspaceAvailability title={"\u5468\u671f\u62a5\u544a"} description={"\u5468\u671f\u62a5\u544a\u5f52\u6863\u4e0e\u7248\u672c\u6838\u9a8c"} stateTitle={"\u767b\u5f55\u540e\u67e5\u770b\u62a5\u544a"} loginHref={"/auth/login?returnTo=" + encodeURIComponent(returnTo)} />
       : <div className="reports-shell"><ReportWorkspace initialSelection={link.selection} invalidLink={link.invalid} /></div>}
   </ProductFrame>;
 }

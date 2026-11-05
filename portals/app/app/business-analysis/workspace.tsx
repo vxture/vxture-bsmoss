@@ -1,13 +1,15 @@
 "use client";
 import { useState, useTransition } from "react";
+import PageHeading from "../portal/page-heading";
 import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
-import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell, ViewHeader } from "@vxture/design-system";
+import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell } from "@vxture/design-system";
 import type { BusinessDemo } from "./model";
 import { businessHref, businessMapHref, type BusinessScope } from "./links";
 import { n, pct, operatorNames } from "../sites/labels";
 import "./workspace.css";
 const labels = { capacity: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", efficiency: "\u8fd0\u884c\u4e0e\u80fd\u6548", "operator-usage": "\u8fd0\u8425\u5546\u7528\u91cf", "usage-reports": "\u7528\u91cf\u62a5\u544a" };
+const descriptions = {"capacity":"\u5bb9\u91cf\u8d1f\u8f7d\u4e0e\u670d\u52a1\u8d28\u91cf\u7efc\u5408\u5206\u6790","efficiency":"\u4f9b\u7535\u73af\u5883\u4e0e\u7ad9\u5740\u80fd\u6548\u7efc\u5408\u5206\u6790","operator-usage":"\u8fd0\u8425\u5546\u4e1a\u52a1\u7528\u91cf\u4e0e\u670d\u52a1\u8d28\u91cf\u5206\u6790","usage-reports":"\u5468\u671f\u7528\u91cf\u6c47\u603b\u4e0e\u53ef\u6bd4\u53d8\u5316\u5206\u6790"};
 const levels = { normal: "\u5e73\u7a33", warning: "\u5173\u6ce8", critical: "\u4e25\u91cd", unknown: "\u672a\u77e5" };
 const metrics = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSeconds", label: "\u901a\u8bdd" }, { value: "sms", label: "\u77ed\u4fe1" }] as const;
 const rules = {
@@ -28,19 +30,13 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const trend = u ? u.trend.map(p => ({ key: p.key, label: p.label, value: p[metric] / scale })) : demo.trend;
  const comparison = demo.report?.comparison;
  return <div data-business-analysis={demo.kind} aria-busy={pending}><ShellPageContainer className="product-page-inset business-analysis max-w-none gap-lg">
-   <div className="flex flex-wrap items-center justify-between gap-md">
-     <div className="flex min-w-0 flex-wrap items-center gap-md">
-       <ViewHeader title={labels[demo.kind]} divider={false} className="pb-0" />
-       <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><span className="text-label text-foreground">{demo.scopeName}</span>
-       {q.selection && <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge>}
-       <time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time></div>
-     </div>
-     <div className="flex flex-wrap items-center gap-sm"><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
+   <PageHeading title={labels[demo.kind]} description={descriptions[demo.kind]}
+     secondary={q.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
+     context={<><span>{demo.scopeName}</span><time>{topicMode ? demo.date + " " + String(q.hour).padStart(2, "0") + ":00" : demo.window}</time></>}
+     actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={businessMapHref(demo.kind, q)}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
-       {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}
-     </div>
-   </div>
-   <form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
+       {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}</>}
+     toolbar={<form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
      <NativeSelect aria-label={"\u5206\u6790\u5730\u5e02"} wrapperClassName="w-auto" value={q.cityId} onChange={e => navigate({ cityId: e.target.value, countyId: "all", selection: undefined })}><option value="all">{"\u9655\u897f\u7701 \u00b7 \u5168\u90e8\u5730\u5e02"}</option>{demo.region.cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
      <NativeSelect aria-label={"\u5206\u6790\u533a\u53bf"} wrapperClassName="w-auto" value={q.countyId} disabled={q.cityId === "all"} onChange={e => navigate({ countyId: e.target.value, selection: undefined })}><option value="all">{"\u5168\u90e8\u533a\u53bf"}</option>{demo.region.counties.filter(c => c.cityId === q.cityId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect>
      <NativeSelect aria-label={"\u5206\u6790\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value as BusinessScope["operator"] })}>{Object.entries(operatorNames).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</NativeSelect>
@@ -49,7 +45,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      {demo.kind === "efficiency" && <SegmentedControl ariaLabel={"\u8fd0\u884c\u4e13\u9898"} value={q.topic} onChange={topic => navigate({ topic })} items={[{ value: "efficiency", label: "\u80fd\u6548\u89c2\u5bdf", icon: "lightning" }, { value: "power", label: "\u4f9b\u7535\u4fdd\u969c", icon: "gauge" }]} />}
      <div className="business-analysis-search ml-auto"><InputGroup><InputGroupAddon><Button type="submit" variant="ghost" size="icon-sm" aria-label={"\u67e5\u8be2\u5206\u6790"}><Icon name="search" size="sm" /></Button></InputGroupAddon><InputGroupInput aria-label={"\u5206\u6790\u7ad9\u5740\u68c0\u7d22"} placeholder={"\u7ad9\u540d / \u7f16\u7801"} value={search} onChange={e => setSearch(e.target.value)} /></InputGroup></div>
      {q.selection && <Button variant="ghost" onClick={() => navigate({ selection: undefined })}>{"\u6e05\u9664\u9009\u533a"}</Button>}
-   </form>
+   </form>} />
    {topicMode && t ? <>
      <div className="sm:hidden"><MetricRowsCard title={"\u4e13\u9898\u6982\u51b5"} icon="gauge" metrics={[{ key: "total", label: "\u89c2\u5bdf\u7ad9\u5740", value: n(t.counts.total) }, { key: "critical", label: "\u4e25\u91cd", value: n(t.counts.critical) }, { key: "warning", label: "\u5173\u6ce8", value: n(t.counts.warning) }, { key: "unknown", label: "\u4e0d\u53ef\u8bc4\u4f30", value: n(t.counts.unknown) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u4e13\u9898\u72b6\u6001\u6982\u51b5"} items={[
        { id: "total", label: "\u89c2\u5bdf\u7ad9\u5740", value: n(t.counts.total), description: "\u5ea7", icon: "building" },
