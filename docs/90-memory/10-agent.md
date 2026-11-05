@@ -1226,3 +1226,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 ## 地域收起态仅显示图标（2026-11-05）
 
 用户要求收起后不显示按钮外壳。本批将地域aside的背景／边框／圆角／裁剪仅放在展开分支，收起透明无边线，只留sidebar图标及原点击热区，官方hover／focus反馈和切换逻辑不变。实施810补充。生产build含类型通过tmp/site-region-bare-icon-build.log，156编号通过tmp/site-region-bare-icon-docs.log；CUA1042常态aside底透明／border0／radius0、按钮底透明，无文档横溢，Enter可重新展开，warn/error空。截图及checks在artifacts/site-region-bare-icon-qa，viewport恢复、临时tab95关闭、用户页保留。纯外观不新增镜像单测／重复HTTP或PG，无数据／权限／依赖／DDL／外部上线变化；最终63333身份见Git与health。
+
+## 地域收起态浮动半隐藏把手与零占宽（2026-11-05）
+
+用户指出裸图标容器仍占宽，随后要求浮动侧边半隐藏效果。本批覆盖上一条收起占位：资源工作区行设relative，收起aside绝对定位于左缘垂直中部，DS40×至少48px、左移space-md16，沿工作区裁剪露出右侧24px；hover／focus-within向内完整滑出，官方按钮热区、DS淡底边线圆角阴影和减弱动态偏好保留。不参与flex分配，标题和正文恢复无侧栏时正常留白。展开态资源面板及button节点不变，筛选、URL和键盘上下文保持。实施810补充本次覆盖；半隐藏浮动把手替代此前用户纠正中的裸图标外观。
+
+先完成取消占位的中间构建tmp/site-region-no-reservation-build.log，再按最新浮动要求完成最终生产构建含类型tmp/site-region-edge-dock-build.log；最终只以后者为准，156文档编号tmp/site-region-edge-dock-docs.log通过。CUA1042收起正文1010=工作区1010，titleX56.40／内距40.4不再额外40；idle transform(-16,-24)、dock40×48，focus完成transform(0,-24)完整露出。Enter重展开、雁塔选中和URL保留；切服务关系后仍收起、同县参数不变。1280正文1248=工作区1248；904／390隐藏把手、正文872／374无占位，三档无文档横溢，warn/error空。证据artifacts/site-region-edge-dock-qa含idle／focus／checks；动效初始中间矩阵不计最终状态，待正常观察确认终点。viewport恢复、验证tab96关闭、用户页保留。纯布局不新增镜像单测／重复HTTP或PG，无数据／权限／DDL／依赖／外部上线变化；最终63333身份见Git与health。
