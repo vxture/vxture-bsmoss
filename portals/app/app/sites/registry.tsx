@@ -1,8 +1,9 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ActionMenu, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput,
-  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, ShellIconButton, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
+  ListCard, MetricListCard, NativeSelect, Pagination, Progress, SegmentedControl, StatusBadge, TableTitleCell, type DataTableColumn } from "@vxture/design-system";
 import type { RegistryDemo } from "../domains/site-registry/demo-store";
 import { DEFAULT_SITE_QUERY, siteDetailHref, siteListHref, type SiteQuery, type SiteRecord } from "../domains/site-registry/rules";
 import { n, operatorNames, pct, sceneNames, siteTypeNames, statusNames } from "./labels";
@@ -12,12 +13,41 @@ import "./sites.css";
 export default function SiteRegistry({ demo }: { demo: RegistryDemo }) {
   // Keep the workspace choice while query-specific search/row state resets.
   const [regionOpen, setRegionOpen] = useState(true);
-  return <RegistryContent key={JSON.stringify(demo.query)} demo={demo} regionOpen={regionOpen} onRegionToggle={() => setRegionOpen(value => !value)} />;
+  const keyboardCollapse = useRef(false);
+  return <>
+    <RegistryContent key={JSON.stringify(demo.query)} demo={demo} regionOpen={regionOpen} onRegionToggle={keyboard => {
+      keyboardCollapse.current = keyboard;
+      setRegionOpen(value => !value);
+    }} />
+    {!regionOpen && <RegionEdgeDock restoreFocus={keyboardCollapse.current} onOpen={() => setRegionOpen(true)} />}
+  </>;
+}
+function RegionEdgeDock({ restoreFocus, onOpen }: { restoreFocus: boolean; onOpen: () => void }) {
+  const [revealed, setRevealed] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const suppressInitialFocus = useRef(restoreFocus);
+  useEffect(() => { if (restoreFocus) button.current?.focus({ preventScroll: true }); }, [restoreFocus]);
+  // Body portal keeps the edge sensor outside the workspace's size container
+  // and clipping. Closing mounts the tucked state directly, without animation.
+  return createPortal(<div className="site-region-edge" data-revealed={revealed}
+    onPointerEnter={() => setRevealed(true)} onPointerLeave={() => setRevealed(false)}>
+    <Button ref={button} variant="ghost" size="icon-md" className="site-region-edge-trigger rounded-none rounded-r-sm border-0 bg-muted shadow-none hover:bg-accent"
+      aria-label={"\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={false} aria-controls="site-region-tree"
+      onFocus={() => { if (suppressInitialFocus.current) suppressInitialFocus.current = false; else setRevealed(true); }}
+      onBlur={() => setRevealed(false)} onClick={onOpen}>
+      <Icon name="chevron-right" size="sm" />
+    </Button>
+  </div>, document.body);
 }
 function RegistryContent({ demo, regionOpen, onRegionToggle }: {
-  demo: RegistryDemo; regionOpen: boolean; onRegionToggle: () => void;
+  demo: RegistryDemo; regionOpen: boolean; onRegionToggle: (keyboard: boolean) => void;
 }) {
   const router = useRouter(), q = demo.query;
+  const collapseButton = useRef<HTMLButtonElement>(null), previouslyOpen = useRef(regionOpen);
+  useEffect(() => {
+    if (regionOpen && !previouslyOpen.current) collapseButton.current?.focus({ preventScroll: true });
+    previouslyOpen.current = regionOpen;
+  }, [regionOpen]);
   const [pending, start] = useTransition(), [search, setSearch] = useState(q.search), [expanded, setExpanded] = useState<readonly string[]>([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
@@ -75,10 +105,10 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         </form>;
   return <div className="site-workspace site-registry-workspace flex h-full w-full min-w-0 flex-col text-body" data-sites-mode="demo" data-region-open={regionOpen} aria-busy={pending}>
     <div className="relative flex min-h-0 flex-1">
-      <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel hidden shrink-0 flex-col lg:flex " + (regionOpen ? "w-sidebar-expanded overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20" : "site-region-dock rounded-r-md border border-border bg-card/90 shadow-sm transition-transform duration-fast ease-standard motion-reduce:transition-none")}>
+      <aside id="site-region-panel" aria-label={"\u5730\u57df\u8d44\u6e90\u8303\u56f4"} className={"site-region-panel shrink-0 flex-col w-sidebar-expanded overflow-hidden rounded-md border border-primary/10 bg-card/68 dark:border-primary/20 " + (regionOpen ? "hidden lg:flex" : "hidden")}>
         <div className={"flex items-center gap-sm " + (regionOpen ? "border-b border-border p-md" : "")}>
           {regionOpen && <><span className="flex items-center gap-sm text-label font-semibold"><Icon name="building" size="sm" />{"\u9655\u897f\u00b7\u8d44\u6e90"}</span><span className="ml-auto text-body-small tabular-nums text-muted-foreground" aria-label={"\u5168\u7701\u8d44\u6e90\u603b\u6570"}>{n(demo.regions.cities.reduce((sum, c) => sum + c.count, 0))}</span></>}
-          <ShellIconButton icon="sidebar" className="site-region-toggle shrink-0" label={regionOpen ? "\u6536\u8d77\u5730\u57df\u9762\u677f" : "\u5c55\u5f00\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-tree" onClick={onRegionToggle} />
+          <Button ref={collapseButton} variant="ghost" size="icon-md" className="site-region-toggle shrink-0 text-muted-foreground hover:text-foreground" aria-label={"\u6536\u8d77\u5730\u57df\u9762\u677f"} aria-expanded={regionOpen} aria-controls="site-region-tree" onClick={event => onRegionToggle(event.detail === 0)}><Icon name="sidebar" size="sm" /></Button>
         </div>
         <div id="site-region-tree" hidden={!regionOpen} className="site-region-scroll min-h-0 flex-1 overflow-y-auto p-md" tabIndex={0} role="region" aria-label={"\u5730\u57df\u6811\u6eda\u52a8\u533a"}>
           <Accordion type="single" collapsible value={q.city === "all" ? "" : q.city} onValueChange={city => navigate({ city: city || "all", county: "all" })}>

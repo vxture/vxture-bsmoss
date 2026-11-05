@@ -39,3 +39,11 @@
 用户要求收起更彻底且位于上部，覆盖上一版垂直居中及常态可见图标。把手顶部改为工作区space-md，横向收进自身宽度减space-2xs，标准密度仅露出4px窄条；按钮常态opacity为0，hover／focus-within完整滑入并显示图标。按钮铺满把手，窄条支持直接点击，键盘聚焦及Enter展开保留。同一DOM节点、地域筛选及URL保持，绝对定位不参与正文分配。
 
 生产构建含类型通过tmp/site-region-slim-edge-build.log。浏览器确认1042正文1010等于工作区1010，窄条4px、top80、iconOpacity0，无页面横溢；直接点击及键盘展开成功，雁塔筛选及URL保留，warn/error空。证据artifacts/site-region-slim-edge-qa/idle.png；初次缩放截图存在过渡帧，已用稳定尺寸截图覆盖。viewport恢复、临时tab97关闭、用户页保留。纯外观不新增镜像单测或重复HTTP／PG，无数据／权限／DDL／依赖／外部上线变化，下一业务仍B01-04。
+
+## 浏览器边缘感应与直接收起（2026-11-05）
+
+用户指出工作区内贴边仍有16px距离、4px难以命中及多层外框复杂，并要求收起不要先显示完整按钮再缩回。本批覆盖前述容器内窄条策略：收起入口通过React body portal固定在浏览器视口left0；透明感应区从DS header-md底部至视口底部，宽space-md16px。鼠标贴左缘任何业务区高度即可唤出上方按钮，离开即直接缩回。常态仅露space-2xs4px、隐藏图标，展开为单个官方Button＋chevron-right，无感应区背景／边框／阴影，无嵌套按钮外壳。按钮top为header-md＋两份space-md，标准密度80px；正文不占宽。保留窄屏隐藏、官方焦点反馈和减少动态效果。
+
+收起入口独立于资源面板，关闭时直接挂载窄条状态，transition:none，不再继承面板按钮的focus-within触发完整展开。只有边缘唤出使用DS transition-duration-fast150ms，收起没有中间态。键盘关闭后焦点交给窄条且保持收起，Enter可重开并将焦点还给资源面板开关；同县筛选和URL保持。面板折叠及入口均使用官方Button，移除不支持MouseEvent参数的ShellIconButton封装调用。
+
+生产build含类型通过tmp/site-region-viewport-edge-build.log。浏览器1280／1042确认portal直属body、感应区left0／top48／width16、窄条right4／top80／40×48；1042正文1010等于工作区1010。点击关闭后立即revealed=false／translateX-36／transition0s，键盘亦同；鼠标在x1,y350贴边可唤出位于y80的按钮，终态left0／图标opacity1／无边框阴影。点击展开、键盘展开及切服务关系均保留雁塔参数／收起状态。390入口display:none且无横溢，warn/error空。截图artifacts/site-region-viewport-edge-qa/idle.png及revealed.png；viewport恢复、临时tab98关闭、用户页保留。纯交互布局不新增镜像单测或重复HTTP／PG，无业务数据／权限／依赖／DDL／外部上线变化。

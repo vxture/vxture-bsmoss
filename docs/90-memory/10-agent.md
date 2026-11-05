@@ -1238,3 +1238,9 @@ CUA1280／390无文档横溢，三类8／7／9明细、加项／排序／GiB单�
 用户要求收起不保留图标，仅窄条，且位置靠上。本批覆盖此前居中半隐藏策略：top使用space-md、横向平移自身宽减space-2xs，仅露4px；常态按钮透明，hover／focus-within完整滑入并显示图标，按钮铺满把手支持窄边点击。展开面板、同一按钮DOM、县级筛选及URL保持，正文零占宽。
 
 生产构建含类型tmp/site-region-slim-edge-build.log通过；CUA1042正文1010=工作区1010、窄条4px／top80／按钮opacity0，无横溢。窄条直接点击成功；键盘聚焦稳定后opacity1／translateX0，Enter展开成功，雁塔及URL保持，warn/error空。一次Tab定位未回到入口不计成功，按官方按钮聚焦重验；缩放过渡截图已由稳定截图覆盖。证据artifacts/site-region-slim-edge-qa/idle.png，viewport恢复、临时tab97关闭、用户页保留。实施810同步。纯外观不新增镜像单测／重复HTTP或PG，无数据／权限／DDL／依赖／外部上线变化，下一业务仍B01-04；最终63333身份见Git及health。
+
+## 浏览器边缘感应与收起无顿挫（2026-11-05）
+
+用户要求真正浏览器边界、鼠标贴边即可唤出、取消多层外壳，以及关闭不先显示完整按钮再缩回。本批覆盖容器内窄条：RegionEdgeDock通过body portal固定left0，DS header-md以下至视口底部、space-md16px透明感应区；常态按钮仅露4px且隐藏图标，贴边从上方滑出单个官方Button＋chevron-right，无外框／阴影／多重按钮。关闭直接挂载translateX-36／transition:none，无focus-within回弹；仅唤出用DS150ms。键盘关闭转交焦点但保持收起，Enter重开后焦点回面板开关。资源树hidden保留及URL／县筛选维持，窄屏入口隐藏，正文零占宽。
+
+生产构建含类型tmp/site-region-viewport-edge-build.log通过；首轮ShellIconButton的onClick契约不接受事件，已改官方Button并重建通过。CUA1280／1042 portal直属body、感应区left0/top48/宽16、按钮窄条right4/top80/40×48；1042正文1010=工作区1010。x1,y350贴边可唤出上方按钮，终态left0/icon1，透明感应层无背景／边框／阴影；关闭立即false/-36/0s，键盘关闭focused=true且仍false/-36/0s，Enter重开成功并保留雁塔URL。服务关系切换保持收起及县参数；390隐藏入口无横溢，warn/error空。截图artifacts/site-region-viewport-edge-qa含idle/revealed，viewport恢复、临时tab98关闭、用户页保留。实施810同步，纯UI不新增镜像测试或重复HTTP/PG；无数据／权限／依赖／DDL／外部上线变化，下一业务仍B01-04，最终63333身份见Git及health。
