@@ -22,7 +22,7 @@ export default function ProductAccount({ identity, loginEnabled, consoleHref }: 
     window.location.assign("/auth/login?returnTo=" + encodeURIComponent(returnTo) + (switchAccount ? "&switch=1" : ""));
   };
   return <>
-    <ShellUserMenu openLabel={"\u7528\u6237\u9762\u677f"} online={identity !== null}
+    <ShellUserMenu openLabel={"\u7528\u6237\u9762\u677f"} online={identity !== null} triggerClassName="size-control-xl"
       user={identity ? {
         displayName: identity.displayName, uniqueLine: identity.uniqueLine ?? undefined,
         avatarSrc: identity.picture ?? undefined, avatarAlt: identity.displayName,

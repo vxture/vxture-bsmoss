@@ -34,3 +34,11 @@
 验证发现刷新后主题CSS恢复但偏好context仍为服务端缺省，按钮与账户偏好显示不一致。根Providers首次挂载后以浏览器key重建官方ThemeProvider，继续由DS恢复已有偏好，无新增偏好键或全局token覆盖；再次验证深色刷新、浅色刷新与账户偏好一致。最终生产build含类型及32HTTP通过tmp/header-button-group-{build,http}.log；390／904／1280三档四按钮均24px／图标16px，组内4px／头像间16px，无文档横溢。消息开关、帮助_blank、配置跳转和账户面板检查通过，warn/error空；证据artifacts/header-button-group-qa。初次窄屏区域侵入组已修正，初次刷新主题不一致结果不计成功。
 
 用户随后明确更正尺寸：四按钮外轮廓及点击区域统一32×32px，内部图标保持16×16px。本次通过官方组件className应用DS size-control-xl，仅扩大控件盒，保留icon-md配方的sm图标，不使用会连带放大图标的尺寸配方。组内gap-2xs与组到头像gap-md保持；本节覆盖此前24px按钮结论。
+
+## Header非标签控件统一32px（2026-11-06）
+
+用户要求除区域/演示标签外，其余Header组件高度统一32px，特别是launcher。公共ProductLauncher从size-control-2xl改为size-control-xl，删除自定义lg图标子节点，沿官方ShellIconButton的sm图标16px；不再使用额外rounded-lg，采用同组按钮圆角。ProductAccount通过官方triggerClassName设置size-control-xl，品牌首页链接增加h-control-xl。四工具原本已经32/16，继续保持；品牌标识图形及头像内图形沿官方配方，不强制按操作icon缩放。区域选择和演示标签不改，Header外框48px不改。
+
+生产build含类型通过tmp/header-controls-32-build.log。本机浏览器1280/904/390三个实际宽度，所有非标签可交互控件高32、top8，launcher及四工具均32×32且svg16×16，品牌链接高32，头像触发器32×32。区域高24、演示标签沿原规格，文档宽与视口一致。手机配置launcher/用户面板及桌面业务launcher真实打开正常，展开态仍32/16；warn/error空，视口恢复、临时页关闭，证据artifacts/header-controls-32-qa含desktop/mobile/launcher和checks.json。纯尺寸调整不新增镜像测试或重复业务PG/HTTP；无权限/数据/依赖/DDL变化，提交/最终预览健康见对应检查点。
+
+本轮用户中途优先修正Header，P1来源契约/拉取编排仅完成现有能力盘点，没有连接真实来源或修改数据更新语义。后续仍沿实施950接续，不将本次尺寸修正计入P1功能完成。

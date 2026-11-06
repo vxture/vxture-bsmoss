@@ -30,7 +30,7 @@ export default function ProductChrome({ active, preview, children, identity, log
   return <ShellViewport sidebarMode="hidden" sidebar={null}
     header={<ShellHeader className="px-xs sm:px-lg" leading={<>
       <ProductLauncher active={active} preview={preview} regionSelection={scope.value} />
-      <a href={regionLink("/", scope.value)} className="flex shrink-0 items-center gap-xs no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
+      <a href={regionLink("/", scope.value)} className="flex h-control-xl shrink-0 items-center gap-xs no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
           <ShellProductTitle name={"\u89c2\u6f9c"} /></span>
         <span className="hidden truncate text-heading-2 font-semibold text-muted-foreground lg:block">{"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}</span>

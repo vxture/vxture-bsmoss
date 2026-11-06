@@ -1,5 +1,14 @@
 # 后续代理入口
 
+## Header非标签控件32px统一（2026-11-06，最新用户修正）
+
+用户在P1接续盘点途中要求先修正Header：区域/演示tag除外，其余控件高32，重点launcher。ProductLauncher从control-2xl改control-xl并删除lg子图标，官方sm为16；账户triggerClassName设control-xl；品牌首页链接h-control-xl。原四工具32/16保持，头像及品牌内部图形沿DS。未覆盖DS内部样式/token，未改全画布地图独立Header。
+
+生产build含类型tmp/header-controls-32-build.log通过。CUA1280/904/390全部非标签交互高32/top8，launcher与四工具32×32/svg16，头像触发32；区域24，文档无横溢，配置launcher/账户及业务launcher实际打开通过，warn/error空。证据artifacts/header-controls-32-qa，viewport恢复、临时tab关闭。纯尺寸不新增镜像单测或重复PG/HTTP；规格50/实施660同步，无依赖/DDL/数据/权限变化，无push或外部部署，最终SHA/健康见header-controls-32检查点。
+
+P1仅做了连接器/测量/完成账本及身份能力盘点，尚无本批数据链路实现：integration仍保留边界，真实来源字段样例/签认(D05)未提供，服务机器ingest尚未启用，不能自签完整或声称拉取上线。下一仍按950/设计243推进来源契约与可验证编排、共同版本/报告依赖；P1/B03-04保持in_progress，不重复已完成任务工作台。
+
+
 ## P1数据更新任务工作台（2026-11-06，最新执行）
 
 用户“继续下一步”，接续a43c52a。设计243/实施[950](../40-implementation/950-update-task-workspace.md)：配置域授权列表和真实进度、任务URL刷新/重开/返回恢复、可见页轮询、本页状态通知、输入复核重试与不确定时原命令、结果job精确跳转。完整scope先SQL过滤后分页并末次重验，失权清旧详情/通知。OIDC关闭保持门槛，业务更新面板仅补任务记录入口，不伪造任务或提前推进截至。无DDL/Prisma/依赖/权限分配变化，仍62表。
