@@ -1,5 +1,13 @@
 # 后续代理入口
 
+## P1来源拉取契约与只读准备（2026-11-06，最新执行）
+
+用户在launcher尺寸修正后“继续下一步”，接续5671ce7。设计244/实施[960](../40-implementation/960-source-pull-preparation.md)：integration不再只有占位，新增内部适配协议、固定快照/变化游标、72小时重叠与超窗迟到/修订、有界分页/取消、同截至修订、原量去重冲突与稳定摘要、完整范围反复验权。来源不能自批quality，准备数据pending；声明仅unverifiedCompletionClaim。没有生产调用方、DB/任务/游标写入，不发布可用版本；当前机器ingest仍拒绝。
+
+686全量单测（新增20项）、双层types通过；生产build及最终守卫/健康/SHA见960和artifacts/formal-checkpoints/source-pull-preparation.json。无UI/DDL/Prisma/依赖/权限分配变化，62表基线保持，不重复PG/浏览器验收。本批只读内存夹具不当真实来源验收，未push或外部部署。
+
+P1/B03-04/B03仍in_progress。下一优先受控持久接收：配置复核、原量/回执/游标一致提交与失败恢复，再现有后台派发、业务按需任务/跨页面通知、P2共同可用版本和报告依赖/B04。D05来源授权/字段原件/签认、快照/变化游标保证、机器ingest审阅/凭据和环境仍缺，不自签来源完整或声称上线。本段覆盖旧“integration仅占位”，其他依赖保持。
+
 ## Launcher图案恢复24px（2026-11-06，最新用户修正）
 
 用户明确launcher外轮廓保持32px、图案恢复原大小。共享ProductLauncher保留size-control-xl，官方Icon lg子节点恢复24px；四工具继续32/16，区域/演示tag与其他Header组件保持。覆盖下方launcher16px结论。
