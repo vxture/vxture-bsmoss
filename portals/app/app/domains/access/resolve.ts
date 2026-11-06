@@ -35,7 +35,7 @@ export interface LocalGrant {
   scope: MeasurementScope;
   expiresAt: number;
 }
-export type MeasurementOperation = "members_view" | "jurisdiction_view" | "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
+export type MeasurementOperation = "sources_view" | "configuration_audit_view" | "members_view" | "jurisdiction_view" | "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
 export type AccessPlane = "interactive" | "data";
 export interface AccessPorts {
   // These closures are wired by the server composition root, never by a request.
@@ -63,6 +63,8 @@ export interface MeasurementAccess {
   expiresAt: number;
 }
 const permissions = {
+  sources_view: "admin.sources.view",
+  configuration_audit_view: "admin.configuration_audit.view",
   members_view: "admin.members.view",
   jurisdiction_view: "admin.jurisdiction.view",
   view: "metering.view",

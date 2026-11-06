@@ -1,3 +1,5 @@
+import { sourceManagement } from "../management/source-service";
+import { PgSourceReader } from "../management/source-reader";
 import { managementService } from "../management/service";
 import { PgManagementReader } from "../management/pg-reader";
 import { getOidcConfig } from "../../auth/lib/config";
@@ -111,3 +113,5 @@ export function aggregatesForSession(rpsid: string) {
 export function managementForSession(rpsid: string) {
   return managementService(sessionAccessPorts(rpsid), { create: scope => new PgManagementReader(getPool(), scope) });
 }
+
+export function sourceManagementForSession(rpsid:string){return sourceManagement(sessionAccessPorts(rpsid),{create:scope=>new PgSourceReader(getPool(),scope)});}

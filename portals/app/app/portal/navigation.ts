@@ -1,4 +1,4 @@
-export type PortalPage = "site-classifications" | "analysis-rules" | "members" | "jurisdiction" | "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "source-configurations" | "configuration-audit" | "site-classifications" | "analysis-rules" | "members" | "jurisdiction" | "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -7,7 +7,7 @@ export interface BusinessModule {
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["site-classifications", "analysis-rules", "members", "jurisdiction", "metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
+  return ["source-configurations", "configuration-audit", "site-classifications", "analysis-rules", "members", "jurisdiction", "metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
@@ -34,6 +34,8 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "site-classifications", label: "\u7ad9\u5740\u5206\u7c7b", href: "/settings/classifications", group: "management" },
     { id: "analysis-rules", label: "\u5206\u6790\u89c4\u5219", href: "/settings/rules", group: "management" },
     { id: "metric-catalog", label: "\u6307\u6807\u5b57\u5178", href: "/settings/metrics", group: "management" },
+    { id: "source-configurations", label: "\u6765\u6e90\u914d\u7f6e", href: "/settings/sources", group: "management" },
+    { id: "configuration-audit", label: "\u914d\u7f6e\u5ba1\u8ba1", href: "/settings/audit", group: "management" },
     { id: "templates", label: "\u6a21\u677f\u914d\u7f6e", href: "/settings/templates", group: "management" },
   ];
   return entries.filter(entry => entry.group === domain);

@@ -27,6 +27,16 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('source configuration and audit keep independent session gates and expose no writes',async()=>{
+      for(const path of ['/api/management/source-configurations','/api/management/source-configurations/untrusted','/api/management/configuration-audit','/api/management/configuration-audit/untrusted?revision=1']) {
+        const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.ok(r.headers.get('vary').includes('Cookie'));assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+        assert.equal((await fetch(url+path,{method:'POST',body:'{}'})).status,405);
+      }
+      for(const [path,title] of [['/settings/sources','\u6765\u6e90\u914d\u7f6e'],['/settings/audit','\u914d\u7f6e\u5ba1\u8ba1']]){
+        const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();const h1=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];assert.equal(h1.length,1);assert.ok(h1[0].includes(title));assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('QA Source'));assert.ok(!html.includes('>\u65b0\u589e<'));
+      }
+      const settings=await(await fetch(url+'/settings')).text();for(const path of ['/settings/sources','/settings/audit'])assert.ok(settings.includes('href="'+path+'"'));
+    });
     await t.test('management is session-gated and read-only with private responses',async()=>{
       for(const path of ['/api/management/members','/api/management/jurisdiction','/api/management/members/99000000-0000-0000-0000-000000000002']){
         const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');assert.ok(r.headers.get('vary').includes('Cookie'));

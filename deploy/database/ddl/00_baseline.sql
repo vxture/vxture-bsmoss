@@ -1837,4 +1837,6 @@ GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_intake_task(text,text) TO bsmo
 -- Read-only product management. No automatic role assignment or owner bypass.
 INSERT INTO local_authz.permission(perm_code,name) VALUES
  ('admin.members.view','Inspect fully scoped product member grants'),
- ('admin.jurisdiction.view','Inspect authorized station jurisdiction');
+ ('admin.jurisdiction.view','Inspect authorized station jurisdiction'),
+ ('admin.sources.view','Inspect fully scoped source registration'),
+ ('admin.configuration_audit.view','Inspect fully scoped source configuration revisions');

@@ -1,5 +1,13 @@
 # 后续代理入口
 
+## 配置管理来源配置与配置审计（2026-11-06，最新执行）
+
+设计253／实施[996](../40-implementation/996-source-management.md)：官方DS管理侧栏／总览／launcher增加来源配置、配置审计。真实RP四个GET只读接口，当前head与逐版本历史、检索／状态／keyset分页／完整五维详情；独立admin.sources.view与admin.configuration_audit.view，owner无绕过、机器拒绝。完整scope在LIMIT前过滤，只读可重复读快照、lookahead摘要校验、空页／缺失也末次验权；历史游标保留微秒和numeric字符串版本。客户端取消过时请求，详情失权清整页和Drawer。登记启用不等于连接正常，数据库主体不冒充审批人，覆盖起点不称数据截至；审计仅覆盖来源配置版本。
+
+717全量单测、441实际PG、57HTTP、双层types／最终build通过。67表／Prisma不变，空库baseline仅2权限种子无角色赋权，DDL只在随机专用本机合同库。正式三页三宽9组与独立loopback合成组件两页三宽6组，手机详情、检索／分页／空态／403／503／迟到响应和导航通过；warn/error空，临时18／19关闭、viewport恢复。首次PG夹具漏列名已修全套重跑。证据artifacts/source-management-qa，最终SHA／健康见formal-checkpoints/source-management.json。
+
+下一受审来源配置治理与对象映射，先核对授权原件／字段、变更依据／版本、映射校验和连接测试契约；当前只读不计完整治理。组织主档／授权写入、规则回放签认／发布、其他配置审计仍待。原P1接收工作台／分阶段消息／重新基准／按需接收、P2共同版本／报告依赖及真实来源／平台环境／Beta容量恢复／UAT／生产批准依赖保持。接收执行／数据更新留业务，不推进截至，无push／外部部署／上线、新聊天或自动任务。
+
 ## 配置管理站址分类与分析规则（2026-11-06，最新执行）
 
 设计252／实施[995](../40-implementation/995-business-parameters.md)：官方DS管理侧栏业务参数组补齐站址分类、分析规则，和指标字典／模板配置共组；管理总览与launcher同源。11项分类、9项规则只读目录，多词AND检索、维度／领域筛选、EmptyState与详情Drawer，保留口径、版本、使用边界；无租户记录或写API。业务更新仍在业务域，全局地域仅保留偏好。
