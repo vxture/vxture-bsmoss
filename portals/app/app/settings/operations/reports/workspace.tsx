@@ -1,5 +1,5 @@
 "use client";
-import { Button, Icon, SectionHeader } from "@vxture/design-system";
+import { ShellPageContainer, Button, Icon, SectionHeader } from "@vxture/design-system";
 import PageHeading from "../../../portal/page-heading";
 import { useEffect, useState } from "react";
 import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../../domains/supervision/report-jobs";
@@ -50,7 +50,7 @@ export default function ReportJobsWorkspace() {
   }, [kind, status, cursor, epoch]);
   function clear() { setCursor(null); setPages([]); setSelected(null); }
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <div className="flex min-w-0 flex-col gap-lg product-page-inset">
+  return <ShellPageContainer className="gap-lg">
     <PageHeading title={"\u62a5\u544a\u4efb\u52a1"} description={"\u62a5\u544a\u751f\u6210\u3001\u5bfc\u51fa\u4e0e\u6267\u884c\u8ffd\u8e2a"}
       actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
     <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"}>
@@ -64,5 +64,5 @@ export default function ReportJobsWorkspace() {
       <span>{label(j.grain)}{" \u00b7 "}{label(j.readiness)}</span><small>{reportTime(j.period.start)}{" \u00b7 "}{j.attempt}{"/"}{j.maxAttempts}</small><code>{j.id}</code></button>)}</div>
     <nav className="reports-row" aria-label={"\u4efb\u52a1\u5206\u9875"}><button disabled={loading || !pages.length} onClick={() => { setCursor(pages.at(-1)!); setPages(p => p.slice(0, -1)); }}>{"\u4e0a\u4e00\u9875"}</button><small>{pages.length + 1}</small>
       <button disabled={loading || !page?.next} onClick={() => { setPages(p => [...p, cursor]); setCursor(page!.next); }}>{"\u4e0b\u4e00\u9875"}</button></nav>
-  </aside>{selected ? <Inspection key={kind + selected} id={selected} kind={kind} epoch={epoch} refresh={refresh} onChoose={setSelected} /> : <section className="reports-empty"><span className="reports-eyebrow">REPORT OPERATIONS</span><h2>{"\u8ffd\u6eaf\u6bcf\u6b21\u751f\u6210\u548c\u5bfc\u51fa"}</h2><p>{"\u9009\u62e9\u4efb\u52a1\uff0c\u67e5\u770b\u767b\u8bb0\u7248\u672c\u3001\u6267\u884c\u8bb0\u5f55\u548c\u62a5\u544a\u7ed3\u679c\u3002"}</p></section>}</div></div>;
+  </aside>{selected ? <Inspection key={kind + selected} id={selected} kind={kind} epoch={epoch} refresh={refresh} onChoose={setSelected} /> : <section className="reports-empty"><span className="reports-eyebrow">REPORT OPERATIONS</span><h2>{"\u8ffd\u6eaf\u6bcf\u6b21\u751f\u6210\u548c\u5bfc\u51fa"}</h2><p>{"\u9009\u62e9\u4efb\u52a1\uff0c\u67e5\u770b\u767b\u8bb0\u7248\u672c\u3001\u6267\u884c\u8bb0\u5f55\u548c\u62a5\u544a\u7ed3\u679c\u3002"}</p></section>}</div></ShellPageContainer>;
 }

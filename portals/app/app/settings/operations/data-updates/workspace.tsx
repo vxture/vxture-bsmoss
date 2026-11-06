@@ -92,7 +92,7 @@ export default function UpdateTasksWorkspace() {
     return () => c.abort();
   }, [epoch, cursor]);
   function choose(id: string) { window.history.pushState(null, "", taskHref(id)); setSelected(id); setInvalid(false); }
-  return <ShellPageContainer className="product-page-inset gap-lg">
+  return <ShellPageContainer className="gap-lg">
     <PageHeading title={"\u6570\u636e\u66f4\u65b0\u4efb\u52a1"} description={"\u589e\u91cf\u5904\u7406\u3001\u6267\u884c\u8fdb\u5ea6\u4e0e\u5931\u8d25\u6062\u590d"} actions={<Button variant="outline" onClick={() => { setCursor(null); setPrevious([]); setEpoch(n => n + 1); }}><Icon name="refresh" size="sm" />{"\u67e5\u8be2\u6700\u65b0\u72b6\u6001"}</Button>} />
     {invalid && <p role="alert" className="text-body-small text-destructive">{"\u4efb\u52a1\u94fe\u63a5\u65e0\u6548\uff0c\u8bf7\u4ece\u5217\u8868\u9009\u62e9\u3002"}</p>}
     <div className="grid min-w-0 items-start gap-lg xl:grid-cols-3"><div className="min-w-0"><PanelCard title={"\u4efb\u52a1\u8bb0\u5f55"} icon="list-checks"><div className="flex min-w-0 flex-col gap-md" aria-busy={loading}>

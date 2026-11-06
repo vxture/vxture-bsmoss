@@ -105,7 +105,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const home=await (await fetch(url)).text();
       for(const managementPath of ['/settings/templates','/settings/operations/aggregation','/settings/operations/reports']) assert.ok(!home.includes('href="'+managementPath+'"'));
       assert.ok(home.includes('href="/settings"'));
-      const settings=await (await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/"'));assert.ok(!settings.includes('href="/analysis"'));
+      const settings=await (await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/?city=all&amp;county=all"'));assert.ok(!settings.includes('href="/analysis"'));
     });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);

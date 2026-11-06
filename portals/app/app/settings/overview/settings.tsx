@@ -19,7 +19,7 @@ export default function OverviewDisplaySettings() {
     if (target < 0 || target >= items.length) return;
     [items[index], items[target]] = [items[target], items[index]]; update(category, items);
   };
-  return <ShellPageContainer className="product-page-inset max-w-none"><div className="flex min-w-0 flex-col gap-lg" data-overview-display-settings>
+  return <ShellPageContainer><div className="flex min-w-0 flex-col gap-lg" data-overview-display-settings>
     <PageHeading title={"\u8fd0\u884c\u603b\u89c8\u663e\u793a"} description={"\u6307\u6807\u9009\u62e9\u3001\u6392\u5e8f\u4e0e\u5355\u4f4d\u914d\u7f6e"}
       secondary={<StatusBadge size="sm" tone={dirty ? "warning" : "neutral"}>{dirty ? "\u6709\u672a\u4fdd\u5b58\u4fee\u6539" : "\u5f53\u524d\u5e03\u5c40"}</StatusBadge>}
       context={<span>{"\u6bcf\u7c7b2\u20134\u9879 \u00b7 \u4ec5\u5f71\u54cd\u5f53\u524d\u6d4f\u89c8\u5668\u7684\u9996\u9875\u5c55\u793a"}</span>}

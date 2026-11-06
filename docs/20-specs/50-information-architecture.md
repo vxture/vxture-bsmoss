@@ -1,5 +1,7 @@
 # BS-MOSS 门户信息结构 V0.8
 
+2026-11-06配置管理导航补充：管理域直接采用发布 DS ShellViewport / ShellSidebarFrame / ShellSidebarNav 标准侧栏，不套业务浮动留白外壳；移动端用官方 Drawer 承载同一导航。管理首页、总览显示、指标模板及三个任务页面统一官方 ShellPageContainer。右侧齿轮为入口，业务域布局与全局地域记忆保持；导航可见不授予权限。详见[设计249](../30-design/design_bsmoss_249_management-ds-navigation.md)。
+
 2026-11-05经营分析补充：原`/analysis`入口在显式合成适配中提升为“经营分析”工作台，区域—站址—运营商分层与年度范围见[设计236](../30-design/design_bsmoss_236_business-history.md)。保留三个通用模块、五类十专业模块外层结构，运营商用量及报告能力逐批贯通，不另增重复模块。正式OIDC工作区与API访问边界保留。
 
 2026-11-03：从门户首页重新组织完整产品。地图为独立空间分析工作台，不再替代产品首页。下表为目标功能结构；各项实际完成程度见后文，不表示所有页面均已实现。

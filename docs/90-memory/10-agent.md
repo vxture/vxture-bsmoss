@@ -1,5 +1,13 @@
 # 后续代理入口
 
+## 配置管理官方 DS 导航与布局（2026-11-06，最新执行）
+
+用户要求优先优化配置管理并明确“重试，应用DS系统的导航组件”。设计249／实施992：按本地平台ConsoleAppShell同源组合，ProductChrome管理域直接使用ShellViewport内置ShellSidebarFrame承载ShellSidebarNav，移除ProductWorkspace里的重复浮动边框壳；业务原布局保持。管理导航分配置／任务、底部返回业务，Next Link／精确选中，布尔收起偏好存浏览器。移动端官方Drawer承载同一导航，选择／关闭／Escape可退出；齿轮仍32／16且标识当前位置。管理首页分组EntryCard＋官方外观偏好，所有配置子页及门槛页用ShellPageContainer；全局地域／品牌／系统名保持。
+
+最终build含类型通过tmp/management-ds-build-final.log，两项导航规则、54HTTP及190文档编号通过。首轮HTTP裸返回路径断言已更新为保留地域；CUA首轮移动端水合前检查作废，最终18组等待可见导航后无文档／正文横溢、每页唯一H1、桌面选中正确。256／64px侧栏切页／刷新记忆，移动抽屉跳转与Escape、业务齿轮及返回运行总览、浅深主题恢复通过，warn/error空。截图／checks在artifacts/management-ds-navigation-qa；viewport恢复、临时13／12关闭。任务页面验证既有门槛，未伪造正式工作台数据。最终SHA与63333健康收尾记录。
+
+本批无权限／依赖／数据／DDL变化，无push／外部部署／上线／新聊天／自动任务。原P1接收任务工作台／Header分阶段消息、受审重新基准与按需接收仍待后续，不能把本次导航重构计为完成这些业务能力；真实来源／平台环境／UAT依赖保持。
+
 ## P1接收任务受审终止与查看接口（2026-11-06，最新执行）
 
 设计248/实施[991](../40-implementation/991-intake-reviewed-disposition.md)：受审terminate追加历史，固定任务版本/命令/依据/真实主体，原完整scope的job_recover用户可处置失败/有效或过期启动/第五次上限/配置暂停或变更；与成功/恢复串行，旧执行不能再提交，不承诺远端请求立即停止。历史/回执/旧位置保留，新配置仍需受审重新基准。独立list/read同PG快照、完整原scope过滤后LIMIT、微秒分页及lookahead并集/空页最终重验。正式RP仅三个查看/终止API及无adapter监督组合，不暴露创建/run/recover，不扩大机器权限。67表/Prisma标量不变，空库DDL补终止转移和索引，只应用随机专用本机合同库。最终验证/SHA/健康见991及artifacts/formal-checkpoints/intake-disposition.json。

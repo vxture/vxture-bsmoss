@@ -1,5 +1,5 @@
 "use client";
-import { Button, Input } from "@vxture/design-system";
+import { ShellPageContainer, Button, Input } from "@vxture/design-system";
 import PageHeading from "../../portal/page-heading";
 import { useRef, useState } from "react";
 import type { TemplateCandidate, TemplatePreview, TemplateRead, TemplatePublicationCommand, TemplateSelectionCommand } from "../../domains/views/templates";
@@ -76,7 +76,7 @@ export default function TemplateWorkspace() {
       templateVersion: loaded.template.version, templateSha256: loaded.template.sha256, validationSha256: preview.validationSha256, expected: loaded.selection, reviewRef: review } });
   }
   const unchanged = loaded?.template && candidate && JSON.stringify(loaded.template.candidate) === JSON.stringify(candidate);
-  return <div className="templates-workspace product-page-inset"><PageHeading title={text.title} description={text.intro} toolbar={<section className="templates-reader py-0"><label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.code}<Input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
+  return <ShellPageContainer className="templates-workspace"><PageHeading title={text.title} description={text.intro} toolbar={<section className="templates-reader py-0"><label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.code}<Input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
       <label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.version}<Input value={version} disabled={locked} inputMode="numeric" onChange={e => { setVersion(e.target.value); setLoaded(null); clearValidation(); }} /></label>
       <Button variant="outline" size="md" disabled={locked || !code} onClick={() => void load()}>{text.load}</Button></section>} />
     {loaded && <div className="templates-current">{loaded.template && <p><b>{loaded.template.code} v{loaded.template.version}</b> / {loaded.template.publishedBy} / {reportTime(loaded.template.publishedAt)}</p>}
@@ -101,5 +101,5 @@ export default function TemplateWorkspace() {
             <button disabled={locked || !review.trim() || !unchanged || candidate.kind !== "page"} onClick={select}>{text.select}</button></div>
         </>}
       </section></div>
-  </div>;
+  </ShellPageContainer>;
 }
