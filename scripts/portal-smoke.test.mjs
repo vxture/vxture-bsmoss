@@ -27,6 +27,12 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('source preflight has a real session gate and POST preview only',async()=>{
+      const path='/api/management/source-configurations/untrusted/preflight';
+      const r=await fetch(url+path,{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});
+      assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.ok(r.headers.get('vary').includes('Cookie'));assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+      for(const method of ['GET','PUT','DELETE'])assert.equal((await fetch(url+path,{method})).status,405);
+    });
     await t.test('mapping preflight is session gated POST only and never an update endpoint',async()=>{
       const path='/api/management/object-mappings/untrusted/preflight';
       const r=await fetch(url+path,{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});

@@ -8,10 +8,10 @@ export interface SourceReader {
  list(query:SourceQuery,audit:boolean):Promise<ManagementPage<SourceSummary>>;
  read(id:string,revision?:string):Promise<SourceRecord|null>;
 }
-const select=`SELECT b.*,b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS valid,
+export const sourceSelect=`SELECT b.*,b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS valid,
  to_char(b.recorded_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') recorded_cursor FROM bsmoss_integration.source_binding_revision b`;
 // Exact full-scope containment before LIMIT, never any-overlap visibility.
-const scopeWhere=`b.workspace_id=$1 AND b.binding->'scope'->>'workspaceId'=$1
+export const sourceScopeWhere=`b.workspace_id=$1 AND b.binding->'scope'->>'workspaceId'=$1
  AND b.binding->'scope' ?& ARRAY['workspaceId','sourceIds','stationIds','serviceIds','deviceIds','metricKeys','allowSiteParameters']
  AND (b.binding->'scope')-ARRAY['workspaceId','sourceIds','stationIds','serviceIds','deviceIds','metricKeys','allowSiteParameters']='{}'::jsonb
  AND jsonb_typeof(b.binding->'scope'->'sourceIds')='array' AND jsonb_typeof(b.binding->'scope'->'stationIds')='array'
@@ -24,7 +24,7 @@ export class PgSourceReader implements SourceReader {
  private async snapshot<T>(read:(c:PoolClient)=>Promise<T>){const c=await this.pool.connect();try{await c.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");const result=await read(c);await c.query("COMMIT");return result;}catch(e){await c.query("ROLLBACK").catch(()=>{});throw e;}finally{c.release();}}
  list(q:SourceQuery,audit:boolean){return this.snapshot(async c=>{
   const cursor=audit&&q.after?decodeAuditCursor(q.after):null;
-  const rows=(await c.query(select+(audit?"":" JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision)")+` WHERE ${scopeWhere}
+  const rows=(await c.query(sourceSelect+(audit?"":" JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision)")+` WHERE ${sourceScopeWhere}
    AND ($3::text='all' OR b.status=$3) AND ($4::text='' OR strpos(lower(b.id||' '||b.source_id||' '||(b.binding->>'adapterVersion')||' '||(b.binding->>'transformVersion')),lower($4))>0)
    AND `+(audit?`($5::timestamptz IS NULL OR b.recorded_at<$5 OR b.recorded_at=$5 AND (b.id COLLATE "C"<$6 COLLATE "C" OR b.id=$6 AND b.revision<$7::numeric)) ORDER BY b.recorded_at DESC,b.id COLLATE "C" DESC,b.revision DESC LIMIT $8`:`($5::text IS NULL OR b.id COLLATE "C">$5 COLLATE "C") ORDER BY b.id COLLATE "C" LIMIT $6`),
    audit?[this.workspaceId,this.scope,q.status,q.search,cursor?.at??null,cursor?.id??null,cursor?.revision??null,q.limit+1]:[this.workspaceId,this.scope,q.status,q.search,q.after??null,q.limit+1])).rows;
@@ -32,7 +32,7 @@ export class PgSourceReader implements SourceReader {
   return {items:records.slice(0,q.limit).map(sourceSummary),next:records.length>q.limit?(audit?encodeAuditCursor({at:last.recordedAt,id:last.id,revision:last.revision}):last.id):null,capturedAt:new Date((await c.query("SELECT CURRENT_TIMESTAMP at")).rows[0].at).toISOString()};
  });}
  read(id:string,revision?:string){return this.snapshot(async c=>{
-  const rows=(await c.query(select+(revision===undefined?" JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision)":"")+` WHERE ${scopeWhere} AND b.id=$3`+(revision===undefined?"":" AND b.revision=$4::numeric"),revision===undefined?[this.workspaceId,this.scope,id]:[this.workspaceId,this.scope,id,revision])).rows;
+  const rows=(await c.query(sourceSelect+(revision===undefined?" JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision)":"")+` WHERE ${sourceScopeWhere} AND b.id=$3`+(revision===undefined?"":" AND b.revision=$4::numeric"),revision===undefined?[this.workspaceId,this.scope,id]:[this.workspaceId,this.scope,id,revision])).rows;
   return rows[0]?sourceRecord(rows[0],this.scope):null;
  });}
 }

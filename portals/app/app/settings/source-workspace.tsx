@@ -2,6 +2,7 @@
 import { useEffect,useRef,useState } from "react";
 import { Button,DataTable,Drawer,EmptyState,Icon,InputGroup,InputGroupAddon,InputGroupInput,NativeSelect,PanelCard,ShellPageContainer,StatusBadge } from "@vxture/design-system";
 import PageHeading from "../portal/page-heading";
+import SourcePreflightForm from "./source-preflight";
 import type { ManagementPage } from "../domains/management/rules";
 import type { SourceRecord,SourceSummary } from "../domains/management/source-rules";
 const denied="\u5f53\u524d\u8d26\u53f7\u65e0\u67e5\u770b\u6743\u9650\u6216\u4f1a\u8bdd\u5df2\u5931\u6548\uff0c\u8bf7\u91cd\u65b0\u767b\u5f55\u6216\u8054\u7cfb\u7ba1\u7406\u5458\u3002";
@@ -39,14 +40,15 @@ export default function SourceWorkspace({audit=false}:{audit?:boolean}){
   ]}/></div>
   <nav aria-label={"\u914d\u7f6e\u76ee\u5f55\u5206\u9875"} className="flex flex-wrap items-center justify-between gap-lg"><span className="text-body-small text-muted-foreground">{audit?"\u6309\u767b\u8bb0\u65f6\u95f4\u5012\u5e8f \u00b7 \u6bcf\u987520\u9879":"\u5f53\u524d\u767b\u8bb0\u7248\u672c \u00b7 \u6bcf\u987520\u9879"}</span><div className="flex items-center gap-md"><Button variant="outline" disabled={!cursors.length||read.busy} onClick={()=>{setSelected(null);setCursors(v=>v.slice(0,-1));}}>{"\u4e0a\u4e00\u9875"}</Button><Button variant="outline" disabled={!read.data?.next||read.busy} onClick={()=>{if(read.data?.next){setSelected(null);setCursors(v=>[...v,read.data!.next!]);}}}>{"\u4e0b\u4e00\u9875"}</Button></div></nav>
   <Drawer open={!!selected&&!!read.data} onClose={()=>setSelected(null)} title={audit?"\u914d\u7f6e\u7248\u672c":"\u6765\u6e90\u8be6\u60c5"} side="right" width="lg" className="max-w-full" closeLabel={"\u5173\u95ed\u8be6\u60c5"}>
-   {detail.error&&<p role="alert" className="text-body-small text-danger-text">{detail.error}</p>}{detail.busy&&<p role="status" className="text-body-small text-muted-foreground">{"\u6b63\u5728\u8bfb\u53d6\u914d\u7f6e\u8be6\u60c5"}</p>}{detail.data&&<SourceDetail record={detail.data}/>}</Drawer>
+   {detail.error&&<p role="alert" className="text-body-small text-danger-text">{detail.error}</p>}{detail.busy&&<p role="status" className="text-body-small text-muted-foreground">{"\u6b63\u5728\u8bfb\u53d6\u914d\u7f6e\u8be6\u60c5"}</p>}{detail.data&&<SourceDetail record={detail.data} audit={audit} onForbidden={()=>{setSelected(null);read.invalidate();}}/>}</Drawer>
  </ShellPageContainer>;
 }
-function SourceDetail({record:r}:{record:SourceRecord}){
+function SourceDetail({record:r,audit,onForbidden}:{record:SourceRecord;audit:boolean;onForbidden():void}){
  const facts=[["\u914d\u7f6e\u6807\u8bc6",r.id],["\u6765\u6e90\u6807\u8bc6",r.sourceId],["\u767b\u8bb0\u7248\u672c","v"+r.revision],["\u767b\u8bb0\u72b6\u6001",r.status==="active"?"\u767b\u8bb0\u542f\u7528":"\u767b\u8bb0\u6682\u505c"],["\u9002\u914d\u7248\u672c",r.adapterVersion],["\u8f6c\u6362\u6620\u5c04\u7248\u672c",r.transformVersion],["\u8986\u76d6\u8d77\u70b9",time(r.binding.coverageStart)],["\u767b\u8bb0\u65f6\u95f4",time(r.recordedAt)],["\u767b\u8bb0\u4f9d\u636e",r.reviewRef],["\u6570\u636e\u5e93\u8bb0\u5f55\u4e3b\u4f53",r.databaseActor],["\u914d\u7f6e\u6458\u8981 SHA-256",r.digest]];
  const dimensions:[string,readonly string[]][]=[["\u6765\u6e90",r.binding.scope.sourceIds],["\u7ad9\u5740",r.binding.scope.stationIds],["\u670d\u52a1",r.binding.scope.serviceIds],["\u8bbe\u5907",r.binding.scope.deviceIds],["\u6307\u6807",r.binding.scope.metricKeys]];
  return <div className="flex min-w-0 flex-col gap-xl"><dl className="grid min-w-0 gap-lg sm:grid-cols-2">{facts.map(([label,value])=><div key={label} className="min-w-0"><dt className="text-body-small text-muted-foreground">{label}</dt><dd className="break-all text-body">{value}</dd></div>)}</dl>
   <section className="flex flex-col gap-lg border-t border-dashed border-border pt-lg"><h3 className="text-label font-medium">{"\u5b8c\u6574\u914d\u7f6e\u8303\u56f4"}</h3>{dimensions.map(([label,ids])=><details key={label}><summary className="cursor-pointer text-body">{label+" \u00b7 "+ids.length}</summary><ul className="mt-sm flex flex-col gap-xs">{ids.map(id=><li key={id} className="break-all text-body-small text-muted-foreground">{id}</li>)}</ul></details>)}<p className="text-body-small">{"\u7269\u7406\u7ad9\u5740\u53c2\u6570\uff1a"+(r.binding.scope.allowSiteParameters?"\u5141\u8bb8":"\u672a\u6388\u6743")}</p></section>
+  {!audit&&<SourcePreflightForm key={r.id+":"+r.revision+":"+r.digest} record={r} onForbidden={onForbidden}/> }
   <p className="text-body-small text-muted-foreground">{"\u672c\u9875\u4e3a\u5df2\u767b\u8bb0\u914d\u7f6e\u7684\u53ea\u8bfb\u8bb0\u5f55\u3002\u8986\u76d6\u8d77\u70b9\u4e0d\u4ee3\u8868\u5df2\u63a5\u6536\u622a\u81f3\uff1b\u767b\u8bb0\u4f9d\u636e\u9700\u5355\u72ec\u6838\u5bf9\u539f\u4ef6\u4e0e\u4e1a\u52a1\u7b7e\u8ba4\u3002"}</p>
  </div>;
 }
