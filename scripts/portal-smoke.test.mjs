@@ -143,6 +143,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test('historical cross-domain and reports are gated without weakening formal endpoints',async()=>{
       for(const path of ['/analysis/report','/api/product-preview/history-report'])assert.equal((await fetch(url+path)).status,404);
       for(const path of ['/capacity?history=1','/efficiency?history=1'])assert.ok(!(await (await fetch(url+path)).text()).includes('data-history-context'));
+      assert.ok(!(await(await fetch(url+'/capacity')).text()).includes('data-capacity-contributions'));
     });
     await t.test('cohort and operator analysis fail closed with preview disabled',async()=>{
       for(const view of ['operators','cohorts']) {
@@ -157,6 +158,15 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('capacity contributions retain exact scope, source, independent mode and formal boundary',async()=>{
+      const html=await(await fetch(url+'/capacity?city=610100&county=610113&operator=telecom&hour=20&search=SX-DEMO-001')).text();
+      for(const text of ['data-capacity-contributions','bsmoss-capacity-contributions-v1','\u672a\u63a5\u901a\u8d21\u732e','\u98ce\u9669\u7ed3\u6784\u4e0e\u8986\u76d6','\u91cd\u70b9\u7ad9\u5740\u8bc1\u636e','2026-10-25 20:00','SX-DEMO-001'])assert.ok(html.includes(text),text);
+      assert.ok(!html.includes('role="alert"'));assert.ok(!html.includes('<canvas'));assert.ok(html.includes('target="_blank"'));
+      const empty=await(await fetch(url+'/capacity?search=not-found')).text();assert.ok(empty.includes('data-capacity-contributions'));assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
+      const invalid=await(await fetch(url+'/capacity?capacity=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-capacity-contributions'));
+      const history=await(await fetch(url+'/capacity?history=1&site=SX-DEMO-001')).text();assert.ok(history.includes('data-history-context'));assert.ok(!history.includes('data-capacity-contributions'));
+      assert.equal((await fetch(url+'/api/measurements')).status,401);
+    });
     await t.test('resource relationships separate equipment unknowns, observation time and unverified validity',async()=>{
       for(const tab of ['resources','services']){
         const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&operator=telecom&hour=12');assert.equal(response.status,200);

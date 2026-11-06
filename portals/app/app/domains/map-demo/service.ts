@@ -37,7 +37,7 @@ export function parseMapQuery(params: URLSearchParams): MapQuery {
   return {regionId,cityId,countyId,operator:operator as OperatorFilter,hour,bbox,selection,search,...(topic?{topic}:{})};
 }
 
-function selectSites(query:MapQuery) {
+export function selectSites(query:MapQuery) {
   return DEMO_SITES.filter(s=>s.regionId===query.regionId&&(query.cityId==='all'||s.cityId===query.cityId)&&(query.countyId==='all'||s.countyId===query.countyId)
     &&(!query.selection||inSelection(s.lng,s.lat,query.selection))&&(query.operator==='all'||s.operators.includes(query.operator))&&(!query.search||s.name.includes(query.search)||s.id.toLowerCase().includes(query.search.toLowerCase())));
 }
