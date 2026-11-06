@@ -1,6 +1,12 @@
 # Empty database initialization
 
-Current baseline: 62 tables. data_update_request records immutable handles over
+Current baseline: 65 tables. source_binding_revision/source_binding_head record
+reviewed source configuration; runtime can only read and hold a fixed shared
+head lock. source_intake_receipt is append-only, committing received-input
+position together with raw facts, pending quality and input changes. It is not
+a source completeness attestation or an analysis availability publication.
+Only the internal intake coordinator is implemented; no live adapter or machine
+ingest entitlement is enabled. data_update_request records immutable handles over
 already-received evidence for reviewed partitions; existing dispatch/result
 workers continue independently. It is not an upstream connector or a published
 availability watermark. Runtime request INSERT/SELECT and append-only column

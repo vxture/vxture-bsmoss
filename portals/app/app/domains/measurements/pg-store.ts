@@ -41,14 +41,25 @@ export class PgMeasurementStore implements MeasurementStore {
     if (!this.stationIds.includes(stationId) || sourceId !== undefined && !this.sourceIds.includes(sourceId)) throw new Error("scope_denied");
   }
   async append(input: MeasurementDraft) {
+    // Snapshot before acquiring the connection, as in the standalone path.
+    const draft = normalizeDraft(input,this.registry);
+    const client=await this.pool.connect(); let discard=false;
+    try {
+      await client.query("BEGIN ISOLATION LEVEL READ COMMITTED");
+      const result=await this.appendInTransaction(client,draft);
+      await client.query("COMMIT"); return result;
+    } catch (error) {
+      try { await client.query("ROLLBACK"); } catch { discard=true; }
+      throw error;
+    } finally { client.release(discard); }
+  }
+  // Internal composition only: caller owns the transaction and must roll back
+  // on any failure. Reuse the same mapping, scope and immutable replay checks.
+  async appendInTransaction(client: PoolClient, input: MeasurementDraft, options: { preservePendingIntakeActor?: boolean } = {}) {
     if (input.workspaceId !== this.workspaceId) throw new Error("workspace_mismatch");
     this.scope(input.stationId,input.sourceId);
     const r=normalizeDraft(input,this.registry), metric=this.registry.get(r.metric)!;
     if (!this.metricKeys.includes(refKey(r.metric))) throw new Error("metric_scope_denied");
-    const client=await this.pool.connect();
-    let discard=false;
-    try {
-      await client.query("BEGIN ISOLATION LEVEL READ COMMITTED");
       // No write rights or row locks on governed master data; it is append-only to runtime.
       const mapping=await client.query(`SELECT m.service_id,m.device_id,m.network_object_id,n.kind,
         s.valid_from AS service_from,s.valid_to AS service_to
@@ -81,16 +92,19 @@ export class PgMeasurementStore implements MeasurementStore {
         unscaled:v.kind==="fixed_point"?v.unscaled:null,scale:v.kind==="fixed_point"?String(v.scale):null,
         state_value:v.kind==="state_event"?v.state:null,valid_until:v.kind==="state_event"?v.validUntil:null,
       },["workspace_id","source_id","event_id","event_revision","metric_code","metric_version","component_key"]);
+      let decidedBy=r.quality.decidedBy;
+      if (!measurement.inserted && options.preservePendingIntakeActor === true && r.quality.status === "pending" && r.quality.ruleVersion === "connector-intake-v1" && r.quality.reason === "source_quality_review_required") {
+        // Another authorized receiver may replay the same intake. Preserve the
+        // original pending decision's attribution, never replace its evidence.
+        const existing=(await client.query("SELECT decided_by FROM bsmoss_metering.quality_decision WHERE workspace_id=$1 AND measurement_id=$2 AND revision=1 AND quality='pending' AND rule_version=$3 AND reason=$4",
+          [this.workspaceId,measurement.row.id,r.quality.ruleVersion,r.quality.reason])).rows[0];
+        if (existing) decidedBy=existing.decided_by;
+      }
       const quality=await insertImmutable(client,"bsmoss_metering.quality_decision",{
         workspace_id:r.workspaceId,id:randomUUID(),measurement_id:measurement.row.id,revision:"1",
-        quality:r.quality.status,rule_version:r.quality.ruleVersion,reason:r.quality.reason,decided_by:r.quality.decidedBy,
+        quality:r.quality.status,rule_version:r.quality.ruleVersion,reason:r.quality.reason,decided_by:decidedBy,
       },["workspace_id","measurement_id","revision"]);
-      await client.query("COMMIT");
       return {id:measurement.row.id as string,status:raw.inserted||measurement.inserted||quality.inserted?"inserted" as const:"duplicate" as const};
-    } catch (error) {
-      try { await client.query("ROLLBACK"); } catch { discard=true; }
-      throw error;
-    } finally { client.release(discard); }
   }
   async list(input: MeasurementFilter) {
     this.scope(input.stationId);

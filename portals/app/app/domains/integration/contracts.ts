@@ -14,7 +14,7 @@ export interface SourceHead {
   sourceId: string; snapshotId: string; dataRevision: string;
   availableThrough: string | null; changeCursor: string; completionClaim: SourceClaim | null;
 }
-// Only a future durable intake coordinator may save this after every page has
+// Only the durable intake coordinator may save this after every page has
 // committed. It is a received-input position, never an analysis availability.
 export interface SourcePosition {
   bindingSha256: string; through: string; dataRevision: string; changeCursor: string;

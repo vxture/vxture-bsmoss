@@ -1,5 +1,13 @@
 # 后续代理入口
 
+## P1持久来源接收与游标一致提交（2026-11-06，最新执行）
+
+用户继续下一步，接续bc3ca68。设计245/实施[970](../40-implementation/970-atomic-source-intake.md)：内部sourceIntake.receive从审阅注册和最后回执取配置/位置，网络准备后锁配置、互斥及前回执CAS，复用测量事务一次提交全部原量/pending质量/input_change/回执。失败/撤权/取消全回滚，同计划复用、重开/丢应答恢复；乱序修订先写前驱，受控pending重放保留原主体。有效接收可由原登记worker派发/重算并被现有任务工作台追踪，无新队列或机器权限。
+
+空库新增注册修订/head及接收回执三表，Prisma镜像65表，仅独立本机随机合同库应用，不迁移或改业务库。686单测、387实际PG（新增21项）、双层types通过；末次production build/守卫/扫描与最终SHA/健康见970及artifacts/formal-checkpoints/atomic-source-intake.json。前两轮夹具计数字段/外键拒绝断言及重叠事件派发错误已修，失败不计成功。无UI变化，不重复浏览器布局验收。
+
+P1/B03-04/B03仍in_progress。下一接收阶段持久任务监管/失败记录、业务按需创建和跨页通知，再P2共同可用版本/报告依赖与B04。没有生产receive调用方/API/网络适配器，不写source_completion，不推进分析截至，不自动批准quality；来源字段/原件/授权签认、快照/变化流保证、机器ingest审阅/凭据/环境继续待。来源配置新版本不自动继承旧位置，重基准需受审路径。本段覆盖旧“无DB写入/仅只读准备”，生产激活边界保持；未push/外部部署/上线。
+
 ## P1来源拉取契约与只读准备（2026-11-06，最新执行）
 
 用户在launcher尺寸修正后“继续下一步”，接续5671ce7。设计244/实施[960](../40-implementation/960-source-pull-preparation.md)：integration不再只有占位，新增内部适配协议、固定快照/变化游标、72小时重叠与超窗迟到/修订、有界分页/取消、同截至修订、原量去重冲突与稳定摘要、完整范围反复验权。来源不能自批quality，准备数据pending；声明仅unverifiedCompletionClaim。没有生产调用方、DB/任务/游标写入，不发布可用版本；当前机器ingest仍拒绝。

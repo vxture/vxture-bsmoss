@@ -20,8 +20,8 @@ async function readBounded<T>(read: (signal: AbortSignal) => Promise<T>, parent?
 }
 
 /** Read-only preparation. No DB writes, checkpoints, jobs or completion claims
- * are committed here. Production activation awaits a reviewed source adapter
- * and durable intake coordinator; never expose this as a browser write API. */
+ * are committed here. Internal pg-intake owns atomic durable reception; live
+ * activation awaits a reviewed adapter. Never expose preparation as a write API. */
 export async function prepareSourceUpdate(ports: AccessPorts, connector: SourceReadPort, rawBinding: SourceBinding, rawPosition: SourcePosition | null, signal?: AbortSignal) {
   const binding = sourceBinding(rawBinding), position = rawPosition === null ? null : sourcePosition(rawPosition);
   const now = ports.now ?? Date.now;

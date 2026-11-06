@@ -1657,3 +1657,75 @@ CREATE TABLE bsmoss_analysis.data_update_request (
   FOREIGN KEY(workspace_id,partition_id,partition_revision) REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision)
 );
 CREATE INDEX data_update_request_latest ON bsmoss_analysis.data_update_request(workspace_id,partition_id,partition_revision,created_at DESC,id DESC);
+
+-- Source intake registration is reviewed administration, not runtime config.
+CREATE TABLE bsmoss_integration.source_binding_revision (
+  workspace_id text NOT NULL,
+  id text NOT NULL CHECK(length(trim(id))>0),
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  source_id text NOT NULL,
+  status text NOT NULL CHECK(status IN ('active','paused')),
+  binding jsonb NOT NULL CHECK(jsonb_typeof(binding)='object' AND
+    (binding->>'id'=id AND binding->>'revision'=revision::text AND binding->>'sourceId'=source_id AND binding->'scope'->>'workspaceId'=workspace_id) IS TRUE),
+  binding_sha256 text NOT NULL CHECK(binding_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL DEFAULT '' CHECK(database_sha256=encode(sha256(convert_to(binding::text,'UTF8')),'hex')),
+  review_ref text NOT NULL CHECK(length(trim(review_ref))>0),
+  database_actor text NOT NULL DEFAULT session_user,
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id,revision),
+  FOREIGN KEY(workspace_id,source_id) REFERENCES bsmoss_integration.source(workspace_id,id)
+);
+CREATE TABLE bsmoss_integration.source_binding_head (
+  workspace_id text NOT NULL,
+  id text NOT NULL,
+  revision numeric(30,0) NOT NULL,
+  PRIMARY KEY(workspace_id,id),
+  FOREIGN KEY(workspace_id,id,revision) REFERENCES bsmoss_integration.source_binding_revision(workspace_id,id,revision) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE FUNCTION bsmoss_integration.lock_source_binding(text,text) RETURNS numeric
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+  SELECT revision FROM bsmoss_integration.source_binding_head WHERE workspace_id=$1 AND id=$2 FOR SHARE
+$$;
+REVOKE ALL ON FUNCTION bsmoss_integration.lock_source_binding(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_source_binding(text,text) TO bsmoss_svc;
+CREATE FUNCTION bsmoss_integration.advance_source_binding() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE current_revision numeric(30,0);
+BEGIN
+  IF TG_TABLE_SCHEMA<>'bsmoss_integration' OR TG_TABLE_NAME<>'source_binding_revision' OR TG_OP<>'INSERT' THEN RAISE EXCEPTION 'source_binding_append_only'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(jsonb_build_array('bsmoss-source-binding',NEW.workspace_id,NEW.id)::text,0));
+  SELECT revision INTO current_revision FROM bsmoss_integration.source_binding_head WHERE workspace_id=NEW.workspace_id AND id=NEW.id FOR UPDATE;
+  IF NEW.revision<>coalesce(current_revision,0)+1 THEN RAISE EXCEPTION 'source_binding_revision_conflict'; END IF;
+  NEW.database_sha256=encode(sha256(convert_to(NEW.binding::text,'UTF8')),'hex'); NEW.database_actor=session_user;
+  INSERT INTO bsmoss_integration.source_binding_head(workspace_id,id,revision) VALUES(NEW.workspace_id,NEW.id,NEW.revision)
+    ON CONFLICT(workspace_id,id) DO UPDATE SET revision=excluded.revision;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.advance_source_binding() FROM PUBLIC;
+CREATE TRIGGER source_binding_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.source_binding_revision
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.advance_source_binding();
+CREATE TRIGGER source_binding_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_binding_revision
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.advance_source_binding();
+
+-- The append-only receipt is the received-input cursor. No analysis watermark
+-- or source completion attestation is written by this transaction.
+CREATE TABLE bsmoss_integration.source_intake_receipt (
+  workspace_id text NOT NULL,
+  id text NOT NULL CHECK(id ~ '^[a-f0-9]{64}$'),
+  binding_id text NOT NULL,
+  binding_revision numeric(30,0) NOT NULL,
+  sequence numeric(30,0) NOT NULL CHECK(sequence>0),
+  previous_id text,
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object'),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL CHECK(database_sha256=encode(sha256(convert_to(manifest::text,'UTF8')),'hex')),
+  received_by text NOT NULL CHECK(length(trim(received_by))>0),
+  received_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,binding_id,id),
+  UNIQUE(workspace_id,binding_id,sequence),
+  CHECK((sequence=1 AND previous_id IS NULL) OR (sequence>1 AND previous_id IS NOT NULL AND previous_id<>id)),
+  FOREIGN KEY(workspace_id,binding_id,binding_revision) REFERENCES bsmoss_integration.source_binding_revision(workspace_id,id,revision),
+  FOREIGN KEY(workspace_id,binding_id,previous_id) REFERENCES bsmoss_integration.source_intake_receipt(workspace_id,binding_id,id)
+);
+CREATE INDEX source_intake_latest ON bsmoss_integration.source_intake_receipt(workspace_id,binding_id,sequence DESC);

@@ -951,3 +951,46 @@ model DataUpdateRequest {
   @@map("data_update_request")
   @@schema("bsmoss_analysis")
 }
+
+model SourceBindingRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  source_id String
+  status String
+  binding Json
+  binding_sha256 String
+  database_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("source_binding_revision")
+  @@schema("bsmoss_integration")
+}
+
+model SourceBindingHead {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("source_binding_head")
+  @@schema("bsmoss_integration")
+}
+
+model SourceIntakeReceipt {
+  workspace_id String
+  id String
+  binding_id String
+  binding_revision Decimal @db.Decimal(30,0)
+  sequence Decimal @db.Decimal(30,0)
+  previous_id String?
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  received_by String
+  received_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_intake_receipt")
+  @@schema("bsmoss_integration")
+}
