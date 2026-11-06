@@ -133,7 +133,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const path of ['/sites','/sites?view=relations','/sites/SX-DEMO-001?tab=resources']) {
         const response=await fetch(url+path);assert.equal(response.status,200);
         const html=await response.text();assert.ok(html.includes('\u5c1a\u672a\u5f00\u653e'));
-        for(const sample of ['data-sites-mode="demo"','data-site-dossier-mode="demo"','TT-SX-DEMO-','bsmoss-site-registry-demo-v1']) assert.ok(!html.includes(sample));
+        for(const sample of ['data-sites-mode="demo"','data-site-dossier-mode="demo"','TT-SX-DEMO-','bsmoss-site-registry-demo-v1','data-resource-relationships','bsmoss-site-resource-snapshot-v2']) assert.ok(!html.includes(sample));
       }
     });
     await t.test('station history evidence is inaccessible with preview disabled',async()=>{
@@ -157,6 +157,16 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('resource relationships separate equipment unknowns, observation time and unverified validity',async()=>{
+      for(const tab of ['resources','services']){
+        const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&operator=telecom&hour=12');assert.equal(response.status,200);
+        const html=await response.text();
+        for(const text of ['data-resource-relationships','bsmoss-site-resource-snapshot-v2','SX-DEMO-001-telecom','SX-DEMO-001-R2','2026-10-25 12:00','\u5f85\u6765\u6e90\u6838\u5b9e','\u672a\u91c7\u96c6'])assert.ok(html.includes(text),text);
+        assert.ok(!html.includes('\u6d6e\u5145'));assert.ok(!html.includes('\u653e\u7535\u4e2d'));
+      }
+      const invalid=await(await fetch(url+'/sites/SX-DEMO-001?tab=resources&validFrom=2025-01-01')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-resource-relationships'));
+      assert.equal((await fetch(url+'/api/measurements')).status,401);
+    });
     await t.test('investigation routes preserve the bounded origin, exact station and distinct evidence sources',async()=>{
       const origin='/usage-review/UV-8d664440f0a922d512b7614f?period=month&recordSession=8c3b637a-e53c-4038-80d7-f0aba583748d&event=5';
       const investigation=encodeURIComponent(JSON.stringify({v:1,href:origin}));

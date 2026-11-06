@@ -54,9 +54,9 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const dataTime = demo.date + " " + String(q.hour).padStart(2, "0") + ":00";
   const {carry,keep}=useInvestigationLinks(siteListHref(q));
-  const review=(s:SiteRecord)=>carry(relatedReviewHref({cityId:q.city,countyId:q.county,operator:q.operator as import('../domains/map-demo/types').OperatorFilter,hour:q.hour,search:q.search},'day',s.id));
+  const review=(s:SiteRecord,operator=q.operator)=>carry(relatedReviewHref({cityId:q.city,countyId:q.county,operator:operator as import('../domains/map-demo/types').OperatorFilter,hour:q.hour,search:q.search},'day',s.id));
   const navigate = (patch: Partial<SiteQuery>) => start(() => router.push(keep(siteListHref(q, { page: 1, ...patch })), { scroll: false }));
-  const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview") => carry(siteDetailHref(s.id, q, { tab }));
+  const detail = (s: SiteRecord, tab: SiteQuery["tab"] = "overview", operator=q.operator) => carry(siteDetailHref(s.id, q, { tab,operator }));
   const ratioIndicator = (value: number | null, label: string, caption?: string) => <div className="flex w-full flex-col gap-xs">
     <div className="flex items-center justify-end gap-sm text-body-small text-muted-foreground">
       {caption && <span className="mr-auto">{caption}</span>}<span className="tabular-nums">{pct(value)}</span>
@@ -68,11 +68,11 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
   const connectionIndicator = (r: RegistryDemo["relations"][number], labelled = false) => ratioIndicator(
     r.current.attempts ? r.current.connected / r.current.attempts : null,
     r.site.name + " " + operatorNames[r.code] + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u63a5\u901a\u7387", labelled ? "\u65f6\u6bb5\u63a5\u901a\u7387" : undefined);
-  const actions = (s: SiteRecord, service = false) => <ActionMenu label={(service ? "\u670d\u52a1\u64cd\u4f5c\uff1a" : "\u7ad9\u5740\u64cd\u4f5c\uff1a") + s.name} items={[
-    { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview")) },
-    { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime")) },
-    { id: "usage", label: "\u7ecf\u8425\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(detail(s, "business")) },
-    {id:"review",label:"\u6838\u9a8c\u7ebf\u7d22",icon:"search",onSelect:()=>router.push(review(s))},
+  const actions = (s: SiteRecord, service = false, operator=q.operator) => <ActionMenu label={(service ? "\u670d\u52a1\u64cd\u4f5c\uff1a" : "\u7ad9\u5740\u64cd\u4f5c\uff1a") + s.name} items={[
+    { id: "dossier", label: service ? "\u670d\u52a1\u6863\u6848" : "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(detail(s, service ? "services" : "overview",operator)) },
+    { id: "runtime", label: "\u8fd0\u884c\u72b6\u6001", icon: "gauge", onSelect: () => router.push(detail(s, "runtime",operator)) },
+    { id: "usage", label: "\u7ecf\u8425\u7528\u91cf", icon: "chart-line-up", onSelect: () => router.push(detail(s, "business",operator)) },
+    {id:"review",label:"\u6838\u9a8c\u7ebf\u7d22",icon:"search",onSelect:()=>router.push(review(s,operator))},
   ]} />;
   const columns: DataTableColumn<SiteRecord>[] = [
     { id: "name", header: "\u7ad9\u5740", sortable: true, cell: s => <TableTitleCell title={s.name} description={s.id} icon="building" onTitleClick={() => router.push(detail(s))} tooltip={s.name} /> },
@@ -84,10 +84,10 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
     { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "right", sortable: true, width: "sm", cell: s => loadIndicator(s) },
   ];
   const relationColumns: DataTableColumn<RegistryDemo["relations"][number]>[] = [
-    { id: "site", header: "\u670d\u52a1\u7ad9\u5740", cell: r => <TableTitleCell title={r.site.name} description={r.site.id} icon="building" onTitleClick={() => router.push(detail(r.site, "services"))} /> },
-    { id: "operator", header: "\u670d\u52a1\u5bf9\u8c61", cell: r => <TableTitleCell title={operatorNames[r.code]} description={r.id} icon="users" /> },
+    { id: "site", header: "\u670d\u52a1\u7ad9\u5740", cell: r => <TableTitleCell title={r.site.name} description={r.site.id} icon="building" onTitleClick={() => router.push(detail(r.site, "services",r.code))} /> },
+    { id: "operator", header: "\u670d\u52a1\u5bf9\u8c61", cell: r => <TableTitleCell title={operatorNames[r.code]} description={r.id} icon="users" onTitleClick={()=>router.push(detail(r.site,"resources",r.code))} /> },
     { id: "scope", header: "\u670d\u52a1\u8303\u56f4", cell: () => "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" },
-    { id: "resource", header: "\u627f\u8f7d\u8d44\u6e90", cell: r => r.site.roomType + " / \u65e0\u7ebf\u8bbe\u5907" },
+    { id: "resource", header: "\u627f\u8f7d\u8d44\u6e90", cell: r => <TableTitleCell title={n(r.resource.deviceIds.length-r.sharedResourceCount)+" \u5957\u65e0\u7ebf / "+n(r.sharedResourceCount)+" \u9879\u5171\u7528"} description={"\u6709\u6548\u671f\u5f85\u6838\u5b9e"} onTitleClick={()=>router.push(detail(r.site,"resources",r.code))}/> },
     { id: "connection", header: "\u65f6\u6bb5\u63a5\u901a\u7387", align: "right", cell: r => connectionIndicator(r) },
     { id: "traffic", header: "\u65f6\u6bb5\u6d41\u91cf / GiB", align: "right", cell: r => n(r.current.bytes / 1073741824, 2) },
   ];
@@ -156,10 +156,10 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
                 <span>{s.operators.map(code => operatorNames[code]).join(" / ")}</span>{loadIndicator(s, true)}
                 <Button asChild variant="secondary" size="sm"><a href={detail(s)}>{"\u7ad9\u5740\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />) :
               demo.relations.map(r => <ListCard key={r.id} title={operatorNames[r.code] + " \u00b7 " + r.site.name} icon="users" description={r.id}
-                onTitleClick={() => router.push(detail(r.site, "services"))} actions={actions(r.site, true)}
+                onTitleClick={() => router.push(detail(r.site, "services",r.code))} actions={actions(r.site, true,r.code)}
                 meta={<div className="flex flex-col gap-xs"><span>{r.site.cityName + " / " + r.site.countyName}</span>
                   {connectionIndicator(r, true)}<span>{"\u65f6\u6bb5\u6d41\u91cf " + n(r.current.bytes / 1073741824, 2) + " GiB"}</span>
-                  <Button asChild variant="secondary" size="sm"><a href={detail(r.site, "services")}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />)}
+                  <Button asChild variant="secondary" size="sm"><a href={detail(r.site, "services",r.code)}>{"\u670d\u52a1\u6863\u6848"}<Icon name="arrow-right" size="sm" /></a></Button></div>} />)}
             {!demo.count && <EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u8d44\u6e90"} description={"\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />}
           </div>
           <div className="hidden sm:block">
@@ -168,7 +168,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
             onSortChange={sort => navigate({ sort: sort.columnId as SiteQuery["sort"], direction: sort.direction })}
             expandedKeys={expanded} onExpandedChange={setExpanded} expandedContent={s => <div className="site-service-relations flex flex-wrap gap-sm p-sm" role="group" aria-label={"\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}>
               {demo.operatorLoads[s.id].map(({ code, load }) => <div key={code} className="site-service-relation flex flex-col gap-xs rounded-md border border-border bg-background p-sm">
-                <Button asChild size="sm" variant="ghost" className="self-start px-0 text-primary"><a href={detail(s, "services")} aria-label={operatorNames[code] + "\u670d\u52a1\u6863\u6848"}>{operatorNames[code]}</a></Button>
+                <Button asChild size="sm" variant="ghost" className="self-start px-0 text-primary"><a href={detail(s, "services",code)} aria-label={operatorNames[code] + "\u670d\u52a1\u6863\u6848"}>{operatorNames[code]}</a></Button>
                 <span className="text-body-small text-muted-foreground">{"\u901a\u8bdd \u00b7 \u6d41\u91cf \u00b7 \u77ed\u4fe1"}</span>
                 <div className="mt-xs flex items-center justify-between gap-xs text-body-small text-muted-foreground"><span>{String(q.hour).padStart(2, "0") + ":00 \u8d1f\u8f7d"}</span><span className="tabular-nums text-foreground">{pct(load)}</span></div>
                 <Progress value={load * 100} aria-label={operatorNames[code] + " " + String(q.hour).padStart(2, "0") + ":00 \u65f6\u6bb5\u8d1f\u8f7d"} />
@@ -177,7 +177,7 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
             rowActions={s => actions(s)}
             empty={<EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u7ad9\u5740"} description={"\u8c03\u6574\u533a\u57df\u3001\u8fd0\u8425\u5546\u6216\u68c0\u7d22\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />} /> :
             <DataTable className="site-action-table" labels={{ rowActions: "\u64cd\u4f5c" }} columns={relationColumns} rows={demo.relations} rowKey={r => r.id} indexStart={(q.page - 1) * demo.pageSize + 1}
-              rowActions={r => actions(r.site, true)}
+              rowActions={r => actions(r.site, true,r.code)}
               empty={<EmptyState title={"\u6ca1\u6709\u5339\u914d\u7684\u670d\u52a1\u5173\u7cfb"} description={"\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u91cd\u8bd5\u3002"} />} />}
           </div>
         </div>

@@ -1,4 +1,5 @@
 "use client";
+import ResourceRelationships from "./resource-relationships";
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
 import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
@@ -28,17 +29,13 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
   const scale = (value: string | number) => metric === "bytes" ? Number(value) / 1073741824 : metric === "voiceSeconds" ? Number(value) / 60 : Number(value);
   const time = String(q.hour).padStart(2, "0") + ":00";
   const serviceColumns: DataTableColumn<DossierDemo["relations"][number]>[] = [
-    { id: "operator", header: "\u8fd0\u8425\u5546 / \u5173\u7cfb\u7f16\u7801", cell: r => <div className="flex flex-col gap-xs"><span className="text-label font-semibold">{operatorNames[r.code]}</span><span className="text-body-small text-muted-foreground">{r.id}</span></div> },
+    { id: "operator", header: "\u8fd0\u8425\u5546 / \u5173\u7cfb\u7f16\u7801", cell: r => <div className="flex flex-col gap-xs"><Button variant="link" className="self-start" onClick={()=>navigate({tab:"resources",operator:r.code})}>{operatorNames[r.code]}</Button><span className="text-body-small text-muted-foreground">{r.id}</span></div> },
     { id: "business", header: "\u7ecf\u8425\u670d\u52a1", cell: () => "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" },
-    { id: "device", header: "\u627f\u8f7d\u8d44\u6e90", cell: () => "1 \u5957\u65e0\u7ebf\u8bbe\u5907 / \u5171\u7528\u5854\u623f\u7535" },
+    { id: "device", header: "\u627f\u8f7d\u8d44\u6e90", cell: r => <Button variant="link" onClick={()=>navigate({tab:'resources',operator:r.code})}>{r.resource.deviceIds.length+' \u9879\u5173\u8054\u8d44\u6e90'}</Button> },
+    { id: "validity", header: "\u670d\u52a1\u6709\u6548\u671f", cell: () => <span className="text-body-small text-muted-foreground">{"\u5f85\u6765\u6e90\u6838\u5b9e"}</span> },
     { id: "status", header: "\u65f6\u6bb5\u72b6\u6001", align: "center", cell: r => <StatusBadge tone={tone(r.current.status)} size="sm">{statusNames[r.current.status]}</StatusBadge> },
     { id: "load", header: "\u65f6\u6bb5\u8d1f\u8f7d", align: "right", cell: r => pct(r.current.used / r.current.capacity) },
     { id: "connection", header: "\u65f6\u6bb5\u63a5\u901a\u7387", align: "right", cell: r => pct(r.current.attempts ? r.current.connected / r.current.attempts : null) },
-  ];
-  const deviceColumns: DataTableColumn<DossierDemo["devices"][number]>[] = [
-    { id: "device", header: "\u8d44\u6e90 / \u8bbe\u5907", cell: d => <div className="flex flex-col gap-xs"><span className="text-label">{d.name}</span><span className="text-body-small text-muted-foreground">{d.id}</span></div> },
-    { id: "category", header: "\u7c7b\u522b", cell: d => d.category }, { id: "owner", header: "\u5f52\u5c5e\u4e3b\u4f53", cell: d => operatorNames[d.owner] ?? d.owner },
-    { id: "spec", header: "\u89c4\u683c / \u53e3\u5f84", cell: d => d.spec }, { id: "state", header: "\u573a\u666f\u72b6\u6001", align: "center", cell: d => <StatusBadge tone={tone(d.state)} size="sm">{d.stateLabel}</StatusBadge> },
   ];
   const usageColumns: DataTableColumn<DossierDemo["relations"][number]>[] = [
     { id: "operator", header: "\u8fd0\u8425\u5546", cell: r => operatorNames[r.code] },
@@ -52,7 +49,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     <DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u5f52\u5c5e\u533a\u57df"}>{s.cityName + " / " + s.countyName}</DetailRow>
     <DetailRow label={"\u4e1a\u52a1\u573a\u666f"}>{sceneNames[s.profile]}</DetailRow><DetailRow label={"\u5854\u578b / \u5854\u9ad8"}>{s.towerType + " / " + s.heightMeters + " m"}</DetailRow>
     <DetailRow label={"\u7ad9\u70b9\u7c7b\u578b"}>{siteTypeNames[s.siteType]}</DetailRow><DetailRow label={"\u673a\u623f\u5f62\u6001"}>{s.roomType}</DetailRow>
-    <DetailRow label={"\u6295\u8fd0\u65e5\u671f"}>{s.commissioned}</DetailRow>
+    <DetailRow label={"\u6a21\u578b\u6295\u8fd0\u65e5\u671f"}>{s.commissioned}</DetailRow>
     <DetailRow label={"\u5730\u7406\u5750\u6807"}>{s.lng.toFixed(6) + ", " + s.lat.toFixed(6)}</DetailRow><DetailRow label={"\u6863\u6848\u7248\u672c"}>{demo.version}</DetailRow>
     <DetailRow label={"\u4f4d\u7f6e\u63cf\u8ff0"}>{s.address}</DetailRow><DetailRow label={"\u6570\u636e\u5c5e\u6027"}>{"\u5408\u6210\u6863\u6848"}</DetailRow>
   </DetailList></PanelCard>;
@@ -66,7 +63,7 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
     <div className="flex flex-col gap-md">
       <div className="flex items-center gap-md rounded-md border border-border bg-primary-muted p-md"><Icon name="building" size="lg" /><div><p className="text-label font-semibold">{"\u4e2d\u56fd\u94c1\u5854 \u00b7 " + s.name}</p><p className="text-body-small text-muted-foreground">{"\u5854\u4f53 / \u673a\u623f / \u4f9b\u7535 / \u73af\u5883\u4fdd\u969c"}</p></div></div>
       <div className="grid gap-md sm:grid-cols-2">{demo.relations.map(r => <div key={r.id} className="rounded-md border border-border bg-background p-md">
-        <div className="mb-sm flex items-center justify-between gap-sm"><span className="text-label font-semibold">{operatorNames[r.code]}</span><StatusBadge tone={tone(r.current.status)} size="sm">{statusNames[r.current.status]}</StatusBadge></div>
+        <div className="mb-sm flex items-center justify-between gap-sm"><Button variant="link" className="self-start" onClick={()=>navigate({tab:"resources",operator:r.code})}>{operatorNames[r.code]}</Button><StatusBadge tone={tone(r.current.status)} size="sm">{statusNames[r.current.status]}</StatusBadge></div>
         <p className="text-body-small text-muted-foreground">{"\u65e0\u7ebf\u8bbe\u5907 \u2192 \u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1"}</p>
         <Progress className="mt-md" value={r.current.used / r.current.capacity * 100} aria-label={operatorNames[r.code] + "\u65f6\u6bb5\u8d1f\u8f7d"} />
         <div className="mt-xs flex justify-between text-body-small text-muted-foreground"><span>{"\u65f6\u6bb5\u8d1f\u8f7d"}</span><span>{pct(r.current.used / r.current.capacity)}</span></div>
@@ -104,10 +101,10 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
           <MetricRowsCard title={"\u80fd\u6e90\u4fdd\u969c"} icon="lightning" metrics={[{ key: "power", label: "\u4f9b\u7535", value: m.power === "battery" ? "\u5907\u7528\u7535\u6c60" : "\u5e02\u7535" }, { key: "battery", label: "\u540e\u5907\u5bb9\u91cf", value: "200 Ah" }, { key: "meter", label: "\u8ba1\u91cf\u53e3\u5f84", value: "\u7269\u7406\u7ad9\u5740\u603b\u8868" }]} />
           <MetricRowsCard title={"\u65e0\u7ebf\u627f\u8f7d"} icon="stack" metrics={[{ key: "radios", label: "\u65e0\u7ebf\u8bbe\u5907", value: s.operators.length + " \u5957" }, { key: "sharing", label: "\u5171\u4eab\u4e3b\u4f53", value: s.operators.length + " \u5bb6" }, { key: "services", label: "\u670d\u52a1\u4e1a\u52a1", value: "\u901a\u8bdd / \u6d41\u91cf / \u77ed\u4fe1" }]} />
         </div>
-        <PanelCard title={"\u8d44\u6e90\u8bbe\u5907\u6e05\u5355"} icon="table" description={"\u5171\u7528\u8bbe\u65bd\u4e0e\u8fd0\u8425\u5546\u8bbe\u5907\u5206\u522b\u5f52\u5c5e"}><DataTable columns={deviceColumns} rows={demo.devices} rowKey={d => d.id} /></PanelCard>
+        <ResourceRelationships graph={demo.resources} operator={scope.operator}/>
         <p className="text-body-small text-muted-foreground">{"\u8bbe\u5907\u72b6\u6001\u9700\u7ed3\u5408\u73b0\u573a\u5de1\u68c0\u4e0e\u8d44\u4ea7\u8d44\u6599\u6838\u9a8c\u3002"}</p>
       </div>}
-      {q.tab === "services" && <div className="flex flex-col gap-lg"><div className="site-dossier-layout">{serviceMap}
+      {q.tab === "services" && <div className="flex flex-col gap-lg"><ResourceRelationships graph={demo.resources} operator={scope.operator}/><div className="site-dossier-layout">
         <PanelCard title={"\u670d\u52a1\u53e3\u5f84"} icon="info"><DetailList><DetailRow label={"\u5efa\u8bbe\u8fd0\u8425\u4e3b\u4f53"}>{"\u4e2d\u56fd\u94c1\u5854"}</DetailRow><DetailRow label={"\u7269\u7406\u7ad9\u5740"}>{"1 \u5ea7"}</DetailRow><DetailRow label={"\u670d\u52a1\u5173\u7cfb"}>{s.operators.length + " \u6761"}</DetailRow><DetailRow label={"\u7ecf\u8425\u6570\u636e"}>{"\u6309\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7edf\u8ba1"}</DetailRow><DetailRow label={"\u7ad9\u5740\u7535\u8017"}>{"\u7269\u7406\u7ad9\u603b\u8868\uff0c\u4e0d\u6309\u8fd0\u8425\u5546\u5206\u644a"}</DetailRow></DetailList></PanelCard></div>
         <PanelCard title={"\u8fd0\u8425\u5546\u670d\u52a1\u660e\u7ec6"} icon="users" description={time + " \u00b7 \u5168\u90e8\u5728\u7ad9\u8fd0\u8425\u5546"}><DataTable labels={{ rowActions: "\u64cd\u4f5c" }} columns={serviceColumns} rows={demo.relations} rowKey={r => r.id}
           className="site-action-table" rowActions={r => <ActionMenu label={operatorNames[r.code] + "\u670d\u52a1\u64cd\u4f5c"} items={[
@@ -156,7 +153,8 @@ export default function SiteDossier({ demo }: { demo: DossierDemo }) {
       </div>}
       {q.tab === "sources" && <div className="flex flex-col gap-lg">
         <div className="site-dossier-layout"><PanelCard title={"\u6863\u6848\u6765\u6e90\u4e0e\u7248\u672c"} icon="database"><DetailList>
-          <DetailRow label={"\u7ad9\u5740\u4e3b\u952e"}>{s.id}</DetailRow><DetailRow label={"\u8d44\u6e90\u6a21\u578b\u7248\u672c"}>{demo.version}</DetailRow><DetailRow label={"\u6307\u6807\u89c4\u5219\u7248\u672c"}>{demo.sourceVersion}</DetailRow>
+          <DetailRow label={"\u7ad9\u5740\u4e3b\u952e"}>{s.id}</DetailRow><DetailRow label={"\u6863\u6848\u7248\u672c"}>{demo.version}</DetailRow><DetailRow label={"\u8d44\u6e90\u6a21\u578b\u7248\u672c"}>{demo.resources.version}</DetailRow><DetailRow label={"\u6307\u6807\u89c4\u5219\u7248\u672c"}>{demo.sourceVersion}</DetailRow>
+          <DetailRow label={"\u8d44\u6e90\u6709\u6548\u671f"}>{"\u672a\u63a5\u5165\uff0c\u4e0d\u4ee5\u5feb\u7167\u6216\u6a21\u578b\u6295\u8fd0\u65e5\u671f\u63a8\u65ad"}</DetailRow><DetailRow label={"\u8bbe\u5907\u72b6\u6001\u6765\u6e90"}>{"\u672a\u63a5\u5165\u72ec\u7acb\u9065\u6d4b\u6216\u5de1\u68c0"}</DetailRow>
           <DetailRow label={"\u72b6\u6001\u65f6\u95f4"}>{demo.date + " \u00b7 " + time + " \u00b7 \u5317\u4eac\u65f6\u95f4"}</DetailRow><DetailRow label={"\u7ecf\u8425\u5468\u671f"}>{periodLabel}</DetailRow><DetailRow label={"\u8d44\u6599\u5c5e\u6027"}>{"\u786e\u5b9a\u6027\u5408\u6210\u6570\u636e"}</DetailRow>
           <DetailRow label={"\u6b63\u5f0f\u6765\u6e90"}>{"\u5f85\u6388\u6743\u63a5\u5165"}</DetailRow><DetailRow label={"\u5b9e\u7269\u6838\u9a8c"}>{"\u672a\u5f00\u5c55"}</DetailRow></DetailList></PanelCard>
           <PanelCard title={"\u8d44\u6599\u6e05\u5355"} icon="file-text"><DetailList>
