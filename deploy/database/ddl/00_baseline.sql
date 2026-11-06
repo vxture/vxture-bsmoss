@@ -1729,3 +1729,98 @@ CREATE TABLE bsmoss_integration.source_intake_receipt (
   FOREIGN KEY(workspace_id,binding_id,previous_id) REFERENCES bsmoss_integration.source_intake_receipt(workspace_id,binding_id,id)
 );
 CREATE INDEX source_intake_latest ON bsmoss_integration.source_intake_receipt(workspace_id,binding_id,sequence DESC);
+
+-- Internal intake execution journal, distinct from downstream refresh jobs.
+CREATE TABLE bsmoss_integration.source_intake_task (
+  workspace_id text NOT NULL,
+  id text NOT NULL CHECK(id ~ '^[a-f0-9]{64}$'),
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 512),
+  binding_id text NOT NULL,
+  binding_revision numeric(30,0) NOT NULL,
+  binding_sha256 text NOT NULL CHECK(binding_sha256 ~ '^[a-f0-9]{64}$'),
+  requested_by text NOT NULL CHECK(length(trim(requested_by))>0),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  UNIQUE(workspace_id,command_id),
+  FOREIGN KEY(workspace_id,binding_id,binding_revision) REFERENCES bsmoss_integration.source_binding_revision(workspace_id,id,revision)
+);
+CREATE TABLE bsmoss_integration.source_intake_task_event (
+  workspace_id text NOT NULL,
+  task_id text NOT NULL,
+  revision numeric(30,0) NOT NULL CHECK(revision>0),
+  attempt integer NOT NULL CHECK(attempt BETWEEN 1 AND 5),
+  state text NOT NULL CHECK(state IN ('started','received','duplicate','current','failed')),
+  command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 512),
+  reason_ref text CHECK(reason_ref IS NULL OR length(trim(reason_ref)) BETWEEN 1 AND 2048),
+  actor text NOT NULL CHECK(length(trim(actor))>0),
+  lease_until timestamptz NOT NULL,
+  receipt_id text,
+  inserted integer NOT NULL DEFAULT 0 CHECK(inserted BETWEEN 0 AND 4096),
+  duplicates integer NOT NULL DEFAULT 0 CHECK(duplicates BETWEEN 0 AND 4096),
+  failure_code text CHECK(failure_code IN ('cancelled','context_changed','capacity_limit','evidence_invalid','intake_failed')),
+  recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,task_id,revision),
+  UNIQUE(workspace_id,task_id,command_id,state),
+  CHECK((state='failed')=(failure_code IS NOT NULL)),
+  CHECK(state NOT IN ('received','duplicate') OR receipt_id IS NOT NULL),
+  CHECK(state NOT IN ('started','failed') OR (receipt_id IS NULL AND inserted=0 AND duplicates=0)),
+  FOREIGN KEY(workspace_id,task_id) REFERENCES bsmoss_integration.source_intake_task(workspace_id,id),
+  FOREIGN KEY(workspace_id,receipt_id) REFERENCES bsmoss_integration.source_intake_receipt(workspace_id,id)
+);
+CREATE FUNCTION bsmoss_integration.guard_intake_journal() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE t bsmoss_integration.source_intake_task%ROWTYPE;
+  prior bsmoss_integration.source_intake_task_event%ROWTYPE;
+  receipt bsmoss_integration.source_intake_receipt%ROWTYPE;
+BEGIN
+  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'intake_journal_append_only'; END IF;
+  IF TG_TABLE_NAME='source_intake_task' THEN
+    IF NOT EXISTS(SELECT 1 FROM bsmoss_integration.source_binding_revision b WHERE
+      (b.workspace_id,b.id,b.revision,b.binding_sha256)=(NEW.workspace_id,NEW.binding_id,NEW.binding_revision,NEW.binding_sha256)) THEN
+      RAISE EXCEPTION 'invalid_intake_task_binding'; END IF;
+    NEW.created_at=clock_timestamp(); RETURN NEW;
+  END IF;
+  SELECT * INTO STRICT t FROM bsmoss_integration.source_intake_task WHERE workspace_id=NEW.workspace_id AND id=NEW.task_id FOR UPDATE;
+  SELECT * INTO prior FROM bsmoss_integration.source_intake_task_event WHERE workspace_id=NEW.workspace_id AND task_id=NEW.task_id ORDER BY revision DESC LIMIT 1;
+  IF NEW.revision<>coalesce(prior.revision,0)+1 THEN RAISE EXCEPTION 'intake_task_revision_conflict'; END IF;
+  NEW.recorded_at=clock_timestamp();
+  IF NEW.state='started' THEN
+    IF prior.revision IS NULL THEN
+      IF NEW.attempt<>1 OR NEW.command_id<>t.command_id OR NEW.actor<>t.requested_by OR NEW.reason_ref IS NOT NULL THEN RAISE EXCEPTION 'invalid_intake_task_start'; END IF;
+    ELSE
+      IF NEW.attempt<>prior.attempt+1 OR prior.state NOT IN ('started','failed') OR
+        (prior.state='started' AND prior.lease_until>clock_timestamp()) OR length(trim(coalesce(NEW.reason_ref,'')))=0 THEN
+        RAISE EXCEPTION 'intake_task_not_recoverable'; END IF;
+    END IF;
+    NEW.lease_until=clock_timestamp()+interval '300 seconds';
+  ELSE
+    IF prior.state IS DISTINCT FROM 'started' OR NEW.attempt<>prior.attempt OR NEW.command_id<>prior.command_id OR
+      NEW.actor<>prior.actor OR prior.lease_until<=clock_timestamp() OR NEW.reason_ref IS DISTINCT FROM prior.reason_ref THEN
+      RAISE EXCEPTION 'intake_task_lease_lost'; END IF;
+    NEW.lease_until=prior.lease_until;
+    IF NEW.receipt_id IS NOT NULL THEN
+      SELECT * INTO STRICT receipt FROM bsmoss_integration.source_intake_receipt WHERE workspace_id=NEW.workspace_id AND id=NEW.receipt_id;
+      IF (receipt.binding_id,receipt.binding_revision) IS DISTINCT FROM (t.binding_id,t.binding_revision) THEN RAISE EXCEPTION 'invalid_intake_task_receipt'; END IF;
+      IF NEW.state IN ('received','duplicate') AND (NEW.inserted<>((receipt.manifest->>'inserted')::integer) OR NEW.duplicates<>((receipt.manifest->>'duplicates')::integer)) THEN
+        RAISE EXCEPTION 'invalid_intake_task_counts'; END IF;
+    END IF;
+    IF NEW.state='current' AND (NEW.inserted<>0 OR NEW.duplicates<>0) THEN RAISE EXCEPTION 'invalid_intake_task_counts'; END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION bsmoss_integration.guard_intake_journal() FROM PUBLIC;
+CREATE TRIGGER intake_task_guard BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.source_intake_task
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.guard_intake_journal();
+CREATE TRIGGER intake_task_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_intake_task
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.guard_intake_journal();
+CREATE TRIGGER intake_event_guard BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_integration.source_intake_task_event
+  FOR EACH ROW EXECUTE FUNCTION bsmoss_integration.guard_intake_journal();
+CREATE TRIGGER intake_event_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_intake_task_event
+  FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.guard_intake_journal();
+CREATE INDEX source_intake_task_binding ON bsmoss_integration.source_intake_task(workspace_id,binding_id,created_at DESC,id);
+CREATE FUNCTION bsmoss_integration.lock_intake_task(text,text) RETURNS void
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+  SELECT FROM bsmoss_integration.source_intake_task WHERE workspace_id=$1 AND id=$2 FOR UPDATE
+$$;
+REVOKE ALL ON FUNCTION bsmoss_integration.lock_intake_task(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_intake_task(text,text) TO bsmoss_svc;

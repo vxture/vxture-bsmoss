@@ -1,5 +1,11 @@
 # 后续代理入口
 
+## P1来源接收任务监管（2026-11-06，最新执行）
+
+设计247/实施[990](../40-implementation/990-intake-task-supervision.md)：内部sourceIntakeTasks.run/read/recover，固定来源修订、命令幂等、持久启动/失败历史、数据库租约与旧执行隔离、精确版本/依据/双权限复核恢复。接收回执与成功终态同原量事务提交，丢失COMMIT应答先读持久终态不假报失败；撤权不能续写或记账，机器ingest保持拒绝。空库新增任务/事件两表及Prisma至67表，只作用随机专用本机合同库，不迁移或改业务库。最终验证/SHA/健康见990及artifacts/formal-checkpoints/intake-supervision.json。
+
+P1/B03-04/B03仍in_progress。内部生命周期与失败/复核恢复本批完成；下一任务终止/配置重新基准受审处置、正式查看/消息和业务按需接收入口，再P2共同可用版本/报告依赖与B04。没有生产适配器/receive路由或调度，不扩大机器ingest、不签来源完成、不批quality、不推进页面截至或旧报告。来源授权字段/原件/签认、稳定快照/变化流、机器凭据/平台环境及Beta容量恢复/UAT与生产批准依赖保持。未push/外部部署/上线，无新聊天或自动任务。
+
 ## P1跨页面任务消息（2026-11-06，最新执行）
 
 设计246/实施[980](../40-implementation/980-cross-page-task-messages.md)：Header消息抽屉接入已接收增量任务的授权状态投影，完整scope先过滤后分页、同一PG快照重建进度、末次整页并集重验；失败/配置变化、精确详情与恢复入口、打开且可见轮询/关闭隐藏取消、失权清空，跨页从服务器重读，不缓存任务、不制造未读/推送。687单测、391实际PG、52HTTP、双层types和production build通过；浏览器/守卫/最终SHA与健康以980及artifacts/formal-checkpoints/update-messages.json为准。无DDL/Prisma/依赖/赋权改变，65表保持。

@@ -1,6 +1,13 @@
 # Empty database initialization
 
-Current baseline: 65 tables. source_binding_revision/source_binding_head record
+Current baseline: 67 tables. source_intake_task/source_intake_task_event record
+internal bounded intake attempts, append-only starts/failures and fenced
+terminal receipts. Reviewed recovery requires both ingest and job recovery
+permission; a database-clock lease rejects stale executors. Runtime has only
+SELECT/INSERT on this journal, no lease updates. Receipt and successful terminal
+event commit in the same transaction. This is not a new production queue or
+machine entitlement; no live runner or browser command route is activated.
+source_binding_revision/source_binding_head record
 reviewed source configuration; runtime can only read and hold a fixed shared
 head lock. source_intake_receipt is append-only, committing received-input
 position together with raw facts, pending quality and input changes. It is not

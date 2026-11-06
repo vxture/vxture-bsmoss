@@ -994,3 +994,37 @@ model SourceIntakeReceipt {
   @@map("source_intake_receipt")
   @@schema("bsmoss_integration")
 }
+
+model SourceIntakeTask {
+  workspace_id String
+  id String
+  command_id String
+  binding_id String
+  binding_revision Decimal @db.Decimal(30,0)
+  binding_sha256 String
+  requested_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_intake_task")
+  @@schema("bsmoss_integration")
+}
+
+model SourceIntakeTaskEvent {
+  workspace_id String
+  task_id String
+  revision Decimal @db.Decimal(30,0)
+  attempt Int
+  state String
+  command_id String
+  reason_ref String?
+  actor String
+  lease_until DateTime @db.Timestamptz()
+  receipt_id String?
+  inserted Int
+  duplicates Int
+  failure_code String?
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,task_id,revision])
+  @@map("source_intake_task_event")
+  @@schema("bsmoss_integration")
+}

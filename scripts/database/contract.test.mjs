@@ -36,6 +36,7 @@ import { reportSnapshotCases } from "./report-snapshot.cases.mjs";
 import { workerIdentityCases } from "./worker-identity.cases.mjs";
 import { dataUpdateTaskCases } from "./data-update-tasks.cases.mjs";
 import { sourceIntakeCases } from "./source-intake.cases.mjs";
+import { sourceIntakeTaskCases } from "./source-intake-tasks.cases.mjs";
 const { Client } = pg;
 const connectionString = process.env.TEST_DATABASE_ADMIN_URL;
 if (!connectionString) throw new Error("TEST_DATABASE_ADMIN_URL is required (dedicated local PostgreSQL only)");
@@ -62,7 +63,7 @@ await test("empty-database PostgreSQL contract", async t => {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,65);
+      assert.equal(tables.rows[0].n,67);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
@@ -71,11 +72,11 @@ await test("empty-database PostgreSQL contract", async t => {
       const expected=[];
       for (const model of schema.matchAll(/model \w+ \{([\s\S]*?)\n\}/g)) {
         const body=model[1],schemaName=body.match(/@@schema\("(\w+)"\)/)[1],table=body.match(/@@map\("(\w+)"\)/)[1];
-        for(const field of body.matchAll(/^  (\w+) (String|DateTime|Decimal|Json|BigInt|Boolean)(\?)?([^\n]*)/gm)) {
+        for(const field of body.matchAll(/^  (\w+) (String|DateTime|Decimal|Json|BigInt|Int|Boolean)(\?)?([^\n]*)/gm)) {
           const name=field[4].match(/@map\("(\w+)"\)/)?.[1]??field[1];
           const found=actual.rows.find(c=>c.table_schema===schemaName&&c.table_name===table&&c.column_name===name);
           assert.ok(found,schemaName+"."+table+"."+name);
-          assert.equal(found.data_type,field[4].includes("@db.Uuid")?"uuid":field[4].includes("@db.VarChar")?"character varying":{String:"text",DateTime:"timestamp with time zone",Decimal:"numeric",Json:"jsonb",BigInt:"bigint",Boolean:"boolean"}[field[2]]);
+          assert.equal(found.data_type,field[4].includes("@db.Uuid")?"uuid":field[4].includes("@db.VarChar")?"character varying":{String:"text",DateTime:"timestamp with time zone",Decimal:"numeric",Json:"jsonb",BigInt:"bigint",Int:"integer",Boolean:"boolean"}[field[2]]);
           assert.equal(found.is_nullable,field[3]?"YES":"NO");
           if(field[2]==="Decimal"){assert.equal(found.numeric_precision,30);assert.equal(found.numeric_scale,0);}
           expected.push(found);
@@ -2056,6 +2057,7 @@ await test("empty-database PostgreSQL contract", async t => {
     await registeredInputCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,writer:flowWriter,draft:flowDraft,finishChangeJobs});
     await dataUpdateTaskCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,draft:flowDraft,finishChangeJobs});
     await sourceIntakeCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,draft:flowDraft,finishChangeJobs});
+    await sourceIntakeTaskCases(t,{db,adapterPool,ports:flowPorts,scope:flowScope,upMetric,period:flowPeriod,draft:flowDraft});
     await objectRollupCases(t,{db,adapterPool,ports:flowPorts});
     await reportSnapshotCases(t,{db,adapterPool,ports:flowPorts});
     await workerIdentityCases(t,{db,adapterPool});

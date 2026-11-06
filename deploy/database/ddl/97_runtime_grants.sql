@@ -15,7 +15,7 @@ GRANT USAGE ON SCHEMA bsmoss_resource,bsmoss_integration,bsmoss_catalog,bsmoss_m
 GRANT SELECT ON ALL TABLES IN SCHEMA bsmoss_resource,bsmoss_integration,bsmoss_catalog,bsmoss_metering,bsmoss_views,bsmoss_analysis TO bsmoss_svc;
 -- Master data, mappings, capability validation and metric publication use reviewed admin paths.
 GRANT INSERT ON bsmoss_integration.raw_event,bsmoss_metering.measurement,bsmoss_metering.quality_decision,
-  bsmoss_integration.source_intake_receipt,
+  bsmoss_integration.source_intake_receipt,bsmoss_integration.source_intake_task,bsmoss_integration.source_intake_task_event,
   bsmoss_views.template_publication,bsmoss_views.template_selection_event,bsmoss_views.user_preference TO bsmoss_svc;
 GRANT EXECUTE ON FUNCTION bsmoss_views.lock_analysis_selection(text) TO bsmoss_svc;
 REVOKE ALL ON SCHEMA vx_provision,local_authz,local_usage FROM PUBLIC;

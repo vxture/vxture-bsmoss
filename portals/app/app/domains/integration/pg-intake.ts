@@ -9,20 +9,31 @@ import type { PullPlan, SourceBinding, SourcePosition, SourceReadPort, SourceCla
 import { exactFields, planSourcePull, sourceBinding, sourceHead, sourcePosition } from "./rules.ts";
 import { prepareSourceUpdate } from "./service.ts";
 
+export interface IntakeResult {
+  status: "received" | "duplicate" | "current"; receiptId: string | null; inserted: number; duplicates: number;
+  publishesAvailability: false;
+}
+// Internal transaction participant, never accepted from a browser or adapter.
+export interface IntakeLifecycle {
+  bindingSha256: string;
+  beforeWrite(client: PoolClient): Promise<void>;
+  complete(client: PoolClient, result: IntakeResult): Promise<void>;
+  verify(client: PoolClient): Promise<void>;
+}
 interface IntakeManifest {
   version: "source-intake-v1"; plan: PullPlan; previousId: string | null;
   inputPosition: SourcePosition | null; position: SourcePosition;
   recordsSha256: string; records: { id: string; sha256: string }[];
   inserted: number; duplicates: number; unverifiedCompletionClaim: SourceClaim | null;
 }
-const bindingSelect = `SELECT b.*,b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS valid
+export const bindingSelect = `SELECT b.*,b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS valid
   FROM bsmoss_integration.source_binding_revision b`;
 const receiptSelect = `SELECT r.*,r.database_sha256=encode(sha256(convert_to(r.manifest::text,'UTF8')),'hex') AS valid,
   b.binding AS registered_binding,b.binding_sha256 AS registered_sha256,
   b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS binding_valid
   FROM bsmoss_integration.source_intake_receipt r JOIN bsmoss_integration.source_binding_revision b
     ON (b.workspace_id,b.id,b.revision)=(r.workspace_id,r.binding_id,r.binding_revision)`;
-function bindingRow(row: Record<string, any> | undefined): SourceBinding {
+export function bindingRow(row: Record<string, any> | undefined): SourceBinding {
   if (!row) throw Error("source_binding_unavailable");
   const b = sourceBinding(row.binding);
   if (row.valid !== true || fingerprintOf(b) !== row.binding_sha256 || b.id !== row.id || b.revision !== row.revision || b.sourceId !== row.source_id || b.scope.workspaceId !== row.workspace_id) throw Error("invalid_source_registration");
@@ -72,12 +83,13 @@ export function sourceIntake(pool: Pool, ports: AccessPorts, connector: SourceRe
     const row = (await client.query(receiptSelect + " WHERE r.workspace_id=$1 AND r.binding_id=$2 ORDER BY r.sequence DESC LIMIT 1", [workspaceId, id])).rows[0];
     return row ? receiptRow(row) : null;
   }
-  return Object.freeze({ async receive(bindingId: string, signal?: AbortSignal) {
+  return Object.freeze({ async receive(bindingId: string, signal?: AbortSignal, lifecycle?: IntakeLifecycle) {
     jobIdentity(bindingId); signal?.throwIfAborted();
     const first = await resolveMeasurementAccess(ports, "ingest", "data"), workspaceId = first.context.workspaceId;
     const reader = await pool.connect(); let binding: SourceBinding, prior: Awaited<ReturnType<typeof latest>>;
     try {
       binding = bindingRow((await reader.query(bindingSelect + " JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision) WHERE b.workspace_id=$1 AND b.id=$2", [workspaceId, bindingId])).rows[0]);
+      if (lifecycle && fingerprintOf(binding) !== lifecycle.bindingSha256) throw Error("source_configuration_changed");
       assertReportScope(first.scope, binding.scope); prior = await latest(reader, workspaceId, bindingId);
       // Permission to a new/narrower configuration never exposes old receipts.
       if (prior) assertReportScope(first.scope, prior.binding.scope);
@@ -102,6 +114,7 @@ export function sourceIntake(pool: Pool, ports: AccessPorts, connector: SourceRe
       if (revision !== binding.revision) throw Error("source_configuration_changed");
       const currentBinding = bindingRow((await client.query(bindingSelect + " WHERE b.workspace_id=$1 AND b.id=$2 AND b.revision=$3", [workspaceId, bindingId, revision])).rows[0]);
       if (fingerprintOf(currentBinding) !== fingerprintOf(binding)) throw Error("source_configuration_changed");
+      await lifecycle?.beforeWrite(client);
       const current = await latest(client, workspaceId, bindingId);
       if (current) { assertReportScope(first.scope, current.binding.scope); await check(first, current.binding); }
       const id = fingerprintOf(["source-intake-v1", workspaceId, bindingId, prepared.plan.id]);
@@ -141,6 +154,9 @@ export function sourceIntake(pool: Pool, ports: AccessPorts, connector: SourceRe
         }
       }
       assertLive(); await check(first, binding);
+      await lifecycle?.complete(client, { ...result, publishesAvailability: false });
+      assertLive(); await check(first, binding);
+      await lifecycle?.verify(client);
       await client.query("COMMIT"); return { ...result, publishesAvailability: false as const };
     } catch (error) { try { await client.query("ROLLBACK"); } catch { discard = true; } throw error; }
     finally { client.release(discard); }
