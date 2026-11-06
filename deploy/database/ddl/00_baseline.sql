@@ -1637,3 +1637,23 @@ END $$;
 REVOKE ALL ON FUNCTION bsmoss_analysis.capture_report_history_check() FROM PUBLIC;
 CREATE TRIGGER report_history_check_capture BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_analysis.report_history_check FOR EACH ROW EXECUTE FUNCTION bsmoss_analysis.capture_report_history_check();
 CREATE TRIGGER report_history_check_no_truncate BEFORE TRUNCATE ON bsmoss_analysis.report_history_check FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_analysis.capture_report_history_check();
+
+-- Immutable handles over already-received input evidence. Existing registered
+-- workers own dispatch and result leases; no browser-owned background queue.
+CREATE TABLE bsmoss_analysis.data_update_request (
+  workspace_id text NOT NULL,
+  id text NOT NULL CHECK(id ~ '^[a-f0-9]{64}$'),
+  partition_id text NOT NULL,
+  partition_revision numeric(30,0) NOT NULL,
+  manifest jsonb NOT NULL CHECK(jsonb_typeof(manifest)='object' AND
+    (manifest->>'version'='received-data-update-v1' AND manifest->>'partitionId'=partition_id AND
+      manifest->>'partitionRevision'=partition_revision::text AND manifest->'scope'->>'workspaceId'=workspace_id AND
+      jsonb_typeof(manifest->'changeIds')='array' AND jsonb_array_length(manifest->'changeIds') BETWEEN 1 AND 64) IS TRUE),
+  manifest_sha256 text NOT NULL CHECK(manifest_sha256 ~ '^[a-f0-9]{64}$'),
+  database_sha256 text NOT NULL CHECK(database_sha256=encode(sha256(convert_to(manifest::text,'UTF8')),'hex')),
+  requested_by text NOT NULL CHECK(length(trim(requested_by))>0),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY(workspace_id,id),
+  FOREIGN KEY(workspace_id,partition_id,partition_revision) REFERENCES bsmoss_integration.refresh_partition_revision(workspace_id,id,revision)
+);
+CREATE INDEX data_update_request_latest ON bsmoss_analysis.data_update_request(workspace_id,partition_id,partition_revision,created_at DESC,id DESC);

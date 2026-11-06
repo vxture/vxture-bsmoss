@@ -245,7 +245,7 @@ export async function reopenInputChange(pool: Pool, ports: AccessPorts, raw: Inp
 
 // Bounded discovery has no created_at/id high-water mark. A transaction which
 // commits late remains pending; expired/revoked scope cannot acknowledge it.
-export async function pendingInputChangesInTransaction(queryable: Pool | PoolClient, access: MeasurementAccess, rawPolicy: InputRefreshPolicy, registration?: InputRefreshRegistration) {
+export async function pendingInputChangesInTransaction(queryable: Pool | PoolClient, access: MeasurementAccess, rawPolicy: InputRefreshPolicy, registration?: InputRefreshRegistration, includeBlocked = false) {
   const policy = structuredClone(rawPolicy), s = access.scope, subscription = inputRefreshSubscription(s, policy, registration);
   const relevant = new Set(subscription.policy.outputs.flatMap(ref => [ref, ...FIRST_METRICS.get(ref)!.dependencies]).map(refKey));
   const rows = (await queryable.query(`WITH visible AS (
@@ -267,7 +267,7 @@ export async function pendingInputChangesInTransaction(queryable: Pool | PoolCli
     ) SELECT v.id FROM visible v LEFT JOIN LATERAL (
       SELECT state,available_at FROM bsmoss_analysis.input_dispatch_event e WHERE e.workspace_id=$1 AND e.change_id=v.id AND e.subscription_sha256=$8 ORDER BY revision DESC LIMIT 1
     ) control ON true WHERE (v.source_id=ANY($2::text[]) OR (v.is_authority AND v.source_id IS NULL AND cardinality($2::text[])>0))
-    AND (control.state IS NULL OR control.state='reopened' OR (control.state='retry' AND control.available_at<=clock_timestamp()))
+    AND ($11::boolean OR control.state IS NULL OR control.state='reopened' OR (control.state='retry' AND control.available_at<=clock_timestamp()))
     AND ((v.is_authority AND (v.metric_code IS NULL OR v.metric_code||'@'||v.metric_version::text=ANY($3::text[]))) OR
       (NOT v.is_authority AND NOT v.is_proof AND v.metric_code||'@'||v.metric_version::text=ANY($3::text[])) OR
       (v.is_proof AND v.metric_code||'@'||v.metric_version::text=ANY($9::text[]) AND v.proof_grain=ANY($10::text[])))
@@ -275,7 +275,7 @@ export async function pendingInputChangesInTransaction(queryable: Pool | PoolCli
     AND (v.device_id IS NULL OR v.device_id=ANY($6::text[])) AND ((v.is_authority AND v.station_id IS NULL) OR v.service_id IS NOT NULL OR v.device_id IS NOT NULL OR $7::boolean)
     AND NOT EXISTS(SELECT 1 FROM bsmoss_analysis.input_refresh_receipt r WHERE (r.workspace_id,r.change_id,r.subscription_sha256)=($1,v.id,$8))
     ORDER BY v.created_at,v.id LIMIT 64`, [s.workspaceId, s.sourceIds, s.metricKeys.filter(key => relevant.has(key)), s.stationIds, s.serviceIds, s.deviceIds,
-    s.allowSiteParameters, subscription.sha256, subscription.policy.outputs.map(refKey), subscription.policy.grains])).rows;
+    s.allowSiteParameters, subscription.sha256, subscription.policy.outputs.map(refKey), subscription.policy.grains, includeBlocked])).rows;
   return { subscriptionSha256: subscription.sha256, changeIds: rows.map(row => row.id as string) };
 }
 export async function pendingInputChanges(pool: Pool, ports: AccessPorts, policy: InputRefreshPolicy) {

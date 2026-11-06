@@ -1,5 +1,12 @@
 # Empty database initialization
 
+Current baseline: 62 tables. data_update_request records immutable handles over
+already-received evidence for reviewed partitions; existing dispatch/result
+workers continue independently. It is not an upstream connector or a published
+availability watermark. Runtime request INSERT/SELECT and append-only column
+locks follow the existing analysis grants. Historical counts below describe
+earlier increments. Use only the reviewed empty-database initialization path.
+
 This is a new product: no legacy migration or data conversion is required.
 Use a dedicated EMPTY database. Apply 00_baseline.sql, then 97_runtime_grants.sql,
 then 98_column_locks.sql in one transaction via db-init under an administrative identity.

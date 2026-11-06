@@ -936,3 +936,18 @@ model ReportHistoryCheck {
   @@map("report_history_check")
   @@schema("bsmoss_analysis")
 }
+
+model DataUpdateRequest {
+  workspace_id String
+  id String
+  partition_id String
+  partition_revision Decimal @db.Decimal(30,0)
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  requested_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("data_update_request")
+  @@schema("bsmoss_analysis")
+}
