@@ -7,10 +7,11 @@ const groups: { title: string; pages: PortalPage[] }[] = [
   { title: "\u7ec4\u7ec7\u7ba1\u8f96", pages: ["jurisdiction"] },
   { title: "\u6210\u5458\u6743\u9650", pages: ["members"] },
   { title: "\u4e1a\u52a1\u53c2\u6570", pages: ["site-classifications", "metric-catalog", "analysis-rules", "templates"] },
-  { title: "\u6570\u636e\u63a5\u5165", pages: ["source-configurations"] },
+  { title: "\u6570\u636e\u63a5\u5165", pages: ["source-configurations", "object-mappings"] },
   { title: "\u9ad8\u7ea7\u7ba1\u7406", pages: ["configuration-audit"] },
 ];
 const details: Partial<Record<PortalPage, { icon: IconName; description: string }>> = {
+  "object-mappings": { icon: "stack", description: "\u5916\u90e8\u5bf9\u8c61\u3001\u5173\u8054\u76ee\u6807\u4e0e\u6709\u6548\u671f\u6838\u5bf9" },
   "site-classifications": { icon: "building", description: "\u7ad9\u70b9\u7c7b\u578b\u3001\u4e1a\u52a1\u573a\u666f\u4e0e\u5171\u4eab\u5206\u7c7b" },
   "analysis-rules": { icon: "faders", description: "\u5206\u6790\u9608\u503c\u3001\u8ba1\u7b97\u53e3\u5f84\u4e0e\u4f7f\u7528\u8fb9\u754c" },
   "source-configurations": { icon: "database", description: "\u6765\u6e90\u767b\u8bb0\u72b6\u6001\u3001\u9002\u914d\u4e0e\u6620\u5c04\u7248\u672c\u53ca\u6388\u6743\u8303\u56f4" },
@@ -34,7 +35,7 @@ export const managementPlan = [
   { title: "\u7ec4\u7ec7\u7ba1\u8f96", description: "\u5df2\u5177\u5907\u6388\u6743\u7ad9\u5740\u8303\u56f4\u67e5\u8be2\uff1b\u8d23\u4efb\u7ec4\u7ec7\u4e3b\u6863\u4e0e\u5206\u914d\u5f85\u63a5\u5165", available: true },
   { title: "\u6210\u5458\u6743\u9650", description: "\u5df2\u5177\u5907\u6210\u5458\u89d2\u8272\u4e0e\u6570\u636e\u6388\u6743\u53ea\u8bfb\u67e5\u8be2\uff1b\u6388\u6743\u53d8\u66f4\u4e0e\u5ba1\u8ba1\u5f85\u5efa\u8bbe", available: true },
   { title: "\u4e1a\u52a1\u53c2\u6570", description: "\u5206\u7c7b\u3001\u5b57\u5178\u3001\u89c4\u5219\u53ea\u8bfb\u76ee\u5f55\u4e0e\u6a21\u677f\u5df2\u6709\u5165\u53e3\uff1b\u89c4\u5219\u53d1\u5e03\u6cbb\u7406\u5f85\u5efa\u8bbe", available: true },
-  { title: "\u6570\u636e\u63a5\u5165", description: "\u5df2\u6709\u6765\u6e90\u914d\u7f6e\u53ea\u8bfb\u67e5\u8be2\uff1b\u6388\u6743\u63a5\u5165\u3001\u5bf9\u8c61\u6620\u5c04\u7ef4\u62a4\u4e0e\u8fde\u63a5\u6838\u9a8c\u5f85\u5efa\u8bbe", available: true },
+  { title: "\u6570\u636e\u63a5\u5165", description: "\u5df2\u6709\u6765\u6e90\u914d\u7f6e\u4e0e\u5bf9\u8c61\u6620\u5c04\u53ea\u8bfb\u67e5\u8be2\uff1b\u6388\u6743\u63a5\u5165\u3001\u6620\u5c04\u53d7\u5ba1\u7ef4\u62a4\u4e0e\u8fde\u63a5\u6838\u9a8c\u5f85\u5efa\u8bbe", available: true },
   { title: "\u9ad8\u7ea7\u7ba1\u7406", description: "\u5df2\u6709\u6765\u6e90\u914d\u7f6e\u7248\u672c\u8bb0\u5f55\uff1b\u6210\u5458\u3001\u6a21\u677f\u7b49\u5176\u4ed6\u914d\u7f6e\u5ba1\u8ba1\u53ca\u8fde\u63a5\u6838\u9a8c\u5f85\u5efa\u8bbe", available: true },
 ] as const;
 export function managementSections(preview: boolean): ShellNavSection[] {

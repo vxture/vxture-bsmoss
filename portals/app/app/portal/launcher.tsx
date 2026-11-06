@@ -9,6 +9,7 @@ import { regionLink } from "./region-scope";
 import type { RegionSelection } from "./region-selection";
 import { managementNavigation } from "./management-navigation";
 export const portalIcons: Record<PortalPage, IconName> = {
+  "object-mappings": "stack",
   "site-classifications": "building", "analysis-rules": "faders",
   "source-configurations": "database", "configuration-audit": "list-checks",
   members: "users", jurisdiction: "building",
@@ -22,6 +23,7 @@ export const portalIcons: Record<PortalPage, IconName> = {
   aggregation: "database", "report-jobs": "calendar", templates: "stack", settings: "faders",
 };
 const descriptions: Record<PortalPage, string> = {
+  "object-mappings": "\u5916\u90e8\u5bf9\u8c61\u4e0e\u4e1a\u52a1\u76ee\u6807\u5173\u8054",
   "source-configurations": "\u6765\u6e90\u767b\u8bb0\u3001\u9002\u914d\u4e0e\u6620\u5c04\u7248\u672c", "configuration-audit": "\u6765\u6e90\u7248\u672c\u4e0e\u767b\u8bb0\u4f9d\u636e\u8ffd\u6eaf",
   "site-classifications": "\u7ad9\u70b9\u7c7b\u578b\u3001\u573a\u666f\u4e0e\u5171\u4eab\u5206\u7c7b", "analysis-rules": "\u5206\u6790\u53e3\u5f84\u4e0e\u5224\u5b9a\u8fb9\u754c",
   members: "\u6210\u5458\u89d2\u8272\u4e0e\u6570\u636e\u6388\u6743", jurisdiction: "\u5df2\u6388\u6743\u7ad9\u5740\u4e0e\u5173\u8054\u8d44\u6e90",

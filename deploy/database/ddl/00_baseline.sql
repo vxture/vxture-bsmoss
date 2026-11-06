@@ -1840,3 +1840,6 @@ INSERT INTO local_authz.permission(perm_code,name) VALUES
  ('admin.jurisdiction.view','Inspect authorized station jurisdiction'),
  ('admin.sources.view','Inspect fully scoped source registration'),
  ('admin.configuration_audit.view','Inspect fully scoped source configuration revisions');
+
+-- Mapping inspection is independent from source configuration and runtime ingest.
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.view','Inspect authorized object mapping definitions');

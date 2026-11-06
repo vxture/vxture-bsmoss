@@ -1,5 +1,6 @@
 import { managementCases } from './management.cases.mjs';
 import { sourceManagementCases } from './source-management.cases.mjs';
+import { objectMappingCases } from './object-mappings.cases.mjs';
 // Creates and removes only a random bsmoss_contract_* database on a local test cluster.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -2065,6 +2066,7 @@ await test("empty-database PostgreSQL contract", async t => {
     await workerIdentityCases(t,{db,adapterPool});
     await managementCases(t,{db,adapterPool});
     await sourceManagementCases(t,{db,adapterPool});
+    await objectMappingCases(t,{db,adapterPool});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

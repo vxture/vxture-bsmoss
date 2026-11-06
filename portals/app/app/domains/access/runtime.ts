@@ -1,3 +1,5 @@
+import { mappingManagement } from "../management/mapping-service";
+import { PgMappingReader } from "../management/mapping-reader";
 import { sourceManagement } from "../management/source-service";
 import { PgSourceReader } from "../management/source-reader";
 import { managementService } from "../management/service";
@@ -115,3 +117,5 @@ export function managementForSession(rpsid: string) {
 }
 
 export function sourceManagementForSession(rpsid:string){return sourceManagement(sessionAccessPorts(rpsid),{create:scope=>new PgSourceReader(getPool(),scope)});}
+
+export function mappingManagementForSession(rpsid: string) { return mappingManagement(sessionAccessPorts(rpsid), { create: scope => new PgMappingReader(getPool(), scope) }); }
