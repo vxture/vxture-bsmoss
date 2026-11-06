@@ -42,8 +42,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
-      const html=await(await fetch(url+'/settings/operations/data-updates?task='+id)).text();
-      assert.ok(html.includes('\u6570\u636e\u66f4\u65b0\u4efb\u52a1')); assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
+      const html=await(await fetch(url+'/operations/data-updates?task='+id)).text();
+      assert.ok(html.includes('\u6570\u636e\u66f4\u65b0')); assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
     });
     await t.test('data availability is hidden and unwritable outside explicit preview',async()=>{
       for(const method of ['GET','POST']) {
@@ -69,7 +69,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const html=await r.text();
       for(const marker of ['data-overview-report=','data-overview-attention=','bsmoss-demo-review-scenarios-v1','DEMO-MONTH-']) assert.ok(!html.includes(marker));
       assert.ok(!html.includes('data-overview-metrics='));
-      const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(!settings.includes('data-overview-display-settings'));
+      const settings=await (await fetch(url+'/preferences/overview')).text();assert.ok(!settings.includes('data-overview-display-settings'));
     });
     await t.test("usage verification never exposes its isolated scenario evidence with preview off",async()=>{
       const r=await fetch(url+'/usage-review'); assert.equal(r.status,200);
@@ -94,18 +94,21 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const mark=await fetch(url+'/assets/brand/guanlan-mark.svg');assert.equal(mark.status,200);
       assert.ok(mark.headers.get('content-type').includes('image/svg+xml'));
     });
-    await t.test("management routes have a separate directory and legacy task links redirect there",async()=>{
-      for(const suffix of ['aggregation','reports']) {
-        const legacy=await fetch(url+'/operations/'+suffix,{redirect:'manual'});
-        assert.equal(legacy.status,307);assert.equal(legacy.headers.get('location'),'/settings/operations/'+suffix);
-        const response=await fetch(url+'/settings/operations/'+suffix);assert.equal(response.status,200);
-        const html=await response.text();assert.ok(html.includes('href="/settings/templates"'));
-        assert.ok(!html.includes('href="/analysis"'));assert.ok(!html.includes('href="/reports"'));
+    await t.test("configuration keeps rules while legacy business task links preserve deep queries",async()=>{
+      for(const [from,to] of [['/settings/operations/aggregation','/operations/aggregation'],['/settings/operations/data-updates','/operations/data-updates'],['/settings/operations/reports','/reports/tasks'],['/operations/reports','/reports/tasks'],['/settings/overview','/preferences/overview']]) {
+        const query='?task=a&task=b&job=a%2Fb&kind=export&city=610100&county=610113';
+        const redirect=await fetch(url+from+query,{redirect:'manual'});
+        assert.equal(redirect.status,307);assert.equal(redirect.headers.get('location'),to+query);
+        const response=await fetch(url+to);assert.equal(response.status,200);
       }
-      const home=await (await fetch(url)).text();
-      for(const managementPath of ['/settings/templates','/settings/operations/aggregation','/settings/operations/reports']) assert.ok(!home.includes('href="'+managementPath+'"'));
-      assert.ok(home.includes('href="/settings"'));
-      const settings=await (await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/?city=all&amp;county=all"'));assert.ok(!settings.includes('href="/analysis"'));
+      const home=await(await fetch(url)).text();assert.ok(home.includes('href="/settings"'));
+      for(const path of ['/settings/templates','/settings/metrics']) assert.ok(!home.includes('href="'+path+'"'));
+      const settings=await(await fetch(url+'/settings')).text();
+      for(const path of ['/settings/templates','/settings/metrics','/?city=all&amp;county=all']) assert.ok(settings.includes('href="'+path+'"'));
+      for(const path of ['/operations/data-updates','/operations/aggregation','/reports/tasks','/preferences/overview']) assert.ok(!settings.includes('href="'+path+'"'));
+      const catalog=await(await fetch(url+'/settings/metrics')).text();assert.ok(catalog.includes('\u53ea\u8bfb\u89c4\u8303'));
+      assert.ok(catalog.includes('service.voice.connected_seconds') || catalog.includes('\u901a\u8bdd\u65f6\u957f'));
+      assert.ok(!catalog.includes('data-overview-display-settings'));
     });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);
@@ -198,9 +201,9 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
-      const html=await(await fetch(url+'/settings/operations/data-updates?task='+id)).text();
+      const html=await(await fetch(url+'/operations/data-updates?task='+id)).text();
       assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
-      assert.ok(html.includes('href="/settings/operations/data-updates"'));
+      assert.ok(html.includes('href="/operations/aggregation"'));assert.ok(!html.includes('href="/settings/templates"'));
     });
     await t.test('availability reads stable independent source watermarks without creating jobs',async()=>{
       for(const family of ['overview','station','calendar','history','verification']) {
@@ -441,8 +444,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(home.includes('\u6570\u636e\u66f4\u65b0\u81f3'));assert.ok(home.includes('2026-10-26 00:00'));assert.ok(home.includes('\u72b6\u6001\u65f6\u70b9 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
       assert.ok(!home.includes('\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9'));
       assert.ok(home.includes('\u8f83\u6628\u65e5'));
-      const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));
-      const config=await (await fetch(url+'/settings')).text();assert.ok(config.includes('href="/settings/overview"'));
+      const settings=await (await fetch(url+'/preferences/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));
+      const config=await (await fetch(url+'/settings')).text();assert.ok(!config.includes('href="/preferences/overview"'));assert.ok(config.includes('href="/settings/metrics"'));
       for(const period of ['week','month']) {
         const report=await (await fetch(url+'/?reportPeriod='+period)).text();
         assert.ok(report.includes('data-overview-report="'+period+'"'));

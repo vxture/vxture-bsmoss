@@ -30,7 +30,7 @@ export function useHeaderRegion(preference: RegionPreference) {
     if (!catalog) return;
     rememberBrowserRegion(preference.cookieName, catalog, next);
     start(() => {
-      if (path.startsWith("/settings")) router.refresh();
+      if (!aggregate) router.refresh();
       else router.push(changedRegionHref(path, query, next), { scroll: false });
     });
   };

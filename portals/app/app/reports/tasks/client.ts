@@ -1,5 +1,5 @@
-import { ReportClientError } from "../../../reports/client";
-import { jobLabel } from "../aggregation/client";
+import { ReportClientError } from "../../reports/client";
+import { jobLabel } from "../../operations/aggregation/client";
 const labels: Record<string, string> = {
   generation: "\u5468\u671f\u751f\u6210", export: "\u5bfc\u51fa", registration_paused: "\u767b\u8bb0\u5df2\u6682\u505c", registration_changed: "\u767b\u8bb0\u5df2\u6362\u7248",
   report_binding_unavailable: "\u62a5\u544a\u6570\u636e\u7ed1\u5b9a\u4e0d\u53ef\u7528", storage_failed: "\u5b58\u50a8\u672a\u5b8c\u6210", report_not_active: "\u53d1\u5e03\u5df2\u5931\u6548",

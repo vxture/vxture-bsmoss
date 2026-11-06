@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { ReportJobDetail, RecoverReportJob } from "../../../domains/supervision/report-jobs";
-import type { RecoveryRecord, RecoveryResult } from "../../../domains/supervision/jobs";
-import { reportJson, ReportClientError } from "../../../reports/client";
-import { reportTime } from "../../../domains/reports/display";
-import { jobError } from "../aggregation/client";
+import type { ReportJobDetail, RecoverReportJob } from "../../domains/supervision/report-jobs";
+import type { RecoveryRecord, RecoveryResult } from "../../domains/supervision/jobs";
+import { reportJson, ReportClientError } from "../../reports/client";
+import { reportTime } from "../../domains/reports/display";
+import { jobError } from "../../operations/aggregation/client";
 
 function RecoveryLink({ record, parent = false, onChoose }: { record: RecoveryRecord; parent?: boolean; onChoose(id: string): void }) {
   return <article className="jobs-link"><strong>{parent ? "\u6062\u590d\u81ea" : "\u5df2\u590d\u6838\u91cd\u6392"}</strong>

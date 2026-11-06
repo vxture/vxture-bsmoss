@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { legacyDestination } from "../../portal/legacy-destination";
 
-export default function LegacyReportJobsPage() {
-  redirect("/settings/operations/reports");
+export default async function LegacyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  redirect(legacyDestination("reports", await searchParams));
 }

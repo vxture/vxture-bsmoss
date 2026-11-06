@@ -38,8 +38,8 @@ export default function ProductChrome({ active, preview, children, identity, log
     isActive={href => href === current?.href} storageKeyPrefix="bsmoss-management" linkComponent={Link}
     labels={{ expandNav: "\u5c55\u5f00\u5bfc\u822a", collapseNav: "\u6536\u8d77\u5bfc\u822a", expandAllGroups: "\u5c55\u5f00\u5206\u7ec4", collapseAllGroups: "\u6536\u8d77\u5206\u7ec4" }}
     footer={<Button asChild variant="ghost" className={compact ? "w-full px-0" : "w-full justify-start gap-sm"}>
-      <Link href={regionLink("/", scope.value)} title={"\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528"} aria-label={"\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528"}>
-        <Icon name="arrow-left" size="sm" />{!compact && "\u8fd4\u56de\u4e1a\u52a1\u5e94\u7528"}
+      <Link href={regionLink("/", scope.value)} title={"\u8fd4\u56de\u4e1a\u52a1"} aria-label={"\u8fd4\u56de\u4e1a\u52a1"}>
+        <Icon name="arrow-left" size="sm" />{!compact && "\u8fd4\u56de\u4e1a\u52a1"}
       </Link>
     </Button>} />;
   return <><ShellViewport sidebarMode={management && !mobile ? collapsed ? "collapsed" : "expanded" : "hidden"}
@@ -60,7 +60,7 @@ export default function ProductChrome({ active, preview, children, identity, log
       </div>
     </>} trailing={<div className="flex shrink-0 items-center gap-md">
       <ProductHeaderTools authenticated={identity !== null} loginEnabled={loginEnabled} management={management} />
-      <ProductAccount identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
+      <ProductAccount preview={preview} identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
     </div>} />}>
     {management ? children : <ProductWorkspace>{children}</ProductWorkspace>}
   </ShellViewport>

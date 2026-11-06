@@ -63,7 +63,7 @@ export function DataUpdateProvider({ availability, children }: { availability: D
             <p className="text-muted-foreground">{"\u5f53\u524d\u6765\u6e90\u6ca1\u6709\u53ef\u8ffd\u52a0\u7684\u4e0a\u6e38\u6279\u6b21\uff0c\u4e0d\u4f1a\u7528\u672c\u673a\u65f6\u95f4\u63a8\u8fdb\u6570\u636e\u622a\u81f3\u3002"}</p>
           </div>
         </details>
-        <DialogFooter><Button asChild variant="ghost"><a href="/settings/operations/data-updates">{"\u4efb\u52a1\u8bb0\u5f55"}</a></Button><Button variant="outline" disabled={checking} onClick={() => setRetry(n => n + 1)}>{error ? "\u91cd\u8bd5\u68c0\u67e5" : "\u91cd\u65b0\u68c0\u67e5"}</Button><Button onClick={() => setOpen(false)}>{"\u5b8c\u6210"}</Button></DialogFooter>
+        <DialogFooter><Button asChild variant="ghost"><a href="/operations/data-updates">{"\u4efb\u52a1\u8bb0\u5f55"}</a></Button><Button variant="outline" disabled={checking} onClick={() => setRetry(n => n + 1)}>{error ? "\u91cd\u8bd5\u68c0\u67e5" : "\u91cd\u65b0\u68c0\u67e5"}</Button><Button onClick={() => setOpen(false)}>{"\u5b8c\u6210"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   </UpdateContext.Provider>;

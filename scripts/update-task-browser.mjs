@@ -7,7 +7,7 @@ import { build } from 'esbuild';
 const root = resolve('portals/app'), id = 'a'.repeat(64), other = 'b'.repeat(64);
 const summary = { id, kind: 'received_evidence', partitionId: 'Shaanxi usage / reviewed source', partitionRevision: '1', createdAt: '2026-11-06T06:00:00.000Z' };
 let phase = 'recomputing', changed = false, unavailable = false, retryMode = 'ok', savedCommand = null, postCount = 0, detailReads = 0;
-const bundle = await build({ stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';import Workspace from './app/settings/operations/data-updates/workspace.tsx';createRoot(document.getElementById('root')).render(<Workspace/>);`, resolveDir: root, loader: 'tsx' }, absWorkingDir: root, bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent' });
+const bundle = await build({ stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';import Workspace from './app/operations/data-updates/workspace.tsx';createRoot(document.getElementById('root')).render(<Workspace/>);`, resolveDir: root, loader: 'tsx' }, absWorkingDir: root, bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent' });
 const script = bundle.outputFiles[0].text;
 const css = readdirSync(join(root, '.next/static/css')).filter(x => x.endsWith('.css')).map(x => readFileSync(join(root, '.next/static/css', x), 'utf8')).join('\n');
 function detail(taskId) {

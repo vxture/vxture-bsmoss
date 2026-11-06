@@ -1,5 +1,5 @@
-import { ReportClientError } from "../../../reports/client";
-import { validTaskId } from "../../../domains/data-updates/contracts";
+import { ReportClientError } from "../../reports/client";
+import { validTaskId } from "../../domains/data-updates/contracts";
 export const phases = { dispatching: "\u6b63\u5728\u5904\u7406\u589e\u91cf", recomputing: "\u6b63\u5728\u91cd\u7b97", failed: "\u9700\u8981\u5904\u7f6e", processed: "\u5904\u7406\u5b8c\u6210" };
 export const failures: Record<string, string> = {
   serialization_conflict: "\u5e76\u53d1\u51b2\u7a81", database_unavailable: "\u5b58\u50a8\u6682\u4e0d\u53ef\u7528", capacity_limit: "\u8d85\u51fa\u5904\u7406\u5bb9\u91cf",
@@ -24,7 +24,7 @@ export function updateReadError(e: unknown) {
   return "\u6682\u65f6\u65e0\u6cd5\u67e5\u8be2\u4efb\u52a1\u72b6\u6001\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002";
 }
 export function taskHref(id: string) {
-  if (!validTaskId(id)) throw Error("invalid_task_link"); return "/settings/operations/data-updates?task=" + id;
+  if (!validTaskId(id)) throw Error("invalid_task_link"); return "/operations/data-updates?task=" + id;
 }
 export async function updateJson<T>(path: string, signal: AbortSignal, body?: unknown): Promise<T> {
   const timed = AbortSignal.any([signal, AbortSignal.timeout(15000)]);

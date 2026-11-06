@@ -1,5 +1,16 @@
 # 后续代理入口
 
+## 配置管理职责重组首批（2026-11-06，最新执行）
+
+用户授权参考yucer管理思路结合本业务推进，导航尽量四字。设计250／实施[993](../40-implementation/993-configuration-boundaries.md)：覆盖249旧归属，数据更新、聚合处理、报告任务迁回业务；旧/settings/operations深链与/operations/reports固定307保留全部query及重复项，由原目的页验证，Header消息／登录returnTo同步。业务launcher增加数据管理第六组，报告任务归报告中心，聚合处理经数据更新二级进入。总览偏好移用户面板/preferences/overview，仍仅当前浏览器及原预览开放条件。
+
+管理官方DS壳保持，侧栏管理总览／指标字典／模板配置。字典直接读12项FIRST_METRICS，分类检索及对象／归属／单位／粒度／聚合／依赖侧抽屉，planned显示待接入；不伪造来源启用。总览说明组织管辖、成员权限、业务参数、数据接入、高级管理五组建设范围，未具备项无空导航。非分析页改地域仅记忆并刷新，不改任务身份。导航四字，运营商用量五字保留准确性。
+
+13规则、54HTTP、双层types及最终build通过；CUA七页三宽21组无正文／文档横溢、唯一H1。手机Drawer首次超宽已加max-w-full最终复测；字典搜索／依赖、移动导航、用户偏好／业务任务往返、收起刷新记忆和主题恢复通过，warn/error空。证据artifacts/configuration-boundaries-qa；viewport已恢复，临时15关闭。最终SHA与63333健康见formal-checkpoints/configuration-boundaries.json。
+
+下一批优先产品组织管辖与成员权限，再站址分类／分析规则、来源配置与配置审计；本批不能算五组全部完成。原P1接收任务工作台、受审重新基准及真实来源／平台凭据／Beta容量恢复／UAT／生产批准依赖保持。无DDL／Prisma／依赖／权限分配／任务语义变更，无push／外部部署／新聊天／自动任务，不把未登录门槛页当真实业务验收。
+
+
 ## 配置管理官方 DS 导航与布局（2026-11-06，最新执行）
 
 用户要求优先优化配置管理并明确“重试，应用DS系统的导航组件”。设计249／实施992：按本地平台ConsoleAppShell同源组合，ProductChrome管理域直接使用ShellViewport内置ShellSidebarFrame承载ShellSidebarNav，移除ProductWorkspace里的重复浮动边框壳；业务原布局保持。管理导航分配置／任务、底部返回业务，Next Link／精确选中，布尔收起偏好存浏览器。移动端官方Drawer承载同一导航，选择／关闭／Escape可退出；齿轮仍32／16且标识当前位置。管理首页分组EntryCard＋官方外观偏好，所有配置子页及门槛页用ShellPageContainer；全局地域／品牌／系统名保持。

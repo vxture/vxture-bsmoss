@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, EmptyState, Icon, Input, PanelCard, ShellPageContainer, StatusBadge } from "@vxture/design-system";
-import PageHeading from "../../../portal/page-heading";
-import type { UpdateList, UpdateDetail, UpdateFailure, InputRetryCommand } from "../../../domains/data-updates/contracts";
-import { formatDataTime } from "../../../domains/data-updates/rules";
-import { ReportClientError } from "../../../reports/client";
+import PageHeading from "../../portal/page-heading";
+import type { UpdateList, UpdateDetail, UpdateFailure, InputRetryCommand } from "../../domains/data-updates/contracts";
+import { formatDataTime } from "../../domains/data-updates/rules";
+import { ReportClientError } from "../../reports/client";
 import { failures, phases, taskFromUrl, taskHref, updateError, updateJson } from "./client";
 
 function InputRecovery({ task, failure, onChanged }: { task: UpdateDetail; failure: UpdateFailure; onChanged(): void }) {
@@ -75,7 +75,7 @@ function TaskInspection({ id, epoch }: { id: string; epoch: number }) {
           <p className="text-body-small">{failures[f.code] ?? "\u5904\u7406\u672a\u5b8c\u6210"}</p><code className="break-all text-body-small text-muted-foreground">{f.id}</code>
           {f.retryAt && <p className="text-body-small text-muted-foreground">{"\u4e0b\u6b21\u53ef\u91cd\u8bd5 " + formatDataTime(f.retryAt)}</p>}
           {f.kind === "input" && f.canRetry && !detail.configurationChanged && <InputRecovery key={f.id + f.expectedRevision + refresh} task={detail} failure={f} onChanged={() => setRefresh(n => n + 1)} />}
-          {f.kind === "result" && <Button asChild variant="outline" className="self-start"><a href={"/settings/operations/aggregation?job=" + encodeURIComponent(f.id)}>{"\u67e5\u770b\u91cd\u7b97\u4efb\u52a1"}</a></Button>}
+          {f.kind === "result" && <Button asChild variant="outline" className="self-start"><a href={"/operations/aggregation?job=" + encodeURIComponent(f.id)}>{"\u67e5\u770b\u91cd\u7b97\u4efb\u52a1"}</a></Button>}
         </div>)}</section>}
       </>}
     </div>
@@ -92,8 +92,8 @@ export default function UpdateTasksWorkspace() {
     return () => c.abort();
   }, [epoch, cursor]);
   function choose(id: string) { window.history.pushState(null, "", taskHref(id)); setSelected(id); setInvalid(false); }
-  return <ShellPageContainer className="gap-lg">
-    <PageHeading title={"\u6570\u636e\u66f4\u65b0\u4efb\u52a1"} description={"\u589e\u91cf\u5904\u7406\u3001\u6267\u884c\u8fdb\u5ea6\u4e0e\u5931\u8d25\u6062\u590d"} actions={<Button variant="outline" onClick={() => { setCursor(null); setPrevious([]); setEpoch(n => n + 1); }}><Icon name="refresh" size="sm" />{"\u67e5\u8be2\u6700\u65b0\u72b6\u6001"}</Button>} />
+  return <ShellPageContainer className="product-page-inset gap-lg">
+    <PageHeading title={"\u6570\u636e\u66f4\u65b0"} description={"\u589e\u91cf\u5904\u7406\u3001\u6267\u884c\u8fdb\u5ea6\u4e0e\u5931\u8d25\u6062\u590d"} actions={<><Button asChild variant="outline"><a href="/operations/aggregation">{"\u805a\u5408\u5904\u7406"}</a></Button><Button variant="outline" onClick={() => { setCursor(null); setPrevious([]); setEpoch(n => n + 1); }}><Icon name="refresh" size="sm" />{"\u67e5\u8be2\u6700\u65b0\u72b6\u6001"}</Button></>} />
     {invalid && <p role="alert" className="text-body-small text-destructive">{"\u4efb\u52a1\u94fe\u63a5\u65e0\u6548\uff0c\u8bf7\u4ece\u5217\u8868\u9009\u62e9\u3002"}</p>}
     <div className="grid min-w-0 items-start gap-lg xl:grid-cols-3"><div className="min-w-0"><PanelCard title={"\u4efb\u52a1\u8bb0\u5f55"} icon="list-checks"><div className="flex min-w-0 flex-col gap-md" aria-busy={loading}>
       <p className="text-body-small text-muted-foreground">{"\u4ec5\u663e\u793a\u5f53\u524d\u6388\u6743\u8303\u56f4\uff0c\u6309\u63d0\u4ea4\u65f6\u95f4\u6392\u5e8f\u3002"}</p>

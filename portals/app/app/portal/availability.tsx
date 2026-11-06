@@ -1,13 +1,14 @@
+import type { ReactNode } from "react";
 import PageHeading from "./page-heading";
 import { Button, PanelCard, ShellPageContainer } from "@vxture/design-system";
 
 // Shared page composition for closed or unauthenticated workspaces.
 // Keep the same page inset and heading hierarchy as the available workspace.
-export default function WorkspaceAvailability({ title, description, stateTitle, message, loginHref, inset = "product" }: {
-  title: string; description?: string; stateTitle?: string; message?: string; loginHref?: string; inset?: "product" | "shell";
+export default function WorkspaceAvailability({ title, description, stateTitle, message, loginHref, inset = "product", actions }: {
+  actions?: ReactNode; title: string; description?: string; stateTitle?: string; message?: string; loginHref?: string; inset?: "product" | "shell";
 }) {
   return <ShellPageContainer className={inset === "product" ? "product-page-inset gap-lg" : "gap-lg"}>
-    <PageHeading title={title} description={description} />
+    <PageHeading title={title} description={description} actions={actions} />
     <PanelCard title={stateTitle ?? (loginHref ? "\u9700\u8981\u767b\u5f55" : "\u63a5\u5165\u72b6\u6001")} icon="shield-check">
       <div className="flex flex-col items-start gap-lg">
         {message && <p className="text-body text-muted-foreground">{message}</p>}

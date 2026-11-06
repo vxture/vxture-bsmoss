@@ -13,8 +13,8 @@ export interface HeaderIdentity {
   workspace: string | null;
 }
 
-export default function ProductAccount({ identity, loginEnabled, consoleHref }: {
-  identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string;
+export default function ProductAccount({ identity, loginEnabled, consoleHref, preview = false }: {
+  identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string; preview?: boolean;
 }) {
   const logout = useRef<HTMLFormElement>(null);
   const login = (switchAccount = false) => {
@@ -32,7 +32,7 @@ export default function ProductAccount({ identity, loginEnabled, consoleHref }: 
         displayName: "\u8bbf\u5ba2",
         meta: "\u89c2\u6f9c \u00b7 BS-MOSS", statusTag: { label: "\u672a\u767b\u5f55" },
       }}
-      links={identity && consoleHref ? [{ key: "account", label: "\u8d26\u6237\u4e2d\u5fc3", icon: "user-circle", href: consoleHref, newTab: true }] : []}
+      links={[...(preview ? [{ key: "overview", label: "\u603b\u89c8\u504f\u597d", icon: "faders" as const, href: "/preferences/overview" }] : []), ...(identity && consoleHref ? [{ key: "account", label: "\u8d26\u6237\u4e2d\u5fc3", icon: "user-circle" as const, href: consoleHref, newTab: true }] : [])]}
       settings={<ProductPreferences />}
       actions={identity ? [
         { key: "switch", label: "\u5207\u6362\u8d26\u53f7", icon: "user-switch", onClick: () => login(true) },

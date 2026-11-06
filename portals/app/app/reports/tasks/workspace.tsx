@@ -1,10 +1,10 @@
 "use client";
 import { ShellPageContainer, Button, Icon, SectionHeader } from "@vxture/design-system";
-import PageHeading from "../../../portal/page-heading";
+import PageHeading from "../../portal/page-heading";
 import { useEffect, useState } from "react";
-import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../../domains/supervision/report-jobs";
-import { reportTime } from "../../../domains/reports/display";
-import { reportJson } from "../../../reports/client";
+import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../domains/supervision/report-jobs";
+import { reportTime } from "../../domains/reports/display";
+import { reportJson } from "../../reports/client";
 import { reportJobLabel as label, reportJobError } from "./client";
 import { ReportRecovery } from "./recovery";
 
@@ -50,9 +50,9 @@ export default function ReportJobsWorkspace() {
   }, [kind, status, cursor, epoch]);
   function clear() { setCursor(null); setPages([]); setSelected(null); }
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <ShellPageContainer className="gap-lg">
+  return <ShellPageContainer className="product-page-inset gap-lg">
     <PageHeading title={"\u62a5\u544a\u4efb\u52a1"} description={"\u62a5\u544a\u751f\u6210\u3001\u5bfc\u51fa\u4e0e\u6267\u884c\u8ffd\u8e2a"}
-      actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
+      actions={<><Button asChild variant="outline"><a href="/reports">{"\u62a5\u544a\u4e2d\u5fc3"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button></>} />
     <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"}>
     <SectionHeader title={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"} />
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u7c7b\u578b"}>{(["generation", "export"] as const).map(k => <button key={k} aria-pressed={kind === k} onClick={() => { setKind(k); clear(); }}>{label(k)}</button>)}</div>

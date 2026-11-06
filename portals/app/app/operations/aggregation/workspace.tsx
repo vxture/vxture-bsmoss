@@ -1,10 +1,10 @@
 "use client";
 import { ShellPageContainer, Button, Icon, SectionHeader } from "@vxture/design-system";
-import PageHeading from "../../../portal/page-heading";
+import PageHeading from "../../portal/page-heading";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { JobStateFilter, JobListPage, JobDetail, RecoverJob, RecoveryResult, RecoveryRecord } from "../../../domains/supervision/jobs";
-import { reportJson, ReportClientError } from "../../../reports/client";
-import { reportTime } from "../../../domains/reports/display";
+import type { JobStateFilter, JobListPage, JobDetail, RecoverJob, RecoveryResult, RecoveryRecord } from "../../domains/supervision/jobs";
+import { reportJson, ReportClientError } from "../../reports/client";
+import { reportTime } from "../../domains/reports/display";
 import { jobLabel, jobError } from "./client";
 
 function RecoveryLink({ record, onChoose, parent = false }: { record: RecoveryRecord; onChoose(id: string): void; parent?: boolean }) {
@@ -78,11 +78,11 @@ export default function AggregateJobsWorkspace() {
     return () => c.abort();
   }, [status, cursor, epoch]);
   function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <ShellPageContainer className="gap-lg">
-    <PageHeading title={"\u805a\u5408\u4efb\u52a1"} description={"\u805a\u5408\u6267\u884c\u3001\u5931\u8d25\u5904\u7f6e\u4e0e\u590d\u6838\u8bb0\u5f55"}
-      actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
-    <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u805a\u5408\u4efb\u52a1\u5217\u8868"}>
-    <SectionHeader title={"\u805a\u5408\u4efb\u52a1\u5217\u8868"} />
+  return <ShellPageContainer className="product-page-inset gap-lg">
+    <PageHeading title={"\u805a\u5408\u5904\u7406"} description={"\u805a\u5408\u6267\u884c\u3001\u5931\u8d25\u5904\u7f6e\u4e0e\u590d\u6838\u8bb0\u5f55"}
+      actions={<><Button asChild variant="outline"><a href="/operations/data-updates">{"\u8fd4\u56de\u66f4\u65b0"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button></>} />
+    <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u805a\u5408\u5904\u7406\u5217\u8868"}>
+    <SectionHeader title={"\u805a\u5408\u5904\u7406\u5217\u8868"} />
     <div className="jobs-filters" aria-label={"\u4efb\u52a1\u72b6\u6001"}>{(["all", "pending", "leased", "dead", "succeeded"] as const).map(s => <button key={s} aria-pressed={status === s} onClick={() => { setStatus(s); setCursor(null); setPages([]); setSelected(null); }}>{jobLabel(s)}</button>)}</div>
     <p className="reports-muted">{"\u5f53\u524d\u6388\u6743\u8303\u56f4\uff0c\u6309\u521b\u5efa\u65f6\u95f4\u5012\u5e8f\u3002"}</p>
     {error && <p className="reports-error" role="alert">{error}</p>}{loading ? <p role="status">{"\u6b63\u5728\u8bfb\u53d6\u4efb\u52a1\u2026"}</p> : page && !page.items.length ? <p className="reports-muted">{"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6b64\u7c7b\u4efb\u52a1\u3002"}</p> : null}

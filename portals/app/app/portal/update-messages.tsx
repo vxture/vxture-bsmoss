@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, EmptyState, Icon, StatusBadge } from "@vxture/design-system";
 import type { UpdateNotifications } from "../domains/data-updates/contracts";
-import { phases, taskHref, updateReadError, updateJson } from "../settings/operations/data-updates/client";
+import { phases, taskHref, updateReadError, updateJson } from "../operations/data-updates/client";
 import { formatDataTime } from "../domains/data-updates/rules";
 
 // Mounted only while the drawer is open. Never persists authorized records in
@@ -62,6 +62,6 @@ export default function UpdateMessages({ enabled, loginEnabled }: { enabled: boo
       <span className="text-body-small text-muted-foreground">{previous.length + 1}</span>
       <Button variant="ghost" size="sm" disabled={loading || !data.next} onClick={() => { setPrevious(p => [...p, cursor]); setCursor(data.next); }}>{"\u4e0b\u4e00\u9875"}</Button>
     </nav>}
-    <Button asChild variant="outline" className="self-start"><a href="/settings/operations/data-updates">{"\u67e5\u770b\u5168\u90e8\u4efb\u52a1"}</a></Button>
+    <Button asChild variant="outline" className="self-start"><a href="/operations/data-updates">{"\u67e5\u770b\u5168\u90e8\u4efb\u52a1"}</a></Button>
   </section>;
 }

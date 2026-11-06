@@ -37,7 +37,7 @@ export default function ReportWorkspace({ initialSelection = null, invalidLink =
   }
   return <div className="flex min-w-0 flex-col gap-lg product-page-inset">
     <PageHeading title={"\u5468\u671f\u62a5\u544a"} description={"\u5468\u671f\u62a5\u544a\u5f52\u6863\u4e0e\u7248\u672c\u6838\u9a8c"}
-      actions={<Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refreshList} disabled={loading}><Icon name="refresh" size="sm" /></Button>} />
+      actions={<> <Button asChild variant="outline"><a href="/reports/tasks">{"\u62a5\u544a\u4efb\u52a1"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refreshList} disabled={loading}><Icon name="refresh" size="sm" /></Button></>} />
     <div className="reports-workspace">
     <aside className="reports-library" aria-label={"\u62a5\u544a\u5217\u8868"}>
       <SectionHeader title={"\u5468\u671f\u62a5\u544a\u5217\u8868"} />

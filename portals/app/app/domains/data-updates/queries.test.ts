@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { updateListFromUrl, updateListQuery } from "./queries.ts";
 import { encodeJobCursor } from "../supervision/jobs.ts";
-import { taskFromUrl, taskHref, updateError, updateReadError } from "../../settings/operations/data-updates/client.ts";
+import { taskFromUrl, taskHref, updateError, updateReadError } from "../../operations/data-updates/client.ts";
 import { ReportClientError } from "../../reports/client.ts";
 test("update list accepts only bounded pages and an exact opaque cursor", () => {
   assert.deepEqual(updateListFromUrl(new URL("https://local/api/data-updates")), { limit: 10 });
@@ -14,7 +14,7 @@ test("update list accepts only bounded pages and an exact opaque cursor", () => 
 });
 test("task links restore one exact task and never accept arbitrary paths or duplicate identities", () => {
   const id = "b".repeat(64); assert.equal(taskFromUrl("https://local" + taskHref(id)), id);
-  assert.equal(taskFromUrl("https://local/settings/operations/data-updates"), null);
+  assert.equal(taskFromUrl("https://local/operations/data-updates"), null);
   for (const suffix of ["?task=../other", "?task=x", "?task=" + id + "&task=" + id]) assert.throws(() => taskFromUrl("https://local/" + suffix));
   assert.throws(() => taskHref("https://evil"));
 });

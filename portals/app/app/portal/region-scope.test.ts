@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEMO_REGION } from "../domains/map-demo/resources";
-import { changedRegionHref, decodeRegionPreference, encodeRegionPreference, inheritRegionInput, regionLink } from "./region-scope";
+import { changedRegionHref, decodeRegionPreference, encodeRegionPreference, inheritRegionInput, isRegionPage, regionLink } from "./region-scope";
 
 const county = { cityId: "610100", countyId: "610113" }, province = { cityId: "all", countyId: "all" };
 test("remembered scopes survive missing query but never override explicit links", () => {
@@ -33,4 +33,11 @@ test("changing scope removes stale selection and returns object details to lists
   for (const key of ["page", "search", "selection", "site", "compare"]) assert.equal(q.has(key), false);
   assert.equal(changedRegionHref("/sites/DEMO-00037", "tab=business", county), "/sites?city=610100&county=610113");
   assert.equal(changedRegionHref("/usage-review/UV-123", "metric=sms", province), "/usage-review?city=all&county=all");
+});
+
+test("configuration, task identities and personal preferences are not rewritten as regional analysis queries", () => {
+  for (const path of ["/settings", "/settings/metrics", "/settings/templates", "/operations/data-updates", "/operations/aggregation", "/reports/tasks", "/preferences/overview"]) {
+    assert.equal(isRegionPage(path), false);
+    assert.equal(regionLink(path + "?task=original&kind=export", county), path + "?task=original&kind=export");
+  }
 });

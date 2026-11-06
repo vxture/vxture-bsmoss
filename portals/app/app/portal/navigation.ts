@@ -1,4 +1,4 @@
-export type PortalPage = "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -7,7 +7,7 @@ export interface BusinessModule {
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["data-updates", "overview-display", "settings", "templates", "aggregation", "report-jobs"].includes(page) ? "management" : "business";
+  return ["metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
@@ -16,20 +16,21 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "board", label: "\u51b3\u7b56\u5206\u6790", href: "/board", group: "business" },
     ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
     { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
-    { id: "capacity", label: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", href: "/capacity", group: "business" },
-    { id: "efficiency", label: "\u8fd0\u884c\u4e0e\u80fd\u6548", href: "/efficiency", group: "business" },
+    { id: "capacity", label: "\u5bb9\u91cf\u8d28\u91cf", href: "/capacity", group: "business" },
+    { id: "efficiency", label: "\u8fd0\u884c\u80fd\u6548", href: "/efficiency", group: "business" },
     { id: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", href: "/operator-usage", group: "business" },
     { id: "usage-reports", label: "\u7528\u91cf\u62a5\u544a", href: "/usage-reports", group: "business" },
     { id: "analysis", label: "\u7ecf\u8425\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
     { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
     ...(preview ? [{ id: "review-history" as const, label: "\u6838\u9a8c\u8bb0\u5f55", href: "/review-history", group: "business" as const }] : []),
+    { id: "data-updates", label: "\u6570\u636e\u66f4\u65b0", href: "/operations/data-updates", group: "business" },
+    { id: "aggregation", label: "\u805a\u5408\u5904\u7406", href: "/operations/aggregation", group: "business" },
+    { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/reports/tasks", group: "business" },
+    ...(preview ? [{ id: "overview-display" as const, label: "\u603b\u89c8\u504f\u597d", href: "/preferences/overview", group: "business" as const }] : []),
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
-    ...(preview ? [{ id: "overview-display" as const, label: "\u8fd0\u884c\u603b\u89c8\u663e\u793a", href: "/settings/overview", group: "management" as const }] : []),
-    { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
-    { id: "aggregation", label: "\u805a\u5408\u4efb\u52a1", href: "/settings/operations/aggregation", group: "management" },
-    { id: "data-updates", label: "\u6570\u636e\u66f4\u65b0\u4efb\u52a1", href: "/settings/operations/data-updates", group: "management" },
-    { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/settings/operations/reports", group: "management" },
+    { id: "metric-catalog", label: "\u6307\u6807\u5b57\u5178", href: "/settings/metrics", group: "management" },
+    { id: "templates", label: "\u6a21\u677f\u914d\u7f6e", href: "/settings/templates", group: "management" },
   ];
   return entries.filter(entry => entry.group === domain);
 }
@@ -48,8 +49,8 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
     ] },
     { key: "supervision", title: "\u8fd0\u884c\u76d1\u7ba1", icon: "gauge", description: "\u72b6\u6001\u3001\u8d28\u91cf\u4e0e\u80fd\u6548", modules: [
       ...(preview ? [
-        { key: "capacity", label: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", icon: "gauge", description: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", page: "capacity" as const, href: "/capacity" },
-        { key: "efficiency", label: "\u8fd0\u884c\u4e0e\u80fd\u6548", icon: "lightning", description: "\u7269\u7406\u7535\u8017\u4e0e\u8fd0\u884c\u53c2\u6570", page: "efficiency" as const, href: "/efficiency" },
+        { key: "capacity", label: "\u5bb9\u91cf\u8d28\u91cf", icon: "gauge", description: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", page: "capacity" as const, href: "/capacity" },
+        { key: "efficiency", label: "\u8fd0\u884c\u80fd\u6548", icon: "lightning", description: "\u7269\u7406\u7535\u8017\u4e0e\u8fd0\u884c\u53c2\u6570", page: "efficiency" as const, href: "/efficiency" },
       ] : [planned("runtime", "\u8fd0\u884c\u72b6\u6001", "gauge", "\u6b63\u5f0f\u76d1\u7ba1\u89c6\u56fe\u5f85\u63a5\u5165")]),
     ] },
     { key: "business", title: "\u7ecf\u8425\u5206\u6790", icon: "chart-line-up", description: "\u7528\u91cf\u3001\u7ed3\u6784\u4e0e\u8d8b\u52bf", modules: [
@@ -63,6 +64,10 @@ export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
     { key: "reporting", title: "\u62a5\u544a\u4e2d\u5fc3", icon: "file-text", description: "\u5468\u671f\u6210\u679c\u4e0e\u8ffd\u6eaf", modules: [
       ...page("reports", "file-text", "\u62a5\u544a\u5e93\u4e0e\u5386\u53f2\u7248\u672c"),
       ...(preview ? [{ key: "report-preview", label: "\u7528\u91cf\u62a5\u544a", icon: "newspaper", description: "\u65e5\u5468\u6708\u62a5\u544a\u4e0e\u5bfc\u51fa", page: "usage-reports" as const, href: "/usage-reports" }] : []),
+      ...page("report-jobs", "calendar", "\u751f\u6210\u4e0e\u5bfc\u51fa\u8fdb\u5ea6"),
+    ] },
+    { key: "data", title: "\u6570\u636e\u7ba1\u7406", icon: "database", description: "\u66f4\u65b0\u8fdb\u5ea6\u4e0e\u5904\u7406\u8bb0\u5f55", modules: [
+      ...page("data-updates", "refresh", "\u589e\u91cf\u8fdb\u5ea6\u3001\u5931\u8d25\u4e0e\u5904\u7f6e"),
     ] },
   ];
 }
