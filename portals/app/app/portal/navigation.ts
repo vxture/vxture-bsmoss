@@ -1,4 +1,4 @@
-export type PortalPage = "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "members" | "jurisdiction" | "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -7,7 +7,7 @@ export interface BusinessModule {
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
+  return ["members", "jurisdiction", "metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
@@ -29,6 +29,8 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/reports/tasks", group: "business" },
     ...(preview ? [{ id: "overview-display" as const, label: "\u603b\u89c8\u504f\u597d", href: "/preferences/overview", group: "business" as const }] : []),
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
+    { id: "jurisdiction", label: "\u7ba1\u8f96\u8303\u56f4", href: "/settings/jurisdiction", group: "management" },
+    { id: "members", label: "\u6210\u5458\u7ba1\u7406", href: "/settings/members", group: "management" },
     { id: "metric-catalog", label: "\u6307\u6807\u5b57\u5178", href: "/settings/metrics", group: "management" },
     { id: "templates", label: "\u6a21\u677f\u914d\u7f6e", href: "/settings/templates", group: "management" },
   ];

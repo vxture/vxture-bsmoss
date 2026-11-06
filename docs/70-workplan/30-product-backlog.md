@@ -1,5 +1,14 @@
 # 产品待办与验收台账
 
+## 配置管理管辖与成员只读基础（2026-11-06，最新执行）
+
+设计251／实施[994](../40-implementation/994-management-foundation.md)：官方DS侧栏增加组织管辖／管辖范围、成员权限／成员管理，管理总览按真实分组横向对齐。真实RP只读检索筛选、keyset分页、成员角色／scope详情；独立admin.members.view与admin.jurisdiction.view，owner无隐式管理权、机器拒绝。五维完整范围SQL先过滤再LIMIT，lookahead校验，同租户／只读可重复读快照及最后身份权限scope重验，空页／缺失也复核。资源关联仅计授权ID，不虚构组织树／县级责任。客户端取消过时请求、详情失权清整页与Drawer，无假数据回退。
+
+705单测、434实际PG、55HTTP、双层types与最终build通过；67表／Prisma列保持，空库baseline仅加2permission种子，无角色赋权，DDL只在随机专用本机合同库。15组响应式及手机详情／翻页／403／503／迟到响应／导航交互通过，正式页面身份门槛与独立loopback合成组件验收明确分开。证据artifacts/management-foundation-qa，最终SHA／健康见formal-checkpoints/management-foundation.json；临时16关闭、viewport恢复。首轮PG夹具签名和cache断言问题、JSX属性Unicode字面显示已修并复测。
+
+下一批业务参数：站址分类与分析规则，再来源配置／配置审计；责任组织主档与受审授权写入仍待。原P1接收工作台／分阶段消息、重新基准／按需接收／共同版本及真实来源、平台环境、Beta容量恢复／UAT／生产批准依赖保持，不能把两只读页算完整组织权限管理或生产验收。无push／外部部署／上线、无新聊天／自动任务、不扩大机器权限／不更新数据截至。
+
+
 ## P1接收任务受审终止与查看接口（2026-11-06，最新执行）
 
 设计248/实施[991](../40-implementation/991-intake-reviewed-disposition.md)：终止追加依据/版本/命令/主体历史，可处理失败/活动或过期启动/次数上限/配置变更；完整原scope及事务末次权限检查，旧执行隔离、成功不可撤销、原位置/回执保留。授权list/read及三个正式RP查看/终止API，无adapter执行入口。微秒分页、scope先过滤、同快照/最终并集重验，67表标量不变，空库DDL仅终止约束/索引。最终验证/SHA/健康见991检查点。

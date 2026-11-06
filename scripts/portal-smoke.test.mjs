@@ -27,6 +27,13 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('management is session-gated and read-only with private responses',async()=>{
+      for(const path of ['/api/management/members','/api/management/jurisdiction','/api/management/members/99000000-0000-0000-0000-000000000002']){
+        const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');assert.ok(r.headers.get('vary').includes('Cookie'));
+        assert.equal((await fetch(url+path,{method:'POST',body:'{}'})).status,405);
+      }
+      for(const path of ['/settings/members','/settings/jurisdiction']){const html=await(await fetch(url+path)).text();assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('management-2'));const title=path.endsWith('/members')?'\u6210\u5458\u7ba1\u7406':'\u7ba1\u8f96\u8303\u56f4';assert.ok(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)?.[0].includes(title));}
+    });
     await t.test('formal intake supervision requires a real session and exposes no intake execution route',async()=>{
       const id='a'.repeat(64);
       for(const [path,method] of [['/api/intake-tasks','GET'],['/api/intake-tasks/'+id,'GET'],['/api/intake-tasks/'+id+'/terminate','POST']]) {

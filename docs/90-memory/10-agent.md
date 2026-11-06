@@ -1,5 +1,14 @@
 # 后续代理入口
 
+## 配置管理管辖与成员只读基础（2026-11-06，最新执行）
+
+设计251／实施[994](../40-implementation/994-management-foundation.md)：官方DS侧栏增加组织管辖／管辖范围、成员权限／成员管理，管理总览按真实分组横向对齐。真实RP只读检索筛选、keyset分页、成员角色／scope详情；独立admin.members.view与admin.jurisdiction.view，owner无隐式管理权、机器拒绝。五维完整范围SQL先过滤再LIMIT，lookahead校验，同租户／只读可重复读快照及最后身份权限scope重验，空页／缺失也复核。资源关联仅计授权ID，不虚构组织树／县级责任。客户端取消过时请求、详情失权清整页与Drawer，无假数据回退。
+
+705单测、434实际PG、55HTTP、双层types与最终build通过；67表／Prisma列保持，空库baseline仅加2permission种子，无角色赋权，DDL只在随机专用本机合同库。15组响应式及手机详情／翻页／403／503／迟到响应／导航交互通过，正式页面身份门槛与独立loopback合成组件验收明确分开。证据artifacts/management-foundation-qa，最终SHA／健康见formal-checkpoints/management-foundation.json；临时16关闭、viewport恢复。首轮PG夹具签名和cache断言问题、JSX属性Unicode字面显示已修并复测。
+
+下一批业务参数：站址分类与分析规则，再来源配置／配置审计；责任组织主档与受审授权写入仍待。原P1接收工作台／分阶段消息、重新基准／按需接收／共同版本及真实来源、平台环境、Beta容量恢复／UAT／生产批准依赖保持，不能把两只读页算完整组织权限管理或生产验收。无push／外部部署／上线、无新聊天／自动任务、不扩大机器权限／不更新数据截至。
+
+
 ## 配置管理职责重组首批（2026-11-06，最新执行）
 
 用户授权参考yucer管理思路结合本业务推进，导航尽量四字。设计250／实施[993](../40-implementation/993-configuration-boundaries.md)：覆盖249旧归属，数据更新、聚合处理、报告任务迁回业务；旧/settings/operations深链与/operations/reports固定307保留全部query及重复项，由原目的页验证，Header消息／登录returnTo同步。业务launcher增加数据管理第六组，报告任务归报告中心，聚合处理经数据更新二级进入。总览偏好移用户面板/preferences/overview，仍仅当前浏览器及原预览开放条件。

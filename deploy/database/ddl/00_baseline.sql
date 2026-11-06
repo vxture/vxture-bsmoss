@@ -1833,3 +1833,8 @@ LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
 $$;
 REVOKE ALL ON FUNCTION bsmoss_integration.lock_intake_task(text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION bsmoss_integration.lock_intake_task(text,text) TO bsmoss_svc;
+
+-- Read-only product management. No automatic role assignment or owner bypass.
+INSERT INTO local_authz.permission(perm_code,name) VALUES
+ ('admin.members.view','Inspect fully scoped product member grants'),
+ ('admin.jurisdiction.view','Inspect authorized station jurisdiction');

@@ -1,3 +1,5 @@
+import { managementService } from "../management/service";
+import { PgManagementReader } from "../management/pg-reader";
 import { getOidcConfig } from "../../auth/lib/config";
 import { accessTokenFor } from "../../auth/lib/login-state";
 import { verifyToken } from "../../auth/lib/oidc";
@@ -104,4 +106,8 @@ export function aggregatesForSession(rpsid: string) {
     reader: scope => new PgAggregateSnapshotReader(getPool(), scope),
     store: scope => new PgAggregateStore(getPool(), scope),
   }, "interactive");
+}
+
+export function managementForSession(rpsid: string) {
+  return managementService(sessionAccessPorts(rpsid), { create: scope => new PgManagementReader(getPool(), scope) });
 }
