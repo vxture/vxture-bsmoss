@@ -2,7 +2,11 @@
 
 Current baseline: 67 tables. source_intake_task/source_intake_task_event record
 internal bounded intake attempts, append-only starts/failures and fenced
-terminal receipts. Reviewed recovery requires both ingest and job recovery
+terminal receipts. Reviewed termination appends a reason and fences unfinished
+attempts, including live leases and paused/replaced configurations; it cannot
+undo success or reset the input position. It requires job recovery permission
+over the entire original scope. Configuration rebasing remains a separate
+reviewed dependency. Reviewed recovery requires both ingest and job recovery
 permission; a database-clock lease rejects stale executors. Runtime has only
 SELECT/INSERT on this journal, no lease updates. Receipt and successful terminal
 event commit in the same transaction. This is not a new production queue or

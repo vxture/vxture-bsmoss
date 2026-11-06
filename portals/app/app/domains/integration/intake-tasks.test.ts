@@ -10,7 +10,7 @@ test("intake task commands admit no caller identity, cursor or configuration", (
 test("intake recovery pins an exact task and event revision with a review reference", () => {
   const c = { taskId: "a".repeat(64), expectedRevision: "3", commandId: "recover-1", reasonRef: "review://failure" };
   assert.deepEqual(intakeRecoveryCommand(c), c);
-  for (const patch of [{ taskId: "../task" }, { expectedRevision: "0" }, { expectedRevision: "01" }, { reasonRef: "" }, { lease: "spoof" }]) assert.throws(() => intakeRecoveryCommand({ ...c, ...patch }));
+  for (const patch of [{ taskId: "../task" }, { taskId: [c.taskId] }, { expectedRevision: "0" }, { expectedRevision: "01" }, { reasonRef: "" }, { lease: "spoof" }]) assert.throws(() => intakeRecoveryCommand({ ...c, ...patch } as any));
 });
 test("intake operational failures never retain upstream secrets or raw exceptions", () => {
   assert.equal(intakeFailure(Error("https://upstream?token=secret")), "intake_failed");

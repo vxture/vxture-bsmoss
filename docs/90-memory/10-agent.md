@@ -1,5 +1,11 @@
 # 后续代理入口
 
+## P1接收任务受审终止与查看接口（2026-11-06，最新执行）
+
+设计248/实施[991](../40-implementation/991-intake-reviewed-disposition.md)：受审terminate追加历史，固定任务版本/命令/依据/真实主体，原完整scope的job_recover用户可处置失败/有效或过期启动/第五次上限/配置暂停或变更；与成功/恢复串行，旧执行不能再提交，不承诺远端请求立即停止。历史/回执/旧位置保留，新配置仍需受审重新基准。独立list/read同PG快照、完整原scope过滤后LIMIT、微秒分页及lookahead并集/空页最终重验。正式RP仅三个查看/终止API及无adapter监督组合，不暴露创建/run/recover，不扩大机器权限。67表/Prisma标量不变，空库DDL补终止转移和索引，只应用随机专用本机合同库。最终验证/SHA/健康见991及artifacts/formal-checkpoints/intake-disposition.json。
+
+P1/B03-04/B03仍in_progress。本批为后端处置和正式查询基础，无UI改动；下一DS数据更新工作台与Header分阶段消息接入，再受审重新基准和业务按需接收、P2共同可用版本/报告依赖/B04。没有生产适配器/拉取路由或调度，不扩大机器ingest，不签来源完成、不批quality、不推进截至或旧报告。真实来源授权原件/字段/签认、稳定快照/变化流、平台凭据/环境、Beta容量恢复/UAT及生产批准依赖保持。未push/外部部署/上线，无新聊天或自动任务。本段覆盖旧“下一补任务终止”，不将剩余入口或上线依赖算完成。
+
 ## P1来源接收任务监管（2026-11-06，最新执行）
 
 设计247/实施[990](../40-implementation/990-intake-task-supervision.md)：内部sourceIntakeTasks.run/read/recover，固定来源修订、命令幂等、持久启动/失败历史、数据库租约与旧执行隔离、精确版本/依据/双权限复核恢复。接收回执与成功终态同原量事务提交，丢失COMMIT应答先读持久终态不假报失败；撤权不能续写或记账，机器ingest保持拒绝。空库新增任务/事件两表及Prisma至67表，只作用随机专用本机合同库，不迁移或改业务库。最终验证/SHA/健康见990及artifacts/formal-checkpoints/intake-supervision.json。

@@ -1749,7 +1749,7 @@ CREATE TABLE bsmoss_integration.source_intake_task_event (
   task_id text NOT NULL,
   revision numeric(30,0) NOT NULL CHECK(revision>0),
   attempt integer NOT NULL CHECK(attempt BETWEEN 1 AND 5),
-  state text NOT NULL CHECK(state IN ('started','received','duplicate','current','failed')),
+  state text NOT NULL CHECK(state IN ('started','received','duplicate','current','failed','terminated')),
   command_id text NOT NULL CHECK(length(trim(command_id)) BETWEEN 1 AND 512),
   reason_ref text CHECK(reason_ref IS NULL OR length(trim(reason_ref)) BETWEEN 1 AND 2048),
   actor text NOT NULL CHECK(length(trim(actor))>0),
@@ -1763,7 +1763,7 @@ CREATE TABLE bsmoss_integration.source_intake_task_event (
   UNIQUE(workspace_id,task_id,command_id,state),
   CHECK((state='failed')=(failure_code IS NOT NULL)),
   CHECK(state NOT IN ('received','duplicate') OR receipt_id IS NOT NULL),
-  CHECK(state NOT IN ('started','failed') OR (receipt_id IS NULL AND inserted=0 AND duplicates=0)),
+  CHECK(state NOT IN ('started','failed','terminated') OR (receipt_id IS NULL AND inserted=0 AND duplicates=0)),
   FOREIGN KEY(workspace_id,task_id) REFERENCES bsmoss_integration.source_intake_task(workspace_id,id),
   FOREIGN KEY(workspace_id,receipt_id) REFERENCES bsmoss_integration.source_intake_receipt(workspace_id,id)
 );
@@ -1793,6 +1793,14 @@ BEGIN
         RAISE EXCEPTION 'intake_task_not_recoverable'; END IF;
     END IF;
     NEW.lease_until=clock_timestamp()+interval '300 seconds';
+  ELSIF NEW.state='terminated' THEN
+    IF prior.state IS NULL OR prior.state NOT IN ('started','failed') OR NEW.attempt<>prior.attempt OR
+      length(trim(coalesce(NEW.reason_ref,'')))=0 OR EXISTS(SELECT 1 FROM bsmoss_integration.source_intake_task_event
+        WHERE workspace_id=NEW.workspace_id AND task_id=NEW.task_id AND command_id=NEW.command_id) THEN
+      RAISE EXCEPTION 'intake_task_not_terminable'; END IF;
+    -- A disposition fences future commits; it does not grant a new lease or
+    -- erase facts. The network request may still return after this commits.
+    NEW.lease_until=prior.lease_until;
   ELSE
     IF prior.state IS DISTINCT FROM 'started' OR NEW.attempt<>prior.attempt OR NEW.command_id<>prior.command_id OR
       NEW.actor<>prior.actor OR prior.lease_until<=clock_timestamp() OR NEW.reason_ref IS DISTINCT FROM prior.reason_ref THEN
@@ -1818,6 +1826,7 @@ CREATE TRIGGER intake_event_guard BEFORE INSERT OR UPDATE OR DELETE ON bsmoss_in
 CREATE TRIGGER intake_event_no_truncate BEFORE TRUNCATE ON bsmoss_integration.source_intake_task_event
   FOR EACH STATEMENT EXECUTE FUNCTION bsmoss_integration.guard_intake_journal();
 CREATE INDEX source_intake_task_binding ON bsmoss_integration.source_intake_task(workspace_id,binding_id,created_at DESC,id);
+CREATE INDEX source_intake_task_created ON bsmoss_integration.source_intake_task(workspace_id,created_at DESC,id COLLATE "C" DESC);
 CREATE FUNCTION bsmoss_integration.lock_intake_task(text,text) RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
   SELECT FROM bsmoss_integration.source_intake_task WHERE workspace_id=$1 AND id=$2 FOR UPDATE

@@ -31,6 +31,7 @@ import { PgAnalysisStore } from "../views/pg-analysis";
 import { createAuthorizedTemplates } from "./templates";
 import { PgTemplateStore } from "../views/pg-templates";
 import { receivedDataUpdates } from "../data-updates/pg-tasks";
+import { sourceIntakeTaskSupervision } from "../integration/pg-intake-tasks";
 
 // Only the opaque RP cookie is accepted. Identity and row scope are server-derived.
 function sessionAccessPorts(rpsid: string): AccessPorts {
@@ -87,6 +88,9 @@ export function aggregateJobsForSession(rpsid: string) {
 }
 export function dataUpdatesForSession(rpsid: string) {
   return receivedDataUpdates(getPool(), sessionAccessPorts(rpsid));
+}
+export function intakeTasksForSession(rpsid: string) {
+  return sourceIntakeTaskSupervision(getPool(), sessionAccessPorts(rpsid));
 }
 export function reportJobsForSession(rpsid: string) {
   return createAuthorizedReportJobs(sessionAccessPorts(rpsid), { create: scope => new PgReportJobStore(getPool(), scope) }, "interactive");

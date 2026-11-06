@@ -27,6 +27,15 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('formal intake supervision requires a real session and exposes no intake execution route',async()=>{
+      const id='a'.repeat(64);
+      for(const [path,method] of [['/api/intake-tasks','GET'],['/api/intake-tasks/'+id,'GET'],['/api/intake-tasks/'+id+'/terminate','POST']]) {
+        const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
+        assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'private, no-store');assert.ok(r.headers.get('vary').split(/,\s*/).includes('Cookie'));
+      }
+      assert.equal((await fetch(url+'/api/intake-tasks',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,405);
+      for(const action of ['run','recover'])assert.equal((await fetch(url+'/api/intake-tasks/'+id+'/'+action,{method:'POST',body:'{}'})).status,404);
+    });
     await t.test('formal received-update tasks never allow anonymous reads or writes',async()=>{
       const id='a'.repeat(64);
       for(const [path,method] of [['/api/data-updates/notifications','GET'],['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
@@ -176,6 +185,13 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('preview never substitutes sample identities for formal intake supervision',async()=>{
+      const id='a'.repeat(64);
+      for(const [path,method] of [['/api/intake-tasks','GET'],['/api/intake-tasks/'+id,'GET'],['/api/intake-tasks/'+id+'/terminate','POST']]) {
+        const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
+        assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'private, no-store');
+      }
+    });
     await t.test('preview cannot borrow formal update task or recovery permissions',async()=>{
       const id='a'.repeat(64);
       for(const [path,method] of [['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {

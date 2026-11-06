@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { sourceIntakeTasks } from '../../portals/app/app/domains/integration/pg-intake-tasks.ts';
+import { sourceIntakeTasks, sourceIntakeTaskSupervision } from '../../portals/app/app/domains/integration/pg-intake-tasks.ts';
 import { fingerprintOf } from '../../portals/app/app/domains/aggregation/intervals.ts';
 import { sourceBinding } from '../../portals/app/app/domains/integration/rules.ts';
 
@@ -156,7 +156,7 @@ export async function sourceIntakeTaskCases(t, { db, adapterPool, ports, scope, 
     await assert.rejects(sourceIntakeTasks(adapterPool, foreign, {}).read(completed.id), /unavailable/);
     let deny = false;
     const revoked = { ...access, async readLocalGrant() { const g = await access.readLocalGrant(); return deny ? { ...g, permissions: [] } : g; } };
-    const intercepted = wrap(undefined, async sql => { if (sql.includes('ORDER BY revision LIMIT 11')) deny = true; });
+    const intercepted = wrap(undefined, async sql => { if (sql.includes('ORDER BY revision LIMIT 12')) deny = true; });
     await assert.rejects(sourceIntakeTasks(intercepted, revoked, {}).read(completed.id), /permission_denied/);
     assert.equal('binding' in await sourceIntakeTasks(adapterPool, access, {}).read(completed.id), false);
   });
@@ -241,5 +241,173 @@ export async function sourceIntakeTaskCases(t, { db, adapterPool, ports, scope, 
       VALUES('w',$1,1,1,'started',$2,'intake-task-operator',clock_timestamp())`, [countsId, countsCommand]);
     await assert.rejects(adapterPool.query(`INSERT INTO bsmoss_integration.source_intake_task_event(workspace_id,task_id,revision,attempt,state,command_id,actor,lease_until,receipt_id,inserted)
       VALUES('w',$1,2,1,'received',$2,'intake-task-operator',clock_timestamp(),$3,99)`, [countsId, countsCommand, completed.latest.receiptId]), /invalid_intake_task_counts/);
+  });
+  const disposition = saved => ({ ...recovery(saved), commandId: saved.id + '-terminate', reasonRef: 'review://intake-disposition' });
+  async function failedTask(name, b = binding(name), taskPorts = access) {
+    await register(b); const s = source(name); s.hook(async () => { throw Error('unavailable'); });
+    const api = sourceIntakeTasks(adapterPool, taskPorts, s.connector), saved = await api.run({ bindingId: b.id, commandId: name + '-command' });
+    assert.equal(saved.latest.state, 'failed'); return { api, s, saved };
+  }
+  const recoveryOnly = { ...access, async readLocalGrant() { return { ...await access.readLocalGrant(), permissions: ['metering.jobs.recover'] }; } };
+  await t.test('reviewed termination keeps history, exact replay and actor, and unblocks a fresh command without calling the source', async () => {
+    const { api, s, saved } = await failedTask('task-terminate-failed'), cmd = disposition(saved), before = s.counts();
+    const supervisor = sourceIntakeTaskSupervision(adapterPool, recoveryOnly);
+    assert.deepEqual(Object.keys(supervisor).sort(), ['list', 'read', 'terminate']);
+    actor = 'intake-task-reviewer'; let terminated;
+    try {
+      terminated = await supervisor.terminate(cmd);
+      assert.deepEqual(await supervisor.terminate(cmd), terminated); assert.deepEqual(s.counts(), before);
+      assert.deepEqual(terminated.attempts.map(e => e.state), ['started', 'failed', 'terminated']); assert.equal(terminated.latest.actor, actor);
+      assert.equal(terminated.latest.reasonRef, cmd.reasonRef); assert.equal(terminated.latest.attempt, 1); assert.equal(terminated.latest.receiptId, null);
+      await assert.rejects(supervisor.terminate({ ...cmd, reasonRef: 'review://different' }), /conflicting_intake_termination/);
+    } finally { actor = 'intake-task-operator'; }
+    await assert.rejects(supervisor.terminate(cmd), /conflicting_intake_termination/);
+    await assert.rejects(api.recover({ ...recovery(terminated), commandId: 'recover-after-termination' }), /not_recoverable/);
+    await assert.rejects(supervisor.terminate({ ...cmd, commandId: 'different-termination' }), /revision_conflict/);
+    assert.equal((await api.run({ bindingId: saved.bindingId, commandId: 'task-terminate-failed-command' })).latest.state, 'terminated');
+    s.hook(async () => {}); assert.equal((await api.run({ bindingId: saved.bindingId, commandId: 'fresh-after-disposition' })).latest.state, 'received');
+    assert.equal((await api.read(saved.id)).latest.state, 'terminated'); assert.equal((await count(saved.bindingId)).receipts, 1);
+  });
+  await t.test('termination of a live attempt fences late network results and failure acknowledgment', async () => {
+    const b = binding('task-terminate-live'); await register(b); const s = source(b.id);
+    let enter, release; const entered = new Promise(r => { enter = r; }), gate = new Promise(r => { release = r; });
+    s.hook(async () => { enter(); await gate; }); const api = sourceIntakeTasks(adapterPool, access, s.connector), cmd = { bindingId: b.id, commandId: b.id + '-command' };
+    const running = api.run(cmd); await entered;
+    try {
+      const saved = await api.run(cmd); assert.equal(saved.latest.leaseExpired, false);
+      const stopped = await api.terminate(disposition(saved)); assert.equal(stopped.latest.state, 'terminated');
+      assert.equal(stopped.latest.leaseUntil, saved.latest.leaseUntil);
+    } finally { release(); }
+    assert.equal((await running).latest.state, 'terminated'); assert.equal((await count(b.id)).receipts, 0);
+    assert.deepEqual((await api.read(fingerprintOf(['source-intake-task-v1', 'w', cmd.commandId]))).attempts.map(e => e.state), ['started', 'terminated']);
+  });
+  await t.test('terminal success wins over a concurrent disposition and cannot be undone', async () => {
+    const api = sourceIntakeTasks(adapterPool, access, {}), before = await count(main.id);
+    await assert.rejects(api.terminate(disposition(completed)), /not_terminable/);
+    assert.deepEqual(await count(main.id), before); assert.equal((await api.read(completed.id)).latest.state, 'received');
+  });
+  await t.test('exhausted fifth failure accepts one final disposition beyond the ten attempt events', async () => {
+    const id = fingerprintOf(['source-intake-task-v1', 'w', 'task-limit-command']), api = sourceIntakeTasks(adapterPool, access, {});
+    const saved = await api.read(id); assert.equal(saved.attempts.length, 10);
+    const terminated = await api.terminate(disposition(saved)); assert.equal(terminated.attempts.length, 11); assert.equal(terminated.latest.attempt, 5);
+    assert.deepEqual(await api.read(id), terminated);
+  });
+  await t.test('expired start can be disposed after restart without executing a recovery', async () => {
+    const id = fingerprintOf(['source-intake-task-v1', 'w', 'task-failure-revoked-command']), api = sourceIntakeTasks(adapterPool, access, {});
+    await expire(id); const saved = await api.read(id); assert.equal(saved.latest.leaseExpired, true);
+    assert.equal((await api.terminate(disposition(saved))).latest.state, 'terminated');
+  });
+  await t.test('paused and replaced bindings can be disposed under only the old scope and never inherit a prior position', async () => {
+    const { api, saved } = await failedTask('task-terminate-config');
+    await register(sourceBinding({ ...binding(saved.bindingId, '2'), scope: { ...finite, stationIds: ['new-scope-station'] } }), 'paused');
+    const stopped = await api.terminate(disposition(saved)); assert.equal(stopped.bindingRevision, '1'); assert.equal(stopped.configurationChanged, true); assert.equal(stopped.configurationPaused, true);
+    // A successful old configuration already has a position. Disposition of a
+    // separate failed task must leave that immutable receipt exactly unchanged.
+    const positionBinding = binding('task-position-kept'); await register(positionBinding);
+    const s = source(positionBinding.id), positioned = sourceIntakeTasks(adapterPool, access, s.connector);
+    assert.equal((await positioned.run({ bindingId: positionBinding.id, commandId: positionBinding.id + '-command' })).latest.state, 'received');
+    await register(binding(positionBinding.id, '2'));
+    const failed = await positioned.run({ bindingId: positionBinding.id, commandId: 'changed-binding-with-position' });
+    assert.equal(failed.latest.failureCode, 'context_changed'); const before = await count(positionBinding.id);
+    await positioned.terminate(disposition(failed)); assert.equal((await count(positionBinding.id)).receipts, before.receipts);
+    const next = await positioned.run({ bindingId: positionBinding.id, commandId: 'changed-binding-still-needs-rebase' });
+    assert.equal(next.latest.failureCode, 'context_changed'); assert.equal((await count(positionBinding.id)).receipts, before.receipts);
+  });
+  await t.test('termination rejects missing recovery permission, narrow scope and service identity', async () => {
+    const { saved } = await failedTask('task-termination-scope'), cmd = disposition(saved);
+    for (const patch of [{ permissions: ['metering.ingest'] }, { scope: { ...finite, serviceIds: [] } }]) {
+      const limited = { ...access, async readLocalGrant() { return { ...await access.readLocalGrant(), ...patch }; } };
+      await assert.rejects(sourceIntakeTaskSupervision(adapterPool, limited).terminate(cmd), /permission_denied|scope_denied/);
+    }
+    const service = { ...access, async readVerifiedIdentity() { return { kind: 'service', sub: 's2s:bsmoss', callerProduct: 'bsmoss', activeWorkspace: 'w', expiresAt: Date.now() + 60000, tokenId: 'fixture-only' }; } };
+    await assert.rejects(sourceIntakeTaskSupervision(adapterPool, service).terminate(cmd), /permission_denied/);
+  });
+  await t.test('final revocation or identity switch rolls disposition back without changing the failed task', async () => {
+    const { api, saved } = await failedTask('task-termination-final'), cmd = disposition(saved);
+    const denied = wrap(undefined, async (sql, args) => { if (sql.includes('INSERT INTO bsmoss_integration.source_intake_task_event') && args[4] === 'terminated') active = false; });
+    try { await assert.rejects(sourceIntakeTaskSupervision(denied, access).terminate(cmd), /permission_denied/); } finally { active = true; }
+    assert.equal((await api.read(saved.id)).latest.revision, saved.latest.revision);
+    const switched = wrap(undefined, async (sql, args) => { if (sql.includes('INSERT INTO bsmoss_integration.source_intake_task_event') && args[4] === 'terminated') actor = 'different-reviewer'; });
+    try { await assert.rejects(sourceIntakeTaskSupervision(switched, access).terminate(cmd), /access_expired/); } finally { actor = 'intake-task-operator'; }
+    assert.equal((await api.read(saved.id)).latest.revision, saved.latest.revision);
+    assert.equal((await api.terminate(cmd)).latest.state, 'terminated');
+  });
+  await t.test('lost termination COMMIT acknowledgment is resolved by exact command replay after reopening', async () => {
+    const { api, saved } = await failedTask('task-termination-uncertain'); let terminal = false;
+    const uncertain = wrap(undefined, async (sql, args) => { if (sql.includes('INSERT INTO bsmoss_integration.source_intake_task_event') && args[4] === 'terminated') terminal = true;
+      if (sql === 'COMMIT' && terminal) { terminal = false; throw Error('fixture_lost_disposition_ack'); } });
+    const cmd = disposition(saved); await assert.rejects(sourceIntakeTaskSupervision(uncertain, access).terminate(cmd), /fixture_lost_disposition_ack/);
+    const read = await api.read(saved.id), replay = await sourceIntakeTaskSupervision(adapterPool, recoveryOnly).terminate(cmd);
+    assert.deepEqual(replay, read); assert.equal(replay.attempts.length, 3);
+  });
+  await t.test('concurrent disposition and reviewed recovery serialize on the exact event revision', async () => {
+    const { api, saved } = await failedTask('task-termination-race');
+    const results = await Promise.allSettled([api.terminate(disposition(saved)), api.recover(recovery(saved))]);
+    assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+    assert.match(results.find(r => r.status === 'rejected').reason.message, /intake_task_busy|revision_conflict/);
+    const read = await api.read(saved.id); assert.ok(['failed', 'terminated'].includes(read.latest.state));
+    assert.ok(read.attempts.length === 3 || read.attempts.length === 4);
+  });
+  await t.test('database disallows missing disposition reasons, command reuse, forged receipts and post-terminal writes', async () => {
+    const { api, saved } = await failedTask('task-termination-sql');
+    const insert = (cmd, reason = null, receipt = null, attempt = 1) => adapterPool.query(`INSERT INTO bsmoss_integration.source_intake_task_event(workspace_id,task_id,revision,attempt,state,command_id,reason_ref,actor,lease_until,receipt_id)
+      VALUES('w',$1,3,$2,'terminated',$3,$4,'intake-task-reviewer',clock_timestamp(),$5)`, [saved.id, attempt, cmd, reason, receipt]);
+    await assert.rejects(insert('missing-reason'), /not_terminable/);
+    await assert.rejects(insert('task-termination-sql-command', 'review://reuse'), /not_terminable/);
+    await assert.rejects(insert('wrong-attempt', 'review://attempt', null, 2), /not_terminable/);
+    await assert.rejects(insert('forged-receipt', 'review://receipt', completed.latest.receiptId), e => e.code === '23514');
+    const stopped = await api.terminate(disposition(saved));
+    await assert.rejects(adapterPool.query(`INSERT INTO bsmoss_integration.source_intake_task_event(workspace_id,task_id,revision,attempt,state,command_id,reason_ref,actor,lease_until)
+      VALUES('w',$1,4,2,'started','illegal-restart','review://restart','intake-task-reviewer',clock_timestamp())`, [saved.id]), /not_recoverable/);
+    assert.equal((await api.read(saved.id)).latest.revision, stopped.latest.revision);
+  });
+  const listScope = { ...finite, stationIds: ['task-list-station'], serviceIds: [], deviceIds: [], allowSiteParameters: false };
+  const listAccess = { ...access, async readLocalGrant() { return { ...await access.readLocalGrant(), scope: listScope }; } };
+  let listTasks;
+  await t.test('intake list filters full original scope before limit and has stable microsecond keyset pagination', async () => {
+    listTasks = [];
+    for (let n = 0; n < 3; n++) listTasks.push(await failedTask('task-list-' + n, sourceBinding({ ...binding('task-list-' + n), scope: listScope }), listAccess));
+    const wide = { ...listScope, serviceIds: ['hidden-service'] }, hiddenAccess = { ...listAccess, async readLocalGrant() { return { ...await listAccess.readLocalGrant(), scope: wide }; } };
+    await failedTask('task-list-hidden', sourceBinding({ ...binding('task-list-hidden'), scope: wide }), hiddenAccess);
+    // Give all three authorized tasks sub-millisecond timestamps in the same
+    // millisecond. The random contract DB owner alone may inject these dates.
+    await db.query('ALTER TABLE bsmoss_integration.source_intake_task DISABLE TRIGGER intake_task_guard');
+    try { for (let i = 0; i < listTasks.length; i++) await db.query("UPDATE bsmoss_integration.source_intake_task SET created_at=$2::timestamptz WHERE id=$1", [listTasks[i].saved.id, '2026-11-06T01:02:03.12300' + i + 'Z']); }
+    finally { await db.query('ALTER TABLE bsmoss_integration.source_intake_task ENABLE TRIGGER intake_task_guard'); }
+    const supervisor = sourceIntakeTaskSupervision(adapterPool, listAccess), ids = []; let after;
+    do { const page = await supervisor.list({ limit: 1, ...(after ? { after } : {}) }); assert.equal(page.items.length, 1);
+      const item = page.items[0]; assert.equal(item.kind, 'source_intake'); assert.equal('attempts' in item, false); assert.equal('binding' in item, false);
+      ids.push(item.id); after = page.next; assert.ok(ids.length <= 3);
+    } while (after);
+    assert.deepEqual(ids, listTasks.map(r => r.saved.id).reverse());
+    const empty = { ...listAccess, async readLocalGrant() { return { ...await listAccess.readLocalGrant(), scope: { ...listScope, stationIds: [] } }; } };
+    assert.deepEqual(await sourceIntakeTaskSupervision(adapterPool, empty).list({ limit: 1 }), { items: [], next: null });
+  });
+  await t.test('list uses one snapshot even if a selected task is disposed during the read', async () => {
+    const target = listTasks[2], cmd = disposition(target.saved); let changed = false;
+    const intercepted = wrap(undefined, async sql => { if (sql.includes('SELECT t.id,to_char') && !changed) { changed = true; await target.api.terminate(cmd); } });
+    const page = await sourceIntakeTaskSupervision(intercepted, listAccess).list({ limit: 1 }); assert.equal(changed, true);
+    assert.equal(page.items[0].id, target.saved.id); assert.equal(page.items[0].latest.state, 'failed');
+    assert.equal((await target.api.read(target.saved.id)).latest.state, 'terminated');
+  });
+  await t.test('list checks final union including lookahead, empty pages, permissions and tenant isolation', async () => {
+    for (const mutate of ['revoke', 'scope', 'actor']) {
+      let queried = false;
+      const guarded = { ...listAccess,
+        async readVerifiedIdentity() { const i = await listAccess.readVerifiedIdentity(); return queried && mutate === 'actor' ? { ...i, sub: 'another-user' } : i; },
+        async readLocalGrant() { const g = await listAccess.readLocalGrant(); return queried ? { ...g, ...(mutate === 'revoke' ? { permissions: [] } : mutate === 'scope' ? { scope: { ...listScope, stationIds: [] } } : {}) } : g; } };
+      const intercepted = wrap(undefined, async sql => { if (sql.includes('FROM bsmoss_integration.source_binding_head h')) queried = true; });
+      await assert.rejects(sourceIntakeTaskSupervision(intercepted, guarded).list({ limit: 1 }), /permission_denied|scope_denied|access_expired/);
+    }
+    let queried = false;
+    const empty = { ...listAccess, async readLocalGrant() { return { ...await listAccess.readLocalGrant(), permissions: queried ? [] : ['metering.jobs.view'], scope: { ...listScope, stationIds: [] } }; } };
+    const intercepted = wrap(undefined, async sql => { if (sql.includes('SELECT t.id,to_char')) queried = true; });
+    await assert.rejects(sourceIntakeTaskSupervision(intercepted, empty).list({ limit: 1 }), /permission_denied/);
+    const foreign = { ...listAccess,
+      async readVerifiedIdentity() { return { ...await listAccess.readVerifiedIdentity(), activeWorkspace: 'other' }; },
+      async readCoverage() { return { ...await listAccess.readCoverage(), workspaceId: 'other' }; },
+      async readLocalGrant() { const g = await listAccess.readLocalGrant(); return { ...g, workspaceId: 'other', scope: { ...g.scope, workspaceId: 'other' } }; } };
+    assert.deepEqual(await sourceIntakeTaskSupervision(adapterPool, foreign).list({ limit: 1 }), { items: [], next: null });
+    await assert.rejects(sourceIntakeTaskSupervision(adapterPool, foreign).terminate(disposition(listTasks[0].saved)), /unavailable/);
   });
 }
