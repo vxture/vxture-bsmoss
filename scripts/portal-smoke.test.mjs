@@ -237,6 +237,17 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('preview configuration workspaces open without granting formal management writes',async()=>{
+      for(const [path,title] of [['/settings/sources','\u6765\u6e90\u914d\u7f6e'],['/settings/mappings','\u5bf9\u8c61\u6620\u5c04']]) {
+        const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();
+        assert.ok(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)?.[0].includes(title));
+        assert.ok(html.includes('\u672c\u673a\u4fdd\u5b58'));assert.ok(!html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));
+      }
+      for(const path of ['/api/management/source-configurations','/api/management/object-mappings']) {
+        assert.equal((await fetch(url+path)).status,401);
+        assert.equal((await fetch(url+path,{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,405);
+      }
+    });
     await t.test('preview never substitutes sample identities for formal intake supervision',async()=>{
       const id='a'.repeat(64);
       for(const [path,method] of [['/api/intake-tasks','GET'],['/api/intake-tasks/'+id,'GET'],['/api/intake-tasks/'+id+'/terminate','POST']]) {

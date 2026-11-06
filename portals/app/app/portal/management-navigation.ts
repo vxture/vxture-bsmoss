@@ -11,10 +11,10 @@ const groups: { title: string; pages: PortalPage[] }[] = [
   { title: "\u9ad8\u7ea7\u7ba1\u7406", pages: ["configuration-audit"] },
 ];
 const details: Partial<Record<PortalPage, { icon: IconName; description: string }>> = {
-  "object-mappings": { icon: "stack", description: "\u5916\u90e8\u5bf9\u8c61\u3001\u5173\u8054\u76ee\u6807\u4e0e\u6709\u6548\u671f\u6838\u5bf9" },
+  "object-mappings": { icon: "stack", description: "\u6765\u6e90\u5bf9\u8c61\u4e0e\u7ad9\u5740\u7684\u5173\u8054\u7ef4\u62a4" },
   "site-classifications": { icon: "building", description: "\u7ad9\u70b9\u7c7b\u578b\u3001\u4e1a\u52a1\u573a\u666f\u4e0e\u5171\u4eab\u5206\u7c7b" },
   "analysis-rules": { icon: "faders", description: "\u5206\u6790\u9608\u503c\u3001\u8ba1\u7b97\u53e3\u5f84\u4e0e\u4f7f\u7528\u8fb9\u754c" },
-  "source-configurations": { icon: "database", description: "\u6765\u6e90\u767b\u8bb0\u72b6\u6001\u3001\u9002\u914d\u4e0e\u6620\u5c04\u7248\u672c\u53ca\u6388\u6743\u8303\u56f4" },
+  "source-configurations": { icon: "database", description: "\u6570\u636e\u6765\u6e90\u3001\u4e1a\u52a1\u7c7b\u522b\u4e0e\u63a5\u5165\u65b9\u5f0f" },
   "configuration-audit": { icon: "list-checks", description: "\u6765\u6e90\u914d\u7f6e\u7248\u672c\u3001\u767b\u8bb0\u4f9d\u636e\u4e0e\u6570\u636e\u5e93\u8bb0\u5f55\u4e3b\u4f53" },
   jurisdiction: { icon: "building", description: "\u67e5\u770b\u5df2\u6388\u6743\u7ad9\u5740\u53ca\u5173\u8054\u8d44\u6e90\u8303\u56f4" },
   members: { icon: "users", description: "\u67e5\u770b\u8303\u56f4\u5185\u6210\u5458\u3001\u89d2\u8272\u4e0e\u6570\u636e\u6388\u6743" },
