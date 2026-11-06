@@ -1,5 +1,11 @@
 # 后续代理入口
 
+## Launcher图案恢复24px（2026-11-06，最新用户修正）
+
+用户明确launcher外轮廓保持32px、图案恢复原大小。共享ProductLauncher保留size-control-xl，官方Icon lg子节点恢复24px；四工具继续32/16，区域/演示tag与其他Header组件保持。覆盖下方launcher16px结论。
+
+生产build含类型通过tmp/launcher-icon-24-build.log；浏览器常态/展开32×32及SVG24×24、面板打开/Escape关闭、四工具32/16、390px无横溢均已验证。证据artifacts/launcher-icon-24-qa，视口恢复、临时页关闭。规格50/实施660同步；无依赖/DDL/权限/数据链路变化，P1仍按950接续，未push或外部部署。
+
 ## Header非标签控件32px统一（2026-11-06，最新用户修正）
 
 用户在P1接续盘点途中要求先修正Header：区域/演示tag除外，其余控件高32，重点launcher。ProductLauncher从control-2xl改control-xl并删除lg子图标，官方sm为16；账户triggerClassName设control-xl；品牌首页链接h-control-xl。原四工具32/16保持，头像及品牌内部图形沿DS。未覆盖DS内部样式/token，未改全画布地图独立Header。

@@ -42,3 +42,9 @@
 生产build含类型通过tmp/header-controls-32-build.log。本机浏览器1280/904/390三个实际宽度，所有非标签可交互控件高32、top8，launcher及四工具均32×32且svg16×16，品牌链接高32，头像触发器32×32。区域高24、演示标签沿原规格，文档宽与视口一致。手机配置launcher/用户面板及桌面业务launcher真实打开正常，展开态仍32/16；warn/error空，视口恢复、临时页关闭，证据artifacts/header-controls-32-qa含desktop/mobile/launcher和checks.json。纯尺寸调整不新增镜像测试或重复业务PG/HTTP；无权限/数据/依赖/DDL变化，提交/最终预览健康见对应检查点。
 
 本轮用户中途优先修正Header，P1来源契约/拉取编排仅完成现有能力盘点，没有连接真实来源或修改数据更新语义。后续仍沿实施950接续，不将本次尺寸修正计入P1功能完成。
+
+## Launcher图案恢复24px（2026-11-06）
+
+用户进一步明确launcher图案太小，外轮廓32px保持，内部恢复原尺寸。ProductLauncher保留size-control-xl，使用官方Icon lg子节点恢复24px；本段覆盖上一节launcher图案16px的结论，四工具仍为32px外框和16px图案。
+
+生产build含类型通过tmp/launcher-icon-24-build.log。浏览器实际测量常态/展开态均为32×32px、内部SVG24×24px，面板打开及Escape关闭正常；四工具实测32/16。390px窄屏文档宽390px，无横溢。截图及测量证据位于artifacts/launcher-icon-24-qa，临时页已关闭、视口已恢复。本次仅尺寸修正，不新增镜像测试或重复业务验证。
