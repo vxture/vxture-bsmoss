@@ -1,3 +1,4 @@
+import { resolveMappingImpactAccess, revalidateMappingImpactAccess } from "./mapping-impact-access.ts";
 import { resolveMeasurementAccess, type AccessPorts } from "../access/resolve.ts";
 import { fingerprintOf } from "../aggregation/intervals.ts";
 import { reportScope } from "../reports/rules.ts";
@@ -14,12 +15,14 @@ export function mappingPreflight(ports: AccessPorts, readers: { create(scope: Me
     if (first.expiresAt <= now()) throw Error("access_expired");
     // Retain errors until the final access check, including stale and missing
     // records, so a concurrent revocation cannot reveal their existence.
+    const impact = await resolveMappingImpactAccess(ports, first);
     let result, failure;
-    try { result = await reader.preview(sourceIdentity(id), mappingProposal(raw)); } catch (e) { failure = e; }
+    try { result = await reader.preview(sourceIdentity(id), mappingProposal(raw), { aggregates: impact.aggregates?.scope, reports: impact.reports?.scope }); } catch (e) { failure = e; }
     if (first.expiresAt <= now()) throw Error("access_expired");
     const current = await resolveMeasurementAccess(ports, "mappings_preflight", "interactive");
     if (current.context.sub !== first.context.sub || current.context.workspaceId !== first.context.workspaceId || fingerprintOf(reportScope(current.scope)) !== fingerprintOf(reportScope(first.scope))) throw Error("permission_denied");
     if (current.expiresAt <= now()) throw Error("access_expired");
+    await revalidateMappingImpactAccess(ports, first, impact);
     if (failure) throw failure;
     if (!result) throw Error("mapping_unavailable");
     return result;

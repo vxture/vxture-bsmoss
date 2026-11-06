@@ -1,5 +1,14 @@
 # 产品待办与验收台账
 
+## 映射预检聚合与报告依赖（2026-11-07，最新执行）
+
+设计258／实施[ops_bsmoss_258](../40-implementation/ops_bsmoss_258_mapping-dependencies.md)：映射当前预检增加当前聚合head及当前生成报告head的明确引用，各20＋lookahead。聚合原plan＋inputs按三类原内核重放校验；报告原manifest重建／摘要与完整scope验证，覆盖主／日级／peer及汇总成员引用。两类独立权限，无owner／机器绕过、无角色赋权；完整范围在LIMIT前过滤，同只读快照，所有成功／missing／stale／SQL失败末次复核。无权不查不计0，旧head引用不复活；无原量／聚合／报告／任务写入。
+
+754单测、479最终实际PG、14针对、60HTTP、双层types／最终UI生产构建及三宽组件回归通过；最终SHA／健康和正式门槛见formal-checkpoints/mapping-dependencies.json，证据mapping-impact-qa。初轮UTC日夹具及汇总参数错误已修全量重跑，版本／时间段断字已优化再验。67表／Prisma保持，空库仅2permission种子，仅随机专用本机合同库应用。合成组件不当真实来源或身份验收。
+
+本批是当前映射的授权关联预览，不是完整重算范围；历史／未发布／潜在新增依赖不覆盖。来源预检无精确binding修订依赖仍未评估，不以sourceId推定；映射接收任务及跨版本最新位置保持待评估。下一跨版本位置与受审重新基准只读差异／处置契约，再原件验证与可信提交批准下受审写入／真实连接核验。其他组织／授权写入、规则发布、审计、原P1/P2、真实来源／平台环境／Beta恢复／UAT／生产批准依赖保持，未push／外部部署／上线、新聊天或自动任务。
+
+
 ## 来源预检当前版本接收影响（2026-11-07，最新执行）
 
 设计257／实施[ops_bsmoss_257](../40-implementation/ops_bsmoss_257_source-intake-impact.md)：来源当前预检增加实际回执／任务证据，各20＋lookahead，完整当前绑定范围在独立admin.sources.intake_impact.view授权内才查询，同只读快照，复用摘要／计划／完整事件历史校验并验证lookahead。成功／missing／stale／SQL失败均双权限末次复核；机器／owner无绕过，无角色赋权。无权不查询、不计0；空当前版本不代表无历史。早期修订、跨版本最新位置、聚合／报告继续未评估；新摘要仍需受审重新基准，无任务／配置／位置写入，不推进截至。

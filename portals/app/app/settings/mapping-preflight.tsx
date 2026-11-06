@@ -1,4 +1,5 @@
 "use client";
+import MappingImpactView from "./mapping-impact";
 import { useEffect, useRef, useState } from "react";
 import { Button, Input, StatusBadge } from "@vxture/design-system";
 import type { MappingRecord } from "../domains/management/mapping-rules";
@@ -51,7 +52,8 @@ export default function MappingPreflightForm({ record: r, onForbidden }: { recor
       <p className="text-body-small">{result.checks.authorizedOverlap ? "\u6388\u6743\u8303\u56f4\u5185\u53d1\u73b0\u540c\u4e00\u5916\u90e8\u5bf9\u8c61\u533a\u95f4\u91cd\u53e0\u3002" : "\u6388\u6743\u8303\u56f4\u5185\u672a\u53d1\u73b0\u533a\u95f4\u91cd\u53e0\uff1b\u5168\u5c40\u51b2\u7a81\u672a\u786e\u8ba4\u3002"}</p>
       <p className="text-body-small">{result.checks.serviceCoverage === "uncovered" ? "\u670d\u52a1\u6709\u6548\u671f\u672a\u5b8c\u6574\u8986\u76d6\u62df\u8c03\u6574\u533a\u95f4\u3002" : result.checks.serviceCoverage === "covered" ? "\u670d\u52a1\u6709\u6548\u671f\u5b8c\u6574\u8986\u76d6\u62df\u8c03\u6574\u533a\u95f4\u3002" : "\u4e0d\u6d89\u53ca\u670d\u52a1\u6709\u6548\u671f\u3002"}</p>
       <div className="flex flex-col gap-sm"><h4 className="text-label font-medium">{"\u65f6\u95f4\u8986\u76d6\u53d8\u5316"}</h4>{result.changedWindows.map((w, i) => <p key={i} className="break-all text-body-small">{(w.change === "added" ? "\u6269\u5c55 " : "\u79fb\u9664 ") + w.from + " \u2192 " + w.to}</p>)}</div>
-      <p className="text-body-small text-muted-foreground">{"\u805a\u5408\u3001\u62a5\u544a\u4e0e\u63a5\u6536\u4efb\u52a1\u5f71\u54cd\u672a\u8bc4\u4f30\uff0c\u4e0d\u4ee3\u8868\u96f6\u5f71\u54cd\u3002\u7248\u672c\u53d8\u5316\u53ef\u80fd\u5f71\u54cd\u6574\u4e2a\u539f\u65b0\u533a\u95f4\u7684\u4f9d\u8d56\uff1b\u4e0a\u8ff0\u65f6\u95f4\u8986\u76d6\u53d8\u5316\u4e0d\u662f\u5b8c\u6574\u91cd\u7b97\u8303\u56f4\u3002\u7ed3\u679c\u4ec5\u5bf9\u672c\u6b21\u8bfb\u53d6\u5feb\u7167\u6709\u6548\uff0c\u4e0d\u4ee3\u8868\u5ba1\u6279\u6216\u53ef\u4ee5\u53d1\u5e03\u3002"}</p>
+      <p className="text-body-small text-muted-foreground">{"\u63a5\u6536\u4efb\u52a1\u5f71\u54cd\u672a\u8bc4\u4f30\uff0c\u4e0d\u4ee3\u8868\u96f6\u5f71\u54cd\u3002\u7248\u672c\u53d8\u5316\u53ef\u80fd\u5f71\u54cd\u6574\u4e2a\u539f\u65b0\u533a\u95f4\u7684\u4f9d\u8d56\uff1b\u4e0a\u8ff0\u65f6\u95f4\u8986\u76d6\u53d8\u5316\u4e0d\u662f\u5b8c\u6574\u91cd\u7b97\u8303\u56f4\u3002\u7ed3\u679c\u4ec5\u5bf9\u672c\u6b21\u8bfb\u53d6\u5feb\u7167\u6709\u6548\uff0c\u4e0d\u4ee3\u8868\u5ba1\u6279\u6216\u53ef\u4ee5\u53d1\u5e03\u3002"}</p>
+      <MappingImpactView evidence={result.dependencyEvidence} />
       <dl><dt className="text-body-small text-muted-foreground">{"\u672c\u6b21\u8349\u6848\u6458\u8981"}</dt><dd className="break-all text-body-small text-muted-foreground">{result.draftDigest}</dd></dl>
     </div>}</>}
   </section>;

@@ -1847,3 +1847,5 @@ INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.prefl
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.preflight','Preview authorized source configuration changes without applying them');
 
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.intake_impact.view','Inspect current source revision intake evidence without executing tasks');
+
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.aggregate_impact.view','Inspect authorized current aggregate dependencies of mappings without rebuilding them'), ('admin.mappings.report_impact.view','Inspect authorized current report dependencies of mappings without regenerating them');

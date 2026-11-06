@@ -1,3 +1,4 @@
+import type { MappingImpacts } from "./mapping-impact-contracts.ts";
 import { fingerprintOf } from "../aggregation/intervals.ts";
 import type { MappingRecord } from "./mapping-rules.ts";
 import { sourceIdentity, sourceRevision } from "./source-rules.ts";
@@ -17,7 +18,8 @@ export interface MappingPreflight {
   changedWindows: { from: string; to: string; change: "added" | "removed" }[];
   checks: { version: "next"; authorizedOverlap: boolean; overlapCoverage: "authorized_scope_only"; serviceCoverage: "covered" | "uncovered" | "not_applicable" };
   assessment: "blocked" | "needs_review";
-  downstream: { aggregates: "not_assessed"; reports: "not_assessed"; intakeTasks: "not_assessed" };
+  dependencyEvidence: MappingImpacts;
+  downstream: { aggregates: "not_assessed" | "authorized_current_heads"; reports: "not_assessed" | "authorized_current_heads"; intakeTasks: "not_assessed" };
   checkedAt: string;
 }
 function exact(v: any, keys: string[]) {
@@ -60,5 +62,6 @@ export function mappingPreflightResult(r: MappingRecord, p: MappingProposal, ove
     changedFields: (["version", "validFrom", "validTo"] as const).filter(k => r[k] !== next[k]), changedWindows,
     checks: { version: "next", authorizedOverlap: overlap, overlapCoverage: "authorized_scope_only", serviceCoverage },
     assessment: overlap || serviceCoverage === "uncovered" ? "blocked" : "needs_review",
+    dependencyEvidence: { aggregates: { status: "not_authorized" }, reports: { status: "not_authorized" } },
     downstream: { aggregates: "not_assessed", reports: "not_assessed", intakeTasks: "not_assessed" }, checkedAt };
 }
