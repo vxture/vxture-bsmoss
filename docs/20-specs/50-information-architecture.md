@@ -1,5 +1,7 @@
 # BS-MOSS 门户信息结构 V0.8
 
+2026-11-06业务参数补齐：官方管理侧栏业务参数组依次为站址分类（/settings/classifications）、指标字典、分析规则（/settings/rules）、模板配置。分类11项、规则9项，公开产品定义只读目录，DS搜索／筛选／表格及详情Drawer；无租户记录或写操作。内置定义与现有分析判定同源，生产规则回放签认／受审发布与正式资源赋类仍待。详见[设计252](../30-design/design_bsmoss_252_business-parameters.md)／实施995；原职责分离、管理权限与地域记忆保持。
+
 2026-11-06配置职责修正（最新）：数据更新、聚合处理与报告任务归日常业务；个人总览偏好移用户面板。业务launcher新增数据管理组，报告任务归报告中心、聚合经数据更新二级进入。管理侧栏首批为管理总览、指标字典、模板配置；五组目标职责为组织管辖、成员权限、业务参数、数据接入、高级管理，未实现项不建空导航。旧配置任务深链保留参数重定向业务路径。导航尽量四字，准确术语可例外。详见[设计250](../30-design/design_bsmoss_250_configuration-boundaries.md)，覆盖下段旧归属，官方DS布局保持。
 
 2026-11-06配置管理导航补充：管理域直接采用发布 DS ShellViewport / ShellSidebarFrame / ShellSidebarNav 标准侧栏，不套业务浮动留白外壳；移动端用官方 Drawer 承载同一导航。管理首页、总览显示、指标模板及三个任务页面统一官方 ShellPageContainer。右侧齿轮为入口，业务域布局与全局地域记忆保持；导航可见不授予权限。详见[设计249](../30-design/design_bsmoss_249_management-ds-navigation.md)。

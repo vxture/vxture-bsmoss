@@ -1,3 +1,5 @@
+import { VERIFICATION_POLICY_VERSION, ZERO_RUN_MIN_HOURS } from "../business-parameters/policies";
+export { VERIFICATION_POLICY_VERSION, ZERO_RUN_MIN_HOURS } from "../business-parameters/policies";
 import { evaluateWave, WAVE_POLICY, type WaveEvidence } from "../map-demo/station-period-rules";
 import type { BusinessMetric } from "../map-demo/period-contribution-rules";
 export type FindingKind = "up" | "down" | "from_zero" | "zero_run" | "missing" | "insufficient";
@@ -14,8 +16,6 @@ export interface UsageFinding {
   kind: FindingKind; category: FindingCategory; start: string; end: string; windows: AssessedWindow[];
   current: string | null; referenceNumerator: string | null; deltaNumerator: string | null;
 }
-export const VERIFICATION_POLICY_VERSION = "bsmoss-demo-verification-policy-v1";
-export const ZERO_RUN_MIN_HOURS = 3;
 const HOUR = 3600000, counter = /^(0|[1-9]\d{0,99})$/;
 function validateSlot(slot: ReferenceSlot) {
   const at = Date.parse(slot.start), end = Date.parse(slot.end);
@@ -35,7 +35,7 @@ export function deriveUsageFindings(input: readonly ReviewWindow[], metric: Busi
     for (const r of w.references) {
       validateSlot(r);
       const weeks = (Date.parse(w.start) - Date.parse(r.start)) / (7 * 86400000);
-      if (![1, 2, 3, 4].includes(weeks) || starts.has(Date.parse(r.start))) throw Error("invalid_review_reference");
+      if (!WAVE_POLICY.baselineWeeks.some(week => week === weeks) || starts.has(Date.parse(r.start))) throw Error("invalid_review_reference");
       starts.add(Date.parse(r.start));
     }
     const usable = w.expected && w.due && w.complete && w.quality === "verified" && w.value !== null;

@@ -1,4 +1,5 @@
 'use client';
+import { TOPIC_POLICY_TEXT as RULES } from "../../domains/business-parameters/presentation";
 import BusinessPageLink from './business-page-link';
 import {selectionLabel} from '../../domains/map-demo/geometry.ts';
 import {Radar,X,Activity,Zap,Leaf,ArrowUpRight,Columns3,LoaderCircle,RotateCcw} from 'lucide-react';
@@ -8,11 +9,7 @@ import {GIB} from '../../domains/map-demo/rules.ts';
 import {TopicSettings} from './display-controls.tsx';
 import {OP_NAMES} from './station-panel.tsx';
 export const TOPIC_NAMES:Record<TopicKind,string>={capacity:'\u5bb9\u91cf\u4e0e\u8d28\u91cf',power:'\u4f9b\u7535\u4fdd\u969c',efficiency:'\u80fd\u6548\u89c2\u5bdf'};
-const RULES:Record<TopicKind,string>={
-  capacity:'\u4e25\u91cd\uff1a\u8d1f\u8f7d \u226595% \u6216\u63a5\u901a\u7387 <95%\uff1b\u5173\u6ce8\uff1a\u8d1f\u8f7d \u226585% \u6216\u63a5\u901a\u7387 <98%\u3002\u5206\u6bcd\u4e0d\u53ef\u7528\u4e14\u672a\u547d\u4e2d\u65f6\u6807\u8bb0\u672a\u77e5\u3002',
-  power:'\u4e25\u91cd\uff1a\u5907\u7528\u4f9b\u7535\u8fd0\u884c\u6216\u673a\u623f\u6e29\u5ea6 \u226540\u00b0C\uff1b\u5173\u6ce8\uff1a\u673a\u623f\u6e29\u5ea6 \u226535\u00b0C\u3002\u4ec5\u89c2\u5bdf\u4f9b\u7535\u4e0e\u6e29\u5ea6\uff0c\u4e0d\u63a8\u65ad\u7535\u6c60\u7eed\u822a\u3002',
-  efficiency:'\u5355\u4f4d\u6d41\u91cf\u7535\u8017 = \u7269\u7406\u7ad9\u5740\u7535\u8017 \u00f7 \u53cc\u5411\u6d41\u91cf\u3002\u22650.30 kWh/GiB \u4e3a\u4e25\u91cd\uff0c\u22650.15 \u4e3a\u5173\u6ce8\u3002\u5355\u8fd0\u8425\u5546\u672a\u5206\u644a\u6216\u96f6\u6d41\u91cf\u65f6\u4e0d\u53ef\u8bc4\u4f30\uff1b\u4e0d\u7b49\u540c\u4e8e\u8bbe\u5907\u6d6a\u8d39\u3002',
-};
+
 const ACTIONS:Record<TopicKind,string>={capacity:'\u6838\u9a8c\u8d44\u6e90\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf\uff0c\u7ed3\u5408\u4e1a\u52a1\u9700\u6c42\u590d\u6838\u5bb9\u91cf\u3002',power:'\u6838\u9a8c\u5e02\u7535\u3001\u5907\u7528\u7535\u6e90\u4e0e\u673a\u623f\u6e29\u5ea6\uff0c\u7ed3\u5408\u73b0\u573a\u8bb0\u5f55\u786e\u8ba4\u3002',efficiency:'\u7ed3\u5408\u7ad9\u578b\u3001\u4e1a\u52a1\u7ed3\u6784\u548c\u57fa\u7840\u529f\u8017\u590d\u6838\uff0c\u907f\u514d\u53ea\u6309\u80fd\u8017\u5dee\u503c\u5224\u4f18\u52a3\u3002'};
 const n=(v:number,digits=1)=>v.toLocaleString('zh-CN',{maximumFractionDigits:digits});
 function evidence(kind:TopicKind,s:TopicSignal){

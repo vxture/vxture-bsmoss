@@ -1,4 +1,5 @@
 "use client";
+import { TOPIC_POLICY_TEXT as rules } from "../domains/business-parameters/presentation";
 import SaveLocalReport from "../reports/save-local";
 import CapacityPanel from './capacity-panel';
 import RuntimePanel from './runtime-panel';
@@ -18,11 +19,7 @@ const labels = { capacity: "\u5bb9\u91cf\u4e0e\u8d28\u91cf", efficiency: "\u8fd0
 const descriptions = {"capacity":"\u5bb9\u91cf\u8d1f\u8f7d\u4e0e\u670d\u52a1\u8d28\u91cf\u7efc\u5408\u5206\u6790","efficiency":"\u4f9b\u7535\u73af\u5883\u4e0e\u7ad9\u5740\u80fd\u6548\u7efc\u5408\u5206\u6790","operator-usage":"\u8fd0\u8425\u5546\u4e1a\u52a1\u7528\u91cf\u4e0e\u670d\u52a1\u8d28\u91cf\u5206\u6790","usage-reports":"\u5468\u671f\u7528\u91cf\u6c47\u603b\u4e0e\u53ef\u6bd4\u53d8\u5316\u5206\u6790"};
 const levels = { normal: "\u5e73\u7a33", warning: "\u5173\u6ce8", critical: "\u4e25\u91cd", unknown: "\u672a\u77e5" };
 const metrics = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSeconds", label: "\u901a\u8bdd" }, { value: "sms", label: "\u77ed\u4fe1" }] as const;
-const rules = {
- capacity: "\u4e25\u91cd\uff1a\u8d1f\u8f7d \u226595% \u6216\u63a5\u901a\u7387 <95%\uff1b\u5173\u6ce8\uff1a\u8d1f\u8f7d \u226585% \u6216\u63a5\u901a\u7387 <98%\u3002\u5206\u6bcd\u4e0d\u53ef\u7528\u4e14\u672a\u547d\u4e2d\u65f6\u6807\u8bb0\u672a\u77e5\u3002",
- power: "\u4e25\u91cd\uff1a\u5907\u7528\u4f9b\u7535\u8fd0\u884c\u6216\u673a\u623f\u6e29\u5ea6 \u226540\u00b0C\uff1b\u5173\u6ce8\uff1a\u6e29\u5ea6 \u226535\u00b0C\u3002\u4e0d\u63a8\u65ad\u7535\u6c60\u7eed\u822a\u3002",
- efficiency: "\u5355\u4f4d\u6d41\u91cf\u7535\u8017 = \u7269\u7406\u7ad9\u5740\u7535\u8017 \u00f7 \u53cc\u5411\u6d41\u91cf\u3002\u22650.30 kWh/GiB \u4e3a\u4e25\u91cd\uff0c\u22650.15 \u4e3a\u5173\u6ce8\u3002\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a\u6216\u96f6\u6d41\u91cf\u65f6\u4e0d\u53ef\u8bc4\u4f30\u3002",
-};
+
 export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
  const router = useRouter(), [pending, start] = useTransition(), q = demo.scope;
  const [metric, setMetric] = useState<"bytes" | "voiceSeconds" | "sms">("bytes"), [search, setSearch] = useState(q.search);

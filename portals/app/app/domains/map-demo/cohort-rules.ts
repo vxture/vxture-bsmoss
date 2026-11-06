@@ -1,3 +1,4 @@
+import { COHORT_CHANGE_PERCENT } from "../business-parameters/policies.ts";
 import {historyChange,type HistoryAnalysis,type HistoryBand,type HistoryMetric,type HistoryValues} from './history-rules.ts';
 import {syntheticSharing,syntheticSiteType} from './site-attributes.ts';
 import type {DemoSite} from './types.ts';
@@ -17,7 +18,7 @@ export function quantile(sorted:readonly number[],p:number):number|null {
 export function growthBand(current:HistoryValues,previous:HistoryValues|null,metric:HistoryMetric,days:number,previousDays:number):HistoryBand {
   if(!previous||BigInt(previous[metric])===0n)return 'unknown';
   const denominator=BigInt(previous[metric])*BigInt(days),delta=BigInt(current[metric])*BigInt(previousDays)-denominator;
-  return delta*10n<=-denominator?'decline':delta*10n>=denominator?'growth':'stable';
+  return delta*100n<=-denominator*BigInt(COHORT_CHANGE_PERCENT)?'decline':delta*100n>=denominator*BigInt(COHORT_CHANGE_PERCENT)?'growth':'stable';
 }
 // Contribution is percentage points of the scope's baseline, not a fraction of
 // a net delta that may cancel to zero. Negative effects keep their sign.

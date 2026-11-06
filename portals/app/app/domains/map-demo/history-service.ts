@@ -1,3 +1,4 @@
+import { SITE_TYPES, SCENES, SHARING_TYPES } from "../business-parameters/classification.ts";
 import {parseMapQuery} from './service.ts';
 import {inSelection} from './geometry.ts';
 import {DEMO_SITES} from './resources.ts';
@@ -18,7 +19,7 @@ export function parseHistoryQuery(input:Record<string,string|string[]|undefined>
   const metric=input.metric??'bytes';
   if(metric!=='bytes'&&metric!=='voiceSeconds'&&metric!=='sms')throw Error('invalid_history_metric');
   const values={view:input.view??'region',groupBy:input.groupBy??'scene',scene:input.scene??'all',siteType:input.siteType??'all',sharing:input.sharing??'all',band:input.band??'all',sort:input.sort??'total'};
-  const options={view:['region','operators','cohorts'],groupBy:['scene','siteType','sharing'],scene:['all','urban','hub','industrial','mountain','efficient','shared'],siteType:['all','ground','rooftop'],sharing:['all','single','dual','multi'],band:['all','zero','lower','middleLow','middleHigh','upper','decline','stable','growth','unknown'],sort:['total','intensity','growth','decline']};
+  const options={view:['region','operators','cohorts'],groupBy:['scene','siteType','sharing'],scene:['all',...SCENES],siteType:['all',...SITE_TYPES],sharing:['all',...SHARING_TYPES],band:['all','zero','lower','middleLow','middleHigh','upper','decline','stable','growth','unknown'],sort:['total','intensity','growth','decline']};
   for(const key of Object.keys(values) as (keyof typeof values)[])if(!options[key].includes(values[key] as string))throw Error('invalid_history_filter');
   const pageText=input.page??'1';if(typeof pageText!=='string'||!(/^[1-9]\d{0,3}$/).test(pageText)||Number(pageText)>1000)throw Error('invalid_history_page');
   const peerLevel=input.peerLevel??'scope';

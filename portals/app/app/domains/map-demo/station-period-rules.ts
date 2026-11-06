@@ -1,10 +1,11 @@
+import { WAVE_POLICY } from "../business-parameters/policies.ts";
+export { WAVE_POLICY } from "../business-parameters/policies.ts";
 import {analyzeCalendarUsage,calendarSampler,calendarWindow,periodContextKey,emptyExact,addExact,exactCounters,calendarRates,type CalendarCounters,type CalendarUsage,type ReportPeriod} from './period-rules.ts';
 import {counterChange,type CounterChange} from './period-comparison-rules.ts';
 import {BUSINESS_KEYS,type BusinessMetric} from './period-contribution-rules.ts';
 import type {DemoSite,HourMetrics,MapQuery} from './types.ts';
 import type {StationReportReference} from './station-report-rules.ts';
 export const STATION_PERIOD_VERSION='bsmoss-demo-station-period-v2';
-export const WAVE_POLICY={relativeBps:1500,minimum:{bytes:'1073741824',voiceSeconds:'300',sms:'20'},baselineWeeks:[1,2,3,4]} as const;
 export interface WaveEvidence {
   current:string;references:string[];referenceNumerator:string|null;denominator:2;deltaNumerator:string|null;rate:number|null;
   status:'within'|'up'|'down'|'from_zero'|'both_zero'|'insufficient';flagged:boolean;

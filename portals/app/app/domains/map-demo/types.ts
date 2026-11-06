@@ -1,7 +1,8 @@
 export const OPERATOR_CODES = ['mobile', 'telecom', 'unicom', 'broadcast', 'other'] as const;
 export type Operator = typeof OPERATOR_CODES[number];
 export type OperatorFilter = Operator | 'all';
-export type Profile = 'urban' | 'hub' | 'industrial' | 'mountain' | 'efficient' | 'shared';
+export type { Scene as Profile } from '../business-parameters/classification.ts';
+import type { Scene as Profile } from '../business-parameters/classification.ts';
 export type Theme = 'status' | 'traffic' | 'energy';
 export type Bounds = [number, number, number, number];
 export interface CircleSelection { kind:'circle'; center:[number,number]; radiusMeters:number }

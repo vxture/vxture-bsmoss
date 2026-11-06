@@ -1,3 +1,4 @@
+import { TOPIC_THRESHOLDS as T } from "../domains/business-parameters/policies";
 import { DEMO_DATE, DEMO_VERSION, GIB, siteHour } from "../domains/map-demo/rules";
 import { evaluateTopic, TOPIC_KINDS, TOPIC_POLICY } from "../domains/map-demo/topic-rules";
 import type { DemoSite, HourMetrics, TopicKind, TopicLevel } from "../domains/map-demo/types";
@@ -5,15 +6,15 @@ import type { DemoSite, HourMetrics, TopicKind, TopicLevel } from "../domains/ma
 export type Trigger = "load" | "connection" | "battery" | "temperature" | "intensity";
 export function overviewTriggers(topic: TopicKind, m: HourMetrics): Trigger[] {
   if (topic === "capacity") return [
-    ...(m.capacity > 0 && m.used / m.capacity >= .85 ? ["load" as const] : []),
-    ...(m.attempts > 0 && m.connected / m.attempts < .98 ? ["connection" as const] : []),
+    ...(m.capacity > 0 && m.used / m.capacity >= T.loadWarningPct / 100 ? ["load" as const] : []),
+    ...(m.attempts > 0 && m.connected / m.attempts < T.connectionWarningPct / 100 ? ["connection" as const] : []),
   ];
   if (topic === "power") return [
     ...(m.power === "battery" ? ["battery" as const] : []),
-    ...(m.temperature >= 35 ? ["temperature" as const] : []),
+    ...(m.temperature >= T.temperatureWarningC ? ["temperature" as const] : []),
   ];
   const value = evaluateTopic(topic, m).value;
-  return value !== null && value >= .15 ? ["intensity"] : [];
+  return value !== null && value >= T.intensityWarning ? ["intensity"] : [];
 }
 export function overviewSignals(sites: readonly DemoSite[], hour: number) {
   const severity = { critical: 0, warning: 1, unknown: 2, normal: 3 };

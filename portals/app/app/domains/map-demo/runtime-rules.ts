@@ -1,3 +1,4 @@
+import { TOPIC_THRESHOLDS as T } from "../business-parameters/policies";
 import {siteHour,GIB,DEMO_DATE,DEMO_VERSION} from './rules';
 import {analyzeTopic,TOPIC_POLICY} from './topic-rules';
 import {resourceScope,type ResourceGraph} from '../site-registry/resource-rules';
@@ -7,8 +8,8 @@ export const RUNTIME_MODEL='bsmoss-runtime-energy-coverage-v1';
 export type RuntimeSample={energyWh:number|null;bytes:number;temperature:number|null;power:'mains'|'battery'|null};
 export function runtimeObservation(m:RuntimeSample,allocated=true){
  const intensity=m.energyWh!==null&&m.bytes>0?(m.energyWh/1000)/(m.bytes/GIB):null;
- const powerLevel:TopicLevel=m.power==='battery'||m.temperature!==null&&m.temperature>=40?'critical':m.temperature!==null&&m.temperature>=35?'warning':m.power===null||m.temperature===null?'unknown':'normal';
- const efficiencyLevel:TopicLevel=intensity===null?'unknown':intensity>=0.30?'critical':intensity>=0.15?'warning':'normal';
+ const powerLevel:TopicLevel=m.power==='battery'||m.temperature!==null&&m.temperature>=T.temperatureCriticalC?'critical':m.temperature!==null&&m.temperature>=T.temperatureWarningC?'warning':m.power===null||m.temperature===null?'unknown':'normal';
+ const efficiencyLevel:TopicLevel=intensity===null?'unknown':intensity>=T.intensityCritical?'critical':intensity>=T.intensityWarning?'warning':'normal';
  return {...m,intensity,powerLevel,efficiencyLevel,energyUnknown:m.energyWh===null?(allocated?'missing':'unallocated'):null,
   zeroTraffic:m.energyWh!==null&&m.bytes===0};
 }

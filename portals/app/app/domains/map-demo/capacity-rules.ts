@@ -1,3 +1,4 @@
+import { TOPIC_THRESHOLDS as T } from "../business-parameters/policies";
 import {siteHour,DEMO_DATE,DEMO_VERSION} from './rules';
 import {analyzeTopic,evaluateTopic,TOPIC_POLICY} from './topic-rules';
 import {OPERATOR_CODES,type DemoSite,type HourMetrics,type MapQuery} from './types';
@@ -7,7 +8,7 @@ type Counters=Pick<HourMetrics,'used'|'capacity'|'attempts'|'connected'>;
 export function capacityObservation(m:Counters){
  const load=m.capacity>0?m.used/m.capacity:null,connection=m.attempts>0?m.connected/m.attempts:null;
  return {...m,failed:m.attempts-m.connected,load,connection,
-  highLoad:load!==null&&load>=0.85,lowConnection:connection!==null&&connection<0.98};
+  highLoad:load!==null&&load>=T.loadWarningPct/100,lowConnection:connection!==null&&connection<T.connectionWarningPct/100};
 }
 export function summarizeCapacity(metrics:readonly HourMetrics[]){
  let used=0,capacity=0,attempts=0,connected=0,capacityKnown=0,connectionKnown=0,highLoad=0,lowConnection=0,both=0,attention=0,unknown=0;

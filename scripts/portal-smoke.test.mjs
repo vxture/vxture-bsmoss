@@ -117,6 +117,18 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(catalog.includes('service.voice.connected_seconds') || catalog.includes('\u901a\u8bdd\u65f6\u957f'));
       assert.ok(!catalog.includes('data-overview-display-settings'));
     });
+    await t.test("business parameter definitions are public reference catalogs without policy write actions",async()=>{
+      for(const [path,title,code] of [['/settings/classifications','\u7ad9\u5740\u5206\u7c7b','ground'],['/settings/rules','\u5206\u6790\u89c4\u5219','capacity.load']]) {
+        const response=await fetch(url+path);assert.equal(response.status,200);
+        const html=await response.text(), headings=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];
+        assert.equal(headings.length,1);assert.ok(headings[0].includes(title));assert.ok(html.includes(code));
+        assert.ok(html.includes('\u53ea\u8bfb\u76ee\u5f55'));
+        assert.ok(!html.includes('SX-DEMO-'));assert.ok(!html.includes('>\u53d1\u5e03<'));assert.ok(!html.includes('>\u7f16\u8f91<'));
+      }
+      const rules=await(await fetch(url+'/settings/rules')).text();assert.ok(rules.includes('\u4e1a\u52a1\u7b7e\u8ba4'));
+      const settings=await(await fetch(url+'/settings')).text();
+      for(const path of ['/settings/classifications','/settings/rules'])assert.ok(settings.includes('href="'+path+'"'));
+    });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);
       const aggregate=await fetch(url+"/api/aggregates?workspaceId=forged");assert.equal(aggregate.status,401);

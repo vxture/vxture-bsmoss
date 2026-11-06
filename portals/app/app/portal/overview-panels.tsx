@@ -1,4 +1,5 @@
 "use client";
+import { TOPIC_POLICY_TEXT as policy } from "../domains/business-parameters/presentation";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -19,11 +20,7 @@ const pct = (v: number | null) => v === null ? "\u2014" : n(v * 100, 1) + "%";
 const topics = { capacity: "\u5bb9\u91cf\u8d28\u91cf", power: "\u4f9b\u7535\u73af\u5883", efficiency: "\u8fd0\u884c\u80fd\u6548" };
 const triggerNames: Record<Trigger, string> = { load: "\u8d1f\u8f7d\u504f\u9ad8", connection: "\u63a5\u901a\u8d28\u91cf\u504f\u4f4e", battery: "\u5907\u7528\u4f9b\u7535\u8fd0\u884c", temperature: "\u673a\u623f\u6e29\u5ea6\u504f\u9ad8", intensity: "\u5355\u4f4d\u6d41\u91cf\u7535\u8017\u504f\u9ad8" };
 const operators: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
-const policy = {
-  capacity: "\u4e25\u91cd\uff1a\u8d1f\u8f7d\u226595%\u6216\u63a5\u901a\u7387<95%\uff1b\u5173\u6ce8\uff1a\u8d1f\u8f7d\u226585%\u6216\u63a5\u901a\u7387<98%\u3002\u7f3a\u5c11\u5fc5\u8981\u5206\u6bcd\u65f6\u663e\u793a\u4e0d\u53ef\u8bc4\u4f30\u3002",
-  power: "\u4e25\u91cd\uff1a\u5907\u7528\u4f9b\u7535\u8fd0\u884c\u6216\u6e29\u5ea6\u226540\u00b0C\uff1b\u5173\u6ce8\uff1a\u6e29\u5ea6\u226535\u00b0C\u3002\u5907\u7528\u4f9b\u7535\u72b6\u6001\u4e0d\u4ee3\u8868\u7535\u6c60\u6545\u969c\u3002",
-  efficiency: "\u5355\u4f4d\u6d41\u91cf\u7535\u8017=\u7269\u7406\u7535\u8017\u00f7\u53cc\u5411\u6d41\u91cf\uff1b\u22650.30 kWh/GiB\u4e3a\u4e25\u91cd\uff0c\u22650.15\u4e3a\u5173\u6ce8\u3002\u96f6\u6d41\u91cf\u6216\u7535\u8017\u672a\u77e5\u65f6\u4e0d\u53ef\u8bc4\u4f30\u3002",
-};
+
 type Signal = PortalDemo["signals"][number]["rows"][number];
 function scopeOf(demo: PortalDemo): BusinessScope { return { ...demo.query, period: "day", topic: "capacity" }; }
 function issueMetric(row: Signal) {

@@ -1,7 +1,8 @@
+import { SITE_TYPES, SCENES, type SiteType } from "../business-parameters/classification";
 import type { DemoSite, HourMetrics, Operator, Profile, RegionDefinition } from "../map-demo/types";
 export const SITE_TABS = ["overview", "resources", "services", "runtime", "business", "sources"] as const;
 export type SiteTab = typeof SITE_TABS[number];
-export type SiteType = "ground" | "rooftop";
+export type { SiteType } from "../business-parameters/classification";
 export type SiteQuery = {
   siteType: "all" | SiteType;
   city: string; county: string; operator: string; status: string; sharing: string; scene: string;
@@ -28,9 +29,9 @@ export function parseSiteQuery(input: Record<string, string | string[] | undefin
   if (q.county !== "all" && !region.counties.some(c => c.id === q.county && c.cityId === q.city)) throw Error("invalid_site_county");
   const valid = (value: string, values: readonly string[]) => { if (!values.includes(value)) throw Error("invalid_site_filter"); };
   valid(q.operator, ["all", "mobile", "telecom", "unicom", "broadcast", "other"]);
-  valid(q.siteType, ["all", "ground", "rooftop"]);
+  valid(q.siteType, ["all", ...SITE_TYPES]);
   valid(q.status, ["all", "normal", "warning", "critical"]); valid(q.sharing, ["all", "single", "shared", "multi"]);
-  valid(q.scene, ["all", "urban", "hub", "industrial", "mountain", "efficient", "shared"]);
+  valid(q.scene, ["all", ...SCENES]);
   valid(q.view, ["sites", "relations"]); valid(q.sort, ["name", "operators", "load"]); valid(q.direction, ["asc", "desc"]);
   valid(q.tab, SITE_TABS); valid(q.period, ["day", "week", "month"]);
   q.search = q.search.trim();
