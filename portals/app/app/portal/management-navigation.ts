@@ -39,5 +39,5 @@ export const managementPlan = [
   { title: "\u9ad8\u7ea7\u7ba1\u7406", description: "\u5df2\u6709\u6765\u6e90\u914d\u7f6e\u7248\u672c\u8bb0\u5f55\uff1b\u6210\u5458\u3001\u6a21\u677f\u7b49\u5176\u4ed6\u914d\u7f6e\u5ba1\u8ba1\u53ca\u8fde\u63a5\u6838\u9a8c\u5f85\u5efa\u8bbe", available: true },
 ] as const;
 export function managementSections(preview: boolean): ShellNavSection[] {
-  return managementNavigation(preview).map((group, index) => ({ ...group, dividerBefore: index > 0 }));
+  return managementNavigation(preview).map(group => ({ ...group, brandPosition: "none" }));
 }
