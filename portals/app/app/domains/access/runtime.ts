@@ -1,4 +1,6 @@
 import { mappingManagement } from "../management/mapping-service";
+import { mappingPreflight } from "../management/preflight-service";
+import { PgMappingPreflightReader } from "../management/preflight-reader";
 import { PgMappingReader } from "../management/mapping-reader";
 import { sourceManagement } from "../management/source-service";
 import { PgSourceReader } from "../management/source-reader";
@@ -119,3 +121,4 @@ export function managementForSession(rpsid: string) {
 export function sourceManagementForSession(rpsid:string){return sourceManagement(sessionAccessPorts(rpsid),{create:scope=>new PgSourceReader(getPool(),scope)});}
 
 export function mappingManagementForSession(rpsid: string) { return mappingManagement(sessionAccessPorts(rpsid), { create: scope => new PgMappingReader(getPool(), scope) }); }
+export function mappingPreflightForSession(rpsid: string) { return mappingPreflight(sessionAccessPorts(rpsid), { create: scope => new PgMappingPreflightReader(getPool(), scope) }); }

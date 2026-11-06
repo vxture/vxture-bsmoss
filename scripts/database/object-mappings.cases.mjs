@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { PgMappingReader } from '../../portals/app/app/domains/management/mapping-reader.ts';
 import { mappingManagement } from '../../portals/app/app/domains/management/mapping-service.ts';
+import { PgMappingPreflightReader } from '../../portals/app/app/domains/management/preflight-reader.ts';
+import { mappingPreflight } from '../../portals/app/app/domains/management/preflight-service.ts';
 import { readPgGrant } from '../../portals/app/app/domains/access/pg-grants.ts';
 export async function objectMappingCases(t, { db, adapterPool }) {
   const ws = randomUUID(), foreign = randomUUID();
@@ -60,6 +62,60 @@ export async function objectMappingCases(t, { db, adapterPool }) {
       const revoke = () => db.query('DELETE FROM local_authz.role_permission WHERE role_id=$1', [role]);
       const service = mappingManagement(ports, { create: s => { const r = new PgMappingReader(adapterPool, s); return { workspaceId: ws, list: async q => { const result = await r.list(q); await revoke(); return result; }, read: async id => { const result = await r.read(id); await revoke(); return result; } }; } });
       await assert.rejects(missing ? service.read('missing', new URLSearchParams()) : service.list(new URLSearchParams()), /permission_denied/);
+    }
+  });
+  await t.test('preflight permission is independent and never assigned to roles automatically', async () => {
+    assert.equal((await db.query("SELECT p.id FROM local_authz.permission p WHERE p.perm_code='admin.mappings.preflight' AND NOT EXISTS(SELECT 1 FROM local_authz.role_permission rp WHERE rp.permission_id=p.id)")).rowCount, 1);
+  });
+  const preflight = new PgMappingPreflightReader(adapterPool, scope);
+  const draft = async (from = '2026-01-15T00:00:00.000000Z', to = '2026-03-01T00:00:00.000000Z') => {
+    const r = await reader.read('J'); return { expected: { version: r.version, validFrom: r.validFrom, validTo: r.validTo }, proposed: { version: '2', validFrom: from, validTo: to }, basis: { reference: 'fixture:not-an-approval', sha256: 'a'.repeat(64) } };
+  };
+  await t.test('preflight checks half-open overlap with microseconds without writing any authority input or task', async () => {
+    const count = async () => (await db.query(`SELECT (SELECT count(*) FROM bsmoss_integration.source_mapping) mappings,
+      (SELECT count(*) FROM bsmoss_integration.authority_change) authority,
+      (SELECT count(*) FROM bsmoss_metering.input_change) inputs,
+      (SELECT count(*) FROM bsmoss_integration.source_intake_task) intake,
+      (SELECT count(*) FROM bsmoss_analysis.refresh_job) refresh`)).rows[0];
+    const before = await count(), adjacent = await preflight.preview('J', await draft());
+    assert.equal(adjacent.checks.authorizedOverlap, false); assert.equal(adjacent.assessment, 'needs_review');
+    const overlap = await preflight.preview('J', await draft(undefined, '2026-03-01T00:00:00.000001Z'));
+    assert.equal(overlap.checks.authorizedOverlap, true); assert.equal(overlap.assessment, 'blocked');
+    assert.equal(overlap.proposed.validTo, '2026-03-01T00:00:00.000001Z'); assert.deepEqual(await count(), before);
+  });
+  await t.test('preflight hides all unauthorized objects and never infers global safety from scoped overlap', async () => {
+    await mapping('L', { external_id: 'external-J', service_id: 'outside', valid_from: '2026-04-01Z', valid_to: '2026-05-01Z' });
+    const r = await preflight.preview('J', await draft('2026-04-02T00:00:00.000000Z', '2026-05-02T00:00:00.000000Z'));
+    assert.equal(r.checks.authorizedOverlap, false); assert.equal(r.checks.overlapCoverage, 'authorized_scope_only'); assert.equal(r.assessment, 'needs_review');
+    assert.deepEqual(r.downstream, { aggregates: 'not_assessed', reports: 'not_assessed', intakeTasks: 'not_assessed' });
+    assert.ok(!JSON.stringify(r).includes('outside'));
+    for (const id of ['A', 'B', 'C', 'F', 'G', 'H', 'I', 'L', 'foreign', 'missing']) assert.equal(await preflight.preview(id, await draft()), null);
+    const stale = await draft(); stale.expected.version = '999'; await assert.rejects(preflight.preview('J', stale), /mapping_context_changed/);
+    const uncovered = await preflight.preview('J', await draft(undefined, '2027-01-01T00:00:00.000001Z')); assert.equal(uncovered.checks.serviceCoverage, 'uncovered');
+  });
+  await t.test('preflight uses one repeatable read only snapshot and rolls back releases SQL failures', async () => {
+    let began = false, rolled = false, released = false;
+    const pool = { connect: async () => { const c = await adapterPool.connect(); return { query: async (sql, args) => { if (sql === 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY') began = true; if (sql.startsWith('SELECT EXISTS')) throw Error('fixture_preflight_sql'); if (sql === 'ROLLBACK') rolled = true; return c.query(sql, args); }, release: () => { released = true; c.release(); } }; } };
+    await assert.rejects(new PgMappingPreflightReader(pool, scope).preview('J', await draft()), /fixture_preflight_sql/); assert.ok(began && rolled && released);
+  });
+  await t.test('preflight checks baseline and conflicts in the same snapshot during concurrent changes', async () => {
+    const p = await draft(); let changed = false;
+    const pool = { connect: async () => { const c = await adapterPool.connect(); return { query: async (sql, args) => { const result = await c.query(sql, args); if (!changed && sql.startsWith('SELECT m.workspace_id')) { changed = true; await db.query("UPDATE bsmoss_integration.source_mapping SET version=2,valid_to='2026-02-20Z' WHERE workspace_id=$1 AND id='J'", [ws]); } return result; }, release: () => c.release() }; } };
+    const r = await new PgMappingPreflightReader(pool, scope).preview('J', p); assert.equal(r.before.version, '1'); assert.equal(r.before.validTo, p.expected.validTo);
+    await assert.rejects(preflight.preview('J', p), /mapping_context_changed/);
+    await db.query("UPDATE bsmoss_integration.source_mapping SET version=1,valid_to='2026-03-01Z' WHERE workspace_id=$1 AND id='J'", [ws]);
+  });
+  await t.test('real preflight permission revocation after successful missing or stale reads suppresses disclosure', async () => {
+    const member = randomUUID(), role = (await db.query("INSERT INTO local_authz.role(role_code,name) VALUES($1,'Mapping preflight') RETURNING id", ['preflight-' + ws])).rows[0].id;
+    await db.query("INSERT INTO local_authz.member(id,workspace_id,sub,status) VALUES($1,$2,'preflight-reader','active')", [member, ws]);
+    await db.query("INSERT INTO local_authz.data_scope(workspace_id,member_id,scope,expires_at) VALUES($1,$2,$3,'2099-01-01Z')", [ws, member, scope]);
+    await db.query('INSERT INTO local_authz.member_role(member_id,role_id) VALUES($1,$2)', [member, role]);
+    const ports = { now: Date.now, readVerifiedIdentity: async () => ({ sub: 'preflight-reader', activeWorkspace: ws, accountStatus: 'active', governanceRoles: [], expiresAt: Date.now() + 60000 }), readCoverage: async () => ({ workspaceId: ws, product: 'bsmoss', tier: 'test', bundled: false, expiresAt: Date.now() + 60000 }), readLocalGrant: s => readPgGrant(adapterPool, s.workspaceId, s.sub), featuresFor: () => ['metering'] };
+    for (const mode of ['success', 'missing', 'stale']) {
+      await db.query("INSERT INTO local_authz.role_permission(role_id,permission_id) SELECT $1,id FROM local_authz.permission WHERE perm_code='admin.mappings.preflight'", [role]);
+      const p = await draft(); if (mode === 'stale') p.expected.version = '999';
+      const service = mappingPreflight(ports, { create: s => ({ workspaceId: ws, preview: async (id, p) => { try { return await new PgMappingPreflightReader(adapterPool, s).preview(id, p); } finally { await db.query('DELETE FROM local_authz.role_permission WHERE role_id=$1', [role]); } } }) });
+      await assert.rejects(service.preview(mode === 'missing' ? 'missing' : 'J', p), /permission_denied/);
     }
   });
   await t.test('malformed authorized mapping lookahead rejects the whole page', async () => {

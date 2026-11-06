@@ -1843,3 +1843,4 @@ INSERT INTO local_authz.permission(perm_code,name) VALUES
 
 -- Mapping inspection is independent from source configuration and runtime ingest.
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.view','Inspect authorized object mapping definitions');
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.preflight','Preview authorized mapping validity changes without applying them');
