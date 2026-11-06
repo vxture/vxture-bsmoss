@@ -1,4 +1,4 @@
-export type PortalPage = "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+export type PortalPage = "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -7,7 +7,7 @@ export interface BusinessModule {
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["overview-display", "settings", "templates", "aggregation", "report-jobs"].includes(page) ? "management" : "business";
+  return ["data-updates", "overview-display", "settings", "templates", "aggregation", "report-jobs"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
@@ -28,6 +28,7 @@ export function portalNavigation(preview: boolean, domain: PortalDomain = "busin
     ...(preview ? [{ id: "overview-display" as const, label: "\u8fd0\u884c\u603b\u89c8\u663e\u793a", href: "/settings/overview", group: "management" as const }] : []),
     { id: "templates", label: "\u6307\u6807\u4e0e\u6a21\u677f", href: "/settings/templates", group: "management" },
     { id: "aggregation", label: "\u805a\u5408\u4efb\u52a1", href: "/settings/operations/aggregation", group: "management" },
+    { id: "data-updates", label: "\u6570\u636e\u66f4\u65b0\u4efb\u52a1", href: "/settings/operations/data-updates", group: "management" },
     { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/settings/operations/reports", group: "management" },
   ];
   return entries.filter(entry => entry.group === domain);

@@ -5,9 +5,11 @@ import { INPUT_REFRESH_VERSION } from "../aggregation/input-refresh.ts";
 import { pendingInputChangesInTransaction } from "../aggregation/pg-input-refresh.ts";
 import { loadRegisteredPartition } from "../aggregation/pg-registered-partition.ts";
 import { jobIdentity, validateRefreshJob } from "../aggregation/refresh-jobs.ts";
-import { jobScope } from "../supervision/jobs.ts";
-import { assertReportScope } from "../reports/rules.ts";
+import { jobScope, decodeJobCursor, encodeJobCursor } from "../supervision/jobs.ts";
+import { assertReportScope, unionReportScopes } from "../reports/rules.ts";
 import { updateKey, updateManifest, updateProgress, type UpdateManifest, type ResultProgress } from "./tasks.ts";
+import { updateListQuery, type UpdateListQuery } from "./queries.ts";
+import type { UpdateSummary } from "./contracts.ts";
 
 type Operation = "aggregate" | "job_view" | "job_recover";
 // A request records already-received evidence for an approved worker partition.
@@ -76,6 +78,26 @@ export function receivedDataUpdates(pool: Pool, ports: AccessPorts) {
       revision: row.revision, retryAt: row.available_at?.toISOString() ?? null })), jobs);
   }
   return Object.freeze({
+    async list(raw: UpdateListQuery) {
+      const q = updateListQuery(raw), cursor = q.after ? decodeJobCursor(q.after) : null;
+      return transaction("job_view", async (client, access, check) => {
+        const s = access.scope;
+        const rows = (await client.query(`SELECT *,database_sha256=encode(sha256(convert_to(manifest::text,'UTF8')),'hex') valid,
+          to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') created_cursor
+          FROM bsmoss_analysis.data_update_request WHERE workspace_id=$1
+          AND manifest->'scope'->'sourceIds' <@ to_jsonb($2::text[]) AND manifest->'scope'->'stationIds' <@ to_jsonb($3::text[])
+          AND manifest->'scope'->'serviceIds' <@ to_jsonb($4::text[]) AND manifest->'scope'->'deviceIds' <@ to_jsonb($5::text[])
+          AND manifest->'scope'->'metricKeys' <@ to_jsonb($6::text[])
+          AND (manifest->'scope'->>'allowSiteParameters'='false' OR $7::boolean)
+          AND ($8::timestamptz IS NULL OR created_at<$8 OR (created_at=$8 AND id COLLATE "C"<$9))
+          ORDER BY created_at DESC,id COLLATE "C" DESC LIMIT $10`,
+        [s.workspaceId, s.sourceIds, s.stationIds, s.serviceIds, s.deviceIds, s.metricKeys, s.allowSiteParameters, cursor?.createdAt ?? null, cursor?.jobId ?? null, q.limit + 1])).rows;
+        const manifests = rows.map(row => { const m = manifest(row); assertReportScope(s, m.scope); return m; });
+        const items: UpdateSummary[] = rows.slice(0, q.limit).map(row => ({ id: row.id, kind: "received_evidence", partitionId: row.partition_id, partitionRevision: row.partition_revision, createdAt: row.created_at.toISOString() }));
+        const last = rows[q.limit - 1], next = rows.length > q.limit ? encodeJobCursor({ createdAt: last.created_cursor, jobId: last.id, status: "all" }) : null;
+        await check(unionReportScopes(s.workspaceId, manifests.map(m => m.scope))); return { items, next };
+      });
+    },
     async request(raw: { partitionId: string }) {
       if (!raw || Object.keys(raw).join() !== "partitionId") throw Error("invalid_update_command");
       const { partitionId } = raw;

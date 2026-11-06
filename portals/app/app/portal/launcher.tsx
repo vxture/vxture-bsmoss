@@ -8,6 +8,7 @@ import "./header.css";
 import { regionLink } from "./region-scope";
 import type { RegionSelection } from "./region-selection";
 export const portalIcons: Record<PortalPage, IconName> = {
+  "data-updates": "refresh",
   "overview-display": "faders",
   "review-history": "list-checks",
   "usage-review": "search",
@@ -16,6 +17,7 @@ export const portalIcons: Record<PortalPage, IconName> = {
   aggregation: "database", "report-jobs": "calendar", templates: "stack", settings: "faders",
 };
 const descriptions: Record<PortalPage, string> = {
+  "data-updates": "\u589e\u91cf\u8fdb\u5ea6\u4e0e\u5931\u8d25\u6062\u590d",
   "review-history": "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2",
   "overview-display": "\u9996\u9875\u6307\u6807\u3001\u6392\u5e8f\u4e0e\u5355\u4f4d",
   "usage-review": "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570",
@@ -27,7 +29,7 @@ const descriptions: Record<PortalPage, string> = {
 };
 const managementGroups: { title: string; description: string; icon: IconName; pages: PortalPage[] }[] = [
   { title: "\u914d\u7f6e\u7ba1\u7406", description: "\u6307\u6807\u3001\u6a21\u677f\u4e0e\u663e\u793a\u914d\u7f6e", icon: "settings", pages: ["settings", "overview-display", "templates"] },
-  { title: "\u4efb\u52a1\u7ba1\u7406", description: "\u6267\u884c\u8bb0\u5f55\u4e0e\u53d7\u5ba1\u6062\u590d", icon: "database", pages: ["aggregation", "report-jobs"] },
+  { title: "\u4efb\u52a1\u7ba1\u7406", description: "\u6267\u884c\u8bb0\u5f55\u4e0e\u53d7\u5ba1\u6062\u590d", icon: "database", pages: ["data-updates", "aggregation", "report-jobs"] },
 ];
 const panelLabels: Record<PortalDomain, string> = { business: "\u4e1a\u52a1\u5e94\u7528", management: "\u914d\u7f6e\u7ba1\u7406\u5bfc\u822a" };
 export default function ProductLauncher({ active, preview, regionSelection }: { active: PortalPage; preview: boolean; regionSelection?: RegionSelection }) {

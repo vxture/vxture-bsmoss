@@ -29,10 +29,12 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
   await withServer(false,async url=>{
     await t.test('formal received-update tasks never allow anonymous reads or writes',async()=>{
       const id='a'.repeat(64);
-      for(const [path,method] of [['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
+      for(const [path,method] of [['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
         const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
+      const html=await(await fetch(url+'/settings/operations/data-updates?task='+id)).text();
+      assert.ok(html.includes('\u6570\u636e\u66f4\u65b0\u4efb\u52a1')); assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
     });
     await t.test('data availability is hidden and unwritable outside explicit preview',async()=>{
       for(const method of ['GET','POST']) {
@@ -176,10 +178,13 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
   await withServer(true,async url=>{
     await t.test('preview cannot borrow formal update task or recovery permissions',async()=>{
       const id='a'.repeat(64);
-      for(const [path,method] of [['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
+      for(const [path,method] of [['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
         const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
+      const html=await(await fetch(url+'/settings/operations/data-updates?task='+id)).text();
+      assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
+      assert.ok(html.includes('href="/settings/operations/data-updates"'));
     });
     await t.test('availability reads stable independent source watermarks without creating jobs',async()=>{
       for(const family of ['overview','station','calendar','history','verification']) {

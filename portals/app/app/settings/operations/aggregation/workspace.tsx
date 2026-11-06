@@ -68,6 +68,10 @@ export default function AggregateJobsWorkspace() {
   const [page, setPage] = useState<JobListPage | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState("");
   const [selected, setSelected] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
   useEffect(() => {
+    const p = new URL(window.location.href).searchParams, id = p.get("job");
+    if (p.getAll("job").length === 1 && id && id.trim() === id && id.length <= 2048 && id !== "*" && !id.includes("\0")) setSelected(id);
+  }, []);
+  useEffect(() => {
     const c = new AbortController(); setPage(null); setLoading(true); setError("");
     reportJson<JobListPage>("/api/aggregate-jobs?limit=20&status=" + status + (cursor ? "&after=" + encodeURIComponent(cursor) : ""), c.signal)
       .then(p => { if (!c.signal.aborted) setPage(p); }).catch(e => { if (!c.signal.aborted) setError(jobError(e)); }).finally(() => { if (!c.signal.aborted) setLoading(false); });

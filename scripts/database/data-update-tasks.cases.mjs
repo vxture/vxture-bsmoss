@@ -142,6 +142,32 @@ export async function dataUpdateTaskCases(t, { db, adapterPool, ports, scope, up
     await finishChangeJobs(step.manifest, workerPorts); await drain();
     assert.equal((await api.read(task.id)).progress.phase, 'processed');
   });
+  await t.test('task list pages exact microseconds without hidden tenant totals and excludes partial grants', async () => {
+    const ids = [], cursors = new Set(); let after;
+    do {
+      const page = await api.list({ limit: 1, ...(after ? { after } : {}) }); assert.ok(page.items.length <= 1);
+      ids.push(...page.items.map(x => x.id)); assert.ok(page.items.every(x => x.kind === 'received_evidence'));
+      if (page.next) { assert.ok(!cursors.has(page.next)); cursors.add(page.next); }
+      after = page.next;
+    } while (after);
+    const expected = (await db.query("SELECT id FROM bsmoss_analysis.data_update_request WHERE workspace_id='w' ORDER BY created_at DESC,id COLLATE \"C\" DESC")).rows.map(r => r.id);
+    assert.deepEqual(ids, expected); assert.equal(new Set(ids).size, ids.length);
+    const narrow = { ...human, async readLocalGrant() { const g = await human.readLocalGrant(); return { ...g, scope: { ...g.scope, serviceIds: [] } }; } };
+    assert.deepEqual(await receivedDataUpdates(adapterPool, narrow).list({ limit: 10 }), { items: [], next: null });
+    const other = { ...human,
+      async readVerifiedIdentity() { return { ...await human.readVerifiedIdentity(), activeWorkspace: 'other' }; },
+      async readCoverage() { return { ...await human.readCoverage(), workspaceId: 'other' }; },
+      async readLocalGrant() { const g = await human.readLocalGrant(); return { ...g, workspaceId: 'other', scope: { ...g.scope, workspaceId: 'other' } }; } };
+    assert.deepEqual(await receivedDataUpdates(adapterPool, other).list({ limit: 10 }), { items: [], next: null });
+  });
+  await t.test('list drops an otherwise valid PostgreSQL result after final grant or identity revocation', async () => {
+    let reads = 0;
+    const revoked = { ...human, async readLocalGrant() { const g = await human.readLocalGrant(); return ++reads > 1 ? { ...g, permissions: [] } : g; } };
+    await assert.rejects(receivedDataUpdates(adapterPool, revoked).list({ limit: 1 }), /permission_denied/);
+    let identities = 0;
+    const changed = { ...human, async readVerifiedIdentity() { const i = await human.readVerifiedIdentity(); return ++identities > 1 ? { ...i, sub: 'changed-user' } : i; } };
+    await assert.rejects(receivedDataUpdates(adapterPool, changed).list({ limit: 1 }), /permission_denied/);
+  });
   await t.test('bounded discovery fails closed instead of presenting a truncated batch or false current state', async () => {
     const before = (await db.query('SELECT count(*)::int n FROM bsmoss_analysis.data_update_request')).rows[0].n;
     for (let i = 0; i < 32; i++) await append('bound-' + i);

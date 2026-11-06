@@ -6,7 +6,7 @@ test("business and configuration navigation are disjoint and management routes s
   for (const preview of [false, true]) {
     const business = portalNavigation(preview), management = portalNavigation(preview, "management");
     assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "map", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review", "review-history"] : ["home", "board", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review"]);
-    assert.deepEqual(management.map(entry => entry.id), preview ? ["settings", "overview-display", "templates", "aggregation", "report-jobs"] : ["settings", "templates", "aggregation", "report-jobs"]);
+    assert.deepEqual(management.map(entry => entry.id), preview ? ["settings", "overview-display", "templates", "aggregation", "data-updates", "report-jobs"] : ["settings", "templates", "aggregation", "data-updates", "report-jobs"]);
     for (const entry of management) {
       assert.equal(portalDomain(entry.id), "management");
       assert.ok(entry.href === "/settings" || entry.href.startsWith("/settings/"));
