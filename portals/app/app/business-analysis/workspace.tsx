@@ -1,6 +1,7 @@
 "use client";
 import SaveLocalReport from "../reports/save-local";
 import CapacityPanel from './capacity-panel';
+import RuntimePanel from './runtime-panel';
 
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
@@ -61,7 +62,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
        { id: "unknown", label: "\u4e0d\u53ef\u8bc4\u4f30", value: n(t.counts.unknown), description: "\u5ea7", icon: "search" },
      ]} /></div>
      {q.topic === "efficiency" && q.operator !== "all" && <PanelCard title={"\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a"} icon="lightning"><p className="text-body text-muted-foreground">{"\u5f53\u524d\u670d\u52a1\u5173\u7cfb\u6ca1\u6709\u72ec\u7acb\u7535\u8017\uff0c\u80fd\u6548\u6307\u6807\u663e\u793a\u672a\u77e5\u3002"}</p><Button variant="secondary" onClick={() => navigate({ operator: "all" })}>{"\u67e5\u770b\u7269\u7406\u7ad9\u5740\u53e3\u5f84"}</Button></PanelCard>}
-     {demo.capacity?<CapacityPanel data={demo.capacity} q={q} region={demo.region} pending={pending} navigate={navigate}/>:<div className="grid min-w-0 gap-md xl:grid-cols-3">
+     {demo.capacity?<CapacityPanel data={demo.capacity} q={q} region={demo.region} pending={pending} navigate={navigate}/>:demo.runtime?<RuntimePanel data={demo.runtime} q={q} region={demo.region} pending={pending} navigate={navigate}/>:<div className="grid min-w-0 gap-md xl:grid-cols-3">
        <PanelCard title={"24\u5c0f\u65f6\u5173\u6ce8\u7ad9\u6570"} icon="chart-bar" description={"\u6309\u6bcf\u4e2a\u5c0f\u65f6\u72ec\u7acb\u5224\u5b9a \u00b7 \u4e25\u91cd\uff0b\u5173\u6ce8"} className="min-w-0 xl:col-span-2"><BarChart data={trend} labelEvery={4} formatValue={v => n(v)} peakLabel={"\u5cf0\u503c"} aria-label={"\u4e13\u989824\u5c0f\u65f6\u5173\u6ce8\u8d8b\u52bf"} /></PanelCard>
        <PanelCard title={"\u533a\u57df\u5bf9\u6bd4"} icon="city" description={"\u4e25\u91cd\uff0b\u5173\u6ce8 / \u89c2\u5bdf\u7ad9\u5740"} className="min-w-0"><div className="grid grid-cols-1 gap-sm sm:grid-cols-2">{t.cities.map(c => <Button key={c.cityId} variant="ghost" className="justify-between gap-xs" onClick={() => navigate({ cityId: c.cityId, countyId: "all", selection: q.selection })}><span>{demo.region.cities.find(item => item.id === c.cityId)?.name}</span><span className="text-body-small tabular-nums text-muted-foreground">{n(c.critical + c.warning) + " / " + n(c.total)}</span></Button>)}{!t.cities.length && <EmptyState title={"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} />}</div></PanelCard>
      </div>}

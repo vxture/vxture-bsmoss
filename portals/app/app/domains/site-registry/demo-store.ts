@@ -8,7 +8,7 @@ import { syntheticSiteType } from "../map-demo/site-attributes";
 import { filterSites, parseSiteQuery, sortSites, type SiteQuery, type SiteRecord } from "./rules";
 export const SITE_DEMO_VERSION = "bsmoss-site-registry-demo-v1";
 export const SITE_PAGE_SIZE = 20;
-function record(site: DemoSite, hour: number): SiteRecord {
+export function registryRecord(site: DemoSite, hour: number): SiteRecord {
   const cityName = DEMO_REGION.cities.find(c => c.id === site.cityId)!.name;
   const countyName = DEMO_REGION.counties.find(c => c.id === site.countyId)!.name;
   return { ...site, cityName, countyName, current: siteHour(site, hour),
@@ -22,7 +22,7 @@ function record(site: DemoSite, hour: number): SiteRecord {
 }
 // Synthetic adapter only. No identity, production records or mutable evidence.
 export function registryDemo(input: Record<string, string | string[] | undefined>) {
-  const q = parseSiteQuery(input, DEMO_REGION), all = DEMO_SITES.map(site => record(site, q.hour));
+  const q = parseSiteQuery(input, DEMO_REGION), all = DEMO_SITES.map(site => registryRecord(site, q.hour));
   const filtered = filterSites(all, q), ordered = sortSites(filtered, q);
   const relationRows = ordered.flatMap(site => {
     const graph=resourceGraph(site,DEMO_DATE,DEMO_VERSION);
@@ -49,7 +49,7 @@ export function registryDemo(input: Record<string, string | string[] | undefined
 export function dossierDemo(id: string, input: Record<string, string | string[] | undefined>) {
   const q = parseSiteQuery(input, DEMO_REGION), raw = DEMO_SITES.find(s => s.id === id);
   if (!raw) return null;
-  const site = record(raw, q.hour), series = Array.from({ length: 24 }, (_, h) => siteHour(site, h));
+  const site = registryRecord(raw, q.hour), series = Array.from({ length: 24 }, (_, h) => siteHour(site, h));
   const query = { regionId: site.regionId, cityId: "all", countyId: "all", operator: "all" as const, hour: q.hour, search: "" };
   // A dossier always shows all tenants of this physical site, independently of the list filter.
   const resources = resourceGraph(site, DEMO_DATE, DEMO_VERSION);

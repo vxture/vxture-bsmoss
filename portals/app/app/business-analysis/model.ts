@@ -1,8 +1,11 @@
 import {createHash} from 'node:crypto';
 import { parseMapQuery, queryMap, queryOperatorUsage, queryCalendarUsage, queryDailyReport, queryCalendarReport, selectSites } from "../domains/map-demo/service";
 import {analyzeCapacity} from '../domains/map-demo/capacity-rules';
+import {analyzeRuntime} from '../domains/map-demo/runtime-rules';
+import {registryRecord} from '../domains/site-registry/demo-store';
+import {resourceGraph} from '../domains/site-registry/resource-rules';
 import { DEMO_REGION, DEMO_SITES } from "../domains/map-demo/resources";
-import { DEMO_DATE, siteHour } from "../domains/map-demo/rules";
+import { DEMO_DATE, DEMO_VERSION, siteHour } from "../domains/map-demo/rules";
 import { evaluateTopic } from "../domains/map-demo/topic-rules";
 import { calendarLabel, parseReportPeriod } from "../domains/map-demo/period-rules";
 import { type BusinessKind, type BusinessScope } from "./links";
@@ -51,7 +54,9 @@ export function businessDemo(kind: BusinessKind, input: Record<string, string | 
     report = { digest:createHash("sha256").update(JSON.stringify(r,null,2)).digest("hex"), id: r.id, templateVersion: r.templateVersion, runtime: r.runtime, comparison: r.comparison, ranking: r.ranking.map(s => ({ id: s.id, name: s.name, bytes: String(s.bytes) })),
       downloadHref: "/api/product-preview/reports?" + params + "&format=html" };
   }
-  return { kind, scope, capacity:kind==='capacity'?analyzeCapacity(selectSites(query),query):null, date: DEMO_DATE, snapshot: { topic: snapshot.topic, summary: snapshot.summary }, metricRows, trend, usage, report,
+  const sites=kind==='efficiency'?selectSites(query):[];
+  const runtime=kind==='efficiency'?analyzeRuntime(sites,query,sites.map(s=>resourceGraph(registryRecord(s,query.hour),DEMO_DATE,DEMO_VERSION))):null;
+  return { kind, scope, runtime, capacity:kind==='capacity'?analyzeCapacity(selectSites(query),query):null, date: DEMO_DATE, snapshot: { topic: snapshot.topic, summary: snapshot.summary }, metricRows, trend, usage, report,
     window: scope.period === "hour" ? DEMO_DATE + " " + String(scope.hour).padStart(2, "0") + ":00" : calendarLabel(scope.period),
     region: DEMO_REGION, scopeName: DEMO_REGION.counties.find(c => c.id === query.countyId)?.name ?? DEMO_REGION.cities.find(c => c.id === query.cityId)?.name ?? DEMO_REGION.name };
 }

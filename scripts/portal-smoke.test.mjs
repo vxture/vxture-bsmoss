@@ -144,6 +144,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const path of ['/analysis/report','/api/product-preview/history-report'])assert.equal((await fetch(url+path)).status,404);
       for(const path of ['/capacity?history=1','/efficiency?history=1'])assert.ok(!(await (await fetch(url+path)).text()).includes('data-history-context'));
       assert.ok(!(await(await fetch(url+'/capacity')).text()).includes('data-capacity-contributions'));
+      assert.ok(!(await(await fetch(url+'/efficiency')).text()).includes('data-runtime-energy'));
     });
     await t.test('cohort and operator analysis fail closed with preview disabled',async()=>{
       for(const view of ['operators','cohorts']) {
@@ -158,6 +159,16 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('runtime energy coverage stays scoped, unallocated and isolated from history and formal APIs',async()=>{
+      const html=await(await fetch(url+'/efficiency?city=610100&county=610113&hour=3')).text();
+      for(const marker of ['data-runtime-energy','bsmoss-runtime-energy-coverage-v1','\u6570\u636e\u8986\u76d6\u4e0e\u672a\u77e5\u539f\u56e0','\u533a\u57df\u8fd0\u884c\u5bf9\u6bd4','2026-10-25 03:00'])assert.ok(html.includes(marker),marker);
+      const power=await(await fetch(url+'/efficiency?topic=power&search=SX-DEMO-004&hour=12')).text();assert.ok(power.includes('data-runtime-energy'));assert.ok(power.includes('SX-DEMO-004'));
+      const op=await(await fetch(url+'/efficiency?operator=mobile')).text();assert.ok(op.includes('\u8fd0\u8425\u5546\u5206\u8868\u672a\u91c7\u96c6'));assert.ok(op.includes('\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a'));
+      const empty=await(await fetch(url+'/efficiency?search=not-found')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
+      const invalid=await(await fetch(url+'/efficiency?energy=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-runtime-energy'));
+      const history=await(await fetch(url+'/efficiency?history=1&site=SX-DEMO-001')).text();assert.ok(history.includes('data-history-context'));assert.ok(!history.includes('data-runtime-energy'));
+      assert.equal((await fetch(url+'/api/measurements')).status,401);
+    });
     await t.test('capacity contributions retain exact scope, source, independent mode and formal boundary',async()=>{
       const html=await(await fetch(url+'/capacity?city=610100&county=610113&operator=telecom&hour=20&search=SX-DEMO-001')).text();
       for(const text of ['data-capacity-contributions','bsmoss-capacity-contributions-v1','\u672a\u63a5\u901a\u8d21\u732e','\u98ce\u9669\u7ed3\u6784\u4e0e\u8986\u76d6','\u91cd\u70b9\u7ad9\u5740\u8bc1\u636e','2026-10-25 20:00','SX-DEMO-001'])assert.ok(html.includes(text),text);
