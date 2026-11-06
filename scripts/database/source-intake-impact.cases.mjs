@@ -5,7 +5,7 @@ import { PgSourcePreflightReader } from '../../portals/app/app/domains/managemen
 import { sourcePreflight } from '../../portals/app/app/domains/management/source-preflight-service.ts';
 import { sourceIntakeTasks } from '../../portals/app/app/domains/integration/pg-intake-tasks.ts';
 import { sourceIntake } from '../../portals/app/app/domains/integration/pg-intake.ts';
-import { sourceBinding } from '../../portals/app/app/domains/integration/rules.ts';
+import { sourceBinding, planSourcePull } from '../../portals/app/app/domains/integration/rules.ts';
 import { fingerprintOf } from '../../portals/app/app/domains/aggregation/intervals.ts';
 import { readPgGrant } from '../../portals/app/app/domains/access/pg-grants.ts';
 
@@ -104,6 +104,69 @@ export async function sourceIntakeImpactCases(t, { db, adapterPool }) {
       const service = sourcePreflight(access, { create: s => ({ workspaceId: ws, preview: async (id, p, impactScope) => { try { if (mode === 'sql_failure') throw Error(mode); return await new PgSourcePreflightReader(adapterPool, s).preview(id, p, impactScope); } finally { await db.query("DELETE FROM local_authz.role_permission WHERE role_id=$1 AND permission_id IN (SELECT id FROM local_authz.permission WHERE perm_code='admin.sources.intake_impact.view')", [role]); } } }) });
       const p = await proposal(); if (mode === 'stale') p.expected.revision = '999';
       await assert.rejects(service.preview(mode === 'missing' ? 'missing' : 'impact', p), /permission_denied/);
+    }
+  });
+
+  await t.test('cross-revision position permission is seeded independently and no grants are added', async () => {
+    assert.equal((await db.query("SELECT id FROM local_authz.permission p WHERE perm_code='admin.sources.position.preview' AND NOT EXISTS(SELECT 1 FROM local_authz.role_permission rp WHERE rp.permission_id=p.id)")).rowCount, 1);
+  });
+  await t.test('position preview reads the last earlier-revision receipt with exact differences and no writes', async () => {
+    const before = await counts(), p = await proposal('narrowed');
+    const r = await reader.preview('narrowed', p, undefined, scope), e = r.intake.position;
+    assert.equal(e.status, 'assessed'); assert.equal(e.receipt.bindingRevision, '1'); assert.equal(e.receipt.relation, 'earlier_revision');
+    assert.equal(e.receivedToCurrent.toRevision, '2'); assert.equal(e.receivedToProposed.toRevision, '3');
+    assert.deepEqual(e.receivedToCurrent.scopeChanges[0], { dimension: 'stationIds', added: 1, removed: 1 });
+    assert.equal((await reader.preview('narrowed', p, scope, scope)).intake.evidence.latestPosition, 'separately_assessed');
+    assert.equal(e.disposition, 'requires_reviewed_rebaseline'); assert.deepEqual(r.intake.evidence, { status: 'not_authorized' });
+    assert.doesNotMatch(JSON.stringify(e), /manifest|changeCursor|dataRevision|bindingSha256|received_by|databaseActor/); assert.deepEqual(await counts(), before);
+    assert.deepEqual((await reader.preview('narrowed', p, undefined, { ...scope, stationIds: ['A'] })).intake.position, { status: 'unavailable' });
+  });
+  await t.test('position preview requires full old and new scope before any receipt query', async () => {
+    let reads = 0; const guarded = wrap(async sql => { if (sql.includes('source-position-preview')) reads++; });
+    const p = await proposal();
+    for (const allowed of [undefined, { ...scope, stationIds: [] }, { ...scope, metricKeys: [] }]) assert.deepEqual((await new PgSourcePreflightReader(guarded, scope).preview('impact', p, undefined, allowed)).intake.position, { status: 'not_authorized' });
+    p.proposed.scope.stationIds = ['A', 'outside'];
+    assert.deepEqual((await new PgSourcePreflightReader(guarded, scope).preview('impact', p, undefined, { ...scope, stationIds: ['A'] })).intake.position, { status: 'not_authorized' });
+    assert.equal(reads, 0);
+  });
+  await t.test('hidden true latest position never falls back to an older visible receipt or exposes its existence', async () => {
+    await register('position-chain'); await sourceIntake(adapterPool, ports(), connector).receive('position-chain');
+    const old = (await db.query("SELECT id FROM bsmoss_integration.source_intake_receipt WHERE workspace_id=$1 AND binding_id='position-chain'", [ws])).rows[0];
+    await register('position-chain', '2', ['outside']); const b = (await source.read('position-chain')).binding;
+    const plan = planSourcePull(b, await connector.head(), null, Date.now());
+    const manifest = { version: 'source-intake-v1', plan, previousId: old.id, inputPosition: null, position: { bindingSha256: plan.bindingSha256, through: plan.to, dataRevision: plan.dataRevision, changeCursor: plan.changesThrough }, recordsSha256: fingerprintOf([]), records: [], inserted: 0, duplicates: 0, unverifiedCompletionClaim: null };
+    const id = fingerprintOf(['source-intake-v1', ws, b.id, plan.id]);
+    await db.query("INSERT INTO bsmoss_integration.source_intake_receipt(workspace_id,id,binding_id,binding_revision,sequence,previous_id,manifest,manifest_sha256,database_sha256,received_by) VALUES($1,$2,$3,'2',2,$4,$5,$6,encode(sha256(convert_to($5::jsonb::text,'UTF8')),'hex'),'fixture')", [ws,id,b.id,old.id,manifest,fingerprintOf(manifest)]);
+    await register('position-chain', '3'); const p = await proposal('position-chain'), narrow = { ...scope, stationIds: ['A'] };
+    assert.deepEqual((await new PgSourcePreflightReader(adapterPool, narrow).preview(b.id,p,undefined,narrow)).intake.position, { status: 'unavailable' });
+    const e = (await reader.preview(b.id,p,undefined,scope)).intake.position;
+    assert.equal(e.status,'assessed'); assert.equal(e.receipt.id,id); assert.equal(e.receipt.sequence,'2'); assert.equal(e.receipt.bindingRevision,'2');
+    await register('position-empty'); assert.deepEqual((await reader.preview('position-empty',await proposal('position-empty'),undefined,scope)).intake.position,{status:'unavailable'});
+    const foreignPreview = await new PgSourcePreflightReader(adapterPool,{...scope,workspaceId:foreign}).preview('impact', await (async()=>{ const r=await new PgSourceReader(adapterPool,{...scope,workspaceId:foreign}).read('impact'); const p=await proposal(); return {...p,expected:{revision:r.revision,digest:r.digest}}; })(),undefined,{...scope,workspaceId:foreign});
+    assert.equal(foreignPreview.intake.position.status,'assessed'); assert.notEqual(foreignPreview.intake.position.receipt.id,e.receipt.id);
+  });
+  await t.test('latest position validates saved plan binding and digest instead of trusting the through timestamp', async () => {
+    const p = await proposal(); const broken = wrap(async (sql,_args,result) => { if(sql.includes('source-position-preview')) result.rows[0].manifest_sha256='0'.repeat(64); });
+    await assert.rejects(new PgSourcePreflightReader(broken,scope).preview('impact',p,undefined,scope), /invalid_intake_receipt/);
+  });
+  await t.test('last position and binding share a read-only snapshot during concurrent reception', async () => {
+    await register('position-concurrent'); let changed=false;
+    const concurrent=wrap(async sql=>{if(!changed&&sql.startsWith('SELECT b.*')){changed=true;await sourceIntake(adapterPool,ports(),connector).receive('position-concurrent');}});
+    const p=await proposal('position-concurrent'); const before=await new PgSourcePreflightReader(concurrent,scope).preview('position-concurrent',p,undefined,scope);
+    assert.equal(changed,true);assert.deepEqual(before.intake.position,{status:'unavailable'});
+    assert.equal((await reader.preview('position-concurrent',p,undefined,scope)).intake.position.status,'assessed');
+  });
+  await t.test('actual position permission revoked after success missing stale or SQL error suppresses the response',async()=>{
+    const member=randomUUID(),role=(await db.query("INSERT INTO local_authz.role(role_code,name) VALUES($1,'Position fixture') RETURNING id",['position-'+ws])).rows[0].id;
+    await db.query("INSERT INTO local_authz.member(id,workspace_id,sub,status) VALUES($1,$2,'position-fixture','active')",[member,ws]);
+    await db.query("INSERT INTO local_authz.data_scope(workspace_id,member_id,scope,expires_at) VALUES($1,$2,$3,'2099-01-01Z')",[ws,member,scope]);await db.query('INSERT INTO local_authz.member_role(member_id,role_id) VALUES($1,$2)',[member,role]);
+    await db.query("INSERT INTO local_authz.role_permission(role_id,permission_id) SELECT $1,id FROM local_authz.permission WHERE perm_code='admin.sources.preflight'",[role]);
+    const access={...ports(),readVerifiedIdentity:async()=>({...await ports().readVerifiedIdentity(),sub:'position-fixture'}),readLocalGrant:s=>readPgGrant(adapterPool,s.workspaceId,s.sub)};
+    for(const mode of ['success','missing','stale','sql_failure']){
+      await db.query("INSERT INTO local_authz.role_permission(role_id,permission_id) SELECT $1,id FROM local_authz.permission WHERE perm_code='admin.sources.position.preview'",[role]);
+      const service=sourcePreflight(access,{create:s=>({workspaceId:ws,preview:async(id,p,_impact,position)=>{try{if(mode==='sql_failure')throw Error(mode);return await new PgSourcePreflightReader(adapterPool,s).preview(id,p,undefined,position);}finally{await db.query("DELETE FROM local_authz.role_permission WHERE role_id=$1 AND permission_id IN(SELECT id FROM local_authz.permission WHERE perm_code='admin.sources.position.preview')",[role]);}}})});
+      const p=await proposal();if(mode==='stale')p.expected.revision='999';
+      await assert.rejects(service.preview(mode==='missing'?'missing':'impact',p),/permission_denied/);
     }
   });
 }

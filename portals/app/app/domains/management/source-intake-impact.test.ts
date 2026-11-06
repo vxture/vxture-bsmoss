@@ -68,5 +68,5 @@ test("a successful authorized preview keeps its bound evidence and revalidates b
   const expected = sourcePreflightResult(record, sourceProposal(proposal), scope, [], "2026-11-07T00:00:00Z");
   const service = sourcePreflight(f.ports, { create: s => ({ workspaceId: s.workspaceId, preview: async (_id, _proposal, impactScope) => { assert.deepEqual(impactScope, scope); return expected; } }) });
   assert.equal(await service.preview("binding", proposal), expected);
-  assert.deepEqual(operations, ["sources_preflight", "source_intake_impact_view", "sources_preflight", "source_intake_impact_view"]);
+  assert.deepEqual(operations, ["sources_preflight", "source_intake_impact_view", "source_position_preview", "sources_preflight", "source_intake_impact_view"]);
 });

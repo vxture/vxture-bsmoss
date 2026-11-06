@@ -1,3 +1,4 @@
+import { readSourcePositionPreview } from "./source-position-reader.ts";
 import { readSourceIntakeImpact } from "./source-intake-impact.ts";
 import type { Pool } from "pg";
 import type { MeasurementScope } from "../measurements/store.ts";
@@ -7,12 +8,12 @@ import { sourceRecord } from "./source-rules.ts";
 import { proposedSourceBinding, sourceDimensions, sourcePreflightResult, type SourcePreflight, type SourceProposal, type SourceResourceIssue } from "./source-preflight-rules.ts";
 export interface SourcePreflightReader {
   readonly workspaceId: string;
-  preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope): Promise<SourcePreflight | null>;
+  preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope, positionScope?: MeasurementScope): Promise<SourcePreflight | null>;
 }
 export class PgSourcePreflightReader implements SourcePreflightReader {
   readonly workspaceId: string; private scope: MeasurementScope;
   constructor(private pool: Pool, scope: MeasurementScope) { this.scope = reportScope(scope); this.workspaceId = this.scope.workspaceId; }
-  async preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope) {
+  async preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope, positionScope?: MeasurementScope) {
     const c = await this.pool.connect();
     try {
       await c.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
@@ -37,6 +38,8 @@ export class PgSourcePreflightReader implements SourcePreflightReader {
       const checkedAt = new Date((await c.query("SELECT CURRENT_TIMESTAMP at")).rows[0].at).toISOString();
       const result = sourcePreflightResult(before, proposal, this.scope, issues, checkedAt);
       result.intake.evidence = evidence;
+      result.intake.position = await readSourcePositionPreview(c, before.binding, binding, positionScope);
+      if (evidence.status === "current_revision_assessed" && result.intake.position.status === "assessed") evidence.latestPosition = "separately_assessed";
       if (evidence.status === "current_revision_assessed") result.intake.existingReceipts = result.intake.existingTasks = "current_revision_assessed";
       await c.query("COMMIT"); return result;
     } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }

@@ -1,5 +1,13 @@
 # 后续代理入口
 
+## 来源跨版本接收位置预览（2026-11-07，最新执行）
+
+设计259／实施[ops_bsmoss_259](../40-implementation/ops_bsmoss_259_source-position-preview.md)：来源变更预检增加最后接收→当前／拟变更三版本核对及待复核历史区间，超过原31日窗口提示分段。独立admin.sources.position.preview，无角色赋权；完整原新scope先验、历史完整scope SQL先过滤，真最后sequence不可见不退到早期可见回执。原receiptRow与纯版本／身份／摘要／位置校验，同只读RR快照，成功／missing／stale／SQL失败末次独立授权复核。无游标／原量／manifest／主体披露，无基准／配置／位置／任务写入。
+
+759最终全量单测、20针对、486最终实际PG、60HTTP、双层types／build、三宽组件9组及正式门槛另9组的最终证据／SHA／健康见formal-checkpoints/source-position-preview.json与source-position-qa。初轮本机PG端口及夹具重复主体已修全量重跑，不计初轮通过。67表／Prisma保持，空库仅1permission种子，只应用随机专用本机合同库；合成组件不当真实来源或身份验收。
+
+本批只读差异不等于受审重新基准完成；未读远端head／确认变化流兼容性，不直接沿用旧游标、不推进可分析截至；早期任务全集和精确binding修订聚合／报告依赖仍待。下一原件验证与可信提交／批准契约服务边界，再真实凭据环境下连接核验和受审写入。组织／授权写入、规则发布、P1工作台／消息／按需接收、P2共同版本及真实来源／平台环境／Beta容量恢复／UAT／生产批准依赖保持；未push／外部部署／上线，无新聊天或自动任务。
+
 ## 映射预检聚合与报告依赖（2026-11-07，最新执行）
 
 设计258／实施[ops_bsmoss_258](../40-implementation/ops_bsmoss_258_mapping-dependencies.md)：映射当前预检增加当前聚合head及当前生成报告head的明确引用，各20＋lookahead。聚合原plan＋inputs按三类原内核重放校验；报告原manifest重建／摘要与完整scope验证，覆盖主／日级／peer及汇总成员引用。两类独立权限，无owner／机器绕过、无角色赋权；完整范围在LIMIT前过滤，同只读快照，所有成功／missing／stale／SQL失败末次复核。无权不查不计0，旧head引用不复活；无原量／聚合／报告／任务写入。

@@ -12,7 +12,7 @@ export type SourceIntakeImpact = { status: "not_authorized" } | {
   status: "current_revision_assessed"; bindingRevision: string;
   receipts: { items: { id: string; sequence: string; through: string; inserted: number; duplicates: number }[]; hasMore: boolean };
   tasks: { items: { id: string; revision: string; state: IntakeEvent["state"]; attempt: number }[]; hasMore: boolean };
-  earlierRevisions: "not_assessed"; latestPosition: "not_assessed";
+  earlierRevisions: "not_assessed"; latestPosition: "not_assessed" | "separately_assessed";
 };
 export const INTAKE_IMPACT_LIMIT = 20;
 export async function readSourceIntakeImpact(c: PoolClient, before: SourceRecord, scope?: MeasurementScope): Promise<SourceIntakeImpact> {

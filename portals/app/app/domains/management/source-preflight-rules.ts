@@ -1,3 +1,4 @@
+import type { SourcePositionPreview } from "./source-position-rules.ts";
 import type { SourceIntakeImpact } from "./source-intake-impact.ts";
 import { fingerprintOf } from "../aggregation/intervals.ts";
 import { sourceBinding } from "../integration/rules.ts";
@@ -23,7 +24,7 @@ export interface SourcePreflight {
   scopeChanges: { dimension: typeof sourceDimensions[number]; added: string[]; removed: string[] }[];
   resourceIssues: SourceResourceIssue[];
   checks: { fullScope: "authorized"; resourceReferences: "resolved" | "unresolved"; adapterCompatibility: "not_verified"; sourceCapabilities: "not_assessed" };
-  intake: { oldPositionReuse: "requires_reviewed_rebaseline"; existingReceipts: "not_assessed" | "current_revision_assessed"; existingTasks: "not_assessed" | "current_revision_assessed"; evidence: SourceIntakeImpact; proposedState: "paused" | "requires_verification" };
+  intake: { oldPositionReuse: "requires_reviewed_rebaseline"; existingReceipts: "not_assessed" | "current_revision_assessed"; existingTasks: "not_assessed" | "current_revision_assessed"; evidence: SourceIntakeImpact; position: SourcePositionPreview; proposedState: "paused" | "requires_verification" };
   downstream: { aggregates: "not_assessed"; reports: "not_assessed" };
   assessment: "blocked" | "needs_review";
   draftDigest: string;
@@ -80,7 +81,7 @@ export function sourcePreflightResult(r: SourceRecord, p: SourceProposal, scope:
   return { kind: "source_configuration_preflight_v1", before: r, proposed: { status: p.proposed.status, binding: b, digest: fingerprintOf(b) },
     basis: { ...p.basis, verification: "not_verified" }, changedFields, scopeChanges, resourceIssues: issues,
     checks: { fullScope: "authorized", resourceReferences: issues.length ? "unresolved" : "resolved", adapterCompatibility: "not_verified", sourceCapabilities: "not_assessed" },
-    intake: { oldPositionReuse: "requires_reviewed_rebaseline", existingReceipts: "not_assessed", existingTasks: "not_assessed", evidence: { status: "not_authorized" }, proposedState: p.proposed.status === "paused" ? "paused" : "requires_verification" },
+    intake: { oldPositionReuse: "requires_reviewed_rebaseline", existingReceipts: "not_assessed", existingTasks: "not_assessed", evidence: { status: "not_authorized" }, position: { status: "not_assessed" }, proposedState: p.proposed.status === "paused" ? "paused" : "requires_verification" },
     downstream: { aggregates: "not_assessed", reports: "not_assessed" }, assessment: issues.length ? "blocked" : "needs_review",
     draftDigest: fingerprintOf({ workspaceId: scope.workspaceId, before: { revision: r.revision, digest: r.digest, status: r.status }, proposal: p, binding: b }), checkedAt };
 }

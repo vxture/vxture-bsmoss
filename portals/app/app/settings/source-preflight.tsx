@@ -1,4 +1,5 @@
 "use client";
+import SourcePositionPreviewView from "./source-position-preview";
 import SourceIntakeImpactView from "./source-intake-impact";
 import { useEffect, useRef, useState } from "react";
 import { Button, Input, NativeSelect, StatusBadge, Textarea } from "@vxture/design-system";
@@ -77,6 +78,7 @@ export default function SourcePreflightForm({ record: r, onForbidden }: { record
       <p className="text-body-small text-muted-foreground">{result.proposed.status === "paused" ? "\u62df\u767b\u8bb0\u6682\u505c\u4e0d\u4ee3\u8868\u8fdc\u7aef\u8bf7\u6c42\u5df2\u505c\u6b62\uff1b\u65e2\u6709\u4efb\u52a1\u4ecd\u9700\u5355\u72ec\u6838\u67e5\u3002" : "\u62df\u767b\u8bb0\u542f\u7528\u4e0d\u4ee3\u8868\u8fde\u63a5\u6b63\u5e38\u6216\u53ef\u6062\u590d\u63a5\u6536\u3002\u9002\u914d\u517c\u5bb9\u6027\u672a\u9a8c\u8bc1\uff0c\u6765\u6e90\u6307\u6807\u80fd\u529b\u672a\u8bc4\u4f30\u3002"}</p>
       <p className="text-body-small text-muted-foreground">{"\u805a\u5408\u53ca\u62a5\u544a\u5f71\u54cd\u672a\u8bc4\u4f30\uff0c\u4e0d\u4ee3\u8868\u96f6\u5f71\u54cd\u3002\u7ed3\u679c\u4ec5\u5bf9\u672c\u6b21\u8bfb\u53d6\u5feb\u7167\u6709\u6548\uff0c\u4e0d\u4ee3\u8868\u6279\u51c6\u6216\u53ef\u53d1\u5e03\u3002"}</p>
       <SourceIntakeImpactView evidence={result.intake.evidence} />
+      <SourcePositionPreviewView evidence={result.intake.position} />
       <dl><dt className="text-body-small text-muted-foreground">{"\u672c\u6b21\u8349\u6848\u6458\u8981"}</dt><dd className="break-all text-body-small text-muted-foreground">{result.draftDigest}</dd></dl>
     </div>}</>}
   </section>;

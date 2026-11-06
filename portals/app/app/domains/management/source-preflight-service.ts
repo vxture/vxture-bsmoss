@@ -16,8 +16,12 @@ export function sourcePreflight(ports: AccessPorts, readers: { create(scope: Mea
     try { impact = await resolveMeasurementAccess(ports, "source_intake_impact_view", "interactive"); }
     catch (e) { if (!(e instanceof Error) || e.message !== "permission_denied") throw e; }
     if (impact && (impact.context.sub !== first.context.sub || impact.context.workspaceId !== first.context.workspaceId)) throw Error("permission_denied");
+    let position: MeasurementAccess | undefined;
+    try { position = await resolveMeasurementAccess(ports, "source_position_preview", "interactive"); }
+    catch (e) { if (!(e instanceof Error) || e.message !== "permission_denied") throw e; }
+    if (position && (position.context.sub !== first.context.sub || position.context.workspaceId !== first.context.workspaceId)) throw Error("permission_denied");
     let result, failure;
-    try { result = await reader.preview(sourceIdentity(id), sourceProposal(raw), impact?.scope); } catch (e) { failure = e; }
+    try { result = await reader.preview(sourceIdentity(id), sourceProposal(raw), impact?.scope, position?.scope); } catch (e) { failure = e; }
     if (first.expiresAt <= now()) throw Error("access_expired");
     const current = await resolveMeasurementAccess(ports, "sources_preflight", "interactive");
     if (current.context.sub !== first.context.sub || current.context.workspaceId !== first.context.workspaceId || fingerprintOf(reportScope(current.scope)) !== fingerprintOf(reportScope(first.scope))) throw Error("permission_denied");
@@ -26,6 +30,11 @@ export function sourcePreflight(ports: AccessPorts, readers: { create(scope: Mea
       const finalImpact = await resolveMeasurementAccess(ports, "source_intake_impact_view", "interactive");
       if (impact.expiresAt <= now() || finalImpact.expiresAt <= now()) throw Error("access_expired");
       if (finalImpact.context.sub !== first.context.sub || finalImpact.context.workspaceId !== first.context.workspaceId || fingerprintOf(reportScope(finalImpact.scope)) !== fingerprintOf(reportScope(impact.scope))) throw Error("permission_denied");
+    }
+    if (position) {
+      const finalPosition = await resolveMeasurementAccess(ports, "source_position_preview", "interactive");
+      if (position.expiresAt <= now() || finalPosition.expiresAt <= now()) throw Error("access_expired");
+      if (finalPosition.context.sub !== first.context.sub || finalPosition.context.workspaceId !== first.context.workspaceId || fingerprintOf(reportScope(finalPosition.scope)) !== fingerprintOf(reportScope(position.scope))) throw Error("permission_denied");
     }
     if (failure) throw failure;
     if (!result) throw Error("source_configuration_unavailable");
