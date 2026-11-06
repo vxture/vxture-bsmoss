@@ -41,8 +41,8 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
   const scopeLabel=[data.region.name,data.region.cities.find(c=>c.id===q.query.cityId)?.name,data.region.counties.find(c=>c.id===q.query.countyId)?.name,data.siteName].filter(Boolean).join(" \u00b7 ");
   return <div data-history-analysis data-history-version={data.version} aria-busy={pending}><fieldset disabled={pending} className="min-w-0"><ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <InvestigationReturn source="history"/><PageHeading title={data.siteName?"\u5355\u7ad9\u7ecf\u8425\u5206\u6790":"\u7ecf\u8425\u5206\u6790"} description={"\u670d\u52a1\u4ea7\u51fa\u3001\u533a\u57df\u5dee\u5f02\u4e0e\u540c\u671f\u53d8\u5316"}
-      context={<span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={data.cutoff}>{isoDay(dateNumber(data.coverage.end)-DAY_MS)}</time></span>}
-      actions={<><Button asChild variant="outline"><a href={carry(relatedReviewHref(q.query,"month",q.site,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u7ecf\u8425\u5206\u6790"} disabled={pending} onClick={()=>start(()=>router.refresh())}><Icon name="refresh" size="sm" className={pending?"animate-spin":undefined}/></Button>
+      dataUpdate={data.dataUpdate}
+      actions={<><Button asChild variant="outline"><a href={carry(relatedReviewHref(q.query,"month",q.site,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
         <Button asChild variant="outline"><a href={keep(historyReportHref(q))}>{"\u5386\u53f2\u62a5\u544a"}</a></Button>
         {q.site&&<Button asChild variant="outline"><a href={carry(relatedDossierHref(q.site,q.query))}><Icon name="building" size="sm"/>{"\u7ad9\u5740\u6863\u6848"}</a></Button>}</>}
       toolbar={<div className="flex flex-col gap-md py-sm">

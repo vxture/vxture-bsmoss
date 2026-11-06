@@ -14,10 +14,11 @@ import {reviewRows} from '../domains/usage-verification/list-rules';
 import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation';
 import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
 import RecordSession from './record-session';
+import type {DataAvailability} from '../domains/data-updates/rules';
 export function FindingBadge({ item }: { item: Pick<ReviewCase, "kind" | "category"> }) {
   return <StatusBadge tone={item.category === "quality" ? "warning" : item.category === "insufficient" ? "neutral" : "info"} size="sm">{kindNames[item.kind]}</StatusBadge>;
 }
-export default function ReviewWorkspace({ model,initialSession }: { model: ReviewListModel;initialSession?:string }) {
+export default function ReviewWorkspace({ model,initialSession,dataUpdate }: { model: ReviewListModel;initialSession?:string;dataUpdate:DataAvailability }) {
   const records=useReviewRecords(model.dataset,initialSession),listed=reviewRows(model.cases,model.inputQuery,records.data?.logs??[]),visible={...model,...listed,query:{...model.inputQuery,page:listed.page}};
   const router = useRouter(), [pending, start] = useTransition(), [search, setSearch] = useState(model.query.scope.search), [summary, setSummary] = useState(false), q = visible.query;
   const {carry,keep}=useInvestigationLinks(reviewHref(q)+(records.selected?'&recordSession='+records.selected:''));
@@ -33,8 +34,8 @@ export default function ReviewWorkspace({ model,initialSession }: { model: Revie
   return <div data-usage-review="list" aria-busy={pending} className="review-workspace product-page-inset flex h-full min-h-0 w-full flex-col gap-md">
     <PageHeading title={"\u7528\u91cf\u6838\u9a8c"} description={"\u7528\u91cf\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570\u7ebf\u7d22"}
       region={q.scope.selection ? <StatusBadge tone="info" size="sm">{"\u5730\u56fe\u9009\u533a"}</StatusBadge> : undefined}
-      context={<><span>{"\u6570\u636e\u622a\u81f3 "}<time dateTime={model.cutoff}>{timeLabel(model.cutoff)}</time></span></>}
-      actions={<><Button asChild variant="outline"><a href={"/review-history?"+localHref(q).split("?")[1]}>{"\u6838\u9a8c\u8bb0\u5f55"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u6838\u9a8c\u5217\u8868"} disabled={pending} onClick={() => start(() => router.refresh())}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={map()}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></>}
+      dataUpdate={dataUpdate}
+      actions={<><Button asChild variant="outline"><a href={"/review-history?"+localHref(q).split("?")[1]}>{"\u6838\u9a8c\u8bb0\u5f55"}</a></Button><Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={map()}><Icon name="map-pin" size="sm" />{"\u7ad9\u7f51\u5730\u56fe"}</a></Button></>}
       toolbar={<div className="flex min-w-0 flex-col gap-md"><InvestigationReturn source="uv"/><RecordSession records={records}/>{q.site&&<div className="flex flex-wrap items-center gap-sm text-body-small"><span>{"\u9650\u5b9a\u7ad9\u5740\uff1a"+q.site}</span><Button variant="ghost" size="sm" onClick={()=>navigate({site:undefined})}>{"\u6e05\u9664\u7ad9\u5740"}</Button></div>}<form role="search" aria-label={"\u7528\u91cf\u6838\u9a8c\u7b5b\u9009"} onSubmit={e => { e.preventDefault(); navigate({}, { search }); }} className="flex shrink-0 flex-wrap items-center gap-md">
       <SegmentedControl ariaLabel={"\u6838\u9a8c\u5206\u7c7b"} value={q.category} onChange={category => navigate({ category })} items={Object.entries(categoryNames).map(([value, label]) => ({ value: value as ReviewQuery["category"], label }))} />
       <div className="ml-auto flex max-w-full flex-wrap items-center gap-sm">

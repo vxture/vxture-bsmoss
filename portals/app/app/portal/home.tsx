@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, PanelCard, Progress,
   SectionHeader, SegmentedControl, ShellPageContainer, toneEdgeClasses } from "@vxture/design-system";
 import { businessHref, type BusinessScope } from "../business-analysis/links";
@@ -21,7 +20,6 @@ const metrics = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSecon
 type Metric = typeof metrics[number]["value"];
 
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
-  const router = useRouter(), [pending, start] = useTransition();
   const [metric, setMetric] = useState<Metric>("bytes");
   if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <PageHeading title={"\u8fd0\u884c\u603b\u89c8"} description={"\u7ad9\u7f51\u8fd0\u8425\u6001\u52bf\u4e0e\u91cd\u70b9\u4e8b\u9879"} />
@@ -49,12 +47,10 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
   </div>;
 
   return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
-    <div data-portal-mode="demo" data-demo-version={demo.version} aria-busy={pending} className="flex min-w-0 flex-col gap-lg">
+    <div data-portal-mode="demo" data-demo-version={demo.version} className="flex min-w-0 flex-col gap-lg">
       <PageHeading title={"\u8fd0\u884c\u603b\u89c8"} description={"\u7ad9\u7f51\u8fd0\u8425\u6001\u52bf\u4e0e\u91cd\u70b9\u4e8b\u9879"}
-        actions={<Button variant="ghost" size="icon-md" disabled={pending} aria-label={"\u91cd\u65b0\u8bfb\u53d6\u603b\u89c8\u6570\u636e"} title={"\u91cd\u65b0\u8bfb\u53d6\u6570\u636e\uff0c\u65f6\u70b9\u4ee5\u6765\u6e90\u6570\u636e\u4e3a\u51c6"} onClick={() => start(() => router.refresh())}>
-            <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
-          </Button>}
-        context={<time dateTime={demo.date + "T" + hour + ":00+08:00"} title={"\u72b6\u6001\u6307\u6807\u91c7\u7528\u8be5\u65f6\u70b9\u5feb\u7167\uff1b\u65e5\u7d2f\u8ba1\u6307\u6807\u4e0e\u5168\u65e5\u8d8b\u52bf\u7edf\u8ba1\u7a97\u53e3\u4e3a\u5f53\u65e5 00:00\u201324:00\u3002"}>{"\u5206\u6790\u5feb\u7167 " + demo.date + " " + hour}</time>}
+        dataUpdate={demo.dataUpdate}
+        toolbar={<p className="py-sm text-body-small text-muted-foreground">{"\u5206\u6790\u65e5\u671f " + demo.date + " \u00b7 \u72b6\u6001\u65f6\u70b9 " + hour}</p>}
         />
       <section className="sm:hidden" aria-label={"\u7ad9\u7f51\u8d44\u6e90"}>
         <MetricListCard title={"\u7ad9\u7f51\u8d44\u6e90"} icon="building" metrics={[

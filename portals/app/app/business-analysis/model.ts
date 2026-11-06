@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {previewAvailability} from '../domains/data-updates/preview';
 import { parseMapQuery, queryMap, queryOperatorUsage, queryCalendarUsage, queryDailyReport, queryCalendarReport, selectSites } from "../domains/map-demo/service";
 import {analyzeCapacity} from '../domains/map-demo/capacity-rules';
 import {analyzeRuntime} from '../domains/map-demo/runtime-rules';
@@ -56,7 +57,7 @@ export function businessDemo(kind: BusinessKind, input: Record<string, string | 
   }
   const sites=kind==='efficiency'?selectSites(query):[];
   const runtime=kind==='efficiency'?analyzeRuntime(sites,query,sites.map(s=>resourceGraph(registryRecord(s,query.hour),DEMO_DATE,DEMO_VERSION))):null;
-  return { kind, scope, runtime, capacity:kind==='capacity'?analyzeCapacity(selectSites(query),query):null, date: DEMO_DATE, snapshot: { topic: snapshot.topic, summary: snapshot.summary }, metricRows, trend, usage, report,
+  return { kind, scope, runtime, dataUpdate:previewAvailability(topicMode||scope.period==='hour'?'station':'calendar'), capacity:kind==='capacity'?analyzeCapacity(selectSites(query),query):null, date: DEMO_DATE, snapshot: { topic: snapshot.topic, summary: snapshot.summary }, metricRows, trend, usage, report,
     window: scope.period === "hour" ? DEMO_DATE + " " + String(scope.hour).padStart(2, "0") + ":00" : calendarLabel(scope.period),
     region: DEMO_REGION, scopeName: DEMO_REGION.counties.find(c => c.id === query.countyId)?.name ?? DEMO_REGION.cities.find(c => c.id === query.cityId)?.name ?? DEMO_REGION.name };
 }

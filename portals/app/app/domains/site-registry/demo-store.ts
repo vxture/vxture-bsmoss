@@ -1,4 +1,5 @@
 import {resourceGraph} from './resource-rules';
+import {previewAvailability} from '../data-updates/preview';
 import { DEMO_REGION, DEMO_SITES } from "../map-demo/resources";
 import { DEMO_DATE, DEMO_VERSION, siteHour, findingsFor } from "../map-demo/rules";
 import { analyzeCalendarUsage } from "../map-demo/period-rules";
@@ -34,7 +35,7 @@ export function registryDemo(input: Record<string, string | string[] | undefined
   const count = q.view === "sites" ? ordered.length : relationRows.length;
   const pages = Math.max(1, Math.ceil(count / SITE_PAGE_SIZE)), page = Math.min(q.page, pages);
   const start = (page - 1) * SITE_PAGE_SIZE;
-  return { mode: "demo" as const, version: SITE_DEMO_VERSION, date: DEMO_DATE, query: { ...q, page }, pageSize: SITE_PAGE_SIZE, pages, count,
+  return { mode: "demo" as const, dataUpdate:previewAvailability('station'), version: SITE_DEMO_VERSION, date: DEMO_DATE, query: { ...q, page }, pageSize: SITE_PAGE_SIZE, pages, count,
     rows: ordered.slice(start, start + SITE_PAGE_SIZE), relations: relationRows.slice(start, start + SITE_PAGE_SIZE),
     operatorLoads: Object.fromEntries(ordered.slice(start, start + SITE_PAGE_SIZE).map(site => [site.id, site.operators.map(code => {
       const current = siteHour(site, q.hour, code);

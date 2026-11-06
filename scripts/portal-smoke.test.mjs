@@ -27,6 +27,14 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('data availability is hidden and unwritable outside explicit preview',async()=>{
+      for(const method of ['GET','POST']) {
+        const r=await fetch(url+'/api/product-preview/data-availability?family=overview',{method});
+        assert.ok([404,405].includes(r.status));
+        if(method==='GET'){assert.equal(r.status,404);assert.equal(r.headers.get('cache-control'),'no-store');}
+      }
+      assert.ok(!(await(await fetch(url)).text()).includes('bsmoss-data-availability-v1'));
+    });
     await t.test('local review records and writes are unavailable outside explicit preview',async()=>{
       assert.equal((await fetch(url+'/review-history')).status,404);
       assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
@@ -159,9 +167,28 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
   });
   await withServer(true,async url=>{
+    await t.test('availability reads stable independent source watermarks without creating jobs',async()=>{
+      for(const family of ['overview','station','calendar','history','verification']) {
+        const endpoint=url+'/api/product-preview/data-availability?family='+family,r=await fetch(endpoint);
+        assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+        const data=await r.json();assert.equal(data.family,family);assert.equal(data.schema,'bsmoss-data-availability-v1');
+        assert.ok(data.sources.every(s=>s.syncedAt===null&&s.confirmed));
+        assert.deepEqual(await(await fetch(endpoint)).json(),data);
+        assert.equal((await fetch(endpoint,{method:'POST',body:'{}'})).status,405);
+      }
+      for(const query of ['','?family=forged','?family=station&family=history','?family=station&workspaceId=forged','?family=station&through=2030-01-01'])assert.equal((await fetch(url+'/api/product-preview/data-availability'+query)).status,400);
+    });
+    await t.test('analysis headings separate current data availability from selected analysis time',async()=>{
+      for(const [path,cutoff] of [['/','2026-10-26 00:00'],['/sites?hour=12&city=610100','2026-10-26 00:00'],['/capacity?hour=12','2026-10-26 00:00'],['/efficiency?hour=18','2026-10-26 00:00'],['/operator-usage?period=month','2026-11-01 00:00'],['/usage-reports?period=week','2026-11-01 00:00'],['/analysis?city=610100&range=month&month=2026-09','2026-11-01 00:00'],['/usage-review?period=week','2026-11-01 00:00']]) {
+        const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();
+        assert.ok(html.includes('\u6570\u636e\u66f4\u65b0\u81f3'),path);assert.ok(html.includes(cutoff),path);assert.ok(html.includes('\u66f4\u65b0\u6570\u636e'));
+        assert.equal((html.match(/aria-label="\u67e5\u770b\u6570\u636e\u66f4\u65b0\u8be6\u60c5"/g)||[]).length,1,path);
+      }
+    });
     await t.test('runtime energy coverage stays scoped, unallocated and isolated from history and formal APIs',async()=>{
       const html=await(await fetch(url+'/efficiency?city=610100&county=610113&hour=3')).text();
-      for(const marker of ['data-runtime-energy','bsmoss-runtime-energy-coverage-v1','\u6570\u636e\u8986\u76d6\u4e0e\u672a\u77e5\u539f\u56e0','\u533a\u57df\u8fd0\u884c\u5bf9\u6bd4','2026-10-25 03:00'])assert.ok(html.includes(marker),marker);
+      for(const marker of ['data-runtime-energy','bsmoss-runtime-energy-coverage-v1','\u6570\u636e\u8986\u76d6\u4e0e\u672a\u77e5\u539f\u56e0','\u533a\u57df\u8fd0\u884c\u5bf9\u6bd4','2026-10-25'])assert.ok(html.includes(marker),marker);
+      assert.match(html,/<option value="3" selected="">03:00<\/option>/);
       const power=await(await fetch(url+'/efficiency?topic=power&search=SX-DEMO-004&hour=12')).text();assert.ok(power.includes('data-runtime-energy'));assert.ok(power.includes('SX-DEMO-004'));
       const op=await(await fetch(url+'/efficiency?operator=mobile')).text();assert.ok(op.includes('\u8fd0\u8425\u5546\u5206\u8868\u672a\u91c7\u96c6'));assert.ok(op.includes('\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a'));
       const empty=await(await fetch(url+'/efficiency?search=not-found')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
@@ -171,7 +198,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
     await t.test('capacity contributions retain exact scope, source, independent mode and formal boundary',async()=>{
       const html=await(await fetch(url+'/capacity?city=610100&county=610113&operator=telecom&hour=20&search=SX-DEMO-001')).text();
-      for(const text of ['data-capacity-contributions','bsmoss-capacity-contributions-v1','\u672a\u63a5\u901a\u8d21\u732e','\u98ce\u9669\u7ed3\u6784\u4e0e\u8986\u76d6','\u91cd\u70b9\u7ad9\u5740\u8bc1\u636e','2026-10-25 20:00','SX-DEMO-001'])assert.ok(html.includes(text),text);
+      for(const text of ['data-capacity-contributions','bsmoss-capacity-contributions-v1','\u672a\u63a5\u901a\u8d21\u732e','\u98ce\u9669\u7ed3\u6784\u4e0e\u8986\u76d6','\u91cd\u70b9\u7ad9\u5740\u8bc1\u636e','2026-10-25','SX-DEMO-001'])assert.ok(html.includes(text),text);
+      assert.match(html,/<option value="20" selected="">20:00<\/option>/);
       assert.ok(!html.includes('role="alert"'));assert.ok(!html.includes('<canvas'));assert.ok(html.includes('target="_blank"'));
       const empty=await(await fetch(url+'/capacity?search=not-found')).text();assert.ok(empty.includes('data-capacity-contributions'));assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
       const invalid=await(await fetch(url+'/capacity?capacity=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-capacity-contributions'));
@@ -375,7 +403,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(home.includes('data-overview-attention="capacity"'));assert.ok(home.includes('data-overview-verification'));
       assert.ok(home.includes('data-overview-report="day"'));assert.ok(home.includes('bsmoss-demo-review-scenarios-v1'));
       assert.ok(home.includes('data-overview-metrics="bsmoss-overview-metrics-v1"'));
-      assert.ok(home.includes('\u5206\u6790\u5feb\u7167 2026-10-25 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
+      assert.ok(home.includes('\u6570\u636e\u66f4\u65b0\u81f3'));assert.ok(home.includes('2026-10-26 00:00'));assert.ok(home.includes('\u72b6\u6001\u65f6\u70b9 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
       assert.ok(!home.includes('\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9'));
       assert.ok(home.includes('\u8f83\u6628\u65e5'));
       const settings=await (await fetch(url+'/settings/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));

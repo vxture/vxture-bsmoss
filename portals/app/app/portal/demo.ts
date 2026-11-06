@@ -1,4 +1,5 @@
 import { DEMO_DATE, siteHour } from "../domains/map-demo/rules";
+import { previewAvailability } from "../domains/data-updates/preview";
 import { DEMO_REGION, DEMO_SITES } from "../domains/map-demo/resources";
 import { parseMapQuery, queryMap, queryDailyReport, queryCalendarReport } from "../domains/map-demo/service";
 import { calendarWindow, parseReportPeriod } from "../domains/map-demo/period-rules";
@@ -34,7 +35,7 @@ export function portalDemoSummary(input: Record<string, string | string[] | unde
   const cases = scopedReviewCases(reviewDemoCases(), reviewQuery);
   const kinds = ["up", "down", "from_zero", "zero_run", "missing", "insufficient"] as const;
   return {
-    date: DEMO_DATE, hour: query.hour, version: snapshot.version,
+    date: DEMO_DATE, hour: query.hour, version: snapshot.version, dataUpdate: previewAvailability("overview"),
     query, region: DEMO_REGION, status: snapshot.summary, usage,
     runtime: { battery: current.filter(m => m.power === "battery").length, hot: current.filter(m => m.temperature >= 35).length },
     metrics: overviewMetricFacts(cohort, query.hour),

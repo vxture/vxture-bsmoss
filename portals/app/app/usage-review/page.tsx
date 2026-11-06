@@ -5,6 +5,7 @@ import PageHeading from "../portal/page-heading";
 import ProductFrame from "../portal/header";
 import { Button, PanelCard, ShellPageContainer } from "@vxture/design-system";
 import { reviewDemo } from "../domains/usage-verification/demo";
+import {previewAvailability} from '../domains/data-updates/preview';
 import ReviewWorkspace from "./workspace";
 import {validSession} from '../domains/usage-verification/indexeddb-store';
 export const dynamic = "force-dynamic";
@@ -13,5 +14,5 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   let model,session:string|undefined,journey;
   try { const extracted=readInvestigation(await searchParams);journey=extracted.journey;const {recordSession,...input}=extracted.input;if(recordSession!==undefined&&(typeof recordSession!=='string'||!validSession(recordSession)))throw Error('invalid_review_query');session=recordSession as string|undefined;model = reviewDemo(await rememberedRegionInput(input)); }
   catch (error) { if (!(error instanceof Error && /^(invalid_|query_too_large)/.test(error.message))) throw error; return <ProductFrame active="usage-review"><ShellPageContainer className="product-page-inset max-w-none"><PageHeading title={"\u7528\u91cf\u6838\u9a8c"} /><div role="alert"><PanelCard title={"\u6838\u9a8c\u7b5b\u9009\u65e0\u6548"} icon="search"><Button asChild><a href="/usage-review">{"\u91cd\u7f6e\u6838\u9a8c\u8303\u56f4"}</a></Button></PanelCard></div></ShellPageContainer></ProductFrame>; }
-  return <ProductFrame active="usage-review" preview><InvestigationProvider journey={journey}><ReviewWorkspace key={JSON.stringify([model.inputQuery,session])} model={model} initialSession={session} /></InvestigationProvider></ProductFrame>;
+  return <ProductFrame active="usage-review" preview><InvestigationProvider journey={journey}><ReviewWorkspace key={JSON.stringify([model.inputQuery,session])} model={model} dataUpdate={previewAvailability('verification')} initialSession={session} /></InvestigationProvider></ProductFrame>;
 }

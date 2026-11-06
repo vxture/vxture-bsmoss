@@ -1,4 +1,5 @@
 import {DEMO_REGION,DEMO_SITES} from '../domains/map-demo/resources';
+import {previewAvailability} from '../domains/data-updates/preview';
 import {HISTORY_START,HISTORY_END,HISTORY_VERSION,monthEnd} from '../domains/map-demo/history-calendar';
 import {parseHistoryQuery,queryHistory} from '../domains/map-demo/history-service';
 import type {HistoryAnalysis} from '../domains/map-demo/history-rules';
@@ -27,7 +28,7 @@ export function historyPresentation(result:HistoryAnalysis,context=contextForHis
     :result.kind==='county'?DEMO_REGION.counties.find(c=>c.id===r.id)!.name:result.kind==='site'?sites.get(r.id)!.name:r.id}));
   const months:string[]=[];for(let d=HISTORY_START;d<HISTORY_END;d=monthEnd(d.slice(0,7)))months.push(d.slice(0,7));
   const cohorts=analyzeCohorts(result,DEMO_SITES),{siteRows:serverRows,...summary}=result;
-  return {...summary,children,cohorts,months,cross:{...context,members:[...context.members].sort((a,b)=>Number(b.values[scope.metric])-Number(a.values[scope.metric])||a.id.localeCompare(b.id)).slice(0,20)},station:scope.site?stationHistory(scope,result):null,siteName:scope.site?sites.get(scope.site)!.name:null,
+  return {...summary,dataUpdate:previewAvailability('history'),children,cohorts,months,cross:{...context,members:[...context.members].sort((a,b)=>Number(b.values[scope.metric])-Number(a.values[scope.metric])||a.id.localeCompare(b.id)).slice(0,20)},station:scope.site?stationHistory(scope,result):null,siteName:scope.site?sites.get(scope.site)!.name:null,
     region:{id:DEMO_REGION.id,name:DEMO_REGION.name,cities:DEMO_REGION.cities.map(({id,name})=>({id,name})),counties:DEMO_REGION.counties.map(({id,cityId,name})=>({id,cityId,name}))}};
 }
 export function historyModel(input:Record<string,string|string[]|undefined>){return historyPresentation(historyAnalysis(parseHistoryQuery(input)));}

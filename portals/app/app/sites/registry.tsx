@@ -132,13 +132,11 @@ function RegistryContent({ demo, regionOpen, onRegionToggle }: {
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen} className="shrink-0">
         <PageHeading title={"\u7ad9\u5740\u7ba1\u7406"} description={"\u7ad9\u5740\u8d44\u6e90\u53f0\u8d26\u4e0e\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"}
 
-          context={<span className="inline-flex flex-wrap items-center gap-xs"><span>{"\u6570\u636e\u622a\u81f3"}</span><time className="tabular-nums" dateTime={demo.date + "T" + String(q.hour).padStart(2, "0") + ":00:00+08:00"}>{dataTime}</time></span>}
-          actions={<><Button variant="ghost" size="icon-md" disabled={pending} onClick={() => start(() => router.refresh())} aria-label={"\u5237\u65b0\u7ad9\u5740\u53f0\u8d26"} title={"\u91cd\u65b0\u8bfb\u53d6\u5f53\u524d\u53f0\u8d26"}>
-              <Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} />
-            </Button>
+          dataUpdate={demo.dataUpdate}
+          actions={<>
             <CollapsibleTrigger asChild><Button variant="outline" className="max-sm:w-control-md max-sm:px-0" aria-label={"\u8d44\u6e90\u6982\u51b5"}><Icon name="gauge" size="sm" className="sm:hidden" /><span className="hidden sm:inline">{"\u8d44\u6e90\u6982\u51b5"}</span><Icon name={summaryOpen ? "chevron-up" : "chevron-down"} size="sm" className="hidden sm:inline" /></Button></CollapsibleTrigger>
             <Button asChild variant="outline" className="max-xl:w-control-md max-xl:px-0"><a aria-label={"\u7ad9\u7f51\u5730\u56fe"} title={"\u7ad9\u7f51\u5730\u56fe"} target="_blank" rel="noopener noreferrer" href={"/product-preview?hour=" + q.hour + (q.city === "all" ? "" : "&city=" + q.city) + (q.county === "all" ? "" : "&county=" + q.county)}><Icon name="map-pin" size="sm" /><span className="hidden xl:inline">{"\u7ad9\u7f51\u5730\u56fe"}</span></a></Button></>}
-          toolbar={<div className="flex flex-col gap-md"><InvestigationReturn source="snapshot"/>{registryTools}</div>} />
+          toolbar={<div className="flex flex-col gap-md"><InvestigationReturn source="snapshot"/><p className="text-body-small text-muted-foreground">{"\u5206\u6790\u65f6\u70b9 " + dataTime}</p>{registryTools}</div>} />
         <CollapsibleContent><div className="pt-sm" role="group" aria-label={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90\u6982\u51b5"}><MetricListCard title={"\u5f53\u524d\u7b5b\u9009\u8d44\u6e90"} icon="building" metrics={[
           { key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(demo.summary.sites) + " \u5ea7" },
           { key: "relations", label: "\u670d\u52a1\u5173\u7cfb", value: n(demo.summary.relations) + " \u6761" },
