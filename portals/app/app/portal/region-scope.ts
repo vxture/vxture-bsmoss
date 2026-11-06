@@ -36,7 +36,7 @@ export function regionLink(href: string, value: RegionSelection): string {
 export function changedRegionHref(path: string, query: string, value: RegionSelection): string {
   const detail = /^\/(sites|usage-review)\/[^/]+$/.exec(path);
   const target = path==="/analysis/report"?"/analysis":detail ? "/" + detail[1] : path, params = new URLSearchParams(detail||path==="/analysis/report" ? "" : query);
-  for (const key of ["page", "site", "selection", "compare", "bbox", "search", "report", "revision", "evidence", "slot", "peerLevel", "recordSession", "event", "investigation"]) params.delete(key);
+  for (const key of ["page", "site", "selection", "compare", "bbox", "search", "report", "revision", "evidence", "slot", "peerLevel", "recordSession", "event", "investigation", "saved"]) params.delete(key);
   params.set("city", value.cityId); params.set("county", value.countyId);
   return target + "?" + params;
 }

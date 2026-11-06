@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import { parseMapQuery, queryMap, queryOperatorUsage, queryCalendarUsage, queryDailyReport, queryCalendarReport } from "../domains/map-demo/service";
 import { DEMO_REGION, DEMO_SITES } from "../domains/map-demo/resources";
 import { DEMO_DATE, siteHour } from "../domains/map-demo/rules";
@@ -46,7 +47,7 @@ export function businessDemo(kind: BusinessKind, input: Record<string, string | 
   let report = null;
   if (sourceReport) {
     const r = sourceReport;
-    report = { id: r.id, templateVersion: r.templateVersion, runtime: r.runtime, comparison: r.comparison, ranking: r.ranking.map(s => ({ id: s.id, name: s.name, bytes: String(s.bytes) })),
+    report = { digest:createHash("sha256").update(JSON.stringify(r,null,2)).digest("hex"), id: r.id, templateVersion: r.templateVersion, runtime: r.runtime, comparison: r.comparison, ranking: r.ranking.map(s => ({ id: s.id, name: s.name, bytes: String(s.bytes) })),
       downloadHref: "/api/product-preview/reports?" + params + "&format=html" };
   }
   return { kind, scope, date: DEMO_DATE, snapshot: { topic: snapshot.topic, summary: snapshot.summary }, metricRows, trend, usage, report,

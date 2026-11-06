@@ -116,6 +116,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview/map")).status,404);
       assert.equal((await fetch(url+"/api/product-preview/operators")).status,404);
       assert.equal((await fetch(url+"/api/product-preview/reports")).status,404);
+      assert.equal((await fetch(url+"/api/product-preview/report-artifact?kind=calendar")).status,404);
       assert.equal((await fetch(url+"/api/product-preview/period-comparison")).status,404);
       assert.equal((await fetch(url+"/api/product-preview/reports?format=html")).status,404);
       assert.equal((await fetch(url+"/api/product-preview/compare?sites=SX-DEMO-001")).status,404);
@@ -170,6 +171,23 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
     });
 
+    await t.test('local report library gates files, exact digest, preview and existing formal endpoints',async()=>{
+      const list=await(await fetch(url+'/reports?city=610100&county=610113')).text();assert.ok(list.includes('data-local-report-library'));assert.ok(list.includes('\u6b63\u5728\u8bfb\u53d6\u62a5\u544a\u5e93'));
+      const invalid=await(await fetch(url+'/reports?saved=forged')).text();assert.ok(invalid.includes('role="alert"'));
+      const period='city=610100&county=610113&operator=mobile&period=week';
+      const page=await(await fetch(url+'/usage-reports?'+period)).text();assert.ok(page.includes('\u4fdd\u5b58\u5230\u62a5\u544a\u5e93'));
+      const report=await(await fetch(url+'/api/product-preview/reports?cityId=610100&countyId=610113&operator=mobile&period=week')).json();
+      const digest=(await import('node:crypto')).createHash('sha256').update(JSON.stringify(report,null,2)).digest('hex');
+      const endpoint=url+'/api/product-preview/report-artifact?kind=calendar&'+period+'&snapshot='+digest;
+      const result=await fetch(endpoint);assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'no-store');
+      const artifact=await result.json(),f=JSON.parse(artifact.content);assert.deepEqual(JSON.parse(f.json),report);assert.equal(f.period,'week');assert.ok(f.html.includes(report.id));
+      assert.equal((await import('node:crypto')).createHash('sha256').update(artifact.content).digest('hex'),artifact.digest);
+      assert.equal((await fetch(endpoint.replace(digest,'0'.repeat(64)))).status,409);
+      for(const extra of ['&snapshot=x','&operator=telecom','&actor=forged','&investigation=forged'])assert.equal((await fetch(endpoint+extra)).status,400);
+      assert.equal((await fetch(url+'/api/product-preview/report-artifact?kind=calendar&'+period)).status,400);
+      const historical=await(await fetch(url+'/api/product-preview/report-artifact?kind=history&city=610100&county=610113&range=month&month=2026-10&snapshot='+('0'.repeat(64)))).status;assert.equal(historical,409);
+      assert.equal((await fetch(url+'/api/reports')).status,401);assert.equal((await fetch(endpoint,{method:'POST',body:'{}'})).status,405);
+    });
     await t.test('local review workflow renders no invented events and validates event/session routing',async()=>{
       const list=await(await fetch(url+'/usage-review?period=month')).text();
       const id=list.match(/\/usage-review\/(UV-[a-f0-9]{24})/)?.[1];assert.ok(id);

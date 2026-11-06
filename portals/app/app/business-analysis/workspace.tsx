@@ -1,4 +1,5 @@
 "use client";
+import SaveLocalReport from "../reports/save-local";
 
 import { useState, useTransition } from "react";
 import PageHeading from "../portal/page-heading";
@@ -41,6 +42,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      actions={<><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0\u5206\u6790"} onClick={() => start(() => router.refresh())} disabled={pending}><Icon name="refresh" size="sm" className={pending ? "animate-spin" : undefined} /></Button>
        <Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href={carry(businessMapHref(demo.kind, q))}><Icon name="map-pin" size="sm" />{"\u5730\u56fe\u5206\u6790"}</a></Button>
        <Button asChild variant="outline"><a href={carry(relatedReviewHref(q,q.period))}>{"\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
+       {demo.report&&<SaveLocalReport endpoint={"/api/product-preview/report-artifact?kind=calendar&"+businessHref('usage-reports',q).split('?')[1]+'&snapshot='+demo.report.digest} origin={businessHref(demo.kind,q)}/>}
        {demo.report && <Button asChild><a href={demo.report.downloadHref} download><Icon name="file-text" size="sm" />{"\u5bfc\u51faHTML\u62a5\u544a"}</a></Button>}</>}
      toolbar={<form role="search" aria-label={labels[demo.kind] + "\u7b5b\u9009"} className="business-analysis-tools flex flex-wrap items-center gap-md py-sm" onSubmit={e => { e.preventDefault(); navigate({ search }); }}>
      <NativeSelect aria-label={"\u5206\u6790\u8fd0\u8425\u5546"} wrapperClassName="w-auto" value={q.operator} onChange={e => navigate({ operator: e.target.value as BusinessScope["operator"] })}>{Object.entries(operatorNames).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</NativeSelect>

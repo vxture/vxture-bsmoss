@@ -1,4 +1,5 @@
 "use client";
+import SaveLocalReport from "../../reports/save-local";
 import {useState} from "react";
 import {Button,DataTable,Pagination,PanelCard,ShellPageContainer} from "@vxture/design-system";
 import PageHeading from "../../portal/page-heading";
@@ -24,7 +25,7 @@ export default function HistoryReportView({report:r}:{report:HistoryReport}){
   <InvestigationReturn source="history"/><PageHeading title={"\u5386\u53f2\u7ecf\u8425\u62a5\u544a"} description={(d.siteName??'\u533a\u57df\u7ecf\u8425\u5206\u6790')+' \u00b7 '+q.window.start+' \u2014 '+last}
    navigation={<Button asChild variant="link"><a href={keep(r.returnHref)}>{"\u8fd4\u56de\u7ecf\u8425\u5206\u6790"}</a></Button>}
    context={<span>{'\u6570\u636e\u622a\u81f3 '+isoDay(dateNumber(d.coverage.end)-DAY_MS)}</span>}
-   actions={<><Button asChild variant="outline"><a href={r.downloadHref+'&format=json'} download>{"\u5bfc\u51fa\u6570\u636e"}</a></Button><Button asChild><a href={r.downloadHref+'&format=html'} download>{"\u4e0b\u8f7d\u62a5\u544a"}</a></Button></>}
+   actions={<><SaveLocalReport endpoint={r.downloadHref.replace("/history-report?","/report-artifact?kind=history&")} origin={r.pageHref}/><Button asChild variant="outline"><a href={r.downloadHref+'&format=json'} download>{"\u5bfc\u51fa\u6570\u636e"}</a></Button><Button asChild><a href={r.downloadHref+'&format=html'} download>{"\u4e0b\u8f7d\u62a5\u544a"}</a></Button></>}
    toolbar={<p className="py-md text-body-small text-muted-foreground">{operatorNames[q.query.operator]+' \u00b7 '+q.window.days+'\u5929 \u00b7 \u8986\u76d6\u5b8c\u6574\u8d44\u6e90\u7b5b\u9009\uff1b\u5206\u5c42\u9009\u4e2d\u548c\u5f53\u524d\u9875\u7801\u4ec5\u4fdd\u7559\u4e3a\u8fd4\u56de\u6761\u4ef6\u3002'}</p>}/>
   <div className="grid min-w-0 gap-md md:grid-cols-3">
    <MetricRowsCard title={"\u7ecf\u8425\u670d\u52a1\u4ea7\u51fa"} icon="chart-bar" metrics={[{label:'\u53cc\u5411\u6d41\u91cf / TiB',value:n(Number(d.totals.bytes)/1099511627776,2)}, {label:'\u63a5\u901a\u901a\u8bdd / \u4e07\u5206\u949f',value:n(d.totals.voiceSeconds/600000,2)}, {label:'\u77ed\u4fe1 / \u4e07\u6761',value:n(d.totals.sms/10000,2)}].map((item,index)=>({...item,key:String(index)}))}/>
