@@ -28,7 +28,7 @@ interface IntakeManifest {
 }
 export const bindingSelect = `SELECT b.*,b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS valid
   FROM bsmoss_integration.source_binding_revision b`;
-const receiptSelect = `SELECT r.*,r.database_sha256=encode(sha256(convert_to(r.manifest::text,'UTF8')),'hex') AS valid,
+export const receiptSelect = `SELECT r.*,r.database_sha256=encode(sha256(convert_to(r.manifest::text,'UTF8')),'hex') AS valid,
   b.binding AS registered_binding,b.binding_sha256 AS registered_sha256,
   b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') AS binding_valid
   FROM bsmoss_integration.source_intake_receipt r JOIN bsmoss_integration.source_binding_revision b
@@ -40,7 +40,7 @@ export function bindingRow(row: Record<string, any> | undefined): SourceBinding 
   if (row.status !== "active") throw Error("source_binding_paused");
   return b;
 }
-function receiptRow(row: Record<string, any>) {
+export function receiptRow(row: Record<string, any>) {
   const b = sourceBinding(row.registered_binding), m = row.manifest as IntakeManifest;
   exactFields(m, ["version", "plan", "previousId", "inputPosition", "position", "recordsSha256", "records", "inserted", "duplicates", "unverifiedCompletionClaim"]);
   positiveRevision(row.sequence);

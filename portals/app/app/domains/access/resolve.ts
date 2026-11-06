@@ -35,7 +35,7 @@ export interface LocalGrant {
   scope: MeasurementScope;
   expiresAt: number;
 }
-export type MeasurementOperation = "sources_preflight" | "mappings_preflight" | "mappings_view" | "sources_view" | "configuration_audit_view" | "members_view" | "jurisdiction_view" | "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
+export type MeasurementOperation = "source_intake_impact_view" | "sources_preflight" | "mappings_preflight" | "mappings_view" | "sources_view" | "configuration_audit_view" | "members_view" | "jurisdiction_view" | "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
 export type AccessPlane = "interactive" | "data";
 export interface AccessPorts {
   // These closures are wired by the server composition root, never by a request.
@@ -63,6 +63,7 @@ export interface MeasurementAccess {
   expiresAt: number;
 }
 const permissions = {
+  source_intake_impact_view: "admin.sources.intake_impact.view",
   sources_preflight: "admin.sources.preflight",
   mappings_preflight: "admin.mappings.preflight",
   mappings_view: "admin.mappings.view",

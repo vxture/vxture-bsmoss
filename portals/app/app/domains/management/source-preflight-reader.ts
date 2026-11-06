@@ -1,3 +1,4 @@
+import { readSourceIntakeImpact } from "./source-intake-impact.ts";
 import type { Pool } from "pg";
 import type { MeasurementScope } from "../measurements/store.ts";
 import { reportScope } from "../reports/rules.ts";
@@ -6,15 +7,16 @@ import { sourceRecord } from "./source-rules.ts";
 import { proposedSourceBinding, sourceDimensions, sourcePreflightResult, type SourcePreflight, type SourceProposal, type SourceResourceIssue } from "./source-preflight-rules.ts";
 export interface SourcePreflightReader {
   readonly workspaceId: string;
-  preview(id: string, proposal: SourceProposal): Promise<SourcePreflight | null>;
+  preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope): Promise<SourcePreflight | null>;
 }
 export class PgSourcePreflightReader implements SourcePreflightReader {
   readonly workspaceId: string; private scope: MeasurementScope;
   constructor(private pool: Pool, scope: MeasurementScope) { this.scope = reportScope(scope); this.workspaceId = this.scope.workspaceId; }
-  async preview(id: string, proposal: SourceProposal) {
+  async preview(id: string, proposal: SourceProposal, impactScope?: MeasurementScope) {
     const c = await this.pool.connect();
     try {
       await c.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      await c.query("SET LOCAL statement_timeout='15s'");
       const row = (await c.query(sourceSelect + ` JOIN bsmoss_integration.source_binding_head h ON (h.workspace_id,h.id,h.revision)=(b.workspace_id,b.id,b.revision)
         WHERE ${sourceScopeWhere} AND b.id=$3`, [this.workspaceId, this.scope, id])).rows[0];
       if (!row) { await c.query("COMMIT"); return null; }
@@ -31,8 +33,11 @@ export class PgSourcePreflightReader implements SourcePreflightReader {
         const ids = new Set(found[dimension].map(r => r.id));
         for (const id of s[dimension]) if (!ids.has(id)) issues.push({ dimension, id });
       }
+      const evidence = await readSourceIntakeImpact(c, before, impactScope);
       const checkedAt = new Date((await c.query("SELECT CURRENT_TIMESTAMP at")).rows[0].at).toISOString();
       const result = sourcePreflightResult(before, proposal, this.scope, issues, checkedAt);
+      result.intake.evidence = evidence;
+      if (evidence.status === "current_revision_assessed") result.intake.existingReceipts = result.intake.existingTasks = "current_revision_assessed";
       await c.query("COMMIT"); return result;
     } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }
   }

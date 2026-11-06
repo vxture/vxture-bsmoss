@@ -1,3 +1,4 @@
+import { sourceIntakeImpactCases } from './source-intake-impact.cases.mjs';
 import { managementCases } from './management.cases.mjs';
 import { sourceManagementCases } from './source-management.cases.mjs';
 import { objectMappingCases } from './object-mappings.cases.mjs';
@@ -2069,6 +2070,7 @@ await test("empty-database PostgreSQL contract", async t => {
     await sourceManagementCases(t,{db,adapterPool});
     await objectMappingCases(t,{db,adapterPool});
     await sourcePreflightCases(t,{db,adapterPool});
+    await sourceIntakeImpactCases(t,{db,adapterPool});
   } finally {
     if (adapterPool) await adapterPool.end();
     await Promise.all(peers.map(c=>c.end()));

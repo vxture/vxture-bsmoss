@@ -15,6 +15,30 @@ interface Task {
 }
 type Attempt = IntakeEvent;
 function taskId(value: string) { if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw Error("invalid_intake_task"); return value; }
+export async function readIntakeTaskEvidence(c: PoolClient, workspaceId: string, id: string): Promise<Task> {
+  const r = (await c.query(`SELECT t.*,b.binding,b.binding_sha256 registered_sha,
+    b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') valid
+    FROM bsmoss_integration.source_intake_task t JOIN bsmoss_integration.source_binding_revision b
+    ON (b.workspace_id,b.id,b.revision)=(t.workspace_id,t.binding_id,t.binding_revision)
+    WHERE t.workspace_id=$1 AND t.id=$2`, [workspaceId, id])).rows[0];
+  if (!r) throw Error("intake_task_unavailable");
+  const binding = sourceBinding(r.binding);
+  if (!r.valid || fingerprintOf(binding) !== r.registered_sha || r.registered_sha !== r.binding_sha256 || binding.scope.workspaceId !== workspaceId ||
+      r.id !== fingerprintOf(["source-intake-task-v1", workspaceId, r.command_id]) || r.binding_id !== binding.id || r.binding_revision !== binding.revision) throw Error("invalid_intake_task_evidence");
+  return { id, binding, requestedBy: r.requested_by, commandId: r.command_id, createdAt: r.created_at.toISOString() };
+}
+export async function readIntakeTaskHistory(c: PoolClient, workspaceId: string, id: string): Promise<Attempt[]> {
+  const rows = (await c.query(`SELECT *,lease_until<=clock_timestamp() expired FROM bsmoss_integration.source_intake_task_event
+    WHERE workspace_id=$1 AND task_id=$2 ORDER BY revision LIMIT 12`, [workspaceId, id])).rows;
+  if (!rows.length || rows.length > 11) throw Error("invalid_intake_task_evidence");
+  return rows.map((r, i) => {
+    if (r.revision !== String(i + 1)) throw Error("invalid_intake_task_evidence");
+    return { revision: r.revision, attempt: r.attempt, state: r.state, commandId: r.command_id, reasonRef: r.reason_ref,
+      actor: r.actor, leaseUntil: r.lease_until.toISOString(), leaseExpired: r.expired, receiptId: r.receipt_id,
+      inserted: r.inserted, duplicates: r.duplicates, failureCode: r.failure_code, recordedAt: r.recorded_at.toISOString() };
+  });
+}
+
 // No worker identity, production adapter or browser execution route is activated.
 // The internal caller starts one bounded attempt; the journal survives its exit.
 export function sourceIntakeTasks(pool: Pool, ports: AccessPorts, connector: SourceReadPort) {
@@ -41,29 +65,7 @@ function intakeTaskStore(pool: Pool, ports: AccessPorts, connector?: SourceReadP
     } catch (e) { try { await c.query("ROLLBACK"); } catch { discard = true; } throw e; }
     finally { c.release(discard); }
   }
-  async function load(c: PoolClient, workspaceId: string, id: string): Promise<Task> {
-    const r = (await c.query(`SELECT t.*,b.binding,b.binding_sha256 registered_sha,
-      b.database_sha256=encode(sha256(convert_to(b.binding::text,'UTF8')),'hex') valid
-      FROM bsmoss_integration.source_intake_task t JOIN bsmoss_integration.source_binding_revision b
-      ON (b.workspace_id,b.id,b.revision)=(t.workspace_id,t.binding_id,t.binding_revision)
-      WHERE t.workspace_id=$1 AND t.id=$2`, [workspaceId, id])).rows[0];
-    if (!r) throw Error("intake_task_unavailable");
-    const binding = sourceBinding(r.binding);
-    if (!r.valid || fingerprintOf(binding) !== r.registered_sha || r.registered_sha !== r.binding_sha256 || binding.scope.workspaceId !== workspaceId ||
-        r.id !== fingerprintOf(["source-intake-task-v1", workspaceId, r.command_id]) || r.binding_id !== binding.id || r.binding_revision !== binding.revision) throw Error("invalid_intake_task_evidence");
-    return { id, binding, requestedBy: r.requested_by, commandId: r.command_id, createdAt: r.created_at.toISOString() };
-  }
-  async function history(c: PoolClient, workspaceId: string, id: string): Promise<Attempt[]> {
-    const rows = (await c.query(`SELECT *,lease_until<=clock_timestamp() expired FROM bsmoss_integration.source_intake_task_event
-      WHERE workspace_id=$1 AND task_id=$2 ORDER BY revision LIMIT 12`, [workspaceId, id])).rows;
-    if (!rows.length || rows.length > 11) throw Error("invalid_intake_task_evidence");
-    return rows.map((r, i) => {
-      if (r.revision !== String(i + 1)) throw Error("invalid_intake_task_evidence");
-      return { revision: r.revision, attempt: r.attempt, state: r.state, commandId: r.command_id, reasonRef: r.reason_ref,
-        actor: r.actor, leaseUntil: r.lease_until.toISOString(), leaseExpired: r.expired, receiptId: r.receipt_id,
-        inserted: r.inserted, duplicates: r.duplicates, failureCode: r.failure_code, recordedAt: r.recorded_at.toISOString() };
-    });
-  }
+  const load = readIntakeTaskEvidence, history = readIntakeTaskHistory;
   async function lock(c: PoolClient, workspaceId: string, id: string) {
     if (!(await c.query("SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) acquired", [JSON.stringify(["source-intake-task-v1", workspaceId, id])])).rows[0].acquired) throw Error("intake_task_busy");
     await c.query("SELECT bsmoss_integration.lock_intake_task($1,$2)", [workspaceId, id]);

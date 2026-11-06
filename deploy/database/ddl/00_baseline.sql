@@ -1845,3 +1845,5 @@ INSERT INTO local_authz.permission(perm_code,name) VALUES
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.view','Inspect authorized object mapping definitions');
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.preflight','Preview authorized mapping validity changes without applying them');
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.preflight','Preview authorized source configuration changes without applying them');
+
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.intake_impact.view','Inspect current source revision intake evidence without executing tasks');
