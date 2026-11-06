@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { updateListFromUrl, updateListQuery } from "./queries.ts";
 import { encodeJobCursor } from "../supervision/jobs.ts";
-import { taskFromUrl, taskHref, updateError } from "../../settings/operations/data-updates/client.ts";
+import { taskFromUrl, taskHref, updateError, updateReadError } from "../../settings/operations/data-updates/client.ts";
 import { ReportClientError } from "../../reports/client.ts";
 test("update list accepts only bounded pages and an exact opaque cursor", () => {
   assert.deepEqual(updateListFromUrl(new URL("https://local/api/data-updates")), { limit: 10 });
@@ -22,4 +22,10 @@ test("task error text distinguishes authorization and conflicts without showing 
   const unauthorized = updateError(new ReportClientError(401, "password=secret")); assert.match(unauthorized, /\u767b\u5f55/); assert.doesNotMatch(unauthorized, /secret/);
   assert.match(updateError(new ReportClientError(409, "anything")), /\u4efb\u52a1/);
   assert.doesNotMatch(updateError(Error("database password=secret")), /secret/);
+});
+test("read-only task messages never suggest replaying a mutation command on a query failure", () => {
+  for (const e of [Error("secret database details"), new ReportClientError(503, "secret")]) {
+    const message = updateReadError(e); assert.match(message, /\u67e5\u8be2/); assert.doesNotMatch(message, /secret|\u539f\u547d\u4ee4/);
+  }
+  assert.equal(updateReadError(new ReportClientError(403, "secret")), updateError(new ReportClientError(403, "secret")));
 });

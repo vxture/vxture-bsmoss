@@ -14,5 +14,12 @@ export interface UpdateDetail extends UpdateSummary {
     failures: UpdateFailure[] };
 }
 export interface UpdateList { items: UpdateSummary[]; next: string | null }
+// A live authorized projection, not an unread/event ledger or a publication.
+export interface UpdateNotification extends UpdateSummary {
+  phase: UpdateDetail["progress"]["phase"]; configurationChanged: boolean;
+  inputs: UpdateDetail["progress"]["inputs"]; results: UpdateDetail["progress"]["results"];
+  publishesAvailability: false;
+}
+export interface UpdateNotifications { items: UpdateNotification[]; next: string | null }
 export interface InputRetryCommand { id: string; changeId: string; expectedRevision: string; reasonRef: string }
 export function validTaskId(value: unknown): value is string { return typeof value === "string" && /^[a-f0-9]{64}$/.test(value); }

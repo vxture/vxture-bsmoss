@@ -101,6 +101,9 @@ export async function dataUpdateTaskCases(t, { db, adapterPool, ports, scope, up
       await db.query("UPDATE bsmoss_analysis.input_dispatch_event SET available_at=clock_timestamp()-interval '1 second' WHERE change_id=$1", [changeId]);
     }
     const failed = await api.read(retryTask.id); assert.equal(failed.progress.phase, 'failed');
+    const message = (await api.notifications({ limit: 10 })).items.find(x => x.id === retryTask.id);
+    assert.equal(message.phase, 'failed'); assert.deepEqual(message.inputs, failed.progress.inputs);
+    assert.equal(message.publishesAvailability, false); assert.equal('failures' in message, false);
     assert.equal(failed.progress.failures.find(x => x.id === changeId).expectedRevision, '5');
     assert.equal((await api.request({ partitionId: 'update-partition' })).id, retryTask.id);
     const command = { id: retryTask.id, changeId, expectedRevision: '5', reasonRef: 'fixture://reviewed-update-retry' };
@@ -131,6 +134,7 @@ export async function dataUpdateTaskCases(t, { db, adapterPool, ports, scope, up
     const recovery = createAuthorizedAggregateJobs(human, { create: s => new PgAggregateJobStore(adapterPool, s) }, 'interactive');
     const result = await recovery.recover({ jobId: deadId, expectedAttempt: 5, commandId: 'update-result-retry', reasonRef: 'fixture://reviewed-result-retry' });
     assert.equal((await api.read(task.id)).progress.phase, 'recomputing');
+    assert.equal((await api.notifications({ limit: 10 })).items.find(x => x.id === task.id).phase, 'recomputing');
     await finishChangeJobs({ jobs: [{ id: result.record.replacementJobId }] }, workerPorts);
     assert.equal((await api.read(task.id)).progress.phase, 'processed');
     assert.equal((await db.query("SELECT status FROM bsmoss_analysis.refresh_job WHERE workspace_id='w' AND id=$1", [deadId])).rows[0].status, 'dead');
@@ -168,6 +172,45 @@ export async function dataUpdateTaskCases(t, { db, adapterPool, ports, scope, up
     const changed = { ...human, async readVerifiedIdentity() { const i = await human.readVerifiedIdentity(); return ++identities > 1 ? { ...i, sub: 'changed-user' } : i; } };
     await assert.rejects(receivedDataUpdates(adapterPool, changed).list({ limit: 1 }), /permission_denied/);
   });
+  await t.test('message pages reconstruct real status and preserve exact cursor ordering without raw evidence', async () => {
+    const all = []; let after;
+    do {
+      const q = { limit: 2, ...(after ? { after } : {}) }, list = await api.list(q), messages = await api.notifications(q);
+      assert.equal(messages.next, list.next); assert.deepEqual(messages.items.map(x => x.id), list.items.map(x => x.id));
+      for (const item of messages.items) {
+        const detail = await api.read(item.id); assert.equal(item.phase, detail.progress.phase);
+        assert.deepEqual(item.results, detail.progress.results); assert.equal(item.publishesAvailability, false);
+        assert.equal('manifest' in item, false); assert.equal('requested_by' in item, false); assert.equal('failures' in item, false);
+      }
+      all.push(...messages.items.map(x => x.id)); after = messages.next;
+    } while (after);
+    assert.ok(all.length > 2); assert.equal(new Set(all).size, all.length);
+  });
+  await t.test('messages filter whole scopes before limit and never expose another workspace', async () => {
+    const narrow = { ...human, async readLocalGrant() { const g = await human.readLocalGrant(); return { ...g, scope: { ...g.scope, serviceIds: [] } }; } };
+    assert.deepEqual(await receivedDataUpdates(adapterPool, narrow).notifications({ limit: 1 }), { items: [], next: null });
+    const foreign = { ...human,
+      async readVerifiedIdentity() { return { ...await human.readVerifiedIdentity(), activeWorkspace: 'other' }; },
+      async readCoverage() { return { ...await human.readCoverage(), workspaceId: 'other' }; },
+      async readLocalGrant() { const g = await human.readLocalGrant(); return { ...g, workspaceId: 'other', scope: { ...g.scope, workspaceId: 'other' } }; } };
+    assert.deepEqual(await receivedDataUpdates(adapterPool, foreign).notifications({ limit: 1 }), { items: [], next: null });
+  });
+  await t.test('messages discard the complete response after grant loss during progress reconstruction', async () => {
+    let deny = false;
+    const guarded = { ...human, async readLocalGrant() { const g = await human.readLocalGrant(); return deny ? { ...g, permissions: [] } : g; } };
+    const intercepted = { async connect() { const c = await adapterPool.connect(); return { async query(sql, args) {
+      const r = await c.query(sql, args); if (sql.includes('input_refresh_receipt r ON')) deny = true; return r;
+    }, release(d) { c.release(d); } }; } };
+    await assert.rejects(receivedDataUpdates(intercepted, guarded).notifications({ limit: 2 }), /permission_denied/);
+    assert.equal(deny, true);
+  });
+  await t.test('messages require view permission and reject scope injection and noninteractive workers', async () => {
+    const noView = { ...human, async readLocalGrant() { return { ...await human.readLocalGrant(), permissions: ['metering.aggregate'] }; } };
+    await assert.rejects(receivedDataUpdates(adapterPool, noView).notifications({ limit: 1 }), /permission_denied/);
+    await assert.rejects(api.notifications({ limit: 1, workspaceId: 'other' }), /invalid_update_query/);
+    await assert.rejects(api.notifications({ limit: 11 }), /invalid_update_query/);
+    await assert.rejects(receivedDataUpdates(adapterPool, workerPorts).notifications({ limit: 1 }));
+  });
   await t.test('bounded discovery fails closed instead of presenting a truncated batch or false current state', async () => {
     const before = (await db.query('SELECT count(*)::int n FROM bsmoss_analysis.data_update_request')).rows[0].n;
     for (let i = 0; i < 32; i++) await append('bound-' + i);
@@ -176,6 +219,7 @@ export async function dataUpdateTaskCases(t, { db, adapterPool, ports, scope, up
   });
   await t.test('changed or paused configuration is explicit and cannot silently rebind historical task evidence', async () => {
     await register('2', { status: 'paused' }); const saved = await api.read(first.id); assert.equal(saved.configurationChanged, true);
+    assert.ok((await api.notifications({ limit: 10 })).items.every(item => item.configurationChanged));
     await assert.rejects(api.request({ partitionId: 'update-partition' }), /partition_paused/);
   });
 }

@@ -2,6 +2,7 @@ import { fingerprintOf } from "../aggregation/intervals.ts";
 import { jobIdentity } from "../aggregation/refresh-jobs.ts";
 import { reportScope } from "../reports/rules.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
+import type { UpdateDetail } from "./contracts.ts";
 
 export interface UpdateManifest {
   version: "received-data-update-v1";
@@ -28,7 +29,7 @@ export interface InputProgress { id: string; dispatched: boolean; state: "retry"
 export interface ResultProgress { id: string; status: "pending" | "leased" | "succeeded" | "dead"; failureCode: string | null; attempt?: number; leaseExpired?: boolean }
 // Counts describe actual ledger entries and jobs, never an estimated percentage.
 // "processed" does not publish a cross-domain usable version (a separate step).
-export function updateProgress(inputs: readonly InputProgress[], jobs: readonly ResultProgress[]) {
+export function updateProgress(inputs: readonly InputProgress[], jobs: readonly ResultProgress[]): UpdateDetail["progress"] {
   if (!inputs.length || inputs.length > 64 || jobs.length > 4096 || new Set(inputs.map(x => x.id)).size !== inputs.length || new Set(jobs.map(x => x.id)).size !== jobs.length ||
       inputs.some(x => ![null, "retry", "quarantined", "reopened"].includes(x.state) || typeof x.dispatched !== "boolean") ||
       jobs.some(x => !["pending", "leased", "succeeded", "dead"].includes(x.status))) throw Error("invalid_update_progress");

@@ -19,6 +19,10 @@ export function taskFromUrl(url: string) {
   if (!p.has("task")) return null;
   const id = p.get("task"); if (p.getAll("task").length !== 1 || !validTaskId(id)) throw Error("invalid_task_link"); return id;
 }
+export function updateReadError(e: unknown) {
+  if (e instanceof ReportClientError && [401, 403, 404, 409].includes(e.status)) return updateError(e);
+  return "\u6682\u65f6\u65e0\u6cd5\u67e5\u8be2\u4efb\u52a1\u72b6\u6001\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002";
+}
 export function taskHref(id: string) {
   if (!validTaskId(id)) throw Error("invalid_task_link"); return "/settings/operations/data-updates?task=" + id;
 }

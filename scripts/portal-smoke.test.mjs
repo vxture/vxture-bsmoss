@@ -29,7 +29,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
   await withServer(false,async url=>{
     await t.test('formal received-update tasks never allow anonymous reads or writes',async()=>{
       const id='a'.repeat(64);
-      for(const [path,method] of [['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
+      for(const [path,method] of [['/api/data-updates/notifications','GET'],['/api/data-updates','GET'],['/api/data-updates','POST'],['/api/data-updates/'+id,'GET'],['/api/data-updates/'+id+'/retry','POST']]) {
         const r=await fetch(url+path,{method,...(method==='POST'?{headers:{origin:url,'content-type':'application/json'},body:'{}'}:{})});
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }

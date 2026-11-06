@@ -41,7 +41,7 @@ export default function ProductChrome({ active, preview, children, identity, log
         {preview ? <StatusBadge tone="info" size="sm" className="hidden sm:inline-flex">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<div className="flex shrink-0 items-center gap-md">
-      <ProductHeaderTools />
+      <ProductHeaderTools authenticated={identity !== null} loginEnabled={loginEnabled} />
       <ProductAccount identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
     </div>} />}>
     <ProductWorkspace navigation={management && !mobile ? <ShellSidebarFrame mode={collapsed ? "collapsed" : "expanded"} className="min-h-0">

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Drawer, Icon, ShellIconButton, ShellIconGroup, ShellThemeToggle, useTheme } from "@vxture/design-system";
+import UpdateMessages from "./update-messages";
 
 // Console shell composition; product order is theme, messages, help, settings.
-export default function ProductHeaderTools() {
+export default function ProductHeaderTools({ authenticated = false, loginEnabled = false }: { authenticated?: boolean; loginEnabled?: boolean }) {
   const { theme, setMode } = useTheme();
   const [messagesOpen, setMessagesOpen] = useState(false);
   const buttonClass = "size-control-xl";
@@ -23,9 +24,9 @@ export default function ProductHeaderTools() {
         <Link href="/settings" aria-label={"\u914d\u7f6e\u7ba1\u7406"} title={"\u914d\u7f6e\u7ba1\u7406"}><Icon name="settings" size="sm" /></Link>
       </Button>
     </ShellIconGroup>
-    <Drawer open={messagesOpen} onClose={() => setMessagesOpen(false)} side="right" width="sm"
+    <Drawer open={messagesOpen} onClose={() => setMessagesOpen(false)} side="right" width="sm" className="max-w-full"
       title={"\u6d88\u606f"} closeLabel={"\u5173\u95ed\u6d88\u606f"}>
-      <p className="text-body-small text-muted-foreground">{"\u6d88\u606f\u901a\u9053\u5c1a\u672a\u63a5\u5165\u3002"}</p>
+      {messagesOpen && <UpdateMessages enabled={authenticated && loginEnabled} loginEnabled={loginEnabled} />}
     </Drawer>
   </>;
 }

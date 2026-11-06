@@ -9,7 +9,7 @@ import { jobScope, decodeJobCursor, encodeJobCursor } from "../supervision/jobs.
 import { assertReportScope, unionReportScopes } from "../reports/rules.ts";
 import { updateKey, updateManifest, updateProgress, type UpdateManifest, type ResultProgress } from "./tasks.ts";
 import { updateListQuery, type UpdateListQuery } from "./queries.ts";
-import type { UpdateSummary } from "./contracts.ts";
+import type { UpdateSummary, UpdateList, UpdateNotification, UpdateNotifications } from "./contracts.ts";
 
 type Operation = "aggregate" | "job_view" | "job_recover";
 // A request records already-received evidence for an approved worker partition.
@@ -77,8 +77,9 @@ export function receivedDataUpdates(pool: Pool, ports: AccessPorts) {
     return updateProgress(rows.map(row => ({ id: row.id, dispatched: !!row.manifest, state: row.state ?? null, failureCode: row.failure_code ?? null,
       revision: row.revision, retryAt: row.available_at?.toISOString() ?? null })), jobs);
   }
-  return Object.freeze({
-    async list(raw: UpdateListQuery) {
+  async function page(raw: UpdateListQuery, includeProgress: false): Promise<UpdateList>;
+  async function page(raw: UpdateListQuery, includeProgress: true): Promise<UpdateNotifications>;
+  async function page(raw: UpdateListQuery, includeProgress: boolean): Promise<UpdateList | UpdateNotifications> {
       const q = updateListQuery(raw), cursor = q.after ? decodeJobCursor(q.after) : null;
       return transaction("job_view", async (client, access, check) => {
         const s = access.scope;
@@ -95,9 +96,21 @@ export function receivedDataUpdates(pool: Pool, ports: AccessPorts) {
         const manifests = rows.map(row => { const m = manifest(row); assertReportScope(s, m.scope); return m; });
         const items: UpdateSummary[] = rows.slice(0, q.limit).map(row => ({ id: row.id, kind: "received_evidence", partitionId: row.partition_id, partitionRevision: row.partition_revision, createdAt: row.created_at.toISOString() }));
         const last = rows[q.limit - 1], next = rows.length > q.limit ? encodeJobCursor({ createdAt: last.created_cursor, jobId: last.id, status: "all" }) : null;
-        await check(unionReportScopes(s.workspaceId, manifests.map(m => m.scope))); return { items, next };
+        const notifications: UpdateNotification[] = [];
+        if (includeProgress) for (let i = 0; i < items.length; i++) {
+          const item = items[i], m = manifests[i], state = await progress(client, s.workspaceId, m);
+          const head = (await client.query("SELECT revision FROM bsmoss_integration.refresh_partition_head WHERE workspace_id=$1 AND id=$2", [s.workspaceId, m.partitionId])).rows[0];
+          notifications.push({ ...item, phase: state.phase, inputs: state.inputs, results: state.results,
+            configurationChanged: head?.revision !== m.partitionRevision, publishesAvailability: false });
+        }
+        // One snapshot and a final union-scope check cover the whole response.
+        await check(unionReportScopes(s.workspaceId, manifests.map(m => m.scope)));
+        return includeProgress ? { items: notifications, next } : { items, next };
       });
-    },
+  }
+  return Object.freeze({
+    list: (raw: UpdateListQuery) => page(raw, false),
+    notifications: (raw: UpdateListQuery) => page(raw, true),
     async request(raw: { partitionId: string }) {
       if (!raw || Object.keys(raw).join() !== "partitionId") throw Error("invalid_update_command");
       const { partitionId } = raw;
