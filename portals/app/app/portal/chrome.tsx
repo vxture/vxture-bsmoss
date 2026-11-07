@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MANAGEMENT_NAV_COOKIE, MANAGEMENT_GROUPS_COOKIE, saveManagementPreference } from "./management-preference";
-import { Drawer, ShellHeader, ShellHeaderDivider, ShellHeaderMark, ShellIconButton, ShellProductTitle,
+import { Drawer, ShellHeader, ShellHeaderDivider, ShellHeaderDomain, ShellHeaderMark, ShellIconButton, ShellProductTitle,
   ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
 import { portalDomain, portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher from "./launcher";
@@ -53,6 +53,12 @@ export default function ProductChrome({ active, preview, children, identity, log
           <ShellProductTitle name={<span className="block text-heading-1">{"\u89c2\u6f9c"}</span>} /></span>
         <span className="hidden truncate text-heading-2 text-muted-foreground lg:block">{"\u7ad9\u5740\u591a\u57df\u76d1\u7ba1\u5e73\u53f0"}</span>
       </a>
+      {management && <div className="flex min-w-0 items-center gap-xs">
+        <ShellHeaderDivider />
+        <ShellHeaderDomain className="text-heading-2 text-muted-foreground">
+          {current?.id === "settings" ? "\u914d\u7f6e\u7ba1\u7406" : current?.label ?? "\u914d\u7f6e\u7ba1\u7406"}
+        </ShellHeaderDomain>
+      </div>}
       {!management && <div className="flex min-w-0 items-center gap-xs">
         <span className="hidden sm:contents"><ShellHeaderDivider /></span>
         {regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
