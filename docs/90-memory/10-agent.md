@@ -1,5 +1,9 @@
 # 后续代理入口
 
+## Header标题字号收敛（2026-11-07）
+
+按用户要求，共用业务／配置header的“观澜”采用DS text-heading-1，系统名调整为“站址多域监管平台”并采用text-heading-3；默认18／14px，随DS字号偏好变化，保留品牌字体及系统名浅色。通过ShellProductTitle公共name槽应用，不覆盖DS内部样式或全局token。生产构建及实际预览三档字号、业务／配置页面和窄屏检查通过，证据artifacts/header-typography-qa/checks.json；独立地图header未改。仅本地交付，未push或外部部署。
+
 ## 配置导航全面整改（2026-11-07，用户当前批次）
 
 按console本机DS10/tokens3与本站DS15/tokens4逐项对照，确认同名尺寸／字号token变化造成32px导航行、28px图标中心、10px组名与64px轨道不匹配；本站所有组加线以及逐页重挂／effect恢复localStorage进一步造成间距与首帧跳动。共享design源码0033b60恢复40px导航行及导轨、32px分组行、默认12px组名／14px条目，三密度静态居中；补可访问名、关闭分组inert和可选服务端分组偏好。本站pnpm补丁固化原发布包修复，保持其他依赖锁定；/settings/layout保留唯一外壳，cookie服务端首帧恢复收起／分组，活动项按pathname，移动抽屉重开保留分组，移除重复组线和底部块。
