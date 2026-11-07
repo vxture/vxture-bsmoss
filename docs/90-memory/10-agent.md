@@ -2,7 +2,7 @@
 
 ## Header标题字号收敛（2026-11-07）
 
-按用户要求，共用业务／配置header的“观澜”采用DS text-heading-1，系统名调整为“站址多域监管平台”并采用text-heading-3；默认18／14px，随DS字号偏好变化，保留品牌字体及系统名浅色。通过ShellProductTitle公共name槽应用，不覆盖DS内部样式或全局token。生产构建及实际预览三档字号、业务／配置页面和窄屏检查通过，证据artifacts/header-typography-qa/checks.json；独立地图header未改。仅本地交付，未push或外部部署。
+按用户要求，共用业务／配置header的“观澜”采用DS text-heading-1，系统名调整为“站址多域监管平台”并采用text-heading-2；按用户最终调整默认18／16px，随DS字号偏好变化，保留品牌字体及系统名浅色。通过ShellProductTitle公共name槽应用，不覆盖DS内部样式或全局token。生产构建及实际预览三档字号、业务／配置页面和窄屏检查通过，证据artifacts/header-typography-qa/checks.json；独立地图header未改。仅本地交付，未push或外部部署。
 
 ## 配置导航全面整改（2026-11-07，用户当前批次）
 
