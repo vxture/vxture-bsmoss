@@ -21,7 +21,8 @@ export default function ProductHeaderTools({ authenticated = false, loginEnabled
         <a href="https://docs.vxture.com" target="_blank" rel="noopener noreferrer" aria-label={"\u5e2e\u52a9"} title={"\u5e2e\u52a9"}><Icon name="help" size="sm" /></a>
       </Button>
       <Button asChild variant="ghost" size="icon-md" className={linkClass + (management ? " bg-accent text-foreground" : "")}>
-        <Link href="/settings" aria-current={management ? "location" : undefined} aria-label={"\u914d\u7f6e\u7ba1\u7406"} title={"\u914d\u7f6e\u7ba1\u7406"}><Icon name="settings" size="sm" /></Link>
+        <Link href="/settings" target={management ? undefined : "_blank"} rel={management ? undefined : "noopener noreferrer"}
+          aria-current={management ? "location" : undefined} aria-label={"\u914d\u7f6e\u7ba1\u7406"} title={"\u914d\u7f6e\u7ba1\u7406"}><Icon name="settings" size="sm" /></Link>
       </Button>
     </ShellIconGroup>
     <Drawer open={messagesOpen} onClose={() => setMessagesOpen(false)} side="right" width="sm" className="max-w-full"
