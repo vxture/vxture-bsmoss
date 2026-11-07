@@ -2,7 +2,7 @@
 
 ## 配置header当前位置（2026-11-07）
 
-按用户确认，配置header在系统名称后使用DS ShellHeaderDivider与ShellHeaderDomain显示当前页面名称，管理首页显示“配置管理”；名称沿用导航current与pathname匹配，默认heading-2／16px浅色。小屏沿用隐藏长系统名，保留品牌及当前位置；页面正式标题保留，不叠加分组路径。
+按用户确认，配置header在系统名称后使用DS ShellHeaderDivider与ShellHeaderDomain显示当前页面名称，管理首页显示“配置管理”；名称沿用导航current与pathname匹配，按最新反馈采用text-body／14px、font-normal／400与text-content-tertiary辅助文字色。小屏沿用隐藏长系统名，保留品牌及当前位置；页面正式标题保留，不叠加分组路径。
 
 ## 配置header移除地域选择（2026-11-07）
 

@@ -55,7 +55,7 @@ export default function ProductChrome({ active, preview, children, identity, log
       </a>
       {management && <div className="flex min-w-0 items-center gap-xs">
         <ShellHeaderDivider />
-        <ShellHeaderDomain className="text-heading-2 text-muted-foreground">
+        <ShellHeaderDomain className="text-body font-normal text-content-tertiary">
           {current?.id === "settings" ? "\u914d\u7f6e\u7ba1\u7406" : current?.label ?? "\u914d\u7f6e\u7ba1\u7406"}
         </ShellHeaderDomain>
       </div>}
