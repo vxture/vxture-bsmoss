@@ -53,11 +53,11 @@ export default function ProductChrome({ active, preview, children, identity, log
           <ShellProductTitle name={<span className="block text-heading-1">{"\u89c2\u6f9c"}</span>} /></span>
         <span className="hidden truncate text-heading-2 text-muted-foreground lg:block">{"\u7ad9\u5740\u591a\u57df\u76d1\u7ba1\u5e73\u53f0"}</span>
       </a>
-      <div className="flex min-w-0 items-center gap-xs">
+      {!management && <div className="flex min-w-0 items-center gap-xs">
         <span className="hidden sm:contents"><ShellHeaderDivider /></span>
-        {!management && regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
+        {regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
         {preview ? <StatusBadge tone="info" size="sm" className="hidden sm:inline-flex">{"\u6f14\u793a"}</StatusBadge> : null}
-      </div>
+      </div>}
     </>} trailing={<div className="flex shrink-0 items-center gap-md">
       <ProductHeaderTools authenticated={identity !== null} loginEnabled={loginEnabled} management={management} />
       <ProductAccount preview={preview} identity={identity} loginEnabled={loginEnabled} consoleHref={consoleHref} />
