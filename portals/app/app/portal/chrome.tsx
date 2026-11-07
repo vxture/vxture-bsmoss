@@ -55,7 +55,7 @@ export default function ProductChrome({ active, preview, children, identity, log
       </a>
       <div className="flex min-w-0 items-center gap-xs">
         <span className="hidden sm:contents"><ShellHeaderDivider /></span>
-        {regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
+        {!management && regionPreference.catalog && <RegionSelector region={regionPreference.catalog} value={scope.value} onChange={scope.change} disabled={scope.pending} className="portal-header-region" />}
         {preview ? <StatusBadge tone="info" size="sm" className="hidden sm:inline-flex">{"\u6f14\u793a"}</StatusBadge> : null}
       </div>
     </>} trailing={<div className="flex shrink-0 items-center gap-md">

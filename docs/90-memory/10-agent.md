@@ -1,5 +1,9 @@
 # 后续代理入口
 
+## 配置header移除地域选择（2026-11-07）
+
+按用户要求，配置管理域header不再展示陕西省等区域选择；共用外壳按management隐藏RegionSelector，业务域继续使用已有地域选择与记忆。
+
 ## 业务进入配置管理（2026-11-07）
 
 按用户要求，业务header右侧齿轮入口以新标签页打开/settings，保留当前业务页面；配置域内齿轮仍在当前标签页导航。共用ProductHeaderTools按management区分，使用原生链接target及noopener noreferrer。
