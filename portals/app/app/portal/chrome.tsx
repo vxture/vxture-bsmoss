@@ -50,7 +50,7 @@ export default function ProductChrome({ active, preview, children, identity, log
         : <ProductLauncher active={current?.id ?? active} preview={preview} regionSelection={scope.value} />}
       <a href={regionLink("/", scope.value)} className="flex h-control-xl shrink-0 items-center gap-xs no-underline" aria-label={"\u89c2\u6f9c\u8fd0\u884c\u603b\u89c8"}>
         <span className="flex shrink-0 items-center gap-xs"><ShellHeaderMark src="/assets/brand/guanlan-mark.svg" />
-          <ShellProductTitle name={<span className="text-heading-1">{"\u89c2\u6f9c"}</span>} /></span>
+          <ShellProductTitle name={<span className="block text-heading-1">{"\u89c2\u6f9c"}</span>} /></span>
         <span className="hidden truncate text-heading-2 text-muted-foreground lg:block">{"\u7ad9\u5740\u591a\u57df\u76d1\u7ba1\u5e73\u53f0"}</span>
       </a>
       <div className="flex min-w-0 items-center gap-xs">
