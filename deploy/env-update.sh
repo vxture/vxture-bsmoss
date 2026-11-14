@@ -14,6 +14,15 @@ tmp="$(mktemp "$STACK_ROOT/etc/$CONFIG_KIND.$extension.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 cat >"$tmp"
 [[ -s $tmp ]] || { echo 'Empty runtime configuration refused' >&2; exit 1; }
+if [[ $CONFIG_KIND == stack ]] && grep -qx 'APP_BIND_HOST=tailnet' "$tmp"; then
+  tailnet_ip="$(tailscale ip -4)"
+  [[ $tailnet_ip =~ ^100\.([0-9]{1,3})\.[0-9]{1,3}\.[0-9]{1,3}$ ]] &&
+    ((10#${BASH_REMATCH[1]} >= 64 && 10#${BASH_REMATCH[1]} <= 127)) || {
+      echo 'A valid tailnet IPv4 address is required for the stack binding.' >&2
+      exit 1
+    }
+  sed -i "s/^APP_BIND_HOST=tailnet$/APP_BIND_HOST=$tailnet_ip/" "$tmp"
+fi
 if [[ $extension == env ]]; then
   grep -Eq '^[A-Z][A-Z0-9_]*=.+' "$tmp" || { echo 'Configuration has no values' >&2; exit 1; }
 else
