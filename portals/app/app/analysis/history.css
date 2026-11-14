@@ -1,7 +1,0 @@
-.history-trend {
-  block-size: calc(var(--space-6xl) * 3);
-}
-.history-date-input {
-  inline-size: var(--container-overlay-xs);
-  max-inline-size: 100%;
-}

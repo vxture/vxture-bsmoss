@@ -1851,3 +1851,9 @@ INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.intake
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.mappings.aggregate_impact.view','Inspect authorized current aggregate dependencies of mappings without rebuilding them'), ('admin.mappings.report_impact.view','Inspect authorized current report dependencies of mappings without regenerating them');
 
 INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.sources.position.preview','Preview authorized cross-revision received position without resuming or rebaselining');
+
+-- Operator identity configuration is independent of source and member access.
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.operators.view','Inspect workspace operator identities'),('admin.operators.edit','Edit workspace operator identity presentation');
+
+-- Runtime analysis parameter maintenance is independent of branding permissions.
+INSERT INTO local_authz.permission(perm_code,name) VALUES ('admin.analysis_rules.view','Inspect workspace analysis parameters'),('admin.analysis_rules.edit','Edit workspace runtime analysis parameters');

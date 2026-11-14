@@ -10,7 +10,7 @@ export default function CopyrightPage() {
   if (process.env.BSMOSS_PRODUCT_PREVIEW !== 'on') notFound();
   return <ProductWorkspace className="product-workspace-standalone"><main className="product-page-inset flex flex-col gap-lg bg-background text-foreground">
     <article className="flex min-w-0 flex-col gap-lg">
-      <PageHeading title={'\u5730\u56fe\u6765\u6e90\u4e0e\u7248\u6743\u58f0\u660e'} actions={<Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href="/product-preview">{'\u6253\u5f00\u7ad9\u7f51\u5730\u56fe'}</a></Button>} />
+      <PageHeading title={'\u5730\u56fe\u6765\u6e90\u4e0e\u7248\u6743\u58f0\u660e'} actions={<Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href="/product-preview">{'\u6253\u5f00\u7ad9\u7f51\u5168\u666f'}</a></Button>} />
       <PanelCard title={'\u6807\u51c6\u5e95\u56fe'} icon="file-text"><div className="flex flex-col gap-md text-body text-muted-foreground">
       <p><a className="text-primary underline underline-offset-4" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">{'\u00a9 OpenStreetMap contributors'}</a></p>
       <p>{'\u5730\u56fe\u6570\u636e\u6765\u81ea OpenStreetMap \u8d21\u732e\u8005\uff0c\u6309 Open Database License (ODbL) \u63d0\u4f9b\u3002\u6807\u51c6\u74e6\u7247\u4f7f\u7528 OpenStreetMap \u516c\u5171\u670d\u52a1\u3002'}</p>

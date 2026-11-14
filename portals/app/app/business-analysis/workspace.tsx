@@ -1,4 +1,6 @@
 "use client";
+import OperatorIdentity from "../portal/operator-identity";
+import {useOperatorNames} from "../portal/operator-identities";
 import { TOPIC_POLICY_TEXT as rules } from "../domains/business-parameters/presentation";
 import SaveLocalReport from "../reports/save-local";
 import CapacityPanel from './capacity-panel';
@@ -10,7 +12,9 @@ import {InvestigationReturn,useInvestigationLinks} from '../portal/investigation
 import {relatedDossierHref,relatedReviewHref} from '../portal/investigation-targets';
 import MetricRowsCard from "../portal/metric-rows-card";
 import { useRouter } from "next/navigation";
-import { ActionMenu, BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell } from "@vxture/design-system";
+import { BarChart, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DataTable, EmptyState, Icon, InputGroup, InputGroupAddon, InputGroupInput, MetricGrid, NativeSelect, Pagination, PanelCard, Progress, SegmentedControl, ShellPageContainer, StatusBadge, TableTitleCell } from "@vxture/design-system";
+import ActionMenu from '../portal/action-menu';
+import ResetButton from '../portal/reset-button';
 import type { BusinessDemo } from "./model";
 import { businessHref, businessMapHref, type BusinessScope } from "./links";
 import { n, pct, operatorNames } from "../sites/labels";
@@ -21,6 +25,7 @@ const levels = { normal: "\u5e73\u7a33", warning: "\u5173\u6ce8", critical: "\u4
 const metrics = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSeconds", label: "\u901a\u8bdd" }, { value: "sms", label: "\u77ed\u4fe1" }] as const;
 
 export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
+ const operatorNames=useOperatorNames();
  const router = useRouter(), [pending, start] = useTransition(), q = demo.scope;
  const [metric, setMetric] = useState<"bytes" | "voiceSeconds" | "sms">("bytes"), [search, setSearch] = useState(q.search);
  const [level, setLevel] = useState("all"), [page, setPage] = useState(1), [policy, setPolicy] = useState(false);
@@ -49,6 +54,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      {topicMode || q.period === "hour" ? <NativeSelect aria-label={"\u5206\u6790\u65f6\u6bb5"} wrapperClassName="w-auto" value={q.hour} onChange={e => navigate({ hour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0") + ":00"}</option>)}</NativeSelect> : null}
      {!topicMode && <SegmentedControl ariaLabel={"\u5206\u6790\u5468\u671f"} value={q.period} onChange={period => navigate({ period })} items={[...(demo.kind === "operator-usage" ? [{ value: "hour" as const, label: "\u65f6" }] : []), { value: "day", label: "\u65e5" }, { value: "week", label: "\u5468" }, { value: "month", label: "\u6708" }]} />}
      {demo.kind === "efficiency" && <SegmentedControl ariaLabel={"\u8fd0\u884c\u4e13\u9898"} value={q.topic} onChange={topic => navigate({ topic })} items={[{ value: "efficiency", label: "\u80fd\u6548\u89c2\u5bdf", icon: "lightning" }, { value: "power", label: "\u4f9b\u7535\u4fdd\u969c", icon: "gauge" }]} />}
+     <ResetButton variant="outline" disabled={pending} label={"\u91cd\u7f6e\u5206\u6790\u5468\u671f\u4e0e\u7b5b\u9009"} onClick={()=>{setSearch('');setLevel('all');setPage(1);navigate({period:'day',hour:18,operator:'all',search:'',selection:undefined});}}/>
      <div className="business-analysis-search ml-auto"><InputGroup><InputGroupAddon><Button type="submit" variant="ghost" size="icon-sm" aria-label={"\u67e5\u8be2\u5206\u6790"}><Icon name="search" size="sm" /></Button></InputGroupAddon><InputGroupInput aria-label={"\u5206\u6790\u7ad9\u5740\u68c0\u7d22"} placeholder={"\u7ad9\u540d / \u7f16\u7801"} value={search} onChange={e => setSearch(e.target.value)} /></InputGroup></div>
      {q.selection && <Button variant="ghost" onClick={() => navigate({ selection: undefined })}>{"\u6e05\u9664\u9009\u533a"}</Button>}
    </form>} />
@@ -81,7 +87,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
            { id: "efficiency", header: "kWh/GiB", cell: (r: BusinessDemo["metricRows"][number]) => r.value === null ? "\u2014" : n(r.value, 3) },
          ]),
        ]} rowActions={r => <ActionMenu label={"\u5206\u6790\u64cd\u4f5c\uff1a" + r.name} items={[{ id: "detail", label: "\u7ad9\u5740\u6863\u6848", icon: "building", onSelect: () => router.push(carry(relatedDossierHref(r.id,q,q.period,"runtime"))) }, { id: "map", label: "\u5730\u56fe\u5b9a\u4f4d", icon: "map-pin", onSelect: () => window.open(carry(businessMapHref(demo.kind, q, r.id)), "_blank", "noopener,noreferrer") }]} />} empty={<EmptyState title={"\u6682\u65e0\u5339\u914d\u7ad9\u5740"} />} />
-       <Pagination aria-label={"\u5206\u6790\u660e\u7ec6\u5206\u9875"} className="business-analysis-pagination pt-lg" page={current} pageCount={pages} countLabel={n(visible.length) + " \u5ea7\u7ad9\u5740"} onPageChange={setPage} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} />
+       <Pagination aria-label={"\u5206\u6790\u660e\u7ec6\u5206\u9875"} className="product-pagination business-analysis-pagination pt-lg" page={current} pageCount={pages} countLabel={n(visible.length) + " \u5ea7\u7ad9\u5740"} onPageChange={setPage} firstLabel={"\u9996\u9875"} previousLabel={"\u4e0a\u4e00\u9875"} nextLabel={"\u4e0b\u4e00\u9875"} lastLabel={"\u672b\u9875"} />
      </PanelCard>
    </> : u ? <>
      <div className="sm:hidden"><MetricRowsCard title={"\u7528\u91cf\u6982\u51b5"} icon="chart-bar" metrics={[{ key: "sites", label: "\u7269\u7406\u7ad9\u5740", value: n(u.physicalSites) }, { key: "bytes", label: "\u6d41\u91cf / GiB", value: n(Number(u.totals.bytes) / 1073741824, 2) }, { key: "voice", label: "\u901a\u8bdd / \u5c0f\u65f6", value: n(u.totals.voiceSeconds / 3600, 2) }, { key: "sms", label: "\u77ed\u4fe1 / \u6761", value: n(u.totals.sms) }]} /></div><div className="hidden sm:block"><MetricGrid columns={4} aria-label={"\u7ecf\u8425\u7528\u91cf\u6982\u51b5"} items={[
@@ -92,7 +98,7 @@ export default function BusinessWorkspace({ demo }: { demo: BusinessDemo }) {
      ]} /></div>
      <PanelCard title={"\u7528\u91cf\u8d8b\u52bf"} icon="chart-line-up" description={(q.period === "hour" ? demo.date + " \u00b7 24\u5c0f\u65f6" : demo.window) + " \u00b7 " + unit} className="min-w-0"><div className="flex justify-end pb-md"><SegmentedControl ariaLabel={"\u7528\u91cf\u6307\u6807"} value={metric} onChange={setMetric} items={metrics} /></div><BarChart data={trend} labelEvery={q.period === "month" ? 5 : 3} formatValue={v => n(v, 2)} peakLabel={"\u5cf0\u503c"} aria-label={"\u7ecf\u8425\u7528\u91cf\u8d8b\u52bf"} /></PanelCard>
      <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf\u4e0e\u670d\u52a1\u8d28\u91cf"} icon="users" description={"\u6309\u8fd0\u8425\u5546\u72ec\u7acb\u7edf\u8ba1 \u00b7 \u5171\u4eab\u7269\u7406\u7ad9\u5740\u53bb\u91cd"} className="min-w-0"><DataTable rows={u.rows} rowKey={r => r.code} columns={[
-       { id: "operator", header: "\u8fd0\u8425\u5546", cell: r => operatorNames[r.code] }, { id: "sites", header: "\u670d\u52a1\u7ad9\u5740", cell: r => n(r.sites) },
+       { id: "operator", header: "\u8fd0\u8425\u5546", cell: r => <OperatorIdentity code={r.code}/> }, { id: "sites", header: "\u670d\u52a1\u7ad9\u5740", cell: r => n(r.sites) },
        { id: "bytes", header: "\u6d41\u91cf / GiB", cell: r => n(Number(r.bytes) / 1073741824, 2) }, { id: "voice", header: "\u901a\u8bdd / \u5c0f\u65f6", cell: r => n(r.voiceSeconds / 3600, 2) },
        { id: "sms", header: "\u77ed\u4fe1 / \u6761", cell: r => n(r.sms) }, { id: "connection", header: "\u63a5\u901a\u7387", cell: r => ratio(r.connectionRate, operatorNames[r.code] + "\u63a5\u901a\u7387") }, { id: "load", header: "\u8d1f\u8f7d\u7387", cell: r => ratio(r.load, operatorNames[r.code] + "\u8d1f\u8f7d\u7387") },
      ]} empty={<EmptyState title={"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u670d\u52a1\u5173\u7cfb"} />} /></PanelCard>

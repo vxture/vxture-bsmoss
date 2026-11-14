@@ -1,4 +1,5 @@
 import { TOPIC_THRESHOLDS as T } from "../business-parameters/policies.ts";
+import {DEFAULT_CAPACITY_PARAMETERS,capacityMetricLevel,type CapacityParameters} from "../capacity/parameters.ts";
 export { TOPIC_POLICY } from "../business-parameters/policies.ts";
 import { TOPIC_POLICY } from "../business-parameters/policies.ts";
 import {siteHour,GIB} from './rules.ts';
@@ -8,12 +9,14 @@ export function parseTopic(value:string):TopicKind {
   if(!TOPIC_KINDS.includes(value as TopicKind))throw Error('invalid_topic');return value as TopicKind;
 }
 // Demonstration thresholds are explicit observations, never maintenance orders or diagnoses.
-export function evaluateTopic(kind:TopicKind,m:HourMetrics):TopicSignal {
-  if(kind==='capacity'){
+export function evaluateCapacity(m:Pick<HourMetrics,'used'|'capacity'|'attempts'|'connected'>,parameters:CapacityParameters=DEFAULT_CAPACITY_PARAMETERS):TopicSignal {
     const value=m.capacity>0?m.used/m.capacity*100:null,secondary=m.attempts>0?m.connected/m.attempts*100:null;
-    const level=value!==null&&value>=T.loadCriticalPct||secondary!==null&&secondary<T.connectionCriticalPct?'critical':value!==null&&value>=T.loadWarningPct||secondary!==null&&secondary<T.connectionWarningPct?'warning':value===null||secondary===null?'unknown':'normal';
+    const load=capacityMetricLevel(m.capacity>0?m.used/m.capacity:null,'load',parameters),connection=capacityMetricLevel(m.attempts>0?m.connected/m.attempts:null,'connection',parameters);
+    const level=load==='critical'||connection==='critical'?'critical':load==='warning'||connection==='warning'?'warning':load==='unknown'||connection==='unknown'?'unknown':'normal';
     return {level,value,secondary};
-  }
+}
+export function evaluateTopic(kind:TopicKind,m:HourMetrics,parameters:CapacityParameters=DEFAULT_CAPACITY_PARAMETERS):TopicSignal {
+  if(kind==='capacity')return evaluateCapacity(m,parameters);
   if(kind==='power')return {level:m.power==='battery'||m.temperature>=T.temperatureCriticalC?'critical':m.temperature>=T.temperatureWarningC?'warning':'normal',value:m.power==='battery'?1:0,secondary:m.temperature};
   const value=m.energyWh===null||m.bytes<=0?null:(m.energyWh/1000)/(m.bytes/GIB);
   return {level:value===null?'unknown':value>=T.intensityCritical?'critical':value>=T.intensityWarning?'warning':'normal',value,secondary:m.energyWh===null?null:m.energyWh/1000};

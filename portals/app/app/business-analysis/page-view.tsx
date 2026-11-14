@@ -1,9 +1,10 @@
+import ResetButton from "../portal/reset-button";
 import {readInvestigation} from '../portal/investigation-server';
 import {InvestigationProvider} from '../portal/investigation';
 import { rememberedRegionInput } from "../portal/region-preference";
 import PageHeading from "../portal/page-heading";
 import ProductFrame from "../portal/header";
-import { Button, PanelCard, ShellPageContainer } from "@vxture/design-system";
+import { PanelCard, ShellPageContainer } from "@vxture/design-system";
 import { businessDemo } from "./model";
 import { BUSINESS_ROUTES, type BusinessKind } from "./links";
 import BusinessWorkspace from "./workspace";
@@ -17,6 +18,6 @@ export default async function BusinessPage({ kind, searchParams }: { kind: Busin
   const {history,...context}=input;return <HistoryContextPage kind={kind} input={context}/>;
  }
  try { const extracted=readInvestigation(input);journey=extracted.journey;demo = businessDemo(kind, await rememberedRegionInput(extracted.input)); }
- catch { return <ProductFrame active={kind}><ShellPageContainer className="product-page-inset max-w-none"><PageHeading title={labels[kind]} /><div role="alert"><PanelCard title={"\u5206\u6790\u7b5b\u9009\u65e0\u6548"} icon="search"><Button asChild><a href={BUSINESS_ROUTES[kind]}>{"\u91cd\u7f6e\u5206\u6790\u8303\u56f4"}</a></Button></PanelCard></div></ShellPageContainer></ProductFrame>; }
+ catch { return <ProductFrame active={kind}><ShellPageContainer className="product-page-inset max-w-none"><PageHeading title={labels[kind]} /><div role="alert"><PanelCard title={"\u5206\u6790\u7b5b\u9009\u65e0\u6548"} icon="search"><ResetButton href={BUSINESS_ROUTES[kind]} label={"\u91cd\u7f6e\u5206\u6790\u8303\u56f4"} variant="outline"/></PanelCard></div></ShellPageContainer></ProductFrame>; }
  return <ProductFrame active={kind} preview><InvestigationProvider journey={journey}><BusinessWorkspace key={JSON.stringify(demo.scope)} demo={demo} /></InvestigationProvider></ProductFrame>;
 }

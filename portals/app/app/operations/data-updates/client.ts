@@ -1,5 +1,9 @@
 import { ReportClientError } from "../../reports/client";
 import { validTaskId } from "../../domains/data-updates/contracts";
+import {formatDataTime} from "../../domains/data-updates/rules";
+// PostgreSQL task timestamps retain microseconds in transport and cursor keys.
+// Only their seconds-resolution display is normalized here.
+export function taskTime(value:string){return formatDataTime(value.replace(/(\.\d{3})\d{3}Z$/, "$1Z"));}
 export const phases = { dispatching: "\u6b63\u5728\u5904\u7406\u589e\u91cf", recomputing: "\u6b63\u5728\u91cd\u7b97", failed: "\u9700\u8981\u5904\u7f6e", processed: "\u5904\u7406\u5b8c\u6210" };
 export const failures: Record<string, string> = {
   serialization_conflict: "\u5e76\u53d1\u51b2\u7a81", database_unavailable: "\u5b58\u50a8\u6682\u4e0d\u53ef\u7528", capacity_limit: "\u8d85\u51fa\u5904\u7406\u5bb9\u91cf",

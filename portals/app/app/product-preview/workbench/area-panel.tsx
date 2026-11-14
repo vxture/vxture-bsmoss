@@ -1,4 +1,5 @@
 'use client';
+import {useOperatorNames} from "../../portal/operator-identities";
 import {useState} from 'react';
 import {parseSelection,serializeSelection,selectionLabel} from '../../domains/map-demo/geometry.ts';
 import type {CircleSelection} from '../../domains/map-demo/types.ts';
@@ -18,6 +19,7 @@ function CircleScope({selection}:{selection:CircleSelection}) {
   return <div className="mw-circle-scope"><form onSubmit={e=>{e.preventDefault();apply(Number(radius));}}><span>{'\u534a\u5f84'}</span><input aria-label={'\u5706\u5f62\u9009\u533a\u534a\u5f84'} type="number" min="0.01" max="500" step="0.001" required value={radius} onChange={e=>{setRadius(e.target.value);setInvalid(false);}}/><small>km</small><button type="submit">{'\u5e94\u7528'}</button><div>{[1,3,5,10].map(km=><button type="button" key={km} onClick={()=>apply(km)}>{km+' km'}</button>)}</div></form><small>{selection.center.map(v=>v.toFixed(5)).join(' / ')+' \u00b7 WGS84'}</small>{invalid&&<small role="alert">{'\u8bf7\u4f7f\u7528 0.01\u2014500 km \u7684\u6709\u6548\u534a\u5f84'}</small>}</div>;
 }
 export default function AreaPanel({snapshot,loading,error,onPick,onRetry}:{snapshot:MapSnapshot|null;loading:boolean;error:boolean;onPick:(id:string)=>void;onRetry:()=>void}) {
+ const OP_NAMES=useOperatorNames(false);
   const state=useWorkbench();
   if(!state.selection||!state.selectionOpen||state.drawing)return null;
   const area=snapshot?.area,summary=snapshot?.summary;

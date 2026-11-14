@@ -1,0 +1,33 @@
+/* Presentation stays left; query/actions align right and wrap as whole controls. */
+.site-analysis-page :is(.site-analysis-table-tools,.site-analysis-table-tools-single-line,.evidence-summary-tools,.service-matrix-tools,.judgment-tools).site-analysis-action-row {
+ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+ position:relative; min-width:0; max-width:100%; height:auto;
+ min-height:var(--space-control-xl); max-height:none; padding:0;
+ gap:var(--space-sm) var(--space-md); overflow:visible;
+}
+.site-analysis-page .site-analysis-table-filters {
+ display:flex; align-items:center; flex-wrap:wrap; min-width:0; max-width:100%;
+ gap:var(--space-sm) var(--space-md);
+}
+.site-analysis-page .site-analysis-search,
+.site-analysis-page .evidence-summary-tool-actions {
+ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end;
+ position:relative; min-width:0; max-width:100%; width:auto;
+ flex:0 1 auto; margin-inline-start:auto; gap:var(--space-sm);
+}
+.site-analysis-page .site-analysis-search .site-analysis-search-field {
+ flex:0 1 auto; width:var(--container-overlay-md); max-width:100%; min-width:0;
+}
+.site-analysis-page .site-analysis-search > :is(button,[data-slot=button]) { flex-shrink:0; }
+.site-analysis-page :is(.site-analysis-table-tools,.site-analysis-table-tools-single-line,.evidence-summary-tools,.service-matrix-tools,.judgment-tools) [data-slot=button] {
+ height:var(--space-control-xl); min-height:var(--space-control-xl); max-height:var(--space-control-xl);
+ padding-block:0; padding-inline:var(--space-md); border-radius:var(--radius-md);
+ font-size:var(--body-font-size); line-height:var(--body-line-height);
+}
+.site-analysis-page :is(.site-analysis-table-tools,.site-analysis-table-tools-single-line,.evidence-summary-tools,.service-matrix-tools,.judgment-tools) [data-slot=button][data-size^=icon] {
+ width:var(--space-control-xl); min-width:var(--space-control-xl); padding:0;
+}
+@media (max-width:47.999rem) {
+ .site-analysis-page .site-analysis-search { flex-basis:100%; }
+ .site-analysis-page .site-analysis-search .site-analysis-search-field { flex:1 1 100%; width:100%; }
+}

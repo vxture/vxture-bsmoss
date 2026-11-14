@@ -1,4 +1,5 @@
 "use client";
+import {useOperatorNames} from "../portal/operator-identities";
 import {useState} from 'react';
 import {BarChart,Button,DataTable,DetailList,DetailRow,EmptyState,NativeSelect,PanelCard,Progress,SegmentedControl,StatusBadge,TableTitleCell} from '@vxture/design-system';
 import MetricRowsCard from '../portal/metric-rows-card';
@@ -16,6 +17,7 @@ function Ratio({value,label}:{value:number|null;label:string}){
  return <div className="flex min-w-0 flex-col gap-xs"><span className="text-body-small tabular-nums text-muted-foreground">{pct(value)}</span>{value!==null&&<Progress value={value*100} aria-label={label}/>}</div>;
 }
 export default function CapacityPanel({data,q,region,pending,navigate}:{data:CapacityAnalysis;q:BusinessScope;region:RegionDefinition;pending:boolean;navigate:(patch:Partial<BusinessScope>)=>void}){
+ const operatorNames=useOperatorNames();
  const [view,setView]=useState<'regions'|'operators'>('regions'),[metric,setMetric]=useState<Metric>('attention'),[selected,setSelected]=useState('');
  const [evidenceHour,setEvidenceHour]=useState(q.hour);
  const {carry}=useInvestigationLinks(businessHref('capacity',q));
@@ -44,7 +46,7 @@ export default function CapacityPanel({data,q,region,pending,navigate}:{data:Cap
    <DetailList columns={3}>
     <DetailRow label={'\u9ad8\u8d1f\u8f7d\u7ad9\u5740'}>{n(total.highLoad)+' \u5ea7 \u00b7 \u8d1f\u8f7d \u226585%'}</DetailRow>
     <DetailRow label={'\u4f4e\u63a5\u901a\u7ad9\u5740'}>{n(total.lowConnection)+' \u5ea7 \u00b7 \u63a5\u901a\u7387 <98%'}</DetailRow>
-    <DetailRow label={'\u4e24\u9879\u540c\u65f6\u547d\u4e2d'}>{n(total.both)+' \u5ea7 \u00b7 \u4e0d\u91cd\u590d\u8ba1\u5165\u7efc\u5408\u5173\u6ce8'}</DetailRow>
+    <DetailRow label={'\u53cc\u547d\u4e2d'}>{n(total.both)+' \u5ea7 \u00b7 \u4e0d\u91cd\u590d\u8ba1\u5165\u7efc\u5408\u5173\u6ce8'}</DetailRow>
     <DetailRow label={'\u5bb9\u91cf\u53ef\u8bc4\u4f30'}>{n(total.capacityKnown)+' / '+n(total.sites)+' \u5ea7'}</DetailRow>
     <DetailRow label={'\u63a5\u901a\u53ef\u8bc4\u4f30'}>{n(total.connectionKnown)+' / '+n(total.sites)+' \u5ea7'}</DetailRow>
     <DetailRow label={'\u7efc\u5408\u5173\u6ce8'}>{n(total.attention)+' \u5ea7 \u00b7 \u5404\u7ef4\u5ea6\u8986\u76d6\u72ec\u7acb\u8ba1\u7b97'}</DetailRow>

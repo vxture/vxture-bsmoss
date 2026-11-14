@@ -8,6 +8,7 @@
     "node": ">=22.18"
   },
   "scripts": {
+    "seed:tower-history": "tsx scripts/seed-tower-history.ts",
     "test": "node scripts/test.mjs",
     "test:coverage": "node scripts/test.mjs --coverage",
     "type-check:all": "tsc --noEmit && pnpm --filter @bsmoss/app type-check",
@@ -49,7 +50,7 @@
       "react-resizable-panels": "4.12.3"
     },
     "patchedDependencies": {
-      "@vxture/design-system@15.0.0": "patches/@vxture__design-system@15.0.0.patch"
+      "@vxture/design-system@15.6.1": "patches/@vxture__design-system@15.6.1.patch"
     }
   }
 }

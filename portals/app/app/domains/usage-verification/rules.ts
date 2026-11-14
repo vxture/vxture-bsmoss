@@ -1,3 +1,4 @@
+import {DEFAULT_VERIFICATION_PARAMETERS,verificationMinimum,verificationParameters,type VerificationParameters} from "./parameters";
 import { VERIFICATION_POLICY_VERSION, ZERO_RUN_MIN_HOURS } from "../business-parameters/policies";
 export { VERIFICATION_POLICY_VERSION, ZERO_RUN_MIN_HOURS } from "../business-parameters/policies";
 import { evaluateWave, WAVE_POLICY, type WaveEvidence } from "../map-demo/station-period-rules";
@@ -23,7 +24,8 @@ function validateSlot(slot: ReferenceSlot) {
     !["verified", "missing", "pending", "rejected"].includes(slot.quality) ||
     (slot.value !== null && !counter.test(slot.value)) || (slot.quality === "verified" && slot.value === null)) throw Error("invalid_review_sample");
 }
-export function deriveUsageFindings(input: readonly ReviewWindow[], metric: BusinessMetric): UsageFinding[] {
+export function deriveUsageFindings(input: readonly ReviewWindow[], metric: BusinessMetric, parameters:VerificationParameters=DEFAULT_VERIFICATION_PARAMETERS): UsageFinding[] {
+  const policy=verificationParameters(parameters);
   if (!(metric in WAVE_POLICY.minimum) || !Object.hasOwn(WAVE_POLICY.minimum, metric)) throw Error("invalid_review_metric");
   const sorted = [...input].sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   const seen = new Set<number>();
@@ -40,7 +42,7 @@ export function deriveUsageFindings(input: readonly ReviewWindow[], metric: Busi
     }
     const usable = w.expected && w.due && w.complete && w.quality === "verified" && w.value !== null;
     const values = w.references.filter(r => r.quality === "verified" && r.complete && r.value !== null).map(r => r.value!);
-    return { ...w, usable, wave: usable ? evaluateWave(w.value!, values, WAVE_POLICY.minimum[metric]) : null };
+    return { ...w, usable, wave: usable ? evaluateWave(w.value!, values, verificationMinimum(policy,metric),policy.relativeBps) : null };
   });
   const result: UsageFinding[] = [], consumed = new Set<string>();
   const add = (kind: FindingKind, windows: AssessedWindow[]) => {

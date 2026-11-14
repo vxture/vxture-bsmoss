@@ -1,4 +1,5 @@
 'use client';
+import {useOperatorNames} from "../../portal/operator-identities";
 import BusinessPageLink from './business-page-link';
 import CalendarPanel from './calendar-panel.tsx';
 import PeriodSelector from './period-selector.tsx';
@@ -20,6 +21,7 @@ export default function OperatorPanel({region}:{region:RegionDefinition}) {
   return state.usagePeriod==='week'||state.usagePeriod==='month'?<CalendarPanel mode="usage" region={region}/>:<DailyOperatorPanel region={region}/>;
 }
 function DailyOperatorPanel({region}:{region:RegionDefinition}) {
+ const OP_NAMES=useOperatorNames(false);
   const state=useWorkbench();
   const [snapshot,setSnapshot]=useState<OperatorUsage|null>(null),[error,setError]=useState(false),[revision,setRevision]=useState(0);
   const [comparisonOpen,setComparisonOpen]=useState(false);

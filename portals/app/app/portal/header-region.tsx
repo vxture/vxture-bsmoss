@@ -23,7 +23,7 @@ export function useHeaderRegion(preference: RegionPreference) {
     // Canonical URLs make history, copied links and new tabs unambiguous.
     if (!params.has("city") || !params.has("county")) {
       const next = new URLSearchParams(query); next.set("city", value.cityId); next.set("county", value.countyId);
-      router.replace(path + "?" + next, { scroll: false });
+      router.replace(path + "?" + next + window.location.hash, { scroll: false });
     }
   }, [catalog, aggregate, valid, preference.cookieName, path, query, value.cityId, value.countyId, router]); // eslint-disable-line react-hooks/exhaustive-deps
   const change = (next: RegionSelection) => {

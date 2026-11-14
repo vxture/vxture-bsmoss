@@ -48,3 +48,21 @@
 用户进一步明确launcher图案太小，外轮廓32px保持，内部恢复原尺寸。ProductLauncher保留size-control-xl，使用官方Icon lg子节点恢复24px；本段覆盖上一节launcher图案16px的结论，四工具仍为32px外框和16px图案。
 
 生产build含类型通过tmp/launcher-icon-24-build.log。浏览器实际测量常态/展开态均为32×32px、内部SVG24×24px，面板打开及Escape关闭正常；四工具实测32/16。390px窄屏文档宽390px，无横溢。截图及测量证据位于artifacts/launcher-icon-24-qa，临时页已关闭、视口已恢复。本次仅尺寸修正，不新增镜像测试或重复业务验证。
+
+## 第二版精修 Logo 全站采用（2026-11-10）
+
+用户确认采用第二版精修图形，产品名称继续使用“观澜”。共用门户与配置页头使用官方 ShellHeaderMark，24px 图形采用对应光学校正版；亮色与暗色图形由 DS 主题类直接切换，兼容系统外观与站内外观不一致的情况，无需等待组件水合后换图。地图及保留的旧版预览品牌位统一使用暗色版。
+
+站点图标使用16px光学校正版SVG并支持浏览器明暗配色，另提供16/32/48px ICO兼容版本、180px Apple touch图标。品牌资源使用带版本号地址刷新缓存，原 guanlan-mark.svg 地址保留并更新为第二版自动配色图形。标准明暗、单色及反白SVG统一放在 public/assets/brand，第一版与已确认设计原稿继续保留在 artifacts 中。
+
+本次只更新品牌标识与图标声明；沿用现有产品名称、导航和官方组件尺寸。
+
+验证：最终生产构建与类型检查通过；63项既有HTTP检查通过。实际本地服务28组浏览器检查覆盖门户、配置、地图、旧版预览、桌面与手机、站内主题和系统主题相反时的显示、图标资源及设计原稿保留，未发现运行错误或页面横向溢出。证据见 artifacts/brand-adoption-qa/checks.json 与截图；服务已重启应用最终构建。
+
+地图可见性补正：原侧栏品牌位被地图HUD样式隐藏；现将共用ProductBrandMark放入左上角“观澜”首页链接，移除隐藏的重复品牌位。构建与类型检查通过，地图加载后在390/475/577/846/1440宽度核验Logo可见、区域与操作无重叠、面板切换保持显示、返回首页正常，共16组浏览器检查通过。证据：artifacts/map-brand-visible-qa。
+
+## 全屏工具（2026-11-11）
+
+用户要求全屏位于主题之后第二位。ProductHeaderTools 接入官方 ShellFullscreenToggle，沿用现有 FullscreenProvider 与32px按钮尺寸；工具顺序为主题、全屏、消息、帮助、配置，用户面板仍独立。此段覆盖此前四按钮工具组的数量与顺序说明，品牌继续采用当前塔服研判名称及已确认第二版图形。
+
+构建及类型检查通过 tmp/resource-compact-delivery-build.log。843实测工具顺序正确，390／475无文档横向溢出；IAB可验证全屏／退出全屏按钮状态，但不提供原生requestFullscreen API，未宣称实际原生全屏验证通过。证据 artifacts/resource-compact-qa。

@@ -1,0 +1,55 @@
+.energy-workspace { min-height:100%; height:auto; }
+.energy-body { display:flex; flex-direction:column; min-width:0; gap:var(--space-lg); }
+.energy-period { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:var(--space-xs) var(--space-md); min-width:0; max-width:100%; text-align:end; font-variant-numeric:tabular-nums; }
+@media (max-width:47.999rem) {
+ .energy-trend-panel > :first-child > .grid > .col-start-3 { grid-column:1 / -1; grid-row:3; min-width:0; margin-block-start:var(--space-xs); }
+}
+.energy-allocation-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:var(--space-lg); }
+.energy-allocation-row > * { min-width:0; }
+.energy-trend-panel > :last-child { display:flex; flex-direction:column; gap:var(--space-lg); min-height:min-content; color:var(--color-foreground); }
+.energy-trend-panel .service-chart { display:flex; flex-direction:column; gap:var(--space-sm); min-width:0; flex:1; }
+.energy-trend-panel .service-chart-plot { flex:1; min-height:calc(var(--space-control-3xl) * 6); width:100%; }
+.energy-trend-panel .service-legend-marker { display:inline-block; width:var(--space-sm); height:var(--space-sm); }
+.energy-trend-panel .service-legend-item { height:32px; }
+.energy-trend-total { display:inline-flex; align-items:baseline; gap:var(--space-xs); margin-inline-start:auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.energy-composition-total small,.energy-allocation-heading small,.energy-destinations small { font-size:var(--body-small-font-size); font-weight:var(--font-weight-normal); color:var(--color-muted-foreground); }
+.energy-destination-panel { container:energy-composition / inline-size; }
+.energy-destination-panel > :last-child { display:flex; flex-direction:column; gap:var(--space-lg); min-height:min-content; color:var(--color-foreground); }
+.energy-composition-total { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); padding-bottom:var(--space-md); border-bottom:var(--border-width-thin) solid var(--color-border); }
+.energy-composition-total strong { font-variant-numeric:tabular-nums; }
+.energy-allocation-group { display:flex; flex-direction:column; gap:var(--space-md); }
+.energy-allocation-group + .energy-allocation-group { border-top:var(--border-width-thin) solid var(--color-border); padding-top:var(--space-lg); }
+.energy-allocation-heading { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-sm); }
+.energy-allocation-heading > strong { margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.energy-composition { display:flex; height:var(--space-sm); overflow:hidden; background:var(--color-muted); }
+.energy-composition > span { height:100%; flex-shrink:0; }
+.energy-destinations { display:flex; flex-direction:column; gap:var(--space-sm); }
+.energy-destinations > div { display:flex; align-items:center; justify-content:space-between; gap:var(--space-md); }
+.energy-destinations dt { display:flex; align-items:center; gap:var(--space-sm); }
+.energy-destinations dd { margin:0; font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:var(--font-weight-semibold); }
+.energy-marker { display:inline-block; width:var(--space-sm); height:var(--space-sm); flex-shrink:0; }
+.energy-customer-panel > :last-child { min-width:0; color:var(--color-foreground); }
+.energy-export { height:32px; min-height:32px; }
+.energy-customer-table { min-width:0; overflow-x:auto; overflow-y:visible; }
+.energy-customer-table > div { max-height:none; overflow-y:visible; }
+.energy-customer-table table { min-width:42rem; table-layout:fixed; }
+.energy-customer-table :is(thead,th) { background:transparent; }
+.energy-customer-table th:first-child { width:18%; }
+.energy-customer-table th:nth-child(2) { width:30%; }
+.energy-customer-table th:nth-child(3) { width:24%; }
+.energy-customer-table th:last-child { width:64px; }
+.energy-customer-table tbody tr { cursor:pointer; }
+.energy-customer-table .energy-customer-name { height:auto; min-height:var(--space-control-3xl); padding-inline:0; gap:var(--space-md); justify-content:flex-start; }
+.energy-customer-table .energy-customer-name:is(:hover,:active) { background:transparent; }
+.energy-customer-total { display:flex; flex-direction:column; gap:var(--space-xs); }
+.energy-customer-breakdown { display:flex; flex-direction:column; gap:var(--space-xs); }
+.energy-customer-composition-heading { display:inline-flex; align-items:baseline; gap:var(--space-sm); white-space:nowrap; }
+.energy-customer-measured { color:var(--color-chart-1); }
+.energy-customer-allocated { color:var(--color-foreground); }
+@container energy-composition (max-width:24rem) {
+ .energy-composition-total strong { width:100%; text-align:right; }
+ .energy-allocation-heading > strong { flex-basis:100%; text-align:right; }
+ .energy-destinations > div { flex-wrap:wrap; gap:var(--space-xs); }
+ .energy-destinations dd { margin-inline-start:auto; }
+}
+@media (max-width:47.999rem) { .energy-allocation-row { grid-template-columns:minmax(0,1fr); } }

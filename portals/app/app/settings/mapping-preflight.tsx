@@ -31,9 +31,9 @@ export default function MappingPreflightForm({ record: r, onForbidden }: { recor
     } catch { if (!controller.signal.aborted) setError("\u9884\u68c0\u6682\u4e0d\u53ef\u7528\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002"); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
-  const field = (label: string, value: string, update: (v: string) => void, maxLength: number) => <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{label}</span><Input value={value} maxLength={maxLength} required onChange={e => { invalidate(); update(e.target.value); }} /></label>;
+  const field = (label: string, value: string, update: (v: string) => void, maxLength: number) => <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{label}</span><Input className="h-control-xl text-body" value={value} maxLength={maxLength} required onChange={e => { invalidate(); update(e.target.value); }} /></label>;
   return <section className="flex min-w-0 flex-col gap-lg border-t border-dashed border-border pt-lg">
-    <div className="flex flex-wrap items-center justify-between gap-md"><h3 className="text-label font-medium">{"\u53d8\u66f4\u9884\u68c0"}</h3><Button variant="outline" onClick={() => { invalidate(); setOpen(!open); }} aria-expanded={open}>{open ? "\u6536\u8d77\u9884\u68c0" : "\u9884\u68c0\u6709\u6548\u671f"}</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-md"><h3 className="text-label font-medium">{"\u53d8\u66f4\u9884\u68c0"}</h3><Button className="h-control-xl text-body" variant="outline" onClick={() => { invalidate(); setOpen(!open); }} aria-expanded={open}>{open ? "\u6536\u8d77\u9884\u68c0" : "\u9884\u68c0\u6709\u6548\u671f"}</Button></div>
     <p className="text-body-small text-muted-foreground">{"\u73b0\u6709\u6620\u5c04\u4ec5\u9884\u68c0\u6709\u6548\u671f\u8c03\u6574\uff0c\u7248\u672c\u6309\u6cbb\u7406\u7b56\u7565\u9012\u589e\u4e00\u4f4d\u3002\u6765\u6e90\u3001\u5916\u90e8\u5bf9\u8c61\u4e0e\u5173\u8054\u76ee\u6807\u4fdd\u6301\u4e0d\u53d8\u3002\u9884\u68c0\u4e0d\u4fdd\u5b58\u6216\u751f\u6548\uff0c\u9700\u8981\u72ec\u7acb\u9884\u68c0\u6743\u9650\u3002"}</p>
     {open && <><form onSubmit={preview} className="flex min-w-0 flex-col gap-lg" aria-label={"\u6620\u5c04\u53d8\u66f4\u9884\u68c0"}>
       <p className="break-all text-body-small text-muted-foreground">{"\u7248\u672c v" + r.version + " \u2192 v" + nextVersion}</p>
@@ -43,7 +43,7 @@ export default function MappingPreflightForm({ record: r, onForbidden }: { recor
       {field("\u53d8\u66f4\u4f9d\u636e\u5f15\u7528", reference, setReference, 2048)}
       {field("\u4f9d\u636e\u539f\u4ef6 SHA-256", sha256, setSha256, 64)}
       <p className="text-body-small text-muted-foreground">{"\u4f9d\u636e\u4e0e\u6458\u8981\u4ec5\u4f5c\u672c\u6b21\u58f0\u660e\uff0c\u672a\u9a8c\u771f\u3001\u672a\u6279\u51c6\uff0c\u4e0d\u5b58\u5165\u6d4f\u89c8\u5668\u6216\u914d\u7f6e\u5e93\u3002"}</p>
-      <Button type="submit" className="self-start" disabled={busy || nextVersion.length > 30}>{busy ? "\u6b63\u5728\u9884\u68c0" : "\u6267\u884c\u9884\u68c0"}</Button>
+      <Button type="submit" className="self-start h-control-xl text-body" disabled={busy || nextVersion.length > 30}>{busy ? "\u6b63\u5728\u9884\u68c0" : "\u6267\u884c\u9884\u68c0"}</Button>
       {nextVersion.length > 30 && <p role="alert" className="text-body-small text-danger-text">{"\u6620\u5c04\u7248\u672c\u5df2\u8fbe\u4e0a\u9650\uff0c\u9700\u8981\u53d7\u5ba1\u5904\u7406\u3002"}</p>}
     </form>{error && <p role="alert" className="text-body-small text-danger-text">{error}</p>}
     {result && <div role="status" className="flex min-w-0 flex-col gap-lg rounded-lg border border-border p-lg">

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {analyzeCapacity,capacityObservation,summarizeCapacity,capacityShares} from './capacity-rules';
+import {analyzeCapacity,capacityObservation,summarizeCapacity,capacityShares,capacityMetricLevel} from './capacity-rules';
 import {DEMO_SITES} from './resources';
 import {siteHour} from './rules';
 import {parseMapQuery,selectSites,queryMap} from './service';
@@ -9,6 +9,21 @@ import type {HourMetrics} from './types';
 const query=(p='')=>parseMapQuery(new URLSearchParams('topic=capacity&'+p));
 const counterKeys=['used','capacity','attempts','connected','failed'] as const;
 const metric=(patch:Partial<HourMetrics>)=>({...siteHour(DEMO_SITES[0],18),...patch});
+
+test('capacity colors follow inclusive load and exclusive connection thresholds; severity counts partition each signal',()=>{
+ for(const [value,level] of [[0.8499,'normal'],[0.85,'warning'],[0.9499,'warning'],[0.95,'critical'],[1.1,'critical'],[null,'unknown']] as const)assert.equal(capacityMetricLevel(value,'load'),level);
+ for(const [value,level] of [[0.98,'normal'],[0.9799,'warning'],[0.95,'warning'],[0.9499,'critical'],[null,'unknown']] as const)assert.equal(capacityMetricLevel(value,'connection'),level);
+ const result=summarizeCapacity([
+  metric({capacity:100,used:85,attempts:100,connected:95}),
+  metric({capacity:100,used:95,attempts:100,connected:94}),
+  metric({capacity:100,used:90,attempts:100,connected:98}),
+  metric({capacity:0,used:0,attempts:100,connected:94}),
+  metric({capacity:0,used:0,attempts:0,connected:0})
+ ]);
+ assert.deepEqual(result.levels,{highLoad:{warning:2,critical:1},lowConnection:{warning:1,critical:2},both:{warning:1,critical:1},attention:{warning:2,critical:2}});
+ for(const key of ['highLoad','lowConnection','both','attention'] as const)assert.equal(result.levels[key].warning+result.levels[key].critical,result[key]);
+ assert.equal(result.attention,4);assert.equal(result.unknown,1);
+});
 
 test('capacity ratios weight integer counters; failure reasons overlap and unknown coverage stays separate',()=>{
  const a=metric({capacity:100,used:90,attempts:100,connected:94}),b=metric({capacity:900,used:90,attempts:900,connected:900});

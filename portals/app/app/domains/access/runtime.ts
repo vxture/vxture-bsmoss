@@ -1,3 +1,11 @@
+import {verificationParameterService} from "../usage-verification/parameter-service";
+import {verificationParameterStore} from "../usage-verification/parameter-store";
+import {monitoringParameterService} from "../monitoring/parameter-service";
+import {capacityParameterService} from "../capacity/parameter-service";
+import {capacityParameterStore} from "../capacity/parameter-store";
+import {monitoringParameterStore} from "../monitoring/parameter-store";
+import {operatorIdentityService} from "../operator-identities/service";
+import {operatorIdentityStore} from "../operator-identities/runtime-store";
 import { mappingManagement } from "../management/mapping-service";
 import { sourcePreflight } from "../management/source-preflight-service";
 import { PgSourcePreflightReader } from "../management/source-preflight-reader";
@@ -125,3 +133,10 @@ export function sourcePreflightForSession(rpsid: string) { return sourcePrefligh
 
 export function mappingManagementForSession(rpsid: string) { return mappingManagement(sessionAccessPorts(rpsid), { create: scope => new PgMappingReader(getPool(), scope) }); }
 export function mappingPreflightForSession(rpsid: string) { return mappingPreflight(sessionAccessPorts(rpsid), { create: scope => new PgMappingPreflightReader(getPool(), scope) }); }
+
+export function operatorIdentitiesForSession(rpsid:string){return operatorIdentityService(sessionAccessPorts(rpsid),workspaceId=>operatorIdentityStore(workspaceId));}
+
+export function monitoringParametersForSession(rpsid:string){return monitoringParameterService(sessionAccessPorts(rpsid),workspaceId=>monitoringParameterStore(workspaceId));}
+export function capacityParametersForSession(rpsid:string){return capacityParameterService(sessionAccessPorts(rpsid),workspaceId=>capacityParameterStore(workspaceId));}
+
+export function verificationParametersForSession(rpsid:string){return verificationParameterService(sessionAccessPorts(rpsid),workspaceId=>verificationParameterStore(workspaceId));}

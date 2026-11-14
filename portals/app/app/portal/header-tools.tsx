@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button, Drawer, Icon, ShellIconButton, ShellIconGroup, ShellThemeToggle, useTheme } from "@vxture/design-system";
+import { Button, Drawer, Icon, ShellIconButton, ShellIconGroup, ShellThemeToggle, ShellFullscreenToggle, useTheme } from "@vxture/design-system";
+import {towerSettings} from './tower-navigation';
 import UpdateMessages from "./update-messages";
 
-// Console shell composition; product order is theme, messages, help, settings.
+// Console shell composition; theme, fullscreen, messages, help, settings.
 export default function ProductHeaderTools({ authenticated = false, loginEnabled = false, management = false }: { authenticated?: boolean; loginEnabled?: boolean; management?: boolean }) {
   const { theme, setMode } = useTheme();
   const [messagesOpen, setMessagesOpen] = useState(false);
@@ -15,13 +16,15 @@ export default function ProductHeaderTools({ authenticated = false, loginEnabled
     <ShellIconGroup label={"\u64cd\u4f5c\u5de5\u5177"}>
       <ShellThemeToggle currentTheme={theme} onThemeChange={setMode} className={buttonClass}
         lightLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6d45\u8272"} darkLabel={"\u4e3b\u9898\uff1a\u5207\u6362\u6df1\u8272"} />
+      <ShellFullscreenToggle targetId="app" className={buttonClass}
+        enterLabel={"\u5168\u5c4f"} exitLabel={"\u9000\u51fa\u5168\u5c4f"} />
       <ShellIconButton icon="bell" label={"\u6d88\u606f"} active={messagesOpen} className={buttonClass}
         aria-haspopup="dialog" aria-expanded={messagesOpen} onClick={() => setMessagesOpen(true)} />
       <Button asChild variant="ghost" size="icon-md" className={linkClass}>
         <a href="https://docs.vxture.com" target="_blank" rel="noopener noreferrer" aria-label={"\u5e2e\u52a9"} title={"\u5e2e\u52a9"}><Icon name="help" size="sm" /></a>
       </Button>
       <Button asChild variant="ghost" size="icon-md" className={linkClass + (management ? " bg-accent text-foreground" : "")}>
-        <Link href="/settings" target={management ? undefined : "_blank"} rel={management ? undefined : "noopener noreferrer"}
+        <Link href={towerSettings} target={management ? undefined : "_blank"} rel={management ? undefined : "noopener noreferrer"}
           aria-current={management ? "location" : undefined} aria-label={"\u914d\u7f6e\u7ba1\u7406"} title={"\u914d\u7f6e\u7ba1\u7406"}><Icon name="settings" size="sm" /></Link>
       </Button>
     </ShellIconGroup>

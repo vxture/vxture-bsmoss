@@ -7,13 +7,13 @@ const UpdateContext = createContext<{ availability: DataAvailability; open: () =
 function useUpdate() { const value = useContext(UpdateContext); if (!value) throw Error("data_update_provider_required"); return value; }
 export function DataUpdateTime() {
   const { availability, open } = useUpdate(), through = commonThrough(availability);
-  return <Button type="button" variant="ghost" size="sm" onClick={open} className="h-auto max-w-full flex-wrap justify-end gap-xs p-0 text-body-small font-normal text-muted-foreground hover:bg-transparent hover:text-foreground" aria-label={"\u67e5\u770b\u6570\u636e\u66f4\u65b0\u8be6\u60c5"}>
+  return <Button type="button" variant="ghost" size="sm" onClick={open} className="h-auto max-w-full flex-wrap justify-start gap-xs p-0 text-body-small font-normal text-muted-foreground hover:bg-transparent hover:text-foreground" aria-label={"\u67e5\u770b\u6570\u636e\u66f4\u65b0\u8be6\u60c5"}>
     <span>{"\u6570\u636e\u66f4\u65b0\u81f3"}</span><time dateTime={through ?? undefined} className="tabular-nums">{formatDataTime(through)}</time>
   </Button>;
 }
 export function DataUpdateButton() {
   const { open } = useUpdate();
-  return <Button variant="outline" type="button" onClick={open}><Icon name="refresh" size="sm" />{"\u66f4\u65b0\u6570\u636e"}</Button>;
+  return <Button size="xl" variant="outline" type="button" onClick={open}><Icon name="refresh" size="sm" />{"\u66f4\u65b0\u6570\u636e"}</Button>;
 }
 export function DataUpdateProvider({ availability, children }: { availability: DataAvailability; children: ReactNode }) {
   const [open, setOpen] = useState(false), [retry, setRetry] = useState(0);

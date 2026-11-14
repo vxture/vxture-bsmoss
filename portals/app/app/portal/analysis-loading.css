@@ -1,0 +1,9 @@
+/* Shared operation-row loading indicator; preserve the 32px control rhythm. */
+:is(.service-analysis-loading,.evidence-loading,.analysis-loading) {
+ display:flex; flex:1 1 auto; min-width:0; align-items:center; justify-content:center;
+ gap:var(--space-sm); height:32px; min-height:32px; max-height:32px; box-sizing:border-box;
+ padding:0 var(--space-md); border:var(--border-width-thin) solid var(--color-primary);
+ border-radius:var(--radius-full); background:color-mix(in srgb,var(--color-primary) 12%,var(--color-card));
+ color:var(--color-primary-text); font-weight:var(--font-weight-semibold); font-size:var(--body-font-size); white-space:nowrap;
+}
+:is(.service-analysis-loading,.evidence-loading,.analysis-loading):empty { display:none; }

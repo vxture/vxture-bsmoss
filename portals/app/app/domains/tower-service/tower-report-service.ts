@@ -1,0 +1,19 @@
+import {createHash,randomUUID} from 'node:crypto';
+import {assertAccess,type FoundationAccess,type Action,type PublishedSnapshot,type FoundationState} from './foundation';
+import {projectSnapshot} from './service';
+import {buildTowerReport,reportAllowed,verifyTowerReport} from './tower-report';
+import {readSnapshotContext,type QueryInput} from './query';
+import {resourceScope} from '../../tower-service/resources/model';
+import type {FoundationStore} from './store';
+export function towerReportService(store:FoundationStore,ports:{access(action:Action):Promise<FoundationAccess>;now():number;id?():string;snapshots?(input:QueryInput):Promise<PublishedSnapshot[]>}){
+ async function versionsFor(state:FoundationState,a:FoundationAccess,input:QueryInput){const all=[...new Map([...state.snapshots,...(await ports.snapshots?.(input)??[])].map(s=>[s.id,s])).values()];return all.filter(s=>a.provinceIds.includes(s.inventory.provinceId)).map(s=>projectSnapshot(s,a)).filter(s=>s.inventory.rows.length);}
+ async function auth(action:Action){const a=structuredClone(await ports.access(action));assertAccess(a,action,ports.now());if(a.workspaceId!==store.workspaceId)throw Error('permission_denied');return {a,check:async()=>{const fresh=await ports.access(action);assertAccess(fresh,action,ports.now());if(JSON.stringify(a)!==JSON.stringify(fresh))throw Error('permission_denied');}};}
+ return {
+  async list(){const {a,check}=await auth('read'),state=await store.read();const rows=(state.reports??[]).map(verifyTowerReport).filter(r=>reportAllowed(r,a));await check();return rows.map(r=>({id:r.id,title:r.title,createdAt:r.createdAt,context:r.context,periods:[...new Set([r.manifest.sources[0]?.serviceSource?.period,r.manifest.sources[0]?.evidenceSource?.period].filter(v=>v!==undefined).map(v=>v!.start+' / '+v!.end))],template:r.manifest.template,ruleIds:[...new Set(r.manifest.sources.flatMap(s=>s.rules.map(r=>r.id)))],status:r.status,digest:r.digest})).reverse();},
+  async get(id:string){if(typeof id!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(id))throw Error('invalid_report_id');const {a,check}=await auth('read'),r=(await store.read()).reports?.find(r=>r.id===id);if(!r||!reportAllowed(r,a))throw Error('report_not_found');verifyTowerReport(r);await check();return r;},
+  async preview(input:QueryInput){const {a,check}=await auth('reports'),state=await store.read(),versions=await versionsFor(state,a,input);const context=readSnapshotContext(input,versions.map(s=>s.inventory.descriptor),{...resourceScope,operators:['all',...a.operators],snapshotIds:versions.map(s=>s.id).reverse()});const r=buildTowerReport(versions,context,a,'preview','preview',new Date(ports.now()).toISOString());await check();return r;},
+  async generate(input:QueryInput,key:string){if(typeof key!=='string'||!/^[-a-zA-Z0-9_:]{8,120}$/.test(key))throw Error('invalid_report_key');const {a,check}=await auth('reports');return store.transaction(async state=>{const versions=await versionsFor(state,a,input),context=readSnapshotContext(input,versions.map(s=>s.inventory.descriptor),{...resourceScope,operators:['all',...a.operators],snapshotIds:versions.map(s=>s.id).reverse()}),requestKey=createHash('sha256').update(a.subject+'|'+key).digest('hex');const prior=state.reports?.find(r=>r.key===requestKey);if(prior){if(JSON.stringify(prior.context)!==JSON.stringify(context)||!reportAllowed(prior,a))throw Error('invalid_report_replay');return verifyTowerReport(prior);}
+   const report=buildTowerReport(versions,context,a,'tower-report-'+(ports.id?.()??randomUUID()),requestKey,new Date(ports.now()).toISOString());if(Buffer.byteLength(JSON.stringify(report))>15000000)throw Error('report_too_large');(state.reports??=[]).push(report);state.audit.push({at:report.createdAt,subject:a.subject,action:'report.generate',objectId:report.id});return report;
+  },check);}
+ };
+}

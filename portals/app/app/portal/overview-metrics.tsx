@@ -72,7 +72,6 @@ export default function OverviewMetrics({ demo, scope }: { demo: PortalDemo; sco
         <p className="text-body-small text-muted-foreground">{"\u7d2f\u8ba1\u91cf\u6bd4\u8f83\u589e\u51cf\u6bd4\u4f8b\uff1b\u6bd4\u7387\u6bd4\u8f83\u767e\u5206\u70b9\uff1b\u6e29\u5ea6\u3001\u65f6\u5ef6\u4e0e\u7ad9\u5740\u6570\u6bd4\u8f83\u539f\u5355\u4f4d\u5dee\u503c\u3002\u96f6\u57fa\u671f\u4e0d\u8ba1\u7b97\u767e\u5206\u6bd4\uff0c\u6837\u672c\u4e0d\u8db3\u4e0d\u4f5c\u6bd4\u8f83\u3002"}</p>
         <div className="flex flex-wrap items-center justify-between gap-md text-body-small text-muted-foreground">
           <span>{data.physicalSites.toLocaleString("zh-CN") + "\u5ea7\u7269\u7406\u7ad9\u5740 \u00b7 " + data.serviceRelations.toLocaleString("zh-CN") + "\u6761\u670d\u52a1\u5173\u7cfb"}</span>
-          <Button asChild variant="outline"><a href="/preferences/overview">{"\u603b\u89c8\u504f\u597d"}</a></Button>
         </div>
         <details className="min-w-0 text-body-small text-muted-foreground"><summary className="cursor-pointer">{"\u6765\u6e90\u4e0e\u53e3\u5f84\u7248\u672c"}</summary>
           <div className="flex flex-col gap-xs break-all pt-sm"><span>{data.sourceVersion}</span><span>{data.ruleVersion}</span><span>{data.version}</span></div>

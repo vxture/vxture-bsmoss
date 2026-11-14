@@ -27,6 +27,14 @@ async function withServer(preview, run) {
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
   await withServer(false,async url=>{
+    await t.test('configuration aliases resolve to one workspace per capability',async()=>{
+      for(const [old,target] of Object.entries({'sources':'data-access?view=sources','mappings':'data-access?view=mappings','audit':'data-access?view=versions','jurisdiction':'access?view=jurisdiction','members':'access?view=members'})){
+        const r=await fetch(url+'/settings/'+old,{redirect:'manual'});assert.equal(r.status,307);assert.equal(r.headers.get('location'),'/settings/'+target);
+      }
+      for(const path of ['/settings/data-access?view=unknown','/settings/data-access?view=mappings&view=versions','/settings/access?view=unknown']){
+        const html=await(await fetch(url+path)).text();assert.equal((html.match(/<h1\b/g)??[]).length,1);assert.ok(html.includes('role="radiogroup"'));assert.ok(!html.includes('QA Source'));
+      }
+    });
     await t.test('source preflight has a real session gate and POST preview only',async()=>{
       const path='/api/management/source-configurations/untrusted/preflight';
       const r=await fetch(url+path,{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});
@@ -44,25 +52,25 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.ok(r.headers.get('vary').includes('Cookie'));assert.equal(r.headers.get('x-content-type-options'),'nosniff');
         assert.equal((await fetch(url+path,{method:'POST',body:'{}'})).status,405);
       }
-      const r=await fetch(url+'/settings/mappings');assert.equal(r.status,200);const html=await r.text();const h1=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];assert.equal(h1.length,1);assert.ok(h1[0].includes('\u5bf9\u8c61\u6620\u5c04'));assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('QA-map'));assert.ok(!html.includes('>\u65b0\u589e<'));
-      const settings=await(await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/settings/mappings"'));
+      const r=await fetch(url+'/settings/mappings');assert.equal(r.status,200);const html=await r.text();const h1=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];assert.equal(h1.length,1);assert.ok(h1[0].includes('\u6570\u636e\u63a5\u5165'));assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('QA-map'));assert.ok(!html.includes('>\u65b0\u589e<'));
+      const settings=await(await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/settings/data-access"'));
     });
     await t.test('source configuration and audit keep independent session gates and expose no writes',async()=>{
       for(const path of ['/api/management/source-configurations','/api/management/source-configurations/untrusted','/api/management/configuration-audit','/api/management/configuration-audit/untrusted?revision=1']) {
         const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.ok(r.headers.get('vary').includes('Cookie'));assert.equal(r.headers.get('x-content-type-options'),'nosniff');
         assert.equal((await fetch(url+path,{method:'POST',body:'{}'})).status,405);
       }
-      for(const [path,title] of [['/settings/sources','\u6765\u6e90\u914d\u7f6e'],['/settings/audit','\u914d\u7f6e\u5ba1\u8ba1']]){
+      for(const [path,title] of [['/settings/sources','\u6570\u636e\u63a5\u5165'],['/settings/audit','\u6570\u636e\u63a5\u5165']]){
         const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();const h1=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];assert.equal(h1.length,1);assert.ok(h1[0].includes(title));assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('QA Source'));assert.ok(!html.includes('>\u65b0\u589e<'));
       }
-      const settings=await(await fetch(url+'/settings')).text();for(const path of ['/settings/sources','/settings/audit'])assert.ok(settings.includes('href="'+path+'"'));
+      const settings=await(await fetch(url+'/settings')).text();assert.ok(settings.includes('href="/settings/data-access"'));for(const path of ['/settings/sources','/settings/mappings','/settings/audit'])assert.ok(!settings.includes('href="'+path+'"'));
     });
     await t.test('management is session-gated and read-only with private responses',async()=>{
       for(const path of ['/api/management/members','/api/management/jurisdiction','/api/management/members/99000000-0000-0000-0000-000000000002']){
         const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');assert.ok(r.headers.get('vary').includes('Cookie'));
         assert.equal((await fetch(url+path,{method:'POST',body:'{}'})).status,405);
       }
-      for(const path of ['/settings/members','/settings/jurisdiction']){const html=await(await fetch(url+path)).text();assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('management-2'));const title=path.endsWith('/members')?'\u6210\u5458\u7ba1\u7406':'\u7ba1\u8f96\u8303\u56f4';assert.ok(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)?.[0].includes(title));}
+      for(const path of ['/settings/members','/settings/jurisdiction']){const html=await(await fetch(url+path)).text();assert.ok(html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));assert.ok(!html.includes('management-2'));const title='\u7ec4\u7ec7\u4e0e\u6743\u9650';assert.ok(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)?.[0].includes(title));}
     });
     await t.test('formal intake supervision requires a real session and exposes no intake execution route',async()=>{
       const id='a'.repeat(64);
@@ -80,7 +88,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
       const html=await(await fetch(url+'/operations/data-updates?task='+id)).text();
-      assert.ok(html.includes('\u6570\u636e\u66f4\u65b0')); assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
+      assert.ok(html.includes('\u6570\u636e\u66f4\u65b0')); assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5f85\u5e73\u53f0\u63a5\u5165')); assert.ok(!html.includes('received_evidence'));
     });
     await t.test('data availability is hidden and unwritable outside explicit preview',async()=>{
       for(const method of ['GET','POST']) {
@@ -115,9 +123,11 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+'/usage-review/UV-'+'0'.repeat(24))).status,404);
     });
     await t.test('standalone analysis pages never expose synthetic models when preview is disabled',async()=>{
+      {const html=await(await fetch(url+'/tower-service/resources')).text();assert.ok(!html.includes('data-analysis-kind='));assert.ok(!html.includes('SX-DEMO-001'));assert.ok(!html.includes('demo-resources-20261025-18-v1'));}
+      for(const section of ['resources','performance','legacy']){const html=await(await fetch(url+'/customer-use?section='+section)).text();assert.ok(!html.includes('data-analysis-kind='));assert.ok(!html.includes('SX-DEMO-001'));assert.ok(html.includes('\u6570\u636e\u5c1a\u672a\u63a5\u5165'));}
       for(const path of ['/capacity','/efficiency','/operator-usage','/usage-reports']) {
         const response=await fetch(url+path);assert.equal(response.status,200);
-        const html=await response.text();assert.ok(html.includes('\u5c1a\u672a\u5f00\u653e'));
+        const html=await response.text();assert.match(html,/\u5c1a\u672a(?:\u5f00\u653e|\u63a5\u5165)/);
         for(const marker of ['data-business-analysis=','SX-DEMO-','href="/product-preview','maplibregl-canvas'])assert.ok(!html.includes(marker));
       }
     });
@@ -132,32 +142,36 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(mark.headers.get('content-type').includes('image/svg+xml'));
     });
     await t.test("configuration keeps rules while legacy business task links preserve deep queries",async()=>{
-      for(const [from,to] of [['/settings/operations/aggregation','/operations/aggregation'],['/settings/operations/data-updates','/operations/data-updates'],['/settings/operations/reports','/reports/tasks'],['/operations/reports','/reports/tasks'],['/settings/overview','/preferences/overview']]) {
+      for(const [from,to] of [['/settings/operations/aggregation','/operations/aggregation'],['/settings/operations/data-updates','/operations/data-updates'],['/settings/operations/reports','/reports/tasks'],['/operations/reports','/reports/tasks']]) {
         const query='?task=a&task=b&job=a%2Fb&kind=export&city=610100&county=610113';
         const redirect=await fetch(url+from+query,{redirect:'manual'});
         assert.equal(redirect.status,307);assert.equal(redirect.headers.get('location'),to+query);
         const response=await fetch(url+to);assert.equal(response.status,200);
       }
-      const home=await(await fetch(url)).text();assert.ok(home.includes('href="/settings"'));
-      for(const path of ['/settings/templates','/settings/metrics']) assert.ok(!home.includes('href="'+path+'"'));
+      for(const from of ['/preferences/overview']) {
+        const r=await fetch(url+from+'?city=610100&county=610113&reportPeriod=week&job=unrelated',{redirect:'manual'});
+        assert.equal(r.status,307);assert.equal(r.headers.get('location'),'/settings/overview');
+      }
+      const home=await(await fetch(url)).text();assert.ok(home.includes('href="/tower-service/rules"'));
+      for(const path of ['/settings/templates','/settings/dictionaries']) assert.ok(!home.includes('href="'+path+'"'));
       const settings=await(await fetch(url+'/settings')).text();
-      for(const path of ['/settings/templates','/settings/metrics','/?city=all&amp;county=all']) assert.ok(settings.includes('href="'+path+'"'));
+      for(const path of ['/settings/templates','/settings/dictionaries','/tower-service/overview?city=all&amp;county=all']) assert.ok(settings.includes('href="'+path+'"'));
       for(const path of ['/operations/data-updates','/operations/aggregation','/reports/tasks','/preferences/overview']) assert.ok(!settings.includes('href="'+path+'"'));
       const catalog=await(await fetch(url+'/settings/metrics')).text();assert.ok(catalog.includes('\u53ea\u8bfb\u89c4\u8303'));
       assert.ok(catalog.includes('service.voice.connected_seconds') || catalog.includes('\u901a\u8bdd\u65f6\u957f'));
       assert.ok(!catalog.includes('data-overview-display-settings'));
     });
     await t.test("business parameter definitions are public reference catalogs without policy write actions",async()=>{
-      for(const [path,title,code] of [['/settings/classifications','\u7ad9\u5740\u5206\u7c7b','ground'],['/settings/rules','\u5206\u6790\u89c4\u5219','capacity.load']]) {
+      for(const [path,title,code] of [['/settings/classifications','\u4e1a\u52a1\u5b57\u5178','ground'],['/settings/rules','\u5206\u6790\u89c4\u5219','monitoring-parameters']]) {
         const response=await fetch(url+path);assert.equal(response.status,200);
         const html=await response.text(), headings=html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g)??[];
         assert.equal(headings.length,1);assert.ok(headings[0].includes(title));assert.ok(html.includes(code));
-        assert.ok(html.includes('\u53ea\u8bfb\u76ee\u5f55'));
+        if(path==='/settings/classifications') assert.ok(html.includes('\u53ea\u8bfb\u89c4\u8303'));
         assert.ok(!html.includes('SX-DEMO-'));assert.ok(!html.includes('>\u53d1\u5e03<'));assert.ok(!html.includes('>\u7f16\u8f91<'));
       }
-      const rules=await(await fetch(url+'/settings/rules')).text();assert.ok(rules.includes('\u4e1a\u52a1\u7b7e\u8ba4'));
+      const rules=await(await fetch(url+'/settings/rules')).text();for(const section of ['monitoring-parameters','capacity-parameters','verification-parameters'])assert.ok(rules.includes(section));
       const settings=await(await fetch(url+'/settings')).text();
-      for(const path of ['/settings/classifications','/settings/rules'])assert.ok(settings.includes('href="'+path+'"'));
+      for(const path of ['/settings/dictionaries','/settings/rules'])assert.ok(settings.includes('href="'+path+'"'));
     });
     await t.test("protected evidence and platform routes fail closed without configuration",async()=>{
       assert.equal((await fetch(url+"/api/measurements?workspaceId=forged")).status,401);
@@ -181,7 +195,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const path of ['/api/aggregate-jobs','/api/aggregate-jobs/untrusted','/api/report-jobs?kind=generation','/api/report-jobs/untrusted?kind=export']){const r=await fetch(url+path);assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');}
       assert.equal((await fetch(url+'/api/aggregate-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
       const recovery=await fetch(url+'/api/report-jobs/untrusted/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'});assert.equal(recovery.status,401);assert.equal(recovery.headers.get('cache-control'),'no-store');assert.equal(recovery.headers.get('x-content-type-options'),'nosniff');
-      const reportJobsPage=await fetch(url+'/operations/reports');assert.equal(reportJobsPage.status,200);assert.ok((await reportJobsPage.text()).includes('\u62a5\u544a\u4efb\u52a1\u5c1a\u672a\u5f00\u653e'));const jobsPage=await fetch(url+'/operations/aggregation');assert.equal(jobsPage.status,200);assert.ok((await jobsPage.text()).includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e'));
+      const reportJobsPage=await fetch(url+'/operations/reports');assert.equal(reportJobsPage.status,200);assert.ok((await reportJobsPage.text()).includes('\u5e73\u53f0\u4efb\u52a1\u5f85\u63a5\u5165'));const jobsPage=await fetch(url+'/operations/aggregation');assert.equal(jobsPage.status,200);assert.ok((await jobsPage.text()).includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5f85\u5e73\u53f0\u63a5\u5165'));
       assert.equal((await fetch(url+"/api/webhooks/vxture",{method:"POST",body:"{}"})).status,503);
       assert.equal((await fetch(url+"/auth/login")).status,404);
       assert.equal((await fetch(url+"/auth/session")).status,200);
@@ -238,7 +252,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
   });
   await withServer(true,async url=>{
     await t.test('preview configuration workspaces open without granting formal management writes',async()=>{
-      for(const [path,title] of [['/settings/sources','\u6765\u6e90\u914d\u7f6e'],['/settings/mappings','\u5bf9\u8c61\u6620\u5c04']]) {
+      for(const [path,title] of [['/settings/sources','\u6570\u636e\u63a5\u5165'],['/settings/mappings','\u6570\u636e\u63a5\u5165']]) {
         const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();
         assert.ok(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/)?.[0].includes(title));
         assert.ok(html.includes('\u672c\u673a\u4fdd\u5b58'));assert.ok(!html.includes('\u8eab\u4efd\u63a5\u5165\u5f85\u5b8c\u6210'));
@@ -262,8 +276,8 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');
       }
       const html=await(await fetch(url+'/operations/data-updates?task='+id)).text();
-      assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5c1a\u672a\u5f00\u653e')); assert.ok(!html.includes('received_evidence'));
-      assert.ok(html.includes('href="/operations/aggregation"'));assert.ok(!html.includes('href="/settings/templates"'));
+      assert.ok(html.includes('\u4efb\u52a1\u5de5\u4f5c\u53f0\u5f85\u5e73\u53f0\u63a5\u5165')); assert.ok(!html.includes('received_evidence'));
+      assert.ok(!html.includes('href="/operations/aggregation"'));assert.ok(!html.includes('data-task-row'));assert.ok(!html.includes('href="/settings/templates"'));
     });
     await t.test('availability reads stable independent source watermarks without creating jobs',async()=>{
       for(const family of ['overview','station','calendar','history','verification']) {
@@ -276,42 +290,40 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       }
       for(const query of ['','?family=forged','?family=station&family=history','?family=station&workspaceId=forged','?family=station&through=2030-01-01'])assert.equal((await fetch(url+'/api/product-preview/data-availability'+query)).status,400);
     });
-    await t.test('analysis headings separate current data availability from selected analysis time',async()=>{
-      for(const [path,cutoff] of [['/','2026-10-26 00:00'],['/sites?hour=12&city=610100','2026-10-26 00:00'],['/capacity?hour=12','2026-10-26 00:00'],['/efficiency?hour=18','2026-10-26 00:00'],['/operator-usage?period=month','2026-11-01 00:00'],['/usage-reports?period=week','2026-11-01 00:00'],['/analysis?city=610100&range=month&month=2026-09','2026-11-01 00:00'],['/usage-review?period=week','2026-11-01 00:00']]) {
-        const r=await fetch(url+path);assert.equal(r.status,200);const html=await r.text();
-        assert.ok(html.includes('\u6570\u636e\u66f4\u65b0\u81f3'),path);assert.ok(html.includes(cutoff),path);assert.ok(html.includes('\u66f4\u65b0\u6570\u636e'));
-        assert.equal((html.match(/aria-label="\u67e5\u770b\u6570\u636e\u66f4\u65b0\u8be6\u60c5"/g)||[]).length,1,path);
+    await t.test('analysis headings show the correct source watermark without invented update actions',async()=>{
+      for(const [path,cutoff] of [['/','2026-10-26 00:00:00'],['/sites?hour=12&city=610100','2026-10-25 18:00:00'],['/capacity?hour=12','2026-10-26 00:00:00'],['/efficiency?hour=18','2026-10-26 00:00:00'],['/operator-usage?period=month','2026-11-01 00:00:00'],['/analysis?city=610100&range=month&month=2026-09','2026-11-01 00:00:00'],['/usage-review?period=week','2026-11-01 00:00:00']]) {
+        const response=await fetch(url+path);assert.equal(response.status,200);const html=await response.text();assert.ok(html.includes(cutoff),path);assert.match(html,/<time\b/);
+        if(path.startsWith('/usage-review'))assert.ok(!html.includes('>\u66f4\u65b0\u6570\u636e<'));
       }
     });
     await t.test('runtime energy coverage stays scoped, unallocated and isolated from history and formal APIs',async()=>{
-      const html=await(await fetch(url+'/efficiency?city=610100&county=610113&hour=3')).text();
+      const html=await(await fetch(url+'/efficiency?selection=circle%3A108.95%2C34.26%2C10000&city=610100&county=610113&hour=3')).text();
       for(const marker of ['data-runtime-energy','bsmoss-runtime-energy-coverage-v1','\u6570\u636e\u8986\u76d6\u4e0e\u672a\u77e5\u539f\u56e0','\u533a\u57df\u8fd0\u884c\u5bf9\u6bd4','2026-10-25'])assert.ok(html.includes(marker),marker);
       assert.match(html,/<option value="3" selected="">03:00<\/option>/);
-      const power=await(await fetch(url+'/efficiency?topic=power&search=SX-DEMO-004&hour=12')).text();assert.ok(power.includes('data-runtime-energy'));assert.ok(power.includes('SX-DEMO-004'));
-      const op=await(await fetch(url+'/efficiency?operator=mobile')).text();assert.ok(op.includes('\u8fd0\u8425\u5546\u5206\u8868\u672a\u91c7\u96c6'));assert.ok(op.includes('\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a'));
-      const empty=await(await fetch(url+'/efficiency?search=not-found')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
-      const invalid=await(await fetch(url+'/efficiency?energy=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-runtime-energy'));
+      const power=await(await fetch(url+'/efficiency?selection=circle%3A108.95%2C34.26%2C10000&topic=power&search=SX-DEMO-004&hour=12')).text();assert.ok(power.includes('data-runtime-energy'));assert.ok(power.includes('SX-DEMO-004'));
+      const op=await(await fetch(url+'/efficiency?selection=circle%3A108.95%2C34.26%2C10000&operator=mobile')).text();assert.ok(op.includes('\u8fd0\u8425\u5546\u5206\u8868\u672a\u91c7\u96c6'));assert.ok(op.includes('\u8fd0\u8425\u5546\u7535\u8017\u672a\u5206\u644a'));
+      const empty=await(await fetch(url+'/efficiency?selection=circle%3A108.95%2C34.26%2C10000&search=not-found')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
+      const invalid=await(await fetch(url+'/efficiency?selection=circle%3A108.95%2C34.26%2C10000&energy=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-runtime-energy'));
       const history=await(await fetch(url+'/efficiency?history=1&site=SX-DEMO-001')).text();assert.ok(history.includes('data-history-context'));assert.ok(!history.includes('data-runtime-energy'));
       assert.equal((await fetch(url+'/api/measurements')).status,401);
     });
     await t.test('capacity contributions retain exact scope, source, independent mode and formal boundary',async()=>{
-      const html=await(await fetch(url+'/capacity?city=610100&county=610113&operator=telecom&hour=20&search=SX-DEMO-001')).text();
+      const html=await(await fetch(url+'/capacity?selection=circle%3A108.95%2C34.26%2C10000&city=610100&county=610113&operator=telecom&hour=20&search=SX-DEMO-001')).text();
       for(const text of ['data-capacity-contributions','bsmoss-capacity-contributions-v1','\u672a\u63a5\u901a\u8d21\u732e','\u98ce\u9669\u7ed3\u6784\u4e0e\u8986\u76d6','\u91cd\u70b9\u7ad9\u5740\u8bc1\u636e','2026-10-25','SX-DEMO-001'])assert.ok(html.includes(text),text);
       assert.match(html,/<option value="20" selected="">20:00<\/option>/);
       assert.ok(!html.includes('role="alert"'));assert.ok(!html.includes('<canvas'));assert.ok(html.includes('target="_blank"'));
-      const empty=await(await fetch(url+'/capacity?search=not-found')).text();assert.ok(empty.includes('data-capacity-contributions'));assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
-      const invalid=await(await fetch(url+'/capacity?capacity=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-capacity-contributions'));
+      const empty=await(await fetch(url+'/capacity?selection=circle%3A108.95%2C34.26%2C10000&search=not-found')).text();assert.ok(empty.includes('data-capacity-contributions'));assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740'));
+      const invalid=await(await fetch(url+'/capacity?selection=circle%3A108.95%2C34.26%2C10000&capacity=forged')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-capacity-contributions'));
       const history=await(await fetch(url+'/capacity?history=1&site=SX-DEMO-001')).text();assert.ok(history.includes('data-history-context'));assert.ok(!history.includes('data-capacity-contributions'));
       assert.equal((await fetch(url+'/api/measurements')).status,401);
     });
-    await t.test('resource relationships separate equipment unknowns, observation time and unverified validity',async()=>{
+    await t.test('site dossiers nest devices and keep source status separate from telemetry',async()=>{
       for(const tab of ['resources','services']){
-        const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&operator=telecom&hour=12');assert.equal(response.status,200);
-        const html=await response.text();
-        for(const text of ['data-resource-relationships','bsmoss-site-resource-snapshot-v2','SX-DEMO-001-telecom','SX-DEMO-001-R2','2026-10-25 12:00','\u5f85\u6765\u6e90\u6838\u5b9e','\u672a\u91c7\u96c6'])assert.ok(html.includes(text),text);
-        assert.ok(!html.includes('\u6d6e\u5145'));assert.ok(!html.includes('\u653e\u7535\u4e2d'));
+        const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&operator=telecom&hour=12');assert.equal(response.status,200);const html=await response.text();
+        for(const marker of ['data-site-dossier-mode="demo"','SX-DEMO-001-R2','2026-10-25 18:00:00','\u7ad9\u5740\u8d44\u6599','\u5173\u8054\u8bbe\u5907','\u63a5\u53e3\u5f85\u63a5\u5165'])assert.ok(html.includes(marker),marker);
+        for(const marker of ['data-runtime-energy','data-capacity-contributions'])assert.ok(!html.includes(marker));
       }
-      const invalid=await(await fetch(url+'/sites/SX-DEMO-001?tab=resources&validFrom=2025-01-01')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-resource-relationships'));
+      const invalid=await(await fetch(url+'/sites/SX-DEMO-001?tab=resources&validFrom=2025-01-01')).text();assert.ok(invalid.includes('role="alert"'));
       assert.equal((await fetch(url+'/api/measurements')).status,401);
     });
     await t.test('investigation routes preserve the bounded origin, exact station and distinct evidence sources',async()=>{
@@ -320,7 +332,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const path of ['/sites/SX-DEMO-001?tab=business','/operator-usage?period=week','/analysis?site=SX-DEMO-001&range=month&month=2026-10','/usage-review/history?site=SX-DEMO-001&range=month&month=2026-10','/capacity?history=1&site=SX-DEMO-001','/analysis/report?site=SX-DEMO-001']){
         const response=await fetch(url+path+'&investigation='+investigation);assert.equal(response.status,200,path);const html=await response.text();assert.ok(html.includes('data-investigation'),path);assert.ok(html.includes('event=5'),path);assert.ok(html.includes('recordSession='),path);assert.ok(!html.includes('role="alert"'),path);
       }
-      const exact=await(await fetch(url+'/usage-review?site=DEMO-00037&period=month&investigation='+investigation)).text();assert.ok(exact.includes('DEMO-00037'));assert.ok(exact.includes('data-investigation'));assert.ok(exact.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6838\u9a8c\u7ebf\u7d22'));
+      const exact=await(await fetch(url+'/usage-review?site=DEMO-00037&period=month&investigation='+investigation)).text();assert.ok(exact.includes('DEMO-00037'));assert.ok(exact.includes('data-investigation'));assert.ok(exact.includes('\u6b63\u5728\u8bfb\u53d6\u6838\u9a8c\u8bb0\u5f55'));
       const map=await(await fetch(url+'/product-preview?hour=7&investigation='+investigation)).text();assert.ok(map.includes('data-investigation'));assert.ok(map.includes('event=5'));
       for(const origin of ['https://evil.example','/settings','/sites?city=610100&county=610300','/sites?investigation=x','/sites?city=all&city=610100']){
         const bad=encodeURIComponent(JSON.stringify({v:1,href:origin}));const html=await(await fetch(url+'/sites?investigation='+bad)).text();assert.ok(html.includes('role="alert"'));assert.ok(!html.includes('data-site-dossier-mode'));assert.equal((await fetch(url+'/product-preview?investigation='+bad)).status,404);
@@ -332,7 +344,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const list=await(await fetch(url+'/reports?city=610100&county=610113')).text();assert.ok(list.includes('data-local-report-library'));assert.ok(list.includes('\u6b63\u5728\u8bfb\u53d6\u62a5\u544a\u5e93'));
       const invalid=await(await fetch(url+'/reports?saved=forged')).text();assert.ok(invalid.includes('role="alert"'));
       const period='city=610100&county=610113&operator=mobile&period=week';
-      const page=await(await fetch(url+'/usage-reports?'+period)).text();assert.ok(page.includes('\u4fdd\u5b58\u5230\u62a5\u544a\u5e93'));
+      const page=await(await fetch(url+'/usage-reports?'+period)).text();assert.ok(page.includes('data-report-generation'));
       const report=await(await fetch(url+'/api/product-preview/reports?cityId=610100&countyId=610113&operator=mobile&period=week')).json();
       const digest=(await import('node:crypto')).createHash('sha256').update(JSON.stringify(report,null,2)).digest('hex');
       const endpoint=url+'/api/product-preview/report-artifact?kind=calendar&'+period+'&snapshot='+digest;
@@ -347,14 +359,17 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     });
     await t.test('local review workflow renders no invented events and validates event/session routing',async()=>{
       const list=await(await fetch(url+'/usage-review?period=month')).text();
-      const id=list.match(/\/usage-review\/(UV-[a-f0-9]{24})/)?.[1];assert.ok(id);
-      const records=await(await fetch(url+'/review-history')).text();assert.ok(records.includes('data-review-history'));assert.ok(records.includes('\u6b63\u5728\u8bfb\u53d6\u8bb0\u5f55'));
+      const id=list.match(/UV-[a-f0-9]{24}/)?.[0];assert.ok(id);
+      const records=await(await fetch(url+'/review-history')).text();assert.ok(records.includes('data-review-history'));assert.ok(records.includes('\u6b63\u5728\u8bfb\u53d6\u6838\u9a8c\u8bb0\u5f55'));
+      const legacy=await fetch(url+'/review-history?period=week&recordReason=network',{redirect:'manual'});assert.equal(legacy.status,307);assert.equal(legacy.headers.get('location'),'/usage-review?period=week&recordReason=network&view=records');
+      const integrated=await(await fetch(url+'/usage-review?view=records&period=week')).text();assert.ok(integrated.includes('data-review-mode="records"'));
+      for(const query of ['view=forged','view=cases&view=records','view=cases&recordReason=network','view=records&recordReason=forged'])assert.ok((await(await fetch(url+'/usage-review?'+query)).text()).includes('role="alert"'));
       const detail=await(await fetch(url+'/usage-review/'+id+'?period=month')).text();assert.ok(detail.includes('\u539f\u56e0\u4e0e\u590d\u6838'));assert.ok(detail.includes('name="')||detail.includes('aria-label="'));
       for(const query of ['recordSession=forged','recordSession='+ '-'.repeat(36),'event=0','event=1&event=2','recordSession=x&workspace=forged']){
         const html=await(await fetch(url+'/usage-review/'+id+'?'+query)).text();assert.ok(html.includes('role="alert"'));assert.ok(!html.includes('aria-label="\u539f\u56e0\u4e0e\u590d\u6838\u64cd\u4f5c"'));
       }
       const invalidList=await(await fetch(url+'/usage-review?recordSession='+ '-'.repeat(36))).text();assert.ok(invalidList.includes('role="alert"'));
-      const bad=await(await fetch(url+'/review-history?recordSession=forged')).text();assert.ok(bad.includes('\u7b5b\u9009\u6761\u4ef6\u65e0\u6548'));
+      const bad=await(await fetch(url+'/review-history?recordSession=forged')).text();assert.ok(bad.includes('role="alert"'));
       assert.equal((await fetch(url+'/api/product-preview/review-events',{method:'POST',body:'{}'})).status,404);
     });
     await t.test('historical reports pin exact context, all members and offline counters across cross-domain views',async()=>{
@@ -416,19 +431,19 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const response=await fetch(url+path,{headers});assert.equal(response.status,200);
         const html=await response.text();
         if(path!=='/product-preview') assert.ok(html.includes('aria-label="\u9009\u62e9\u533a\u57df\uff1a\u9655\u897f\u7701\u00b7\u897f\u5b89\u5e02\u00b7\u96c1\u5854\u533a"'),path);
-        if(path==='/sites') {assert.ok(html.includes('16 \u5ea7\u7ad9\u5740'));assert.ok(!html.includes('SX-DEMO-003'));}
+        if(path==='/sites') {assert.ok(html.includes('16 \u4e2a\u7ad9\u5740'));assert.ok(!html.includes('SX-DEMO-003'));}
       }
       const explicit=await (await fetch(url+'/sites?city=610300',{headers})).text();
-      assert.ok(explicit.includes('140 \u5ea7\u7ad9\u5740'));assert.ok(!explicit.includes('aria-label="\u9009\u62e9\u533a\u57df\uff1a\u9655\u897f\u7701\u00b7\u897f\u5b89\u5e02\u00b7\u96c1\u5854\u533a"'));
-      const reset=await (await fetch(url+'/sites?city=all&county=all',{headers})).text();assert.ok(reset.includes('1,080 \u5ea7\u7ad9\u5740'));
-      const invalid=await (await fetch(url+'/sites?city=610300&county=610113',{headers})).text();assert.ok(invalid.includes('\u7ad9\u5740\u7b5b\u9009\u65e0\u6548'));
+      assert.ok(explicit.includes('140 \u4e2a\u7ad9\u5740'));assert.ok(!explicit.includes('aria-label="\u9009\u62e9\u533a\u57df\uff1a\u9655\u897f\u7701\u00b7\u897f\u5b89\u5e02\u00b7\u96c1\u5854\u533a"'));
+      const reset=await (await fetch(url+'/sites?city=all&county=all',{headers})).text();assert.ok(reset.includes('1,080 \u4e2a\u7ad9\u5740'));
+      const invalid=await (await fetch(url+'/sites?city=610300&county=610113',{headers})).text();assert.ok(invalid.includes('\u53f0\u8d26\u7b5b\u9009\u65e0\u6548'));
     });
     await t.test("usage review list and evidence are independent, strictly scoped and preserve return context",async()=>{
       const response=await fetch(url+'/usage-review');assert.equal(response.status,200);
       const html=await response.text();assert.ok(html.includes('data-usage-review="list"'));
       assert.ok(html.includes('\u6f14\u793a\u8bb0\u5f55\u00b7\u672c\u673a'));assert.ok(!html.includes('maplibregl-canvas'));
-      const match=html.match(/href="(\/usage-review\/UV-[a-f0-9]{24}\?[^"]+)"/);assert.ok(match);
-      const detailPath=match[1].replaceAll('&amp;','&');
+      const id=html.match(/UV-[a-f0-9]{24}/)?.[0];assert.ok(id);
+      const detailPath='/usage-review/'+id;
       const detail=await (await fetch(url+detailPath)).text();
       assert.ok(detail.includes('data-usage-review="detail"'));assert.ok(detail.includes('bsmoss-demo-review-scenarios-v1'));
       assert.ok(detail.includes('\u56db\u5468\u53c2\u8003\u539f\u503c'));assert.ok(detail.includes('\u7cbe\u786e\u539f\u59cb\u8ba1\u6570'));
@@ -438,8 +453,43 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const invalid of ['period=hour','city=610300&county=610113','city=610100&city=610200','workspaceId=forged','page=0']) {
         const invalidHtml=await (await fetch(url+'/usage-review?'+invalid)).text();assert.ok(invalidHtml.includes('\u6838\u9a8c\u7b5b\u9009\u65e0\u6548'));assert.ok(!invalidHtml.includes('data-usage-review="list"'));
       }
-      const empty=await (await fetch(url+'/usage-review?status=closed')).text();assert.ok(empty.includes('\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6838\u9a8c\u7ebf\u7d22'));
+      const empty=await (await fetch(url+'/usage-review?status=closed')).text();assert.ok(empty.includes('\u6b63\u5728\u8bfb\u53d6\u6838\u9a8c\u8bb0\u5f55'));
       const month=await (await fetch(url+'/usage-review?period=month&page=2')).text();assert.ok(month.includes('data-usage-review="list"'));
+    });
+    await t.test('customer use consolidates occupancy sharing and usage with compatible scoped aliases',async()=>{
+      for(const old of ['/sharing','/operator-usage']){const response=await fetch(url+old+'?city=610100&county=610116&period=week&usageSort=sms',{redirect:'manual'});assert.equal(response.status,307);assert.equal(response.headers.get('location'),'/customer-use?city=610100&county=610116&period=week&usageSort=sms&section=legacy');}
+      const html=await(await fetch(url+'/customer-use?city=610100&county=610116&period=week&usageSort=sms')).text();
+      assert.ok(html.includes('data-analysis-kind="customer-use"'));assert.ok(html.includes('\u5165\u9a7b\u7ed3\u6784'));assert.ok(html.includes('\u7528\u91cf\u8d8b\u52bf'));assert.ok(html.includes('\u8d44\u6e90\u5feb\u7167'));assert.ok(html.includes('2026-10-19 ~ 10-25'));
+      for(const section of ['occupancy','sharing','usage'])assert.ok(html.includes('data-customer-section="'+section+'"'));
+      assert.equal((html.match(/data-customer-section=/g)??[]).length,3);assert.ok(html.includes('id="site-details"'));assert.ok(!html.includes('aria-label="\u533a\u57df\u6bd4\u8f83\u6307\u6807"'));
+      const scope=html.slice(html.indexOf('<section aria-label="\u5206\u6790\u7b5b\u9009"'),html.indexOf('data-customer-section="occupancy"'));
+      assert.ok(!scope.includes('aria-label="\u5206\u6790\u5468\u671f"'));assert.ok(scope.includes('aria-label="\u8fd0\u8425\u5546"'));
+      const invalid=await(await fetch(url+'/sharing?city=610100&city=610200')).text();assert.ok(!invalid.includes('data-analysis-kind="customer-use"'));assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));
+    });
+    await t.test('service resource entry separates physical observations from unconnected service evidence',async()=>{
+      const html=await(await fetch(url+'/customer-use?city=all&county=all')).text();
+      assert.ok(html.includes('\u670d\u52a1\u8d44\u6e90'));assert.ok(html.includes('\u5730\u5e02\u8d44\u6e90'));assert.ok(html.includes('5,400'));assert.ok(html.includes('3,902'));
+      assert.ok(html.includes('\u6709\u6548\u671f\u4e0e\u53d8\u66f4\uff1a\u5f85\u63a5\u5165'));assert.ok(html.includes('section=legacy'));assert.ok(!html.includes('data-customer-section='));
+      const city=await(await fetch(url+'/customer-use?section=resources&city=610100&county=all')).text();assert.ok(city.includes('\u5165\u9a7b\u7ed3\u6784'));assert.ok(city.includes('1,200'));assert.ok(!city.includes('SX-DEMO-003'));
+      for(const query of ['section=bad','section=resources&section=legacy','section=resources&city=610100&city=610200','section=resources&workspaceId=forged']){const invalid=await(await fetch(url+'/customer-use?'+query)).text();assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-analysis-kind='));}
+    });
+    await t.test('T01 snapshot slice pins inventory, rejects forged versions and keeps legacy links',async()=>{
+      const base='/tower-service/resources';
+      const html=await(await fetch(url+base+'?city=610100&county=all&operator=other')).text();
+      assert.ok(html.includes('data-analysis-kind="tower-service/resources"'));assert.ok(html.includes('demo-resources-20261025-18-v1'));
+      assert.ok(html.includes('2026-10-25 18:00:00'));assert.ok(html.includes('href="/customer-use?section=resources'));
+      assert.ok(!html.includes('SX-DEMO-003'));assert.ok(html.includes('aria-disabled="true"'));
+      for(const query of ['snapshotId=forged','snapshotId=demo-resources-20261025-18-v1&snapshotId=demo-resources-20261025-18-v1','compareSnapshotId=missing','workspaceId=forged','period=month','city=610100&county=610204']){
+        const invalid=await(await fetch(url+base+'?'+query)).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-analysis-kind='));
+      }
+      const legacy=await(await fetch(url+'/customer-use?section=resources')).text();assert.ok(legacy.includes('/tower-service/resources?'));
+    });
+    await t.test('stage3 performance uses one physical period and keeps unconnected evidence explicit',async()=>{
+      const day=await(await fetch(url+'/customer-use?section=performance&city=610200&period=day')).text();
+      assert.ok(day.includes('aria-label="\u5c65\u884c\u89c2\u6d4b\u660e\u7ec6"'));assert.ok(day.includes('24 / 24'));assert.ok(day.includes('bsmoss-demo-calendar-v3'));assert.ok(day.includes('\u5ba2\u6237\u5206\u8868'));assert.ok(day.includes('\u5de5\u5355\uff1a\u5f85\u63a5\u5165'));
+      assert.ok(!day.includes('aria-label="\u8fd0\u8425\u5546"'));assert.ok(!day.includes('aria-label="\u5165\u9a7b\u54c1\u724c"'));
+      const week=await(await fetch(url+'/customer-use?section=performance&city=610200&period=week')).text();assert.ok(week.includes('168 / 168'));assert.ok(week.includes('\u9010\u65e5\u7535\u91cf'));
+      for(const query of ['supplyFilter=bad','city=610100&city=610200','operator=bad','workspaceId=forged']){const invalid=await(await fetch(url+'/customer-use?section=performance&'+query)).text();assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-analysis-kind='));}
     });
     await t.test('standalone business modules render without maps and link to scoped map analysis',async()=>{
       const scope='city=610100&county=610113&operator=mobile&hour=17&search=SX-DEMO-006&selection='+encodeURIComponent('circle:108.95,34.26,10000');
@@ -451,36 +501,22 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         assert.ok(!html.includes('maplibregl-canvas'));assert.ok(!html.includes('mw-map-loading'));
         assert.ok(!html.includes('aria-label="\\u'));assert.ok(!html.includes('>\\u'));
       }
-      for(const kind of ['capacity','efficiency','operator-usage','usage-reports']) for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24','search='+('a'.repeat(81))]) {
+      for(const kind of ['capacity','efficiency','operator-usage','usage-reports']) for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24','search='+('a'.repeat(101))]) {
         const html=await (await fetch(url+'/'+kind+'?'+query)).text();
-        assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));assert.ok(!html.includes('data-business-analysis='));
+        assert.match(html,/\u7b5b\u9009\u65e0\u6548|\u6761\u4ef6\u65e0\u6548/);assert.ok(!html.includes('data-business-analysis='));
       }
       const home=await (await fetch(url+'/')).text();
-      for(const path of ['/capacity','/efficiency','/operator-usage','/usage-reports'])assert.ok(home.includes('href="'+path));
+      for(const path of ['/capacity','/efficiency','/operator-usage','/reports'])assert.ok(home.includes(path),path);
     });
-    await t.test('site business pages support geographic relations and six dossier layers without formal access',async()=>{
-      const list=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
-      assert.ok(list.includes('data-sites-mode="demo"'));assert.ok(list.includes('/sites/SX-DEMO-001'));
-      assert.ok(list.includes('data-slot="input-group"'));assert.ok(!list.includes('aria-label="\u72b6\u6001\u65f6\u6bb5"'));
-      const firstRead=list.match(/<time\b[^>]*dateTime="([^"]+)"/i)[1];assert.ok(Number.isFinite(Date.parse(firstRead)));
-      const reread=await (await fetch(url+'/sites?city=610100&county=610113&operator=telecom')).text();
-      assert.equal(reread.match(/<time\b[^>]*dateTime="([^"]+)"/i)[1],firstRead);
-      assert.equal((reread.match(/<time\b/g)??[]).length,1);
-      const rooftop=await (await fetch(url+'/sites?siteType=rooftop&search=SX-DEMO-001&hour=17')).text();
-      assert.ok(rooftop.includes('/sites/SX-DEMO-001'));assert.ok(rooftop.includes('2026-10-25 17:00'));
-      const ground=await (await fetch(url+'/sites?siteType=ground&search=SX-DEMO-001')).text();
-      assert.ok(!ground.includes('href="/sites/SX-DEMO-001'));
-      const relations=await (await fetch(url+'/sites?view=relations&search=SX-DEMO-001')).text();
-      assert.ok(relations.includes('SX-DEMO-001-mobile'));assert.ok(relations.includes('SX-DEMO-001-telecom'));
-      for(const tab of ['overview','resources','services','runtime','business','sources']) {
-        const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&period=month');assert.equal(response.status,200);
-        const html=await response.text();assert.ok(html.includes('data-site-dossier-mode="demo"'));assert.ok(html.includes('SX-DEMO-001'));
-      }
+    await t.test('site management keeps devices within sites and preserves canonical dossiers',async()=>{
+      const list=await(await fetch(url+'/sites?city=610100&county=610113&operator=telecom&search=SX-DEMO-001')).text();
+      assert.ok(list.includes('data-sites-mode="demo"'));assert.ok(list.includes('SX-DEMO-001'));assert.ok(list.includes('\u5165\u9a7b\u8fd0\u8425\u5546'));assert.ok(list.includes('data-slot="input-group"'));
+      const stamp=list.match(/<time\b[^>]*dateTime="([^"]+)"/i)?.[1];assert.equal(Date.parse(stamp),Date.parse('2026-10-25T10:00:00.000Z'));
+      const reread=await(await fetch(url+'/sites?city=610100&county=610113&operator=telecom&search=SX-DEMO-001')).text();assert.equal(reread.match(/<time\b[^>]*dateTime="([^"]+)"/i)?.[1],stamp);
+      const old=await fetch(url+'/sites?view=devices',{redirect:'manual'});assert.equal(old.status,307);assert.ok(!old.headers.get('location').includes('view=devices'));
+      for(const tab of ['overview','resources','services','runtime','business','sources']){const response=await fetch(url+'/sites/SX-DEMO-001?tab='+tab+'&period=month');assert.equal(response.status,200);const html=await response.text();assert.ok(html.includes('data-site-dossier-mode="demo"'));assert.ok(html.includes('\u5173\u8054\u8bbe\u5907'));assert.ok(!html.includes('data-runtime-energy'));}
       assert.equal((await fetch(url+'/sites/unknown')).status,404);
-      for(const query of ['siteType=indoor','siteType=ground&siteType=rooftop','city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24']) {
-        const html=await (await fetch(url+'/sites?'+query)).text();
-        assert.ok(!html.includes('data-sites-mode="demo"'));assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));
-      }
+      for(const query of ['siteType=indoor','siteType=ground&siteType=rooftop','city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=24']){const html=await(await fetch(url+'/sites?'+query)).text();assert.ok(!html.includes('data-sites-mode="demo"'));assert.ok(html.includes('\u7b5b\u9009\u65e0\u6548'));}
       assert.equal((await fetch(url+'/api/measurements')).status,401);
     });
     await t.test('synthetic preview never grants formal aggregate access or falls back to sample results',async()=>{
@@ -504,8 +540,10 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.ok(home.includes('\u6570\u636e\u66f4\u65b0\u81f3'));assert.ok(home.includes('2026-10-26 00:00'));assert.ok(home.includes('\u72b6\u6001\u65f6\u70b9 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
       assert.ok(!home.includes('\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9'));
       assert.ok(home.includes('\u8f83\u6628\u65e5'));
-      const settings=await (await fetch(url+'/preferences/overview')).text();assert.ok(settings.includes('data-overview-display-settings'));
-      const config=await (await fetch(url+'/settings')).text();assert.ok(!config.includes('href="/preferences/overview"'));assert.ok(config.includes('href="/settings/metrics"'));
+      const settings=await fetch(url+'/preferences/overview',{redirect:'manual'});assert.equal(settings.status,307);assert.equal(settings.headers.get('location'),'/settings/overview');
+      assert.ok(!home.includes('aria-label="\u603b\u89c8\u663e\u793a"'));assert.ok(!home.includes('href="/preferences/overview"'));
+      assert.ok((await(await fetch(url+'/settings/overview')).text()).includes('data-overview-display-settings'));
+      const config=await (await fetch(url+'/settings')).text();assert.ok(!config.includes('href="/preferences/overview"'));assert.ok(config.includes('href="/settings/dictionaries"'));
       for(const period of ['week','month']) {
         const report=await (await fetch(url+'/?reportPeriod='+period)).text();
         assert.ok(report.includes('data-overview-report="'+period+'"'));

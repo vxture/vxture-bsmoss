@@ -19,7 +19,7 @@ test("stored preferences reject stale catalogues, foreign and mismatched childre
   }
 });
 test("module links preserve scope and local destination options without changing management routes", () => {
-  for (const href of ["/", "/board", "/capacity", "/sites?view=relations", "/product-preview?hour=18", "/reports"]) {
+  for (const href of ["/monitoring", "/sharing", "/customer-use", "/", "/board", "/capacity", "/sites?view=relations", "/product-preview?hour=18", "/reports"]) {
     const url = new URL(regionLink(href, county), "http://localhost");
     assert.equal(url.searchParams.get("city"), county.cityId); assert.equal(url.searchParams.get("county"), county.countyId);
   }
@@ -36,7 +36,7 @@ test("changing scope removes stale selection and returns object details to lists
 });
 
 test("configuration, task identities and personal preferences are not rewritten as regional analysis queries", () => {
-  for (const path of ["/settings", "/settings/metrics", "/settings/templates", "/operations/data-updates", "/operations/aggregation", "/reports/tasks", "/preferences/overview"]) {
+  for (const path of ["/settings", "/settings/dictionaries", "/settings/metrics", "/settings/templates", "/operations/data-updates", "/operations/aggregation", "/reports/tasks", "/preferences/overview"]) {
     assert.equal(isRegionPage(path), false);
     assert.equal(regionLink(path + "?task=original&kind=export", county), path + "?task=original&kind=export");
   }

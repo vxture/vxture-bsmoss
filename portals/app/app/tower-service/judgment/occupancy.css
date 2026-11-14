@@ -1,0 +1,36 @@
+.occupancy-detail-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:var(--space-lg); }
+.occupancy-detail-row > * { min-width:0; }
+.occupancy-analysis-row .site-analysis-summary-item { font-variant-numeric:tabular-nums; }
+.occupancy-composition-panel > :last-child { display:flex; flex-direction:column; gap:var(--space-lg); color:var(--color-foreground); }
+.occupancy-change-group + .occupancy-change-group { border-top:var(--border-width-thin) solid var(--color-border); padding-top:var(--space-lg); }
+.occupancy-change-total,.occupancy-change-item > div:first-child { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); }
+.occupancy-change-total { margin-bottom:var(--space-lg); flex-wrap:wrap; }
+.occupancy-change-total small { font-size:var(--body-small-font-size); color:var(--color-muted-foreground); font-weight:var(--font-weight-normal); }
+.occupancy-change-group dl { display:flex; flex-direction:column; gap:var(--space-lg); }
+.occupancy-change-item { display:flex; flex-direction:column; gap:var(--space-sm); }
+.occupancy-change-item dd { margin:0; font-weight:var(--font-weight-semibold); font-variant-numeric:tabular-nums; }
+.occupancy-change-track { height:var(--space-sm); background:var(--color-muted); }
+.occupancy-change-track span { display:block; height:100%; }
+.occupancy-customer-panel > :last-child { min-width:0; color:var(--color-foreground); }
+.occupancy-customer-table { position:relative; min-width:0; overflow-x:auto; }
+.occupancy-customer-table > div { max-height:none; overflow-y:visible; }
+.occupancy-customer-table table { width:100%; min-width:0; table-layout:fixed; }
+.occupancy-customer-table :is(thead,th) { background:transparent; }
+.occupancy-customer-table :is(th,td) { padding-inline:var(--space-sm); }
+.occupancy-customer-table th:first-child { width:30%; }
+.occupancy-customer-table th:last-child { width:calc(var(--space-control-xl) + var(--space-sm) * 2); }
+.occupancy-customer-table tbody tr { cursor:default; }
+.occupancy-customer-name { min-height:var(--space-control-3xl); height:auto; padding-inline:0; gap:var(--space-sm); justify-content:flex-start; }
+.occupancy-customer-name:is(:hover,:active) { background:transparent; }
+.occupancy-customer-change { display:flex; flex-direction:column; gap:var(--space-xs); font-variant-numeric:tabular-nums; }
+.occupancy-change-heading { white-space:nowrap; }
+.occupancy-change-heading > span:first-child { color:var(--color-primary); }
+.occupancy-change-heading > span:last-child { color:var(--color-muted-foreground); }
+@media (max-width:80rem) {
+ .occupancy-analysis-row .site-analysis-summary-item:nth-child(4) { display:flex; }
+ .occupancy-analysis-row .site-analysis-summary-item:nth-child(3) { display:none; }
+}
+@media (max-width:47.999rem) {
+ .occupancy-detail-row { grid-template-columns:minmax(0,1fr); }
+ .occupancy-customer-table table { min-width:calc(var(--space-control-xl) * 13); }
+}

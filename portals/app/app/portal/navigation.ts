@@ -1,4 +1,5 @@
-export type PortalPage = "object-mappings" | "source-configurations" | "configuration-audit" | "site-classifications" | "analysis-rules" | "members" | "jurisdiction" | "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
+import { customerUseIcon, sharingIcon, monitoringIcon, capacityIcon, efficiencyIcon, businessUsageIcon, businessAnalysisIcon } from "./business-icons";
+export type PortalPage = "business-dictionaries" | "monitoring" | "operator-identities" | "customer-use" | "sharing" | "object-mappings" | "source-configurations" | "configuration-audit" | "site-classifications" | "analysis-rules" | "members" | "jurisdiction" | "metric-catalog" | "data-updates" | "overview-display" | "review-history" | "usage-review" | "capacity" | "efficiency" | "operator-usage" | "usage-reports" | "home" | "board" | "sites" | "map" | "analysis" | "reports" | "aggregation" | "report-jobs" | "templates" | "settings";
 export type PortalDomain = "business" | "management";
 export interface PortalEntry { id: PortalPage; label: string; href: string; group: PortalDomain }
 export interface BusinessModule {
@@ -6,75 +7,55 @@ export interface BusinessModule {
   page?: PortalPage; href?: string; planned?: boolean;
 }
 export interface BusinessGroup { key: string; title: string; description: string; icon: string; modules: BusinessModule[] }
+// Existing analysis stays usable while its business scope is migrated.
+export function portalAnalysisMigrationPending(page?: PortalPage): boolean {
+  return page !== undefined && ["customer-use", "monitoring", "efficiency", "capacity", "analysis", "usage-review"].includes(page);
+}
 export function portalDomain(page: PortalPage): PortalDomain {
-  return ["object-mappings", "source-configurations", "configuration-audit", "site-classifications", "analysis-rules", "members", "jurisdiction", "metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
+  return ["business-dictionaries", "overview-display", "operator-identities", "object-mappings", "source-configurations", "configuration-audit", "site-classifications", "analysis-rules", "members", "jurisdiction", "metric-catalog", "settings", "templates"].includes(page) ? "management" : "business";
 }
 // Public navigation never grants access; destinations keep their own checks.
 export function portalNavigation(preview: boolean, domain: PortalDomain = "business"): readonly PortalEntry[] {
   const entries: PortalEntry[] = [
+    {id:"monitoring",label:"\u8fd0\u884c\u76d1\u6d4b",href:"/monitoring",group:"business"},
+    {id:"customer-use",label:"\u5ba2\u6237\u4f7f\u7528",href:"/customer-use",group:"business"},
     { id: "home", label: "\u8fd0\u884c\u603b\u89c8", href: "/", group: "business" },
-    { id: "board", label: "\u51b3\u7b56\u5206\u6790", href: "/board", group: "business" },
-    ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5730\u56fe", href: "/product-preview?hour=18", group: "business" as const }] : []),
+    { id: "board", label: "\u7efc\u5408\u7814\u5224", href: "/board", group: "business" },
+    ...(preview ? [{ id: "map" as const, label: "\u7ad9\u7f51\u5168\u666f", href: "/product-preview?hour=18", group: "business" as const }] : []),
     { id: "sites", label: "\u7ad9\u5740\u7ba1\u7406", href: "/sites", group: "business" },
-    { id: "capacity", label: "\u5bb9\u91cf\u8d28\u91cf", href: "/capacity", group: "business" },
+    { id: "capacity", label: "\u627f\u8f7d\u80fd\u529b", href: "/capacity", group: "business" },
     { id: "efficiency", label: "\u8fd0\u884c\u80fd\u6548", href: "/efficiency", group: "business" },
-    { id: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", href: "/operator-usage", group: "business" },
-    { id: "usage-reports", label: "\u7528\u91cf\u62a5\u544a", href: "/usage-reports", group: "business" },
     { id: "analysis", label: "\u7ecf\u8425\u5206\u6790", href: "/analysis", group: "business" },
     { id: "reports", label: "\u62a5\u544a\u4e2d\u5fc3", href: "/reports", group: "business" },
     { id: "usage-review", label: "\u7528\u91cf\u6838\u9a8c", href: "/usage-review", group: "business" },
-    ...(preview ? [{ id: "review-history" as const, label: "\u6838\u9a8c\u8bb0\u5f55", href: "/review-history", group: "business" as const }] : []),
     { id: "data-updates", label: "\u6570\u636e\u66f4\u65b0", href: "/operations/data-updates", group: "business" },
-    { id: "aggregation", label: "\u805a\u5408\u5904\u7406", href: "/operations/aggregation", group: "business" },
-    { id: "report-jobs", label: "\u62a5\u544a\u4efb\u52a1", href: "/reports/tasks", group: "business" },
-    ...(preview ? [{ id: "overview-display" as const, label: "\u603b\u89c8\u504f\u597d", href: "/preferences/overview", group: "business" as const }] : []),
+    { id: "operator-identities", label: "\u8fd0\u8425\u4e3b\u4f53", href: "/settings/operators", group: "management" },
     { id: "settings", label: "\u7ba1\u7406\u603b\u89c8", href: "/settings", group: "management" },
-    { id: "jurisdiction", label: "\u7ba1\u8f96\u8303\u56f4", href: "/settings/jurisdiction", group: "management" },
-    { id: "members", label: "\u6210\u5458\u7ba1\u7406", href: "/settings/members", group: "management" },
-    { id: "site-classifications", label: "\u7ad9\u5740\u5206\u7c7b", href: "/settings/classifications", group: "management" },
+    { id: "overview-display", label: "\u603b\u89c8\u8bbe\u7f6e", href: "/settings/overview", group: "management" },
+    { id: "jurisdiction", label: "\u7ec4\u7ec7\u4e0e\u6743\u9650", href: "/settings/access", group: "management" },
+    { id: "business-dictionaries", label: "\u4e1a\u52a1\u5b57\u5178", href: "/settings/dictionaries", group: "management" },
     { id: "analysis-rules", label: "\u5206\u6790\u89c4\u5219", href: "/settings/rules", group: "management" },
-    { id: "metric-catalog", label: "\u6307\u6807\u5b57\u5178", href: "/settings/metrics", group: "management" },
-    { id: "source-configurations", label: "\u6765\u6e90\u914d\u7f6e", href: "/settings/sources", group: "management" },
-    { id: "object-mappings", label: "\u5bf9\u8c61\u6620\u5c04", href: "/settings/mappings", group: "management" },
-    { id: "configuration-audit", label: "\u914d\u7f6e\u5ba1\u8ba1", href: "/settings/audit", group: "management" },
+    { id: "source-configurations", label: "\u6570\u636e\u63a5\u5165", href: "/settings/data-access", group: "management" },
     { id: "templates", label: "\u6a21\u677f\u914d\u7f6e", href: "/settings/templates", group: "management" },
   ];
   return entries.filter(entry => entry.group === domain);
 }
-export function portalBusinessGroups(preview: boolean): BusinessGroup[] {
+export function portalLauncherEntries(preview: boolean, tier: "overview" | "tools"): PortalEntry[] {
   const nav = portalNavigation(preview);
-  const page = (id: PortalPage, icon: string, description: string): BusinessModule[] => {
-    const entry = nav.find(item => item.id === id);
-    return entry ? [{ key: id, page: id, label: entry.label, href: entry.href, icon, description }] : [];
-  };
-  const planned = (key: string, label: string, icon: string, description: string): BusinessModule =>
-    ({ key, label, icon, description, planned: true });
-  return [
-    { key: "resources", title: "\u7ad9\u5740\u8d44\u6e90", icon: "building", description: "\u6863\u6848\u4e0e\u670d\u52a1\u5173\u7cfb", modules: [
-      ...page("sites", "building", "\u53f0\u8d26\u3001\u8d44\u6e90\u4e0e\u7edf\u4e00\u6863\u6848"),
-      { key: "service-relations", label: "\u670d\u52a1\u5173\u7cfb", icon: "users", description: "\u8fd0\u8425\u5546\u4e0e\u8bbe\u5907\u8d44\u6e90", href: "/sites?view=relations" },
-    ] },
-    { key: "supervision", title: "\u8fd0\u884c\u76d1\u7ba1", icon: "gauge", description: "\u72b6\u6001\u3001\u8d28\u91cf\u4e0e\u80fd\u6548", modules: [
-      ...(preview ? [
-        { key: "capacity", label: "\u5bb9\u91cf\u8d28\u91cf", icon: "gauge", description: "\u8d1f\u8f7d\u4e0e\u63a5\u901a\u8d28\u91cf", page: "capacity" as const, href: "/capacity" },
-        { key: "efficiency", label: "\u8fd0\u884c\u80fd\u6548", icon: "lightning", description: "\u7269\u7406\u7535\u8017\u4e0e\u8fd0\u884c\u53c2\u6570", page: "efficiency" as const, href: "/efficiency" },
-      ] : [planned("runtime", "\u8fd0\u884c\u72b6\u6001", "gauge", "\u6b63\u5f0f\u76d1\u7ba1\u89c6\u56fe\u5f85\u63a5\u5165")]),
-    ] },
-    { key: "business", title: "\u7ecf\u8425\u5206\u6790", icon: "chart-line-up", description: "\u7528\u91cf\u3001\u7ed3\u6784\u4e0e\u8d8b\u52bf", modules: [
-      ...page("analysis", "chart-line-up", "\u533a\u57df\u8d21\u732e\u3001\u5e74\u5ea6\u8d8b\u52bf\u4e0e\u5355\u7ad9\u7ecf\u8425"),
-      ...(preview ? [{ key: "operator-usage", label: "\u8fd0\u8425\u5546\u7528\u91cf", icon: "chart-pie", description: "\u901a\u8bdd\u3001\u6d41\u91cf\u4e0e\u77ed\u4fe1", page: "operator-usage" as const, href: "/operator-usage" }] : []),
-    ] },
-    { key: "verification", title: "\u5f02\u5e38\u6838\u9a8c", icon: "shield-check", description: "\u53d1\u73b0\u3001\u8bc1\u636e\u4e0e\u590d\u6838", modules: [
-      ...(preview ? page("usage-review", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570") : [planned("usage-review", "\u7528\u91cf\u6838\u9a8c", "search", "\u6ce2\u52a8\u3001\u96f6\u91cf\u4e0e\u7f3a\u6570")]),
-      ...(preview ? page("review-history", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2") : [planned("review-history", "\u6838\u9a8c\u8bb0\u5f55", "list-checks", "\u539f\u56e0\u786e\u8ba4\u4e0e\u590d\u6838\u5386\u53f2")]),
-    ] },
-    { key: "reporting", title: "\u62a5\u544a\u4e2d\u5fc3", icon: "file-text", description: "\u5468\u671f\u6210\u679c\u4e0e\u8ffd\u6eaf", modules: [
-      ...page("reports", "file-text", "\u62a5\u544a\u5e93\u4e0e\u5386\u53f2\u7248\u672c"),
-      ...(preview ? [{ key: "report-preview", label: "\u7528\u91cf\u62a5\u544a", icon: "newspaper", description: "\u65e5\u5468\u6708\u62a5\u544a\u4e0e\u5bfc\u51fa", page: "usage-reports" as const, href: "/usage-reports" }] : []),
-      ...page("report-jobs", "calendar", "\u751f\u6210\u4e0e\u5bfc\u51fa\u8fdb\u5ea6"),
-    ] },
-    { key: "data", title: "\u6570\u636e\u7ba1\u7406", icon: "database", description: "\u66f4\u65b0\u8fdb\u5ea6\u4e0e\u5904\u7406\u8bb0\u5f55", modules: [
-      ...page("data-updates", "refresh", "\u589e\u91cf\u8fdb\u5ea6\u3001\u5931\u8d25\u4e0e\u5904\u7f6e"),
-    ] },
-  ];
+  const ids: PortalPage[] = tier === "overview" ? ["home", "board", "map"] : ["reports", "data-updates", "usage-review"];
+  return ids.flatMap(id => { const entry = nav.find(item => item.id === id); return entry ? [entry] : []; });
+}
+export function portalBusinessGroups(_preview: boolean): BusinessGroup[] {
+  const planned = (key: string, label: string, icon: string, description: string): BusinessModule => ({key, label, icon, description, planned: true});
+  const specs = [
+    ["runtime", "\u8fd0\u884c", "gauge", [["efficiency", "\u8fd0\u884c\u80fd\u6548", "\u7528\u7535\u89c4\u6a21\u3001\u80fd\u8017\u5f3a\u5ea6\u4e0e\u91cd\u70b9\u7ad9\u5740"], ["monitoring", "\u8fd0\u884c\u76d1\u6d4b", "\u76d1\u6d4b\u8986\u76d6\u3001\u8fd0\u884c\u72b6\u6001\u4e0e\u544a\u8b66\u4f9d\u636e"], ["risks", "\u8d8b\u52bf\u7814\u5224", "\u5468\u671f\u53d8\u5316\u3001\u53cd\u590d\u5f02\u5e38\u4e0e\u91cd\u70b9\u5173\u6ce8"]]],
+    ["operations", "\u8fd0\u8425", "building", [["sites", "\u7ad9\u5740\u7ba1\u7406", "\u7ad9\u5740\u3001\u8bbe\u5907\u4e0e\u540c\u6b65\u7ef4\u62a4"], ["bearing", "\u627f\u8f7d\u80fd\u529b", "\u8d44\u6e90\u8d1f\u8f7d\u3001\u63a5\u901a\u8868\u73b0\u4e0e\u91cd\u70b9\u7ad9\u5740"], ["demand", "\u9700\u6c42\u5339\u914d", "\u8fd0\u8425\u5546\u9700\u6c42\u4e0e\u7ad9\u5740\u80fd\u529b\u5339\u914d"], ["quality", "\u670d\u52a1\u8d28\u91cf", "\u670d\u52a1\u53ef\u7528\u6027\u3001\u4e2d\u65ad\u4e0e\u6062\u590d\u6548\u7387"], ["fulfillment", "\u5c65\u7ea6\u4fdd\u969c", "\u4ea4\u4ed8\u5f00\u901a\u3001\u5907\u7535\u4e0e\u6062\u590d\u65f6\u9650\u8fbe\u6210"]]],
+    ["business", "\u7ecf\u8425", "chart-line-up", [["customer-use", "\u5ba2\u6237\u4f7f\u7528", "\u8fd0\u8425\u5546\u5165\u9a7b\u3001\u7ad9\u5740\u5171\u4eab\u4e0e\u4e1a\u52a1\u7528\u91cf"], ["analysis", "\u7ecf\u8425\u5206\u6790", "\u5386\u53f2\u8d8b\u52bf\u3001\u540c\u6bd4\u4e0e\u540c\u7c7b\u5bf9\u6807"], ["revenue", "\u8425\u6536\u5206\u6790", "\u6536\u5165\u89c4\u6a21\u3001\u7ed3\u6784\u3001\u8d21\u732e\u4e0e\u8d8b\u52bf"], ["benefit", "\u6210\u672c\u6548\u76ca", "\u5efa\u8bbe\u3001\u80fd\u8017\u3001\u7ef4\u62a4\u6210\u672c\u4e0e\u6295\u5165\u4ea7\u51fa"]]],
+  ] as const;
+  const groups: BusinessGroup[] = specs.map(([key,title,icon,modules]) => ({key,title,icon,description:title,modules:modules.map(([key,label,description]) => { const migrated = key === "analysis" ? { page: "analysis" as const, href: "/analysis" } : key === "sites" ? { page: "sites" as const, href: "/sites" } : key === "efficiency" ? { page: "efficiency" as const, href: "/efficiency" } : key === "bearing" ? { page: "capacity" as const, href: "/capacity" } : key === "monitoring" ? { page: "monitoring" as const, href: "/monitoring" } : key === "customer-use" ? { page: "customer-use" as const, href: "/customer-use" } : undefined; return { ...(migrated ?? planned(key,label,{analysis:businessAnalysisIcon,sites:"building",["operator-usage"]:businessUsageIcon,efficiency:efficiencyIcon,monitoring:monitoringIcon,["runtime-state"]:"pulse",faults:"warning",risks:"trend-up",bearing:capacityIcon,demand:"target",quality:"shield-check",fulfillment:"seal-check",["customer-use"]:customerUseIcon,sharing:sharingIcon,revenue:"currency-cny",benefit:"scales"}[key] ?? icon,description)), key, label, description, icon: {analysis:businessAnalysisIcon,sites:"building",["operator-usage"]:businessUsageIcon,efficiency:efficiencyIcon,monitoring:monitoringIcon,["runtime-state"]:"pulse",faults:"warning",risks:"trend-up",bearing:capacityIcon,demand:"target",quality:"shield-check",fulfillment:"seal-check",["customer-use"]:customerUseIcon,sharing:sharingIcon,revenue:"currency-cny",benefit:"scales"}[key] ?? icon }; })}));
+  return groups;
+}
+export function portalPendingMigration(preview: boolean): BusinessModule[] {
+  const assigned: PortalPage[] = ["analysis","monitoring","home","board","map","sites","data-updates","reports","customer-use","sharing","capacity","efficiency","operator-usage","usage-reports","usage-review","review-history"];
+  return portalNavigation(preview).filter(item=>!assigned.includes(item.id)).map(item=>({key:item.id,page:item.id,label:item.label,href:item.href,icon:"stack",description:"\u4fdd\u7559\u73b0\u6709\u529f\u80fd\uff0c\u5f85\u786e\u8ba4\u5f52\u5c5e\u5e76\u8fc1\u79fb"}));
 }

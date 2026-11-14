@@ -1,3 +1,6 @@
+import {defaultVerificationConfiguration,readVerificationConfiguration,type VerificationConfiguration,type VerificationParameters} from "./parameters";
+import {scopedReviewCases} from "./scope";
+export {scopedReviewCases} from "./scope";
 import { createHash } from "node:crypto";
 import { DEMO_REGION, DEMO_SITES } from "../map-demo/resources";
 import { calendarWindow } from "../map-demo/period-rules";
@@ -10,7 +13,7 @@ import { parseReviewQuery, type ReviewQuery } from "./query";
 export const REVIEW_DATASET = "bsmoss-demo-review-scenarios-v1";
 export const REVIEW_CUTOFF = "2026-11-01T00:00:00+08:00";
 export interface ReviewCase extends UsageFinding {
-  id: string; evidenceRevision: number; evidenceDigest: string; source: typeof REVIEW_DATASET; policyVersion: string; baselineVersion: string;
+  parameters?:VerificationParameters; id: string; evidenceRevision: number; evidenceDigest: string; source: typeof REVIEW_DATASET; policyVersion: string; baselineVersion: string;
   site: Pick<DemoSite, "id" | "name" | "cityId" | "countyId" | "lng" | "lat">; operator: Operator; metric: BusinessMetric;
   serviceRelation: string; mappingVersion: string; state: "open";
 }
@@ -34,7 +37,7 @@ function fixtureWindow(site: DemoSite, date: string, hour: number, metric: Busin
 }
 // A bounded, versioned scenario corpus. It does not assert province-wide detection coverage,
 // and never replaces the independent station-map or measurement snapshots.
-export function reviewDemoCases(): ReviewCase[] {
+function referenceCases(): ReviewCase[] {
   const result: ReviewCase[] = [], kinds: FindingKind[] = ["up", "down", "from_zero", "zero_run", "missing", "insufficient"];
   const metrics: BusinessMetric[] = ["bytes", "voiceSeconds", "sms"], dates = ["2026-10-25", "2026-10-22", "2026-10-10"], hours = [18, 17, 16, 12, 10, 9];
   for (const [cityIndex, city] of DEMO_REGION.cities.entries()) {
@@ -54,29 +57,31 @@ export function reviewDemoCases(): ReviewCase[] {
   }
   return result;
 }
-export function scopedReviewCases(cases: readonly ReviewCase[], q: ReviewQuery): ReviewCase[] {
-  const range = calendarWindow(q.period), s = q.scope, needle = s.search.toLowerCase();
-  return cases.filter(c => (!q.site||c.site.id===q.site) && (s.cityId === "all" || c.site.cityId === s.cityId) && (s.countyId === "all" || c.site.countyId === s.countyId) &&
-    (s.operator === "all" || c.operator === s.operator) && (!s.selection || inSelection(c.site.lng, c.site.lat, s.selection)) &&
-    (!needle || c.site.name.toLowerCase().includes(needle) || c.site.id.toLowerCase().includes(needle)) &&
-    Date.parse(c.start) < Date.parse(range.end) && Date.parse(c.end) > Date.parse(range.start));
+export function reviewDemoCases(configuration:VerificationConfiguration=defaultVerificationConfiguration()):ReviewCase[]{
+ const config=readVerificationConfiguration(configuration),cases=referenceCases();
+ if(config.revision===0&&JSON.stringify(config.parameters)===JSON.stringify(defaultVerificationConfiguration().parameters))return cases;
+ return cases.flatMap(c=>{const findings=deriveUsageFindings(c.windows,c.metric,config.parameters);if(!findings.length)return [];
+ if(findings.length!==1||findings[0].kind!==c.kind)throw Error('verification_case_identity_changed');
+ const policyVersion='verification-parameters-v1/r'+config.revision+'-'+hash(config.parameters).slice(0,12);
+ return [{...c,...findings[0],parameters:config.parameters,policyVersion,evidenceRevision:config.revision+1,evidenceDigest:hash({identity:c.id,policyVersion,parameters:config.parameters,windows:findings[0].windows,baselineVersion:c.baselineVersion})}];});
 }
-export function reviewDemo(input: Record<string, string | string[] | undefined>) {
-  const query = parseReviewQuery(input), scoped = scopedReviewCases(reviewDemoCases(), query);
-  const rows = scoped.filter(c => (query.metric === "all" || c.metric === query.metric) && (query.category === "all" || c.category === query.category) && (query.status === "all" || c.state === query.status))
+export function reviewDemo(input: Record<string, string | string[] | undefined>,configuration:VerificationConfiguration=defaultVerificationConfiguration()) {
+  const query = parseReviewQuery(input), scoped = scopedReviewCases(reviewDemoCases(configuration), query);
+  const rows = scoped.filter(c => (query.metric === "all" || c.metric === query.metric) && (query.category === "all" || c.category === query.category) && (query.status === "all" || c.state === query.status) && (query.kind==='all'||!query.kind||c.kind===query.kind))
     .sort((a, b) => b.start.localeCompare(a.start) || a.id.localeCompare(b.id));
-  const pages = Math.max(1, Math.ceil(rows.length / 20)), page = Math.min(query.page, pages);
-  return { query:{...query,page}, inputQuery:query, cases:scoped, total: rows.length, pages, rows: rows.slice((page - 1) * 20, page * 20), region: DEMO_REGION,
+  const pages = Math.max(1, Math.ceil(rows.length / (query.pageSize??20))), page = Math.min(query.page, pages);
+  return { query:{...query,page}, inputQuery:query, cases:scoped, total: rows.length, pages, rows: rows.slice((page - 1) * (query.pageSize??20), page * (query.pageSize??20)), region: DEMO_REGION,
     counts: { business: rows.filter(c => c.category === "business").length, quality: rows.filter(c => c.category === "quality").length, insufficient: rows.filter(c => c.category === "insufficient").length },
-    cutoff: REVIEW_CUTOFF, dataset: REVIEW_DATASET,
+    cutoff: REVIEW_CUTOFF, dataset: REVIEW_DATASET, configuration,
     scopeName: DEMO_REGION.counties.find(c => c.id === query.scope.countyId)?.name ?? DEMO_REGION.cities.find(c => c.id === query.scope.cityId)?.name ?? DEMO_REGION.name };
 }
-export function reviewDemoDetail(id: string, input: Record<string, string | string[] | undefined>) {
+export function reviewDemoDetail(id: string, input: Record<string, string | string[] | undefined>,configuration:VerificationConfiguration=defaultVerificationConfiguration()) {
   const query = parseReviewQuery(input);
   if (!/^UV-[a-f0-9]{24}$/.test(id)) return null;
   // List-only status/category/metric filters must not hide a directly selected case.
-  const item = scopedReviewCases(reviewDemoCases(), query).find(c => c.id === id);
-  return item ? { query, item, region: DEMO_REGION, cutoff: REVIEW_CUTOFF } : null;
+  const active=scopedReviewCases(reviewDemoCases(configuration),query).find(c=>c.id===id);
+  const item = active??scopedReviewCases(referenceCases(),query).find(c=>c.id===id);
+  return item ? { query, item, retired:!active, configuration, region: DEMO_REGION, cutoff: REVIEW_CUTOFF } : null;
 }
 export type ReviewListModel = ReturnType<typeof reviewDemo>;
 export type ReviewDetailModel = NonNullable<ReturnType<typeof reviewDemoDetail>>;

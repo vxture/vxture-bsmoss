@@ -47,7 +47,7 @@ export function commonThrough(raw: DataAvailability): string | null {
   return new Date(Math.floor(Math.min(...data.sources.map(s => instant(s.through))) / 3600000) * 3600000).toISOString();
 }
 export function formatDataTime(value: string | null): string {
-  return value === null ? "\u5f85\u786e\u8ba4" : new Date(instant(value) + 8 * 3600000).toISOString().slice(0, 16).replace("T", " ");
+  return value === null ? "\u5f85\u786e\u8ba4" : new Date(instant(value) + 8 * 3600000).toISOString().slice(0, 19).replace("T", " ");
 }
 export type UpdatePlan = { state: "current" | "available" | "unknown" | "incompatible" | "regressed"; current: string | null; latest: string | null; changedSources: string[] };
 export function planDataUpdate(head: DataAvailability, available: DataAvailability): UpdatePlan {

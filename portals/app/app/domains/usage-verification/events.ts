@@ -27,7 +27,7 @@ export const commandText=(c:ReviewCommand)=>JSON.stringify(parseReviewCommand(c)
 export const sameEvidence=(a:EvidenceRef,b:EvidenceRef)=>a.source===b.source&&a.revision===b.revision&&a.digest===b.digest;
 function validateEvidence(c:ReviewCase){
  if(!c||!['bytes','voiceSeconds','sms'].includes(c.metric)||!c.site||typeof c.site.id!=='string'||typeof c.site.name!=='string'||!Array.isArray(c.windows)||!c.windows.length||c.windows.length>24||!Number.isSafeInteger(c.evidenceRevision)||c.evidenceRevision<1||!/^UV-[a-f0-9]{24}$/.test(c.id)||!/^[a-f0-9]{64}$/.test(c.evidenceDigest))throw Error('review_storage_corrupt');
- const derived=deriveUsageFindings(c.windows,c.metric);
+ const derived=deriveUsageFindings(c.windows,c.metric,c.parameters);
  if(derived.length!==1||JSON.stringify(derived[0])!==JSON.stringify({kind:c.kind,category:c.category,start:c.start,end:c.end,windows:c.windows,current:c.current,referenceNumerator:c.referenceNumerator,deltaNumerator:c.deltaNumerator}))throw Error('review_storage_corrupt');
 }
 function nextState(state:ReviewState,action:ReviewAction):ReviewState {

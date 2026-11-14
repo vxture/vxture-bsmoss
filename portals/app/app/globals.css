@@ -2,6 +2,10 @@
 @import "@vxture/design-system/styles/globals.css";
 @import "@vxture/design-system/styles/brands/vxture.css";
 @import "@vxture/design-system/styles/workbench.css";
+@import "./portal/analysis-loading.css";
+@import "./portal/operation-row.css";
+@import "./portal/table-tools.css";
+@import "./portal/pagination.css";
 
 /* Two independent layers: workspace safety for detached navigation, then the
    reading inset inside the actual content width. Never apply these to maps. */
@@ -43,7 +47,7 @@
   .product-workspace { gap: var(--space-xs); padding: var(--space-xs); }
 }
 
-/* Shared title/scope and time/actions, with content tools below the divider. */
+/* Shared title/metadata and bottom-aligned actions, with tools below. */
 .product-page-heading {
   display: flex;
   flex: 0 0 auto;
@@ -53,21 +57,22 @@
 }
 .product-page-title-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: stretch;
-  gap: var(--space-lg);
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: flex-end;
+  gap: var(--space-md);
   min-width: 0;
   padding-bottom: var(--space-md);
   border-bottom: var(--border-width-thin) dashed var(--border);
 }
+.product-page-identity { min-width: 0; max-width: 100%; }
 .product-page-utilities {
   display: flex;
-  flex-direction: column;
+  flex: 0 1 auto;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-inline-start: auto;
   min-width: 0;
-  max-width: var(--container-overlay-xl);
+  max-width: 100%;
 }
 .product-page-actions,
 .product-page-navigation,
@@ -80,8 +85,35 @@
   min-width: 0;
 }
 .product-page-region { max-width: 100%; }
-.product-page-actions { justify-content: flex-end; margin-top: auto; }
-.product-page-context { justify-content: flex-end; text-align: right; }
+.product-page-actions { justify-content: flex-end; align-items: flex-end; max-width: 100%; }
+.product-page-actions > nav { min-width: 0; justify-content: flex-end; }
+/* PageHeading owns action geometry on both current and mounted legacy pages.
+   Keep DS variants, interaction states and focus treatment intact. */
+:is(.product-page-actions,.product-page-navigation) [data-slot="button"] {
+  box-sizing: border-box;
+  height: var(--space-control-xl);
+  min-height: var(--space-control-xl);
+  max-height: var(--space-control-xl);
+  padding-block: 0;
+  padding-inline: var(--space-md);
+  border-radius: var(--radius-md);
+  font-family: var(--body-font-family);
+  font-size: var(--body-font-size);
+  line-height: var(--body-line-height);
+  gap: var(--space-xs);
+}
+:is(.product-page-actions,.product-page-navigation) [data-slot="button"][data-size^="icon"] {
+  width: var(--space-control-xl);
+  min-width: var(--space-control-xl);
+  padding: 0;
+  flex-shrink: 0;
+}
+:is(.product-page-actions,.product-page-navigation) [data-slot="button"][data-size^="icon"] > svg {
+  width: var(--spacing-icon-md);
+  height: var(--spacing-icon-md);
+}
+.product-page-context { justify-content: flex-start; text-align: left; }
+.product-page-context :is(time,button) { flex-shrink: 0; }
 .product-page-navigation,
 .product-page-context,
 .product-page-region {
@@ -92,10 +124,10 @@
 .product-page-toolbar { min-width: 0; }
 .product-page-toolbar > form { margin: 0; padding-block: var(--space-xs); }
 @media (max-width: 47.999rem) {
-  .product-page-title-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
-  .product-page-utilities { flex-direction: row; align-items: center; flex-wrap: wrap; width: 100%; max-width: none; }
-  .product-page-context { justify-content: flex-start; text-align: left; }
-  .product-page-actions { margin-top: 0; margin-left: auto; }
+  .product-page-title-row { grid-template-columns: minmax(0, 1fr); }
+  .product-page-utilities { width: 100%; }
+  .product-page-actions { margin-inline-start: auto; flex-wrap: wrap; }
+  .product-page-actions > nav { flex: 1; }
 }
 
 /* The operator breakdown sets the shared row height, including stacked cards. */

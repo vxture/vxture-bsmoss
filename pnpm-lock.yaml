@@ -18,9 +18,9 @@ overrides:
   react-resizable-panels: 4.12.3
 
 patchedDependencies:
-  '@vxture/design-system@15.0.0':
-    hash: ee1834ed184cfa86fc4dc7d06c1e18601b2d48e978f47b28ac3f12b1aa47d875
-    path: patches/@vxture__design-system@15.0.0.patch
+  '@vxture/design-system@15.6.1':
+    hash: 3c4be4f1accf24b4fe0434ce98dbe26175137ed805ee8cd686593922dbab91de
+    path: patches/@vxture__design-system@15.6.1.patch
 
 importers:
 
@@ -75,8 +75,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@vxture/design-system':
-        specifier: latest
-        version: 15.0.0(patch_hash=ee1834ed184cfa86fc4dc7d06c1e18601b2d48e978f47b28ac3f12b1aa47d875)(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss-animate@1.0.7(tailwindcss@4.3.4))(tailwindcss@4.3.4)
+        specifier: 15.6.1
+        version: 15.6.1(patch_hash=3c4be4f1accf24b4fe0434ce98dbe26175137ed805ee8cd686593922dbab91de)(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss-animate@1.0.7(tailwindcss@4.3.4))(tailwindcss@4.3.4)
       '@vxture/shared':
         specifier: 2.0.0
         version: 2.0.0
@@ -110,6 +110,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@22.20.5)
       tailwindcss:
         specifier: ^4.3.4
         version: 4.3.4
@@ -1411,8 +1414,8 @@ packages:
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
-  '@vxture/design-system@15.0.0':
-    resolution: {integrity: sha512-blM0+R3GIZKNOIEAWpmRV165n4z8LDRyUgiFLhEaLnM+7GZSejjFe0wIXy5Fs4+Tjupxkcyne3qIQwF6U3OhiA==, tarball: https://npm.pkg.github.com/download/@vxture/design-system/15.0.0/115166e7c6137f74c61056d5f714e04a0d7dae50}
+  '@vxture/design-system@15.6.1':
+    resolution: {integrity: sha512-4oDhYGLiYtL+KngA5OePcTBStqZ9v/uH/zG49yUA5FPqm3f8+vweGXrUiXAatiViGe5tQehlY5OZrRFLqdeo6g==, tarball: https://npm.pkg.github.com/download/@vxture/design-system/15.6.1/fbfb389a1b7d312d8183a4713b7ab8ca39b20e9b}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@phosphor-icons/react': ^2.1.10
@@ -1422,13 +1425,13 @@ packages:
       tailwindcss: ^4.2.1
       tailwindcss-animate: ^1.0.7
 
-  '@vxture/design-tokens@4.0.0':
-    resolution: {integrity: sha512-KB+Fy8VNifT1cq6ymOFjeQ3pg0dYSW5F8zVFvtrPzPTNKxizy3Hz0aTnYSbPK5jSr8rXHLk3Dvv/b8dn9kOIhg==, tarball: https://npm.pkg.github.com/download/@vxture/design-tokens/4.0.0/0b419c5ca27614450183e04d250e21754710583d}
+  '@vxture/design-tokens@4.1.0':
+    resolution: {integrity: sha512-ru9t/whAkT3S/1aYok5G9JjKRYfc/cpKF83LOaFa/2dNE5f7ACIf8b4D5HxM8tc5vb9PkjCStjQTooEE/LiBBQ==, tarball: https://npm.pkg.github.com/download/@vxture/design-tokens/4.1.0/6f4af1877f793b07f7ddfbc5c43e12e76bba99a3}
     peerDependencies:
       tailwindcss: ^4.0.0
 
-  '@vxture/design-ui@12.0.0':
-    resolution: {integrity: sha512-qIBMPU9Py82cOGJeDB4+BmNL/8ZilnSqoVdoHB6rHj8xEAlvl3qAtaFtWjidHAsmr/3amen9rBbNddoEEwqG/g==, tarball: https://npm.pkg.github.com/download/@vxture/design-ui/12.0.0/aec32dc3c09016c743897918928e54ac585a62cc}
+  '@vxture/design-ui@12.5.1':
+    resolution: {integrity: sha512-HlWTZCPYacHp0B7obCDC7PmSNhvuc0nFzbGl6CkHooIVvmCHEvhUArOEGxC+BTIjMZzd43jlruiolD7qf93l4g==, tarball: https://npm.pkg.github.com/download/@vxture/design-ui/12.5.1/8c464719f69aa767b2fba197a829ad3b423bd8ae}
     peerDependencies:
       '@phosphor-icons/react': ^2.1.10
       react: ^19.0.0
@@ -2321,8 +2324,7 @@ snapshots:
     dependencies:
       hono: 4.13.14
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
@@ -3351,14 +3353,14 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  '@vxture/design-system@15.0.0(patch_hash=ee1834ed184cfa86fc4dc7d06c1e18601b2d48e978f47b28ac3f12b1aa47d875)(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss-animate@1.0.7(tailwindcss@4.3.4))(tailwindcss@4.3.4)':
+  '@vxture/design-system@15.6.1(patch_hash=3c4be4f1accf24b4fe0434ce98dbe26175137ed805ee8cd686593922dbab91de)(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss-animate@1.0.7(tailwindcss@4.3.4))(tailwindcss@4.3.4)':
     dependencies:
       '@fontsource/funnel-display': 5.3.0
       '@fontsource/geist-mono': 5.3.0
       '@fontsource/inter': 5.3.0
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@vxture/design-tokens': 4.0.0(tailwindcss@4.3.4)
-      '@vxture/design-ui': 12.0.0(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.4)
+      '@vxture/design-tokens': 4.1.0(tailwindcss@4.3.4)
+      '@vxture/design-ui': 12.5.1(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.4)
       next-themes: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -3368,12 +3370,12 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  '@vxture/design-tokens@4.0.0(tailwindcss@4.3.4)':
+  '@vxture/design-tokens@4.1.0(tailwindcss@4.3.4)':
     dependencies:
       tailwindcss: 4.3.4
       tailwindcss-animate: 1.0.7(tailwindcss@4.3.4)
 
-  '@vxture/design-ui@12.0.0(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.4)':
+  '@vxture/design-ui@12.5.1(@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.4)':
     dependencies:
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-accordion': 1.3.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -3400,7 +3402,7 @@ snapshots:
       '@radix-ui/react-toggle': 1.2.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-toggle-group': 1.2.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-tooltip': 1.4.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@vxture/design-tokens': 4.0.0(tailwindcss@4.3.4)
+      '@vxture/design-tokens': 4.1.0(tailwindcss@4.3.4)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -3976,8 +3978,7 @@ snapshots:
 
   scheduler@0.28.0: {}
 
-  semver@7.8.5:
-    optional: true
+  semver@7.8.5: {}
 
   sharp@0.35.5(@types/node@22.20.5):
     dependencies:
@@ -4011,7 +4012,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 22.20.5
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

@@ -1,4 +1,5 @@
 "use client";
+import {useOperatorNames} from "../portal/operator-identities";
 import {useState} from 'react';
 import {BarChart,Button,DataTable,DetailList,DetailRow,EmptyState,NativeSelect,PanelCard,Progress,SegmentedControl,StatusBadge,TableTitleCell} from '@vxture/design-system';
 import MetricRowsCard from '../portal/metric-rows-card';
@@ -19,6 +20,7 @@ function Coverage({known,total}:{known:number;total:number}){
  return <div className="flex flex-col gap-xs"><span className="text-body-small tabular-nums text-muted-foreground">{n(known)+' / '+n(total)}</span>{total>0&&<Progress value={known/total*100} aria-label={'\u5df2\u77e5\u8986\u76d6'}/>}</div>;
 }
 export default function RuntimePanel({data,q,region,pending,navigate}:{data:RuntimeAnalysis;q:BusinessScope;region:RegionDefinition;pending:boolean;navigate:(patch:Partial<BusinessScope>)=>void}){
+ const operatorNames=useOperatorNames();
  const [metric,setMetric]=useState<Metric>('attention'),[selected,setSelected]=useState(''),[hour,setHour]=useState(q.hour);
  const {carry}=useInvestigationLinks(businessHref('efficiency',q)),total=data.total;
  const evidence=data.priority.find(s=>s.id===selected),o=evidence?.series[hour],scope={...q,hour};

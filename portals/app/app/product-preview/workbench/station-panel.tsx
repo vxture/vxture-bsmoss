@@ -1,4 +1,6 @@
 'use client';
+import {SegmentedControl} from "@vxture/design-system";
+import {useOperatorNames} from "../../portal/operator-identities";
 import dynamic from 'next/dynamic';
 import { useCallback } from 'react';
 import { Button } from '@vxture/design-system';
@@ -16,6 +18,7 @@ export const OP_COLORS:Record<Operator,string>={mobile:'#7bc7c8',telecom:'#8faed
 const PROFILES:Record<string,string>={urban:'\u57ce\u533a\u5546\u5708',hub:'\u4ea4\u901a\u67a2\u7ebd',industrial:'\u4ea7\u4e1a\u56ed\u533a',mountain:'\u5c71\u533a\u4fdd\u969c',efficient:'\u80fd\u6548\u89c2\u5bdf',shared:'\u6587\u65c5\u5171\u4eab'};
 const n=(value:number,digits=1)=>value.toLocaleString('zh-CN',{maximumFractionDigits:digits});
 export default function StationPanel({detail,loading,error,kind,onRetry}:{kind:AnalysisPanel;detail:StationDetail|null;loading:boolean;error:string|null;onRetry:()=>void}) {
+ const OP_NAMES=useOperatorNames(false);
   const state=useWorkbench();
   const {carry}=useInvestigationLinks(mapInvestigationHref(state));
   const period=state.stationPeriods[kind];
@@ -40,7 +43,7 @@ export default function StationPanel({detail,loading,error,kind,onRetry}:{kind:A
       <Button asChild size="sm" variant="ghost"><a href={carry(relatedReviewHref({...state,selection:state.selection??undefined},period,site.id))}>{"\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
     </div>
     <div className="mw-panel-actions"><button onClick={()=>state.openPanel(other,true)}>{'\u5207\u6362\u81f3'+(other==='runtime'?'\u8fd0\u884c\u68c0\u67e5':'\u7ecf\u8425\u7edf\u8ba1')}<ArrowRight size={12}/></button><button disabled={other==='runtime'?state.runtimeOpen:state.businessOpen} onClick={()=>state.openPanel(other)}>{other==='runtime'&&state.runtimeOpen||other==='business'&&state.businessOpen?'\u5df2\u5e76\u6392':'\u5e76\u6392\u6253\u5f00'}{other==='runtime'?<Activity size={12}/>:<Database size={12}/>}</button></div>
-    <div className="mw-station-period-picker"><span>{'\u5206\u6790\u5468\u671f'}</span><div role="group" aria-label={title+'\u5206\u6790\u5468\u671f'}>{([{key:'snapshot',label:'\u65f6\u6bb5'},{key:'day',label:'\u65e5'},{key:'week',label:'\u5468'},{key:'month',label:'\u6708'}] as const).map(p=><button key={p.key} aria-pressed={period===p.key} onClick={()=>{state.set({stationPeriods:{...state.stationPeriods,[kind]:p.key},playing:false});}}>{p.label}</button>)}</div></div>
+    <div className="mw-station-period-picker"><span>{'\u5206\u6790\u5468\u671f'}</span><SegmentedControl ariaLabel={title+'分析周期'} value={period} items={[{value:'snapshot',label:'时段'},{value:'day',label:'日'},{value:'week',label:'周'},{value:'month',label:'月'}]} onChange={value=>state.set({stationPeriods:{...state.stationPeriods,[kind]:value},playing:false})}/></div>
     {period!=='snapshot'?<div className="mw-detail-body mw-station-period-body"><StationPeriodPanel site={site} period={period}/></div>:<div className={'mw-detail-body '+(loading?'mw-refreshing':'')}>
       <div className="mw-detail-primary">
       <div className="mw-panel-label"><span>{kind==='runtime'?'\u7ad9\u70b9\u8fd0\u884c\u753b\u50cf':'\u7ad9\u70b9\u7ecf\u8425\u753b\u50cf'}</span><small>{String(state.hour).padStart(2,'0')+':00\u2014'+String(state.hour+1).padStart(2,'0')+':00'}</small></div>

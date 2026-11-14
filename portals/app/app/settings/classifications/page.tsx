@@ -1,5 +1,2 @@
-import ParameterCatalog from "../parameters/catalog";
-export const dynamic = "force-dynamic";
-export default function ClassificationsPage() {
-  return <><ParameterCatalog kind="classifications" /></>;
-}
+import { redirect } from "next/navigation";
+export default function LegacyDictionaryPage() { redirect("/settings/dictionaries?view=classifications"); }

@@ -1,0 +1,26 @@
+'use client';
+import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
+import {usePathname,useSearchParams} from 'next/navigation';
+import {Button,Icon} from '@vxture/design-system';
+import {safeReturnTo} from '../auth/lib/return-to';
+import {towerBrand} from '../portal/tower-navigation';
+import ProductBrandMark from '../portal/brand';
+import {SpatialMotif} from './motif';
+import type {EntryResult,EntryState} from './model';
+import './entry.css';
+const titles:Record<EntryState,string>={signin:'\u7ad9\u5740\u670d\u52a1\u7ecf\u8425\u5206\u6790',connecting:'\u6b63\u5728\u8fde\u63a5',restoring:'\u6b63\u5728\u6062\u590d\u767b\u5f55','checking-access':'\u6b63\u5728\u786e\u8ba4\u8d26\u53f7\u72b6\u6001',unavailable:'\u6682\u65f6\u65e0\u6cd5\u8fde\u63a5',recovery:'\u7b49\u5f85\u6062\u590d\u767b\u5f55','signed-out':'\u5df2\u9000\u51fa\u767b\u5f55',unassigned:'\u8d26\u53f7\u6682\u4e0d\u53ef\u7528',connected:'\u5e73\u53f0\u8d26\u53f7\u5df2\u8fde\u63a5'};
+export default function EntryGate({children,accountHref='https://accounts.vxture.com/'}:{children?:ReactNode;accountHref?:string}){
+ const path=usePathname(),query=useSearchParams(),[result,setResult]=useState<EntryResult>({state:'checking-access'}),[busy,setBusy]=useState(true),pending=useRef(false),controller=useRef<AbortController|null>(null);
+ const requested=path==='/entry'?safeReturnTo(query.get('returnTo')):safeReturnTo(path+(query.size?'?'+query.toString():''));
+ const target=/^\/entry(?:[?#]|$)/.test(requested)?'/':requested;
+ const check=useCallback(async()=>{if(pending.current)return;pending.current=true;setBusy(true);const abort=new AbortController();controller.current=abort;const timer=setTimeout(()=>abort.abort(),15000);try{const response=await fetch('/api/entry-status',{cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('entry_unavailable');setResult(await response.json() as EntryResult);}catch{if(controller.current===abort)setResult({state:'unavailable'});}finally{clearTimeout(timer);if(controller.current===abort){pending.current=false;setBusy(false);}}},[]);
+ useEffect(()=>{const timer=setTimeout(()=>void check(),0);return()=>{clearTimeout(timer);controller.current?.abort();controller.current=null;pending.current=false;};},[check,path]);
+ useEffect(()=>{const resume=()=>{if(document.visibilityState==='visible')void check();};window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);return()=>{window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume);};},[check]);
+ const state=busy?'checking-access':result.state;
+ useEffect(()=>{if(state==='connected'&&!children)window.location.replace(target==='/entry'?'/':target);},[state,children,target]);
+ if(state==='connected'&&children)return <>{children}</>;
+ const login=()=>window.location.assign('/auth/login?returnTo='+encodeURIComponent(target==='/entry'?'/':target));
+ const workspace=state==='unassigned',signedOut=state==='signed-out',signin=state==='signin';
+ const footnote=signin?'\u4f7f\u7528\u5e73\u53f0\u8d26\u53f7\u5b89\u5168\u767b\u5f55':state==='unassigned'?'\u8bf7\u524d\u5f80\u8d26\u53f7\u4e2d\u5fc3\u68c0\u67e5\u8d26\u53f7\u72b6\u6001\u3002':state==='recovery'?'\u8bf7\u4fdd\u7559\u6b64\u9875\uff0c\u5728\u65b0\u6807\u7b7e\u9875\u767b\u5f55\u540e\u8fd4\u56de\u3002':'';
+ return <div className="bsmoss-entry"><header className="entry-header"><a href="/" aria-label={towerBrand.name}><ProductBrandMark/><strong>{towerBrand.name}</strong><span>BS-MOSS</span></a></header><main className="entry-main"><section className="entry-card" aria-busy={busy}><h1 aria-live="polite">{titles[state]}</h1><div className="entry-art"><SpatialMotif className="entry-motif"/></div><div className="entry-operations"><div className="entry-identity"><Icon name="user-circle" size="xl"/><div><strong title={result.identity?.displayName}>{result.identity?.displayName||'\u5e73\u53f0\u7edf\u4e00\u8d26\u53f7'}</strong><span title={result.identity?.organization??undefined}>{result.identity?.organization||'\u4f7f\u7528\u7edf\u4e00\u8eab\u4efd\u5b89\u5168\u8fde\u63a5'}</span></div></div><div className="entry-actions">{busy?<Button disabled className="entry-action"><Icon name="spinner" size="sm" className="entry-spinner"/>{"\u6838\u9a8c\u4e2d\u2026"}</Button>:<>{workspace?<Button asChild className="entry-action"><a href={accountHref}>{"\u8d26\u53f7\u4e2d\u5fc3"}</a></Button>:null}{signin||signedOut?<Button className="entry-action" onClick={login}>{signin?'\u7ee7\u7eed\u767b\u5f55':'\u91cd\u65b0\u767b\u5f55'}</Button>:state==='recovery'?<Button asChild className="entry-action"><a target="_blank" rel="noopener noreferrer" href={'/auth/login?returnTo='+encodeURIComponent(target)}>{"\u91cd\u65b0\u767b\u5f55"}</a></Button>:null}{!signin&&!signedOut&&state!=='connected'?<Button className="entry-action" variant={workspace||state==='recovery'?'outline':'default'} onClick={()=>void check()}>{"\u91cd\u65b0\u68c0\u67e5"}</Button>:null}{signedOut?<Button asChild variant="outline" className="entry-action"><a href={accountHref}>{"\u8d26\u53f7\u4e2d\u5fc3"}</a></Button>:null}</>}</div></div>{footnote?<footer className="entry-footnote">{footnote}</footer>:<div className="entry-breathing"/>}</section></main><footer className="entry-legal">{towerBrand.name}{" \u00b7 BS-MOSS"}</footer></div>;
+}

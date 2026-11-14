@@ -1,68 +1,49 @@
 "use client";
-import { ShellPageContainer, Button, Icon, SectionHeader } from "@vxture/design-system";
-import PageHeading from "../../portal/page-heading";
-import { useEffect, useState } from "react";
-import type { ReportJobDetail, ReportJobKind, ReportJobPage, ReportJobState } from "../../domains/supervision/report-jobs";
-import { reportTime } from "../../domains/reports/display";
-import { reportJson } from "../../reports/client";
-import { reportJobLabel as label, reportJobError } from "./client";
-import { ReportRecovery } from "./recovery";
-
-function Inspection({ id, kind, epoch, refresh, onChoose }: { id: string; kind: ReportJobKind; epoch: number; refresh(): void; onChoose(id: string): void }) {
-  const [detail, setDetail] = useState<ReportJobDetail | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const c = new AbortController(); setDetail(null); setError(""); setLoading(true);
-    reportJson<ReportJobDetail>("/api/report-jobs/" + encodeURIComponent(id) + "?kind=" + kind, c.signal)
-      .then(v => { if (!c.signal.aborted) setDetail(v); }).catch(e => { if (!c.signal.aborted) setError(reportJobError(e)); }).finally(() => { if (!c.signal.aborted) setLoading(false); });
-    return () => c.abort();
-  }, [id, kind, epoch]);
-  const job = detail?.job;
-  return <section className="jobs-detail" aria-label={"\u62a5\u544a\u4efb\u52a1\u8be6\u60c5"}>
-    <div className="reports-row"><h2>{"\u4efb\u52a1\u8be6\u60c5"}</h2><button disabled={loading} onClick={refresh}>{"\u5237\u65b0\u6838\u5bf9"}</button></div>
-    {error && <p role="alert" className="reports-error">{error}</p>}{loading && <p role="status">{"\u6b63\u5728\u6838\u9a8c\u4efb\u52a1\u2026"}</p>}
-    {job && <><span className="reports-eyebrow">{label(job.kind)}{" \u00b7 "}{label(job.status)}</span>
-      <h3 className="jobs-title">{job.registration?.templateCode ?? "\u62a5\u544a\u5bfc\u51fa"}</h3><p className="jobs-id">{job.id}</p>
-      <div className="jobs-facts"><article><small>{"\u5f53\u524d\u72b6\u6001"}</small><strong>{label(job.readiness)}</strong></article><article><small>{"\u5c1d\u8bd5 / \u4e0a\u9650"}</small><strong>{job.attempt}{" / "}{job.maxAttempts}</strong></article>
-        <article><small>{"\u53ef\u6267\u884c\u65f6\u95f4"}</small><span>{reportTime(job.availableAt)}</span></article></div>
-      <dl className="jobs-metadata"><div><dt>{"\u5468\u671f"}</dt><dd>{label(job.grain)}{" \u00b7 "}{reportTime(job.period.start)}{" \u2014 "}{reportTime(job.period.end)}</dd></div>
-        <div><dt>{"\u521b\u5efa\u65f6\u95f4"}</dt><dd>{reportTime(job.createdAt)}</dd></div><div><dt>{"\u8bf7\u6c42\u4e3b\u4f53"}</dt><dd>{job.requestedBy}</dd></div><div><dt>{"\u66f4\u65b0\u65f6\u95f4"}</dt><dd>{reportTime(job.updatedAt)}</dd></div>
-        {job.registration && <><div><dt>{"\u539f\u767b\u8bb0"}</dt><dd>{job.registration.id}{" \u00b7 r"}{job.registration.revision}</dd></div><div><dt>{"\u5f53\u524d\u767b\u8bb0\u7248\u672c"}</dt><dd>{job.registration.currentRevision ?? "\u4e0d\u53ef\u7528"}</dd></div></>}
-        {job.publication && <><div><dt>{"\u7ed1\u5b9a\u53d1\u5e03\u4e8b\u4ef6"}</dt><dd>{"r"}{job.publication.revision}</dd></div><div><dt>{"\u6e32\u67d3\u7248\u672c"}</dt><dd>{job.publication.rendererVersion}</dd></div></>}</dl>
-      <h3>{"\u6267\u884c\u8bb0\u5f55"}</h3>{!detail.attempts.length ? <p className="reports-muted">{"\u6682\u65e0\u5df2\u63d0\u4ea4\u7684\u6267\u884c\u8bb0\u5f55\u3002"}</p> : <ol className="jobs-attempts">{detail.attempts.map(a => <li key={a.attempt}><b>{String(a.attempt).padStart(2, "0")}</b><div><strong>{label(a.outcome)}</strong>
-        <span>{a.failureCode ? label(a.failureCode) : a.generationStatus ? label(a.generationStatus) : "\u5236\u54c1\u5df2\u4fdd\u5b58"}</span><small>{reportTime(a.recordedAt)}{" \u00b7 "}{a.recordedBy}</small></div></li>)}</ol>}
-      {job.result && <article className="jobs-link"><strong>{job.kind === "generation" ? "\u751f\u6210\u7ed3\u679c" : "\u7ed1\u5b9a\u62a5\u544a"}</strong>
-        <a href={"/reports?report=" + encodeURIComponent(job.result.reportId) + "&revision=" + encodeURIComponent(job.result.revision)}>{"\u6253\u5f00\u62a5\u544a r"}{job.result.revision}</a>
-        <small>{job.result.reportId}</small>{job.result.currentRevision && <span>{"\u6267\u884c\u65f6\u6700\u65b0\u4fee\u8ba2 r"}{job.result.currentRevision}</span>}
-        <details><summary>{"\u6458\u8981\u4e0e\u5236\u54c1\u5f15\u7528"}</summary><pre>{JSON.stringify({ manifestSha256: job.result.manifestSha256, artifactSha256: job.artifactSha256 }, null, 2)}</pre></details>
-        <p className="reports-muted">{"\u62a5\u544a\u53d1\u5e03\u548c\u4e0b\u8f7d\u6743\u9650\u5c06\u5355\u72ec\u6838\u9a8c\u3002\u4efb\u52a1\u5b8c\u6210\u4e0d\u4ee3\u8868\u5f53\u524d\u53ef\u4e0b\u8f7d\u3002"}</p></article>}
-      <ReportRecovery detail={detail} onChoose={onChoose} onChanged={refresh} onRejected={() => { setDetail(null); setError("\u64cd\u4f5c\u672a\u88ab\u63a5\u53d7\uff0c\u8bf7\u5237\u65b0\u6838\u5bf9\u6743\u9650\u548c\u4efb\u52a1\u4e0a\u4e0b\u6587\u3002"); }} />
-    </>}
-  </section>;
-}
-export default function ReportJobsWorkspace() {
-  const [kind, setKind] = useState<ReportJobKind>("generation"), [status, setStatus] = useState<ReportJobState>("all"), [cursor, setCursor] = useState<string | null>(null), [pages, setPages] = useState<(string | null)[]>([]);
-  const [page, setPage] = useState<ReportJobPage | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState(""), [selected, setSelected] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
-  useEffect(() => {
-    const c = new AbortController(); setPage(null); setLoading(true); setError("");
-    reportJson<ReportJobPage>("/api/report-jobs?kind=" + kind + "&status=" + status + "&limit=20" + (cursor ? "&after=" + encodeURIComponent(cursor) : ""), c.signal)
-      .then(v => { if (!c.signal.aborted) setPage(v); }).catch(e => { if (!c.signal.aborted) setError(reportJobError(e)); }).finally(() => { if (!c.signal.aborted) setLoading(false); });
-    return () => c.abort();
-  }, [kind, status, cursor, epoch]);
-  function clear() { setCursor(null); setPages([]); setSelected(null); }
-  function refresh() { setCursor(null); setPages([]); setEpoch(n => n + 1); }
-  return <ShellPageContainer className="product-page-inset gap-lg">
-    <PageHeading title={"\u62a5\u544a\u4efb\u52a1"} description={"\u62a5\u544a\u751f\u6210\u3001\u5bfc\u51fa\u4e0e\u6267\u884c\u8ffd\u8e2a"}
-      actions={<><Button asChild variant="outline"><a href="/reports">{"\u62a5\u544a\u4e2d\u5fc3"}</a></Button><Button variant="ghost" size="icon-md" aria-label={"\u5237\u65b0"} title={"\u5237\u65b0"} onClick={refresh} disabled={loading}><Icon name="refresh" size="sm" /></Button></>} />
-    <div className="jobs-workspace"><aside className="jobs-library" aria-label={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"}>
-    <SectionHeader title={"\u62a5\u544a\u4efb\u52a1\u5217\u8868"} />
-    <div className="jobs-filters" aria-label={"\u4efb\u52a1\u7c7b\u578b"}>{(["generation", "export"] as const).map(k => <button key={k} aria-pressed={kind === k} onClick={() => { setKind(k); clear(); }}>{label(k)}</button>)}</div>
-    <div className="jobs-filters" aria-label={"\u4efb\u52a1\u72b6\u6001"}>{(["all", "pending", "dead", "succeeded"] as const).map(s => <button key={s} aria-pressed={status === s} onClick={() => { setStatus(s); clear(); }}>{label(s)}</button>)}</div>
-    <p className="reports-muted">{"\u5f53\u524d\u6388\u6743\u8303\u56f4\uff0c\u6309\u521b\u5efa\u65f6\u95f4\u5012\u5e8f\u3002"}</p>
-    {error && <p role="alert" className="reports-error">{error}</p>}{loading ? <p role="status">{"\u6b63\u5728\u8bfb\u53d6\u4efb\u52a1\u2026"}</p> : page && !page.items.length ? <p className="reports-muted">{"\u5f53\u524d\u8303\u56f4\u6682\u65e0\u6b64\u7c7b\u4efb\u52a1\u3002"}</p> : null}
-    <div className="jobs-list">{page?.items.map(j => <button key={j.id} aria-pressed={selected === j.id} className={selected === j.id ? "selected" : ""} onClick={() => setSelected(j.id)}>
-      <span className="reports-row"><strong>{j.registration?.templateCode ?? label(j.kind)}</strong><i data-state={j.status}>{label(j.status)}</i></span>
-      <span>{label(j.grain)}{" \u00b7 "}{label(j.readiness)}</span><small>{reportTime(j.period.start)}{" \u00b7 "}{j.attempt}{"/"}{j.maxAttempts}</small><code>{j.id}</code></button>)}</div>
-    <nav className="reports-row" aria-label={"\u4efb\u52a1\u5206\u9875"}><button disabled={loading || !pages.length} onClick={() => { setCursor(pages.at(-1)!); setPages(p => p.slice(0, -1)); }}>{"\u4e0a\u4e00\u9875"}</button><small>{pages.length + 1}</small>
-      <button disabled={loading || !page?.next} onClick={() => { setPages(p => [...p, cursor]); setCursor(page!.next); }}>{"\u4e0b\u4e00\u9875"}</button></nav>
-  </aside>{selected ? <Inspection key={kind + selected} id={selected} kind={kind} epoch={epoch} refresh={refresh} onChoose={setSelected} /> : <section className="reports-empty"><span className="reports-eyebrow">REPORT OPERATIONS</span><h2>{"\u8ffd\u6eaf\u6bcf\u6b21\u751f\u6210\u548c\u5bfc\u51fa"}</h2><p>{"\u9009\u62e9\u4efb\u52a1\uff0c\u67e5\u770b\u767b\u8bb0\u7248\u672c\u3001\u6267\u884c\u8bb0\u5f55\u548c\u62a5\u544a\u7ed3\u679c\u3002"}</p></section>}</div></ShellPageContainer>;
+import {useEffect,useState,type MouseEvent} from "react";
+import {Button,DataTable,Dialog,DialogContent,DialogTitle,DialogDescription,EmptyState,Icon,PanelCard,SegmentedControl,Select,SelectTrigger,SelectValue,SelectContent,SelectItem,StatusBadge,TableTitleCell} from "@vxture/design-system";
+import type {ReportJobPage,ReportJobState} from "../../domains/supervision/report-jobs";
+import {taskTime} from "../../operations/data-updates/client";
+import ResetButton from "../../portal/reset-button";
+import {reportJson} from "../client";
+import {taskHref,taskFromUrl,type TaskQuery} from "../centre-links";
+import {reportJobLabel as label,reportJobError} from "./client";
+import Inspection from "./inspection";
+export default function ReportJobsWorkspace({initialQuery,invalidLink=false}:{initialQuery:TaskQuery;invalidLink?:boolean}){
+ const [query,setQuery]=useState(initialQuery),[invalid,setInvalid]=useState(invalidLink),[cursor,setCursor]=useState<string|null>(null),[pages,setPages]=useState<(string|null)[]>([]),[epoch,setEpoch]=useState(0);
+ const [page,setPage]=useState<ReportJobPage|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
+ const initialKey=JSON.stringify(initialQuery);
+ useEffect(()=>{setQuery(initialQuery);setInvalid(invalidLink);setCursor(null);setPages([]);},[initialKey,invalidLink]);
+ useEffect(()=>{const read=()=>{try{setQuery(taskFromUrl(window.location.href));setInvalid(false);}catch{setQuery({kind:"generation",status:"all",job:null});setInvalid(true);}setCursor(null);setPages([]);};window.addEventListener("popstate",read);return()=>window.removeEventListener("popstate",read);},[]);
+ useEffect(()=>{const c=new AbortController();setPage(null);setLoading(true);setError("");
+  reportJson<ReportJobPage>("/api/report-jobs?kind="+query.kind+"&status="+query.status+"&limit=20"+(cursor?"&after="+encodeURIComponent(cursor):""),c.signal).then(value=>{if(!c.signal.aborted)setPage(value);}).catch(e=>{if(!c.signal.aborted)setError(reportJobError(e));}).finally(()=>{if(!c.signal.aborted)setLoading(false);});return()=>c.abort();
+ },[query.kind,query.status,cursor,epoch]);
+ function choose(next:TaskQuery){window.history.pushState(null,"",taskHref(next,Object.fromEntries(new URL(window.location.href).searchParams)));setQuery(next);setInvalid(false);}
+ function filter(patch:Partial<TaskQuery>){setCursor(null);setPages([]);choose({...query,...patch,job:null});}
+ function refresh(){setEpoch(n=>n+1);}
+ function open(id:string){choose({...query,job:query.job===id?null:id});}
+ function rowClick(e:MouseEvent){const target=e.target as HTMLElement;if(target.closest("button,a"))return;const row=target.closest("tbody > tr");if(!row)return;const entry=page?.items[Array.from(row.parentElement!.children).indexOf(row)];if(entry)open(entry.id);}
+ const rows=page?.items??[];
+ return <>
+  <PanelCard title={"\u4efb\u52a1\u8bb0\u5f55"} icon="list-checks" className="site-analysis-table-panel">
+   <div className="site-analysis-table-tools site-analysis-table-tools-single-line site-analysis-action-row">
+    <div className="site-analysis-table-filters"><div className="site-analysis-occupancy-scroll"><SegmentedControl size="md" className="site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:2]" ariaLabel={"\u62a5\u544a\u4efb\u52a1\u7c7b\u578b"} value={query.kind} onChange={kind=>filter({kind})} items={[{value:"generation",label:<span className="site-analysis-occupancy-label"><Icon name="newspaper" size="sm"/>{"\u751f\u6210"}</span>},{value:"export",label:<span className="site-analysis-occupancy-label"><Icon name="file-text" size="sm"/>{"\u5bfc\u51fa"}</span>}]}/></div></div>
+    <div className="site-analysis-search"><Select value={query.status} onValueChange={status=>filter({status:status as ReportJobState})}><SelectTrigger className="h-control-xl w-auto gap-sm text-body" aria-label={"\u4efb\u52a1\u72b6\u6001"}><SelectValue/></SelectTrigger><SelectContent>{(["all","pending","dead","succeeded"] as const).map(s=><SelectItem key={s} value={s}>{label(s)}</SelectItem>)}</SelectContent></Select>
+     <Button variant="outline" size="icon-md" className="size-control-xl" disabled={loading} aria-label={"\u5237\u65b0\u4efb\u52a1"} title={"\u5237\u65b0\u4efb\u52a1"} onClick={refresh}><Icon name="refresh" size="sm"/></Button><ResetButton variant="outline" label={"\u91cd\u7f6e\u4efb\u52a1\u7b5b\u9009"} onClick={()=>filter({status:"all"})}/>
+    </div>
+   </div>
+   {invalid&&<p role="alert" className="text-body-small text-destructive">{"\u4efb\u52a1\u94fe\u63a5\u65e0\u6548\uff0c\u8bf7\u4ece\u5217\u8868\u9009\u62e9\u3002"}</p>}{error&&<p role="alert" className="text-body-small text-destructive">{error}</p>}
+   <div className="site-analysis-table min-w-0 overflow-x-auto" onClick={rowClick} aria-busy={loading}><DataTable rows={rows} rowKey={r=>r.id} indexStart={pages.length*20+1} columns={[
+    {id:"name",header:"\u62a5\u544a\u4efb\u52a1",cell:r=><TableTitleCell title={r.registration?.templateCode??label(r.kind)} description={r.id.length>24?r.id.slice(0,12):r.id} onTitleClick={()=>open(r.id)}/>},
+    {id:"period",header:"\u6570\u636e\u5468\u671f",cell:r=><span className="whitespace-nowrap">{label(r.grain)+" \u00b7 "+taskTime(r.period.start).slice(0,10)}</span>},
+    {id:"created",header:"\u63d0\u4ea4\u65f6\u95f4",cell:r=><time className="whitespace-nowrap tabular-nums" dateTime={r.createdAt}>{taskTime(r.createdAt)}</time>},
+    {id:"attempt",header:"\u5c1d\u8bd5\uff0f\u4e0a\u9650",align:"center",cell:r=><span className="tabular-nums whitespace-nowrap">{r.attempt+" / "+r.maxAttempts}</span>},
+    {id:"status",header:"\u72b6\u6001",align:"center",cell:r=><StatusBadge tone={r.status==="dead"?"danger":r.status==="succeeded"?"success":"neutral"}>{label(r.status)}</StatusBadge>}
+   ]} empty={<EmptyState title={loading?"\u6b63\u5728\u8bfb\u53d6\u2026":error?"\u4efb\u52a1\u6682\u4e0d\u53ef\u7528":"\u6682\u65e0\u4efb\u52a1\u8bb0\u5f55"}/>}/></div>
+   <nav aria-label={"\u4efb\u52a1\u5206\u9875"} className="site-analysis-action-row flex items-center justify-end gap-sm text-body"><Button className="h-control-xl text-body" variant="ghost" disabled={loading||!pages.length} onClick={()=>{setCursor(pages.at(-1)!);setPages(p=>p.slice(0,-1));choose({...query,job:null});}}>{"\u4e0a\u4e00\u9875"}</Button><span className="tabular-nums">{pages.length+1}</span><Button className="h-control-xl text-body" variant="ghost" disabled={loading||!page?.next} onClick={()=>{setPages(p=>[...p,cursor]);setCursor(page!.next);choose({...query,job:null});}}>{"\u4e0b\u4e00\u9875"}</Button></nav>
+  </PanelCard>
+  <Dialog modal={false} open={!!query.job} onOpenChange={open=>{if(!open)choose({...query,job:null});}}><DialogContent className="site-analysis-detail" width="sm" onOpenAutoFocus={e=>e.preventDefault()} onInteractOutside={e=>{if(e.target instanceof Element&&e.target.closest(".site-analysis-table tbody > tr"))e.preventDefault();}}>
+   <div className="pr-xl"><DialogTitle>{label(query.kind)}</DialogTitle><DialogDescription className="break-all">{query.job}</DialogDescription></div>
+   {query.job&&<Inspection key={query.kind+query.job} id={query.job} kind={query.kind} epoch={epoch} refresh={refresh} onChoose={job=>choose({...query,job})}/>}
+  </DialogContent></Dialog>
+ </>;
 }

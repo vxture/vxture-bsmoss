@@ -1,5 +1,2 @@
-import MetricCatalog from "./catalog";
-export const dynamic = "force-dynamic";
-export default function MetricsPage() {
-  return <><MetricCatalog /></>;
-}
+import { redirect } from "next/navigation";
+export default function LegacyDictionaryPage() { redirect("/settings/dictionaries?view=metrics"); }

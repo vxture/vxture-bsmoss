@@ -7,9 +7,9 @@ import { registryDemo } from "../site-registry/demo-store.ts";
 
 test("common coverage uses the slowest confirmed source and only a closed hour", () => {
   const data = previewAvailability("overview");
-  assert.equal(formatDataTime(commonThrough(data)), "2026-10-26 00:00");
+  assert.equal(formatDataTime(commonThrough(data)), "2026-10-26 00:00:00");
   data.sources[0].through = "2026-10-25T13:43:00+08:00";
-  assert.equal(formatDataTime(commonThrough(data)), "2026-10-25 13:00");
+  assert.equal(formatDataTime(commonThrough(data)), "2026-10-25 13:00:00");
   data.sources[1].confirmed = false;
   assert.equal(commonThrough(data), null);
   data.sources[1].confirmed = true; data.sources[1].through = null;
@@ -56,7 +56,12 @@ test("analysis hour and period do not masquerade as latest source coverage", () 
   const morning = registryDemo({ hour: "12", city: "610100" }), evening = registryDemo({ hour: "18", city: "610100" });
   assert.deepEqual(morning.dataUpdate, evening.dataUpdate);
   assert.notEqual(morning.rows[0].current.bytes, evening.rows[0].current.bytes);
-  assert.equal(formatDataTime(commonThrough(businessDemo("capacity", { hour: "12" }).dataUpdate)), "2026-10-26 00:00");
-  assert.equal(formatDataTime(commonThrough(businessDemo("operator-usage", { period: "month" }).dataUpdate)), "2026-11-01 00:00");
-  assert.equal(formatDataTime(commonThrough(previewAvailability("history"))), "2026-11-01 00:00");
+  assert.equal(formatDataTime(commonThrough(businessDemo("capacity", { hour: "12" }).dataUpdate)), "2026-10-26 00:00:00");
+  assert.equal(formatDataTime(commonThrough(businessDemo("operator-usage", { period: "month" }).dataUpdate)), "2026-11-01 00:00:00");
+  assert.equal(formatDataTime(commonThrough(previewAvailability("history"))), "2026-11-01 00:00:00");
+});
+
+test("data timestamps retain seconds and Beijing date rollover", () => {
+  assert.equal(formatDataTime("2026-10-31T16:00:07Z"), "2026-11-01 00:00:07");
+  assert.equal(formatDataTime(null), "\u5f85\u786e\u8ba4");
 });

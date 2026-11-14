@@ -51,3 +51,8 @@ test('record-history reason scope is validated and retained only on the record r
  assert.equal(parseRecordReason(undefined),'all');assert.equal(parseRecordReason('network'),'network');for(const reason of ['forged',['network','other'],null])assert.throws(()=>parseRecordReason(reason));
  const href='/review-history?recordReason=network&recordSession='+session;assert.equal(read(href).href,href);assert.throws(()=>read('/usage-review?recordReason=network'));assert.throws(()=>read('/review-history?recordReason=forged'));
 });
+test('integrated record origins retain return context while rejecting invalid view combinations',()=>{
+ const href='/usage-review?view=records&period=week&recordReason=network&recordSession='+session;
+ assert.equal(read(href).href,href);assert.equal(read(href).label,'\u8fd4\u56de\u6838\u9a8c\u8bb0\u5f55');
+ for(const href of ['/usage-review?view=unknown','/usage-review?view=records&view=cases','/usage-review?view=cases&recordReason=network','/usage-review?view=records&recordReason=forged','/usage-review/'+c.id+'?view=records','/review-history?view=cases'])assert.throws(()=>read(href),/invalid_investigation/);
+});

@@ -1,6 +1,7 @@
 "use client";
-import { ShellPageContainer, Button, Input } from "@vxture/design-system";
+import { ShellPageContainer, Button, Input, PanelCard, Textarea, EmptyState } from "@vxture/design-system";
 import PageHeading from "../../portal/page-heading";
+import "../../site-analysis/site-analysis.css";
 import { useRef, useState } from "react";
 import type { TemplateCandidate, TemplatePreview, TemplateRead, TemplatePublicationCommand, TemplateSelectionCommand } from "../../domains/views/templates";
 import type { TemplatePublicationReceipt, TemplateSelectionReceipt } from "../../domains/views/template-store";
@@ -76,30 +77,44 @@ export default function TemplateWorkspace() {
       templateVersion: loaded.template.version, templateSha256: loaded.template.sha256, validationSha256: preview.validationSha256, expected: loaded.selection, reviewRef: review } });
   }
   const unchanged = loaded?.template && candidate && JSON.stringify(loaded.template.candidate) === JSON.stringify(candidate);
-  return <ShellPageContainer className="templates-workspace"><PageHeading title={text.title} description={text.intro} toolbar={<section className="templates-reader py-0"><label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.code}<Input value={code} disabled={locked} maxLength={200} onChange={e => { setCode(e.target.value); setLoaded(null); clearValidation(); }} /></label>
-      <label className="flex min-w-0 flex-col gap-xs text-body-small text-muted-foreground">{text.version}<Input value={version} disabled={locked} inputMode="numeric" onChange={e => { setVersion(e.target.value); setLoaded(null); clearValidation(); }} /></label>
-      <Button variant="outline" size="md" disabled={locked || !code} onClick={() => void load()}>{text.load}</Button></section>} />
-    {loaded && <div className="templates-current">{loaded.template && <p><b>{loaded.template.code} v{loaded.template.version}</b> / {loaded.template.publishedBy} / {reportTime(loaded.template.publishedAt)}</p>}
-      <p>{text.current}: {loaded.selection ? `${loaded.selection.code} v${loaded.selection.version}` : text.noSelection}</p></div>}
-    {error && <p className="reports-error" role="alert">{error}</p>}{notice && <p className="reports-notice" role="status">{notice}</p>}
-    {pending && !busy && <button onClick={() => void execute(pending)}>{text.retry}</button>}
-    {pending && <p className="reports-muted">{pending.command.commandId}</p>}
-    {receipt && <details><summary>{text.evidence}</summary><pre>{JSON.stringify(receipt, null, 2)}</pre></details>}
-    {loaded && <div className="reports-actions templates-validation-action"><button disabled={locked || !draft} onClick={() => void validate()}>{busy ? text.busy : text.validate}</button></div>}
-    <div className="templates-columns"><section>
-      {loaded && !loaded.template && <div className="reports-actions"><button disabled={locked} onClick={() => changeDraft(newTemplate("page"))}>{"\u65b0\u5efa\u9875\u9762\u8349\u7a3f"}</button><button disabled={locked} onClick={() => changeDraft(newTemplate("report"))}>{"\u65b0\u5efa\u62a5\u544a\u8349\u7a3f"}</button></div>}
-      {loaded && editable && <TemplateEditor candidate={editable} disabled={locked} onChange={changeDraft} />}
-      {loaded && draft && !editable && <p className="reports-error" role="status">{"\u8349\u7a3f\u6682\u4e0d\u80fd\u5728\u8868\u5355\u4e2d\u7f16\u8f91\uff0c\u8bf7\u5728\u9ad8\u7ea7 JSON \u4e2d\u4fee\u590d\u7ed3\u6784\u6216\u91cd\u65b0\u8bfb\u53d6\u3002\u539f\u6587\u5df2\u4fdd\u7559\u3002"}</p>}
-      <details className="template-json" open={loaded && !!draft && !editable || undefined}><summary>{"\u9ad8\u7ea7 JSON \u7f16\u8f91"}</summary><label>{text.draft}<textarea aria-label={text.draft} value={draft} disabled={locked || !loaded} spellCheck={false} onChange={e => { setDraft(e.target.value); clearValidation(); }} /></label></details>
-      </section>
-      <section className="templates-preview"><h3>{text.preview}</h3><p className="reports-muted">{text.configurationOnly}</p>
-        {preview && candidate && <><h2>{candidate.definition.title}</h2><p className="templates-footprint">{candidate.kind} / {candidate.definition.panels.length} {text.panel} / {preview.requiredScope.stationIds.length} {"\u7ad9\u5740"} / {preview.requiredScope.deviceIds.length} {"\u8bbe\u5907"}</p>
-          <div className="templates-panels">{candidate.definition.panels.map(p => <article key={p.id}><b>{reportLabels[p.metricRef.code] ?? p.metricRef.code} <small>{reportLabels[p.category]}</small></b><span>{p.id} / {p.metricRef.code} @{p.metricRef.version}</span><small>{p.grain} / {p.view} / {p.displayUnit} / {p.visible ? text.visible : text.hidden}</small></article>)}</div>
-          <details><summary>{text.evidence}</summary><pre>{JSON.stringify(preview, null, 2)}</pre></details>
-          <label>{text.review}<input disabled={locked} maxLength={200} value={review} onChange={e => setReview(e.target.value)} /></label>
-          <div className="reports-actions"><button disabled={locked || !review.trim()} onClick={publish}>{text.publish}</button>
-            <button disabled={locked || !review.trim() || !unchanged || candidate.kind !== "page"} onClick={select}>{text.select}</button></div>
-        </>}
-      </section></div>
+  return <ShellPageContainer className="site-analysis-page gap-lg">
+    <PageHeading icon="stack" title={text.title} description={text.intro}/>
+    <PanelCard className="text-foreground" title={"\u6a21\u677f\u7248\u672c"} icon="stack">
+      <form className="site-analysis-action-row" onSubmit={event=>{event.preventDefault();if(code&&!locked)void load();}}>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-xs">
+          <Input className="h-control-xl min-w-0 flex-1 text-body" aria-label={text.code} placeholder={text.code} value={code} disabled={locked} maxLength={200} onChange={event=>{setCode(event.target.value);setLoaded(null);clearValidation();}}/>
+          <Input className="h-control-xl w-auto text-body" aria-label={text.version} placeholder={text.version} value={version} disabled={locked} inputMode="numeric" onChange={event=>{setVersion(event.target.value);setLoaded(null);clearValidation();}}/>
+          <Button type="submit" className="h-control-xl text-body" variant="outline" disabled={locked||!code}>{text.load}</Button>
+        </div>
+      </form>
+      {loaded&&<div className="flex min-w-0 flex-wrap items-center justify-between gap-md text-body-small">
+        {loaded.template&&<p className="break-all">{loaded.template.code+" v"+loaded.template.version+" \u00b7 "+loaded.template.publishedBy+" \u00b7 "+reportTime(loaded.template.publishedAt)}</p>}
+        <p className="text-muted-foreground">{text.current+"\uff1a"+(loaded.selection?loaded.selection.code+" v"+loaded.selection.version:text.noSelection)}</p>
+      </div>}
+      {error&&<p className="text-body-small text-danger-text" role="alert">{error}</p>}{notice&&<p className="text-body-small text-success-text" role="status">{notice}</p>}
+      {pending&&<div className="flex min-w-0 flex-wrap items-center gap-xs"><span className="break-all text-body-small text-muted-foreground">{pending.command.commandId}</span><Button className="h-control-xl text-body" variant="outline" disabled={busy} onClick={()=>void execute(pending)}>{text.retry}</Button></div>}
+      {receipt&&<details className="min-w-0 text-body-small"><summary className="cursor-pointer">{text.evidence}</summary><pre className="overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(receipt,null,2)}</pre></details>}
+      {!loaded&&!pending&&!error&&<EmptyState title={"\u8bfb\u53d6\u6a21\u677f\u540e\u7f16\u8f91"} description={"\u8f93\u5165\u7f16\u7801\uff0c\u7248\u672c\u7559\u7a7a\u65f6\u8bfb\u53d6\u6700\u65b0\u7248\u672c"}/>}
+    </PanelCard>
+    {loaded&&<div className="grid min-w-0 items-start gap-lg xl:grid-cols-2">
+      <PanelCard className="text-foreground" title={text.draft} icon="edit">
+        {!loaded.template&&<div className="site-analysis-action-row"><div className="flex flex-wrap items-center gap-xs"><Button className="h-control-xl text-body" variant="outline" disabled={locked} onClick={()=>changeDraft(newTemplate("page"))}>{"\u65b0\u5efa\u9875\u9762\u8349\u7a3f"}</Button><Button className="h-control-xl text-body" variant="outline" disabled={locked} onClick={()=>changeDraft(newTemplate("report"))}>{"\u65b0\u5efa\u62a5\u544a\u8349\u7a3f"}</Button></div></div>}
+        {editable&&<TemplateEditor candidate={editable} disabled={locked} onChange={changeDraft}/>}
+        {draft&&!editable&&<p className="text-body-small text-danger-text" role="status">{"\u8349\u7a3f\u7ed3\u6784\u65e0\u6cd5\u663e\u793a\u4e3a\u8868\u5355\uff0c\u8bf7\u4fee\u590d JSON \u6216\u91cd\u65b0\u8bfb\u53d6\u3002\u539f\u6587\u5df2\u4fdd\u7559\u3002"}</p>}
+        <details className="min-w-0 text-body-small" open={!!draft&&!editable||undefined}><summary className="cursor-pointer text-muted-foreground">{"\u9ad8\u7ea7 JSON \u7f16\u8f91"}</summary><label className="mt-md flex min-w-0 flex-col gap-xs">{text.draft}<Textarea className="min-h-media-lg font-mono text-body" rows={16} aria-label={text.draft} value={draft} disabled={locked} spellCheck={false} onChange={event=>{setDraft(event.target.value);clearValidation();}}/></label></details>
+        <div className="site-analysis-action-row"><span className="text-body-small text-muted-foreground">{"\u4fee\u6539\u540e\u9700\u91cd\u65b0\u6821\u9a8c"}</span><Button className="h-control-xl text-body" disabled={locked||!draft} onClick={()=>void validate()}>{busy?text.busy:text.validate}</Button></div>
+      </PanelCard>
+      <PanelCard className="text-foreground" title={text.preview} icon="list-checks">
+        <p className="text-body-small text-muted-foreground">{text.configurationOnly}</p>
+        {preview&&candidate?<>
+          <h3 className="break-words text-body font-medium">{candidate.definition.title}</h3>
+          <p className="text-body-small text-muted-foreground">{(candidate.kind==="page"?"\u9875\u9762":"\u62a5\u544a")+" \u00b7 "+candidate.definition.panels.length+" \u4e2a\u9762\u677f \u00b7 "+preview.requiredScope.stationIds.length+" \u7ad9\u5740 \u00b7 "+preview.requiredScope.deviceIds.length+" \u8bbe\u5907"}</p>
+          <div className="flex min-w-0 flex-col divide-y divide-border">{candidate.definition.panels.map(panel=><article className="flex min-w-0 flex-col gap-xs py-md" key={panel.id}><p className="text-body font-medium">{reportLabels[panel.metricRef.code]??panel.metricRef.code}<span className="ml-xs text-body-small font-normal text-muted-foreground">{reportLabels[panel.category]}</span></p><span className="break-all text-body-small text-muted-foreground">{panel.id+" / "+panel.metricRef.code+" @"+panel.metricRef.version}</span><span className="text-body-small text-muted-foreground">{panel.grain+" / "+panel.view+" / "+panel.displayUnit+" / "+(panel.visible?text.visible:text.hidden)}</span></article>)}</div>
+          <details className="min-w-0 text-body-small"><summary className="cursor-pointer text-muted-foreground">{text.evidence}</summary><pre className="overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(preview,null,2)}</pre></details>
+          <label className="flex min-w-0 flex-col gap-xs text-body">{text.review}<Input className="h-control-xl text-body" disabled={locked} maxLength={200} value={review} onChange={event=>setReview(event.target.value)}/></label>
+          <div className="site-analysis-action-row"><div className="flex flex-wrap items-center gap-xs"><Button className="h-control-xl text-body" disabled={locked||!review.trim()} onClick={publish}>{text.publish}</Button><Button className="h-control-xl text-body" variant="outline" disabled={locked||!review.trim()||!unchanged||candidate.kind!=="page"} onClick={select}>{text.select}</Button></div></div>
+        </>:<p className="text-body-small text-muted-foreground">{"\u6821\u9a8c\u901a\u8fc7\u540e\u663e\u793a\u9762\u677f\u4e0e\u6388\u6743\u8303\u56f4"}</p>}
+      </PanelCard>
+    </div>}
   </ShellPageContainer>;
 }

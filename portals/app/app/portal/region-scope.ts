@@ -22,9 +22,9 @@ export function inheritRegionInput(input: RegionInput, value: RegionSelection): 
   // Never combine a remembered county with a newly specified city.
   return input.city !== undefined || input.county !== undefined ? input : { ...input, city: value.cityId, county: value.countyId };
 }
-export const REGION_PAGES = ["/", "/board", "/sites", "/capacity", "/efficiency", "/operator-usage", "/usage-reports", "/usage-review", "/review-history", "/analysis", "/reports", "/product-preview"];
+export const REGION_PAGES = ["/tower-service/overview","/tower-service/network","/tower-service/judgment","/tower-service/evidence","/tower-service/services","/tower-service/resources","/monitoring","/sharing","/customer-use","/", "/board", "/sites", "/capacity", "/efficiency", "/operator-usage", "/usage-reports", "/usage-review", "/review-history", "/analysis", "/reports", "/reports/new", "/product-preview"];
 export function isRegionPage(path: string): boolean {
-  return REGION_PAGES.includes(path) || /^\/(sites|usage-review)\/[^/]+$/.test(path) || path === "/analysis/report";
+  return REGION_PAGES.includes(path) || /^\/(sites|usage-review)\/[^/]+$/.test(path) || /^\/tower-service\/resources\/[^/]+$/.test(path) || path === "/analysis/report";
 }
 export function regionLink(href: string, value: RegionSelection): string {
   const [path, query = ""] = href.split("?");
@@ -34,6 +34,12 @@ export function regionLink(href: string, value: RegionSelection): string {
   return path + "?" + params;
 }
 export function changedRegionHref(path: string, query: string, value: RegionSelection): string {
+  if(/^\/tower-service\/resources\/[^/]+$/.test(path)){
+    const source=new URLSearchParams(query),params=new URLSearchParams();
+    for(const key of ['snapshotId','compareSnapshotId','operator']){const values=source.getAll(key);if(values.length===1)params.set(key,values[0]);}
+    params.set('city',value.cityId);params.set('county',value.countyId);
+    return '/tower-service/resources?'+params;
+  }
   const detail = /^\/(sites|usage-review)\/[^/]+$/.exec(path);
   const target = path==="/analysis/report"?"/analysis":detail ? "/" + detail[1] : path, params = new URLSearchParams(detail||path==="/analysis/report" ? "" : query);
   for (const key of ["page", "site", "selection", "compare", "bbox", "search", "report", "revision", "evidence", "slot", "peerLevel", "recordSession", "event", "investigation", "saved"]) params.delete(key);

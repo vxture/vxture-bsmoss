@@ -1,4 +1,6 @@
 "use client";
+import OperatorIdentity from "./operator-identity";
+import {useOperatorNames} from "./operator-identities";
 import { TOPIC_POLICY_TEXT as policy } from "../domains/business-parameters/presentation";
 
 import { useState, useTransition } from "react";
@@ -35,6 +37,7 @@ function signalSeries(row: Signal, secondary = false) {
 }
 
 export function OverviewAttention({ demo }: { demo: PortalDemo }) {
+ const operators=useOperatorNames();
   const [topic, setTopic] = useState<TopicKind>("capacity"), [selected, setSelected] = useState<string | null>(null);
   const [evidenceMetric, setEvidenceMetric] = useState<"connection" | "load">("connection");
   const group = demo.signals.find(group => group.topic === topic)!;
@@ -88,7 +91,7 @@ export function OverviewAttention({ demo }: { demo: PortalDemo }) {
           </div>
           <PanelCard className="min-w-0" title={"\u5f53\u524d\u65f6\u6bb5\u8fd0\u8425\u5546\u670d\u52a1\u7ed3\u6784"} description={"\u7269\u7406\u7535\u8017\u4e0d\u5206\u644a\u8fd0\u8425\u5546"} tone="neutral">
             <DataTable rows={item.operators} rowKey={row => row.code} columns={[
-              { id: "operator", header: "\u8fd0\u8425\u5546", cell: row => <a href={businessHref("operator-usage", { ...scopeOf(demo), operator: row.code, search: item.site.id, period: "hour" })}>{operators[row.code]}</a> },
+              { id: "operator", header: "\u8fd0\u8425\u5546", cell: row => <a href={businessHref("operator-usage", { ...scopeOf(demo), operator: row.code, search: item.site.id, period: "hour" })}><OperatorIdentity code={row.code}/></a> },
               { id: "flow", header: "\u6d41\u91cf / GiB", align: "numeric", cell: row => n(row.bytes / 1073741824, 2) },
               { id: "share", header: "\u6d41\u91cf\u5360\u6bd4", cell: row => <div className="flex flex-col gap-xs"><span className="text-body-small text-muted-foreground">{pct(row.share)}</span>{row.share !== null && <Progress value={row.share * 100} aria-label={operators[row.code] + "\u6d41\u91cf\u5360\u6bd4"} />}</div> },
               { id: "load", header: "\u8d1f\u8f7d", align: "numeric", cell: row => pct(row.load) },
@@ -109,6 +112,7 @@ export function OverviewAttention({ demo }: { demo: PortalDemo }) {
 }
 
 export function OverviewVerification({ demo }: { demo: PortalDemo }) {
+ const operators=useOperatorNames();
   const v = demo.verification;
   return <PanelCard className="min-w-0" title={"\u7528\u91cf\u6838\u9a8c"} icon="search" tone="info" description={calendarLabel("day") + " \u00b7 " + n(v.sites) + "\u5ea7\u7ad9\u5740 \u00b7 " + n(v.total) + "\u6761\u7ebf\u7d22"}
     action={<Button asChild variant="ghost" size="sm"><a href={reviewHref(v.query)}>{"\u5168\u90e8\u7ebf\u7d22"}</a></Button>}>

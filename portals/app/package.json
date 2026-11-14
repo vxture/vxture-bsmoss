@@ -9,7 +9,7 @@
     "@fontsource/geist-mono": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@phosphor-icons/react": "^2.1.10",
-    "@vxture/design-system": "latest",
+    "@vxture/design-system": "15.6.1",
     "@vxture/shared": "2.0.0",
     "echarts": "^6.1.0",
     "ioredis": "5.8.2",
@@ -21,6 +21,7 @@
     "pg": "8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "0.35.5",
     "tailwindcss": "^4.3.4",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.16"

@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { portalBusinessGroups, portalDomain, portalNavigation } from "./navigation";
+import { portalBusinessGroups, portalPendingMigration, portalDomain, portalNavigation, portalLauncherEntries } from "./navigation";
 
 test("business and configuration navigation are disjoint and management routes share their own domain", () => {
   for (const preview of [false, true]) {
     const business = portalNavigation(preview), management = portalNavigation(preview, "management");
-    assert.deepEqual(business.map(entry => entry.id), preview ? ["home", "board", "map", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review", "review-history", "data-updates", "aggregation", "report-jobs", "overview-display"] : ["home", "board", "sites", "capacity", "efficiency", "operator-usage", "usage-reports", "analysis", "reports", "usage-review", "data-updates", "aggregation", "report-jobs"]);
-    assert.deepEqual(management.map(entry => entry.id), ["settings", "jurisdiction", "members", "site-classifications", "analysis-rules", "metric-catalog", "source-configurations", "object-mappings", "configuration-audit", "templates"]);
+    assert.deepEqual(business.map(entry => entry.id), preview ? ["monitoring", "customer-use", "home", "board", "map", "sites", "capacity", "efficiency", "analysis", "reports", "usage-review", "data-updates"] : ["monitoring", "customer-use", "home", "board", "sites", "capacity", "efficiency", "analysis", "reports", "usage-review", "data-updates"]);
+    assert.deepEqual(management.map(entry => entry.id), ["operator-identities", "settings", "overview-display", "jurisdiction", "business-dictionaries", "analysis-rules", "source-configurations", "templates"]);
     for (const entry of management) {
       assert.equal(portalDomain(entry.id), "management");
       assert.ok(entry.href === "/settings" || entry.href.startsWith("/settings/"));
@@ -16,33 +16,41 @@ test("business and configuration navigation are disjoint and management routes s
   }
 });
 
-test("global destinations stand apart from business groups and planned modules have no links", () => {
-  for (const preview of [false, true]) {
-    const groups = portalBusinessGroups(preview), modules = groups.flatMap(group => group.modules);
-    assert.deepEqual(groups.map(group => group.key), ["resources", "supervision", "business", "verification", "reporting", "data"]);
-    assert.ok(modules.every(item => item.page !== "home" && item.page !== "board" && item.page !== "map"));
-    assert.deepEqual(portalNavigation(preview).filter(item => ["home", "board", "map"].includes(item.id)).map(item => item.id), preview ? ["home", "board", "map"] : ["home", "board"]);
-    assert.equal(new Set(modules.map(item => item.key)).size, modules.length);
-    for (const item of modules) {
-      if (item.planned) assert.equal(item.href, undefined);
-      else assert.ok(item.href?.startsWith("/") && !item.href.startsWith("/settings"));
-      if (!preview) assert.ok(!item.href?.startsWith("/product-preview"));
-    }
-    for (const id of preview ? ["sites", "analysis", "reports", "capacity", "efficiency", "operator-usage", "usage-reports", "usage-review"] : ["sites", "analysis", "reports"])
-      assert.equal(modules.filter(item => item.page === id).length, 1);
-    assert.equal(modules.find(item => item.key === "usage-review")?.planned, preview ? undefined : true);
-    assert.equal(modules.find(item => item.key === "review-history")?.planned, preview ? undefined : true);
-    for (const item of modules.filter(item => item.page !== "map")) assert.ok(!item.href?.startsWith("/product-preview"));
+test("launcher preserves every existing destination exactly once across assigned and pending sections", () => {
+  for (const preview of [false,true]) {
+    const groups=portalBusinessGroups(preview), pending=portalPendingMigration(preview);
+    assert.deepEqual(groups.map(g=>g.key),["runtime","operations","business"]);
+    assert.deepEqual(groups.map(g=>g.modules.length),[3,5,4]);
+    const modules=groups.flatMap(g=>g.modules);
+    const overview=portalLauncherEntries(preview,"overview"),tools=portalLauncherEntries(preview,"tools");
+    assert.deepEqual(overview.map(e=>e.id),preview?["home","board","map"]:["home","board"]);
+    assert.deepEqual(overview.map(e=>e.label),preview?["\u8fd0\u884c\u603b\u89c8","\u7efc\u5408\u7814\u5224","\u7ad9\u7f51\u5168\u666f"]:["\u8fd0\u884c\u603b\u89c8","\u7efc\u5408\u7814\u5224"]);
+    assert.deepEqual(tools.map(e=>e.id),["reports","data-updates","usage-review"]);
+    assert.ok(!portalNavigation(preview).some(e=>e.id==="review-history"));
+    const assigned=[...overview,...tools].map(e=>e.id);
+    const pages=[...assigned,...modules.flatMap(m=>m.page?[m.page]:[]),...pending.flatMap(m=>m.page?[m.page]:[])];
+    assert.equal(new Set(pages).size,pages.length);
+    assert.deepEqual([...pages].sort(),portalNavigation(preview).map(e=>e.id).sort());
+    for(const m of modules) if(m.planned) assert.equal(m.href,undefined);
+    for(const m of pending) {assert.ok(m.href?.startsWith("/"));assert.ok(!m.planned);}
+    assert.equal(modules.find(m=>m.key==="analysis")?.href,"/analysis");
+    assert.ok(!pending.some(m=>m.page==="analysis"));
+    assert.equal(tools.find(m=>m.id==="reports")?.href,"/reports");
+    assert.ok(!modules.some(m=>m.key==="sharing"));
+    assert.equal(modules.find(m=>m.key==="monitoring")?.href,"/monitoring");
+    assert.equal(modules.find(m=>m.key==="bearing")?.href,"/capacity");
+    assert.equal(modules.find(m=>m.key==="efficiency")?.href,"/efficiency");
+    assert.ok(!modules.some(m=>m.key==="operator-usage"));
+    assert.ok(!pending.some(m=>m.page==="operator-usage"));
+    assert.ok(!pending.some(m=>m.page==="efficiency"));
+    assert.ok(!pending.some(m=>m.page==="capacity"));
+    assert.ok(!pending.some(m=>m.page==="monitoring"));
+    assert.ok(!pending.some(m=>m.page==="sharing"));
+    assert.ok(!pending.some(m=>m.page==="report-jobs"));
+    assert.ok(!pending.some(m=>m.page==="overview-display"));
+    assert.ok(!portalNavigation(preview).some(m=>m.href==="/preferences/overview"));
+    assert.ok(!modules.some(m=>m.key==="report-generation"));
+    assert.ok(!pending.some(m=>m.key==="service-relations"));
+    assert.equal(modules.find(m=>m.key==="sites")?.href,"/sites");
   }
-});
-
-test("navigation uses concise labels and task work stays in the business domain", () => {
-  for (const entry of [...portalNavigation(true), ...portalNavigation(true, "management")]) {
-    assert.equal(entry.label.length, entry.id === "operator-usage" ? 5 : 4);
-  }
-  for (const id of ["aggregation", "data-updates", "report-jobs", "overview-display"] as const) assert.equal(portalDomain(id), "business");
-  const groups = portalBusinessGroups(true), modules = groups.flatMap(group => group.modules);
-  assert.equal(modules.filter(m => m.page === "data-updates").length, 1);
-  assert.equal(modules.filter(m => m.page === "report-jobs").length, 1);
-  assert.ok(!modules.some(m => m.page === "overview-display" || m.page === "aggregation"));
 });

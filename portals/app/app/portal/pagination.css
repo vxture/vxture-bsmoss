@@ -1,0 +1,25 @@
+/* Keep the published Pagination semantics, page window and handlers. */
+.product-pagination.product-pagination {
+ display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center;
+ min-width:0; max-width:100%; gap:var(--space-sm) var(--space-lg);
+}
+.product-pagination > div:first-child { flex:0 1 auto; }
+.product-pagination.product-pagination > div:last-child {
+ display:contents;
+}
+.product-pagination.product-pagination > div:last-child > div:last-child {
+ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--space-2xs);
+}
+.product-pagination.product-pagination button:not([role=radio]) {
+ box-sizing:border-box; flex:0 0 auto; width:var(--space-control-xl); min-width:var(--space-control-xl);
+ height:var(--space-control-xl); min-height:var(--space-control-xl); max-height:var(--space-control-xl);
+ padding:0; font-size:var(--label-small-font-size); line-height:var(--label-small-line-height);
+ font-weight:var(--label-small-font-weight); font-variant-numeric:tabular-nums;
+}
+
+
+.product-pagination.product-pagination button:not([role=radio]) svg { width:var(--spacing-icon-md); height:var(--spacing-icon-md); }
+@media (max-width:47.999rem) {
+ .product-pagination.product-pagination { grid-template-columns:minmax(0,1fr) auto; }
+ .product-pagination.product-pagination > div:last-child > div:last-child { grid-column:1 / -1; justify-self:end; }
+}

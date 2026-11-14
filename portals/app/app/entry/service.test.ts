@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readEntryState,type EntryPorts} from './service';
+import {toAuthUser} from '../auth/lib/claims';
+const user=toAuthUser({sub:'subject',account_status:'active',name:'Member'});
+const ports=():EntryPorts=>({enabled:true,sessionId:'opaque',signedOut:false,readUser:async()=>user});
+test('third-party entry accepts a verified active account without workspace or commercial rights',async()=>{assert.equal((await readEntryState(ports())).state,'connected')});
+test('signed-out marker never overrides an authenticated session',async()=>{const p=ports();p.sessionId=undefined;assert.equal((await readEntryState(p)).state,'signin');p.signedOut=true;assert.equal((await readEntryState(p)).state,'signed-out');p.sessionId='opaque';assert.equal((await readEntryState(p)).state,'connected')});
+test('identity transport failures are not denied authorization',async()=>{const p=ports();p.readUser=async()=>{throw Error('redis unavailable')};assert.equal((await readEntryState(p)).state,'unavailable')});
+test('ended sessions and inactive accounts cannot enter',async()=>{const p=ports();p.readUser=async()=>null;assert.equal((await readEntryState(p)).state,'recovery');p.readUser=async()=>({...user,accountStatus:'suspended'});assert.equal((await readEntryState(p)).state,'unassigned')});

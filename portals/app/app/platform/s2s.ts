@@ -8,5 +8,5 @@ export function getS2SConfig(env: Record<string,string|undefined> = process.env)
   const clientSecret=env.S2S_CLIENT_SECRET?.trim() || env.OIDC_CLIENT_SECRET?.trim() || "";
   const issuer=env.OIDC_ISSUER?.trim().replace(/\/$/,"") || "https://accounts.vxture.com";
   return {tokenUrl:env.S2S_TOKEN_URL?.trim() || issuer+"/oidc/token",clientId,clientSecret,
-    productCode:"bsmoss",enabled:Boolean(clientSecret) && ["bsmoss","bsmoss-beta"].includes(clientId)};
+    productCode:"bsmoss",enabled:env.OIDC_CLIENT_MODE !== "third_party" && Boolean(clientSecret) && ["bsmoss","bsmoss-beta"].includes(clientId)};
 }

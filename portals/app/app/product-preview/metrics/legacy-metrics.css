@@ -18,37 +18,37 @@
 .legacy-metrics {
   margin: 0;
 }
-.legacy-metrics button:not(.product-page-heading *),
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]),
 .legacy-metrics select:not(.product-page-heading *),
 .legacy-metrics input:not(.product-page-heading *) {
   font: inherit;
 }
-.legacy-metrics button:not(.product-page-heading *),
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]),
 .legacy-metrics select:not(.product-page-heading *) {
   cursor: pointer;
 }
-.legacy-metrics button:not(.product-page-heading *) {
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]) {
   color: inherit;
 }
-.legacy-metrics button:not(.product-page-heading *):disabled,
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]):disabled,
 .legacy-metrics select:not(.product-page-heading *):disabled {
   cursor: wait;
   opacity: 0.5;
 }
-.legacy-metrics button:not(.product-page-heading *):focus-visible,
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]):focus-visible,
 .legacy-metrics a:not(.product-page-heading *):focus-visible,
 .legacy-metrics select:not(.product-page-heading *):focus-visible,
 .legacy-metrics input:not(.product-page-heading *):focus-visible {
   outline: 3px solid #46b89d;
   outline-offset: 3px;
 }
-.legacy-metrics button:not(.product-page-heading *) {
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]) {
   transition:
     background 0.15s,
     border-color 0.15s,
     box-shadow 0.15s;
 }
-.legacy-metrics button:not(.product-page-heading *):hover {
+.legacy-metrics button:not(.product-page-heading *):not([role=radio]):not([data-state]):hover {
   filter: brightness(0.98);
 }
 .legacy-metrics .app-shell {
@@ -76,14 +76,10 @@
 .legacy-metrics .brand-mark {
   width: 38px;
   height: 44px;
-  border: 1px solid #4b8178;
-  border-radius: 11px;
   display: grid;
   place-items: center;
-  color: #7ee0bb;
-  background: linear-gradient(135deg, #25554c, #183a39);
 }
-.legacy-metrics .brand-mark svg {
+.legacy-metrics .brand-mark img {
   width: 28px;
   height: 28px;
 }
@@ -1147,29 +1143,7 @@
   display: none;
 }
 @media (max-width: 950px) {
-  .legacy-metrics .mobile-category {
-    display: flex;
-    margin: 0 0 20px;
-    padding: 4px;
-    background: #eaf0eb;
-    border-radius: 6px;
-    gap: 5px;
-  }
-  .legacy-metrics .mobile-category button {
-    flex: 1;
-    white-space: nowrap;
-    padding: 10px 5px;
-    border: 0;
-    border-radius: 4px;
-    font-size: 11px;
-    background: transparent;
-    color: #7a9281;
-  }
-  .legacy-metrics .mobile-category button.active {
-    background: #fff;
-    color: var(--accent);
-    box-shadow: 0 1px 4px #345c3410;
-  }
+  .legacy-metrics .mobile-category { display:flex; margin-bottom:var(--space-lg); max-width:100%; overflow-x:auto; }
 }
 
 /* Auxiliary metrics page follows the portal page gutter without changing its

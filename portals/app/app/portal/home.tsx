@@ -1,4 +1,6 @@
 "use client";
+import OperatorIdentity from "./operator-identity";
+import {useOperatorNames} from "./operator-identities";
 
 import { useState } from "react";
 import { Button, Card, CardContent, DataTable, EmptyState, Icon, MetricGrid, MetricListCard, PanelCard, Progress,
@@ -9,6 +11,7 @@ import type { PortalDemo } from "./demo";
 import { OverviewAttention, OverviewReport, OverviewVerification } from "./overview-panels";
 import OverviewMetrics from "./overview-metrics";
 import PageHeading from "./page-heading";
+import {towerBrand} from './tower-navigation';
 
 import UsageTrend from "./usage-trend";
 
@@ -20,10 +23,11 @@ const metrics = [{ value: "bytes", label: "\u6d41\u91cf" }, { value: "voiceSecon
 type Metric = typeof metrics[number]["value"];
 
 export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | null; loginEnabled: boolean }) {
+ const names=useOperatorNames();
   const [metric, setMetric] = useState<Metric>("bytes");
   if (!demo) return <ShellPageContainer className="product-page-inset max-w-none gap-lg">
     <PageHeading title={"\u8fd0\u884c\u603b\u89c8"} description={"\u7ad9\u7f51\u8fd0\u8425\u6001\u52bf\u4e0e\u91cd\u70b9\u4e8b\u9879"} />
-    <PanelCard title={"\u6b22\u8fce\u4f7f\u7528\u89c2\u6f9c"} icon="house-line" tone="neutral">
+    <PanelCard title={"\u6b22\u8fce\u4f7f\u7528"+towerBrand.name} icon="house-line" tone="neutral">
       <div className="flex flex-col items-start gap-lg py-lg">
         <p className="text-body text-muted-foreground">{loginEnabled ? "\u767b\u5f55\u540e\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5468\u671f\u5206\u6790\u3001\u62a5\u544a\u4e0e\u7ba1\u7406\u5de5\u4f5c\u533a\u3002" : "\u6b63\u5f0f\u6570\u636e\u5c1a\u672a\u5f00\u653e\uff0c\u7b49\u5f85\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u4e0e\u6765\u6e90\u6388\u6743\u3002"}</p>
         {loginEnabled ? <Button asChild><a href="/auth/login?returnTo=%2F">{"\u4f7f\u7528\u5e73\u53f0\u8d26\u53f7\u767b\u5f55"}</a></Button> : null}
@@ -86,7 +90,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
         <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf\u7ed3\u6784"} description={"\u5168\u65e5" + metricName + "\u5360\u6bd4 \u00b7 " + unit} tone="neutral" className="min-w-0">
           <div className="flex flex-col gap-md" data-overview-structure={metric}>
             {!usage.physicalSites ? <EmptyState title={"\u6682\u65e0\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb"} /> : operators.map(row => <a className="flex flex-col gap-xs rounded-sm text-foreground no-underline hover:text-primary-text focus-visible:outline-ring" href={businessHref("operator-usage", { ...scope, operator: row.code })} key={row.code}>
-              <div className="flex flex-wrap items-baseline justify-between gap-xs text-body-small"><span>{names[row.code]}</span><span className="tabular-nums text-muted-foreground">{fmt(row[metric]) + " " + unit}<span className="pl-sm text-primary-text">{percent(total ? row[metric] / total : null)}</span></span></div>
+              <div className="flex flex-wrap items-baseline justify-between gap-xs text-body-small"><span><OperatorIdentity code={row.code}/></span><span className="tabular-nums text-muted-foreground">{fmt(row[metric]) + " " + unit}<span className="pl-sm text-primary-text">{percent(total ? row[metric] / total : null)}</span></span></div>
               <Progress value={total ? row[metric] / total * 100 : 0} aria-label={names[row.code] + metricName + "\u5360\u6bd4"} />
             </a>)}
           </div>

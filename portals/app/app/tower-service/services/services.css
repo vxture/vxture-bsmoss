@@ -1,0 +1,90 @@
+@import '../grouped-table.css';
+/* Page composition uses the same DS heading, surfaces and controls as resources. */
+.service-workspace-open .service-page-body { display:block; flex:initial; }
+.service-matrix-open { display:flex; flex-direction:column; gap:var(--space-md); min-width:0; }
+.service-matrix-tools .service-panel-actions { flex-wrap:nowrap; }
+.service-workspace-open .service-matrix-table { display:block; overflow:visible; flex:initial; }
+.service-workspace-open .service-matrix-table > div { display:block; }
+.service-workspace-open .service-matrix-table > div > div:first-child { flex:initial; max-height:none; overflow-x:auto; overflow-y:visible; }
+.service-matrix-cards { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-lg); }
+.service-heading-links { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-sm); }
+.service-matrix-tools button:not(:disabled):hover,
+.service-analysis-row button:not(:disabled):hover { background:var(--color-accent); }
+.service-analysis-summary { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm); }
+.service-page-body { display:grid; flex:1; min-height:0; gap:var(--space-lg); grid-template-rows:minmax(0,1fr); }
+.service-view-composition { grid-template-rows:minmax(0,1fr); grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.service-view-operators { grid-template-rows:minmax(0,1fr); }
+.service-view-periods { grid-template-rows:minmax(calc(var(--space-control-3xl) * 6),1fr); }
+.service-comparison-panel { min-height:0; min-width:0; }
+.service-comparison-panel > :first-child { flex-shrink:0; }
+.service-comparison-board { display:flex; flex-direction:column; flex:1; min-height:0; min-width:0; }
+.service-comparison-key { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm) var(--space-lg); padding-bottom:var(--space-md); }
+.service-comparison-key > span { display:inline-flex; align-items:center; gap:var(--space-xs); }
+.service-comparison-key-current { width:var(--space-md); height:var(--space-xs); background:var(--color-primary); }
+.service-comparison-key-baseline { width:var(--space-md); height:var(--space-xs); background:color-mix(in srgb,var(--color-primary) 24%,var(--color-card)); }
+.service-comparison-unit { margin-inline-start:auto; }
+.service-comparison-rows { display:grid; grid-template-rows:repeat(5,minmax(calc(var(--space-control-md) * 2),1fr)); flex:1; min-height:0; padding:0; margin:0; list-style:none; }
+.service-comparison-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,3fr) minmax(0,1fr) 32px; align-items:center; gap:var(--space-lg); padding-block:var(--space-sm); border-top:var(--border-width-thin) solid var(--color-border); }
+.service-comparison-actions { display:inline-flex; align-items:center; justify-content:center; width:32px; min-width:32px; height:32px; padding:0; justify-self:center; }
+.service-comparison-actions svg { width:20px; height:20px; }
+.service-comparison-actions > button { width:32px; min-width:32px; height:32px; padding:0; }
+.service-comparison-identity { display:flex; align-items:center; gap:var(--space-sm); white-space:nowrap; color:var(--color-foreground); }
+.service-comparison-pair { display:flex; flex-direction:column; gap:var(--space-sm); min-width:0; }
+.service-comparison-amounts { display:flex; align-items:center; gap:var(--space-xs); flex-wrap:wrap; }
+.service-comparison-amount { height:auto; padding:0 var(--space-xs); color:var(--color-muted-foreground); }
+.service-comparison-amount-current { color:var(--color-foreground); font-weight:var(--font-weight-bold); }
+.service-comparison-track { position:relative; display:flex; align-items:flex-start; height:calc(16px + var(--border-width-thin) * 2); margin-block:var(--space-xs); }
+.service-comparison-track [role=progressbar] { position:relative; height:8px; width:100%; background:transparent; }
+.service-comparison-track [role=progressbar] > div { background:var(--color-primary); }
+.service-comparison-track [role=progressbar],
+.service-comparison-track [role=progressbar] > div { border-radius:0; }
+.service-comparison-baseline-bar { position:absolute; inset-inline-start:0; top:calc(8px + var(--border-width-thin) * 2); height:8px; background:color-mix(in srgb,var(--color-primary) 24%,var(--color-card)); }
+.service-comparison-change { display:flex; flex-direction:column; align-items:flex-end; gap:var(--space-xs); text-align:end; color:var(--color-foreground); }
+.service-comparison-delta { display:inline-flex; align-items:center; gap:var(--space-xs); font-size:var(--heading-2-font-size); font-weight:var(--font-weight-bold); }
+.service-comparison-panel .service-panel-actions button { height:32px; min-height:32px; }
+.service-fit-panel { min-height:0; min-width:0; height:100%; }
+.service-fit-panel > div:first-child { flex-shrink:0; }
+.service-fit-panel > div:last-child { flex:1; min-height:0; }
+.service-panel-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:var(--space-sm); }
+.service-table-scroll { min-width:0; min-height:0; flex:1; overflow:auto; }
+.service-period-grid { display:flex; flex-direction:column; gap:var(--space-lg); flex:1; min-height:0; min-width:0; }
+.service-period-grid > .service-table-scroll { flex:1; }
+.service-table-scroll table { min-width:100%; }
+.service-table-scroll thead { position:sticky; top:0; z-index:var(--z-index-sticky); background:var(--color-card); }
+.service-matrix-table table { table-layout:fixed; min-width:calc(var(--space-control-3xl) * 13); }
+.service-matrix-table { display:flex; flex-direction:column; overflow:hidden; }
+.service-matrix-table > div { display:flex; flex-direction:column; flex:1; min-height:0; min-width:0; }
+.service-matrix-table > div > div:first-child { flex:1; min-height:0; overflow:auto; }
+.service-matrix-table th:nth-child(2) { width:28%; }
+.service-empty-state { flex:1; min-height:0; height:100%; padding:var(--space-md); }
+.service-metric-label { height:auto; max-width:100%; white-space:normal; text-align:start; justify-content:flex-start; padding-block:var(--space-xs); }
+.service-operator-distribution { display:flex; flex:1; min-height:0; flex-direction:column; justify-content:space-around; gap:var(--space-lg); overflow:auto; }
+.service-progress [role=progressbar] > div { background:var(--service-series-color); }
+.service-chart { display:flex; flex-direction:column; gap:var(--space-sm); flex:1; min-height:0; min-width:0; }
+.service-chart-plot { min-height:0; width:100%; flex:1; }
+.service-legend-marker { display:inline-block; width:var(--space-xs); height:var(--space-xs); border-radius:var(--radius-sm); flex-shrink:0; }
+.service-legend-item[data-state=off] { color:var(--color-muted-foreground); text-decoration:line-through; }
+.service-legend-item[data-state=off] .service-legend-marker { opacity:var(--opacity-disabled); }
+.service-detail-tools { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-sm); }
+.service-workspace .site-analysis-toolbar { flex-shrink:0; }
+@container (max-width:40rem) {
+ .service-view-composition { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) minmax(0,1fr); }
+ .service-panel-actions { gap:var(--space-xs); }
+}
+@media (max-width:47.999rem) {
+ .service-page-body { flex:initial; grid-template-rows:auto auto; }
+ .service-view-operators { grid-template-rows:auto; }
+ .service-fit-panel { height:auto; }
+ .service-table-scroll { overflow-x:auto; overflow-y:visible; }
+ .service-matrix-table { overflow:visible; }
+ .service-comparison-rows { flex:initial; }
+ .service-comparison-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px; gap:var(--space-sm) var(--space-lg); }
+ .service-comparison-pair { grid-column:1 / -1; grid-row:2; padding-bottom:var(--space-sm); }
+ .service-comparison-change { grid-column:2; grid-row:1; }
+ .service-comparison-actions { grid-column:3; grid-row:1; }
+ .service-chart-plot { min-height:calc(var(--space-control-3xl) * 6); }
+ .service-operator-distribution { overflow:visible; }
+ .service-period-grid { flex-direction:column; }
+ .service-fit-panel > div:first-child > div > div.col-start-3 { grid-column:1 / -1; grid-row:3; justify-content:flex-start; min-width:0; }
+ .service-fit-panel .service-panel-actions { justify-content:flex-start; width:100%; }
+}

@@ -1,8 +1,8 @@
 // Floating tools change camera padding, never the map container dimensions.
 export function mapInsets(width:number,leftOpen:boolean,detailOpen:boolean,expanded=false,dual=false,areaOpen=false,compareOpen=false,topicOpen=false) {
   const compact=width<760;
-  let left=compact?45:topicOpen?480:areaOpen?450:leftOpen?315:65;
-  let right=compact?35:compareOpen?Math.min(850,width-140):detailOpen?(expanded?Math.min(960,width-180):dual&&width>=1200?Math.min(440,width*.28)*2+78:536):65;
+  let left=compact?45:topicOpen?466:areaOpen?446:leftOpen?315:65;
+  let right=compact?35:compareOpen?Math.min(826,width-156):detailOpen?(expanded?Math.min(906,width-176):dual&&width>=1200?Math.max(320,Math.min(380,width*.25))*2+130:506):65;
   // Preserve a useful camera viewport even when tools occupy most of the display.
   const budget=Math.max(80,width-280);
   if(left+right>budget){left=Math.min(left,65);right=Math.max(35,budget-left);}

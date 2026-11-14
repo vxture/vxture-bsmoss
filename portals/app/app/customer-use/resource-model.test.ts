@@ -1,0 +1,68 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {serviceResourceModel} from './resource-model';
+import {readCustomerMode} from './mode';
+import {customerUseDestination} from './links';
+import {summarizeServiceResources,type ServiceResourceObservation} from '../domains/site-registry/service-resource-rules';
+const source={mode:'demo' as const,sourceVersion:'fixture',resourceVersion:'fixture',observedAt:'2026-10-25T18:00:00+08:00'};
+test('province snapshot reconciles with cities and does not fabricate confirmed services',()=>{
+ const data=serviceResourceModel({});
+ assert.equal(data.rollup.totals.sites,1080);
+ assert.equal(data.resourceRegions.reduce((n,row)=>n+row.sites,0),1080);
+ assert.equal(data.resourceRegions.reduce((n,row)=>n+row.infrastructure,0),data.rollup.totals.infrastructure);
+ assert.equal(data.rollup.totals.infrastructure,5400);
+ assert.equal(data.rollup.totals.customerDevices,3902);
+ assert.ok(Object.values(data.rollup.confirmed).every(value=>value===null));
+ assert.equal(data.rollup.serviceSources.length,5);
+ assert.ok(data.rollup.serviceSources.every(row=>row.status==='not_connected'));
+ const city=serviceResourceModel({city:'610100'});
+ assert.equal(city.rollup.totals.sites,data.resourceRegions.find(row=>row.cityId==='610100')!.sites);
+ assert.equal(city.resourceRegions[0].name,'\u897f\u5b89\u5e02');
+ assert.equal(city.brandStructure.reduce((count,row)=>count+row.devices,0),city.rollup.totals.customerDevices);
+ assert.equal(city.brandStructure.find(row=>row.code==='mobile')!.sites,city.rollup.totals.sites);
+});
+test('search, occupancy, site selection and paging are local to the site list',()=>{
+ const all=serviceResourceModel({}),selected=serviceResourceModel({search:'SX-DEMO-001',operatorCount:'4',pageSize:'10',page:'2'});
+ assert.deepEqual(selected.rollup,all.rollup);
+ assert.ok(selected.rows.length<all.rows.length);
+ assert.ok(selected.evidence.length<=10);
+ const single=serviceResourceModel({site:all.rows[0].id});
+ assert.equal(single.rows.length,1);
+ assert.deepEqual(single.rollup,all.rollup);
+ const page2=serviceResourceModel({page:'2',pageSize:'10'});
+ assert.deepEqual(page2.evidence.map(row=>row.siteId),page2.rows.slice(10,20).map(row=>row.id));
+});
+test('brand scope selects sites while keeping shared physical inventory once',()=>{
+ const all=serviceResourceModel({city:'610100'}),mobile=serviceResourceModel({city:'610100',operator:'mobile'});
+ assert.equal(mobile.rollup.totals.infrastructure,all.rollup.totals.infrastructure);
+ assert.equal(mobile.rows[0].resources,mobile.evidence[0].graph.devices.length);
+ assert.equal(mobile.rows[0].resources,mobile.rows[0].allOperators.length+5);
+ assert.ok(serviceResourceModel({operator:'other'}).rollup.totals.sites<1080);
+});
+test('physical resources deduplicate and unknown city remains in provincial reconciliation',()=>{
+ const shared={id:'shared',owner:'\u94c1\u5854',category:'cooling'};
+ const rows:ServiceResourceObservation[]=[{siteId:'a',cityId:'city1',countyId:null,brands:['same'],devices:[shared,shared]},{siteId:'b',cityId:null,countyId:null,brands:['same'],devices:[]}];
+ const result=summarizeServiceResources(rows,source);
+ assert.equal(result.totals.devices,1);
+ assert.equal(result.totals.brands,1);
+ assert.equal(result.regions.reduce((n,row)=>n+row.sites,0),2);
+ assert.equal(result.regions.find(row=>row.cityId===null)!.sites,1);
+ assert.throws(()=>summarizeServiceResources([...rows,rows[0]],source),/duplicate_resource_site/);
+ assert.throws(()=>summarizeServiceResources([rows[0],{...rows[1],devices:[shared]}],source),/conflicting_resource_identity/);
+ const empty=summarizeServiceResources([],source);
+ assert.equal(empty.totals.sites,0);
+ assert.equal(empty.confirmed.serviceItems,null);
+});
+test('new entry defaults to resources while existing analysis links retain meaning and validation',()=>{
+ assert.equal(readCustomerMode({city:'all',county:'all'}).mode,'resources');
+ assert.equal(readCustomerMode({period:'month'}).mode,'legacy');
+ assert.equal(readCustomerMode({usageSort:'sms'}).mode,'legacy');
+ assert.equal(readCustomerMode({section:'resources',period:'month'}).mode,'resources');
+ assert.equal(readCustomerMode({section:'legacy'}).mode,'legacy');
+ assert.throws(()=>readCustomerMode({section:['legacy','resources']}),/invalid_customer_section/);
+ assert.throws(()=>serviceResourceModel({city:['all','610100']}),/invalid_site_query/);
+ assert.throws(()=>serviceResourceModel({unknown:'1'}),/invalid_site_query/);
+ const alias=new URL(customerUseDestination({city:['all','610100']}),'http://local');
+ assert.deepEqual(alias.searchParams.getAll('city'),['all','610100']);
+ assert.equal(alias.searchParams.get('section'),'legacy');
+});

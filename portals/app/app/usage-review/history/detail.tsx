@@ -1,4 +1,5 @@
 "use client";
+import {useOperatorNames} from "../../portal/operator-identities";
 import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {Button,Collapsible,CollapsibleContent,CollapsibleTrigger,DataTable,EmptyState,Icon,Input,NativeSelect,PanelCard,ShellPageContainer} from "@vxture/design-system";
@@ -12,21 +13,22 @@ import {historyEvidenceHref,historyHref} from "../../analysis/history-links";
 import {DAY_MS,dateNumber,isoDay} from "../../domains/map-demo/history-calendar";
 import {kindNames,metricNames,quantity,deviation,timeLabel,windowLabel} from "../labels";
 import {n,operatorNames} from "../../sites/labels";
-import "../../analysis/history.css";
+import "../../site-analysis/site-analysis.css";
 const waveNames={within:"\u8303\u56f4\u5185",up:"\u7528\u91cf\u7a81\u589e",down:"\u7528\u91cf\u7a81\u964d",from_zero:"\u4ece\u96f6\u65b0\u589e",both_zero:"\u672c\u671f\u4e0e\u53c2\u8003\u5747\u96f6",insufficient:"\u57fa\u7ebf\u4e0d\u8db3"};
 export default function HistoryEvidenceDetail({data:e,scope:q}:{data:StationEvidence;scope:HistoryScope}) {
+ const operatorNames=useOperatorNames();
   const router=useRouter(),[pending,start]=useTransition(),[raw,setRaw]=useState(false);
   const {carry,keep}=useInvestigationLinks(historyEvidenceHref(q));
   const navigate=(patch:Record<string,string|undefined>)=>{if(!pending)start(()=>router.push(keep(historyEvidenceHref(q,patch)),{scroll:false}));};
   const metric=q.metric,scale=metric==="bytes"?1073741824:metric==="voiceSeconds"?60:1,unit=metric==="bytes"?"GiB":metric==="voiceSeconds"?"\u5206\u949f":"\u6761";
   const selected=e.selected;
-  return <div data-history-evidence aria-busy={pending}><fieldset disabled={pending} className="min-w-0"><ShellPageContainer className="product-page-inset max-w-none gap-lg">
+  return <div data-history-evidence aria-busy={pending}><fieldset disabled={pending} className="min-w-0"><ShellPageContainer className="site-analysis-page product-page-inset max-w-none gap-lg">
     <InvestigationReturn source="history"/><PageHeading title={"\u5355\u7ad9\u6838\u9a8c\u4f9d\u636e"} description={e.site.name+" \u00b7 "+e.site.id+" \u00b7 "+metricNames[metric]}
-      navigation={<Button asChild variant="link"><a href={keep(historyHref(q,{evidence:e.date,slot:String(e.slot)}))}><Icon name="chevron-left" size="sm"/>{"\u8fd4\u56de\u7ecf\u8425\u5206\u6790"}</a></Button>}
+      navigation={<Button size="xl" asChild variant="link"><a href={keep(historyHref(q,{evidence:e.date,slot:String(e.slot)}))}><Icon name="chevron-left" size="sm"/>{"\u8fd4\u56de\u7ecf\u8425\u5206\u6790"}</a></Button>}
       context={<span>{"\u6570\u636e\u622a\u81f3 "+isoDay(dateNumber(e.cutoff)-DAY_MS)}</span>}
-      actions={<><Button asChild variant="outline"><a href={carry(relatedDossierHref(e.site.id,{...q.query,hour:e.slot}))}>{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button asChild variant="outline"><a href={carry(relatedReviewHref({...q.query,hour:e.slot},"month",e.site.id,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button></>}
+      actions={<><Button size="xl" asChild variant="outline"><a href={carry(relatedDossierHref(e.site.id,{...q.query,hour:e.slot}))}>{"\u7ad9\u5740\u6863\u6848"}</a></Button><Button size="xl" asChild variant="outline"><a href={carry(relatedReviewHref({...q.query,hour:e.slot},"month",e.site.id,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button></>}
       toolbar={<div className="flex flex-wrap items-center gap-md py-md">
-        <Input type="date" className="history-date-input" aria-label={"\u6838\u9a8c\u65e5\u671f"} value={e.date} min={q.window.start} max={isoDay(dateNumber(q.window.end)-DAY_MS)} onChange={event=>{if(event.target.value&&event.target.validity.valid)navigate({evidence:event.target.value,slot:undefined});}}/>
+        <Input type="date" className="w-auto max-w-full" aria-label={"\u6838\u9a8c\u65e5\u671f"} value={e.date} min={q.window.start} max={isoDay(dateNumber(q.window.end)-DAY_MS)} onChange={event=>{if(event.target.value&&event.target.validity.valid)navigate({evidence:event.target.value,slot:undefined});}}/>
         <NativeSelect wrapperClassName="w-auto" aria-label={"\u6838\u9a8c\u65f6\u6bb5"} value={String(e.slot)} onChange={event=>navigate({slot:event.target.value})}>{e.hours.map(h=><option value={h.hour} key={h.hour}>{String(h.hour).padStart(2,"0")+":00"}</option>)}</NativeSelect>
         <NativeSelect wrapperClassName="w-auto" aria-label={"\u6838\u9a8c\u8fd0\u8425\u5546"} value={q.query.operator} onChange={event=>navigate({operator:event.target.value})}>{["all",...e.operators].map(id=><option key={id} value={id}>{operatorNames[id]}</option>)}</NativeSelect>
         <span className="ml-auto text-body-small text-muted-foreground">{"\u5f53\u524d\u4ec5\u67e5\u8be2\u8bc1\u636e\uff0c\u539f\u56e0\u672a\u786e\u8ba4"}</span>
@@ -44,7 +46,7 @@ export default function HistoryEvidenceDetail({data:e,scope:q}:{data:StationEvid
     </PanelCard>
     <div className="grid min-w-0 gap-md lg:grid-cols-2">
       <PanelCard title={"\u5f53\u65e5\u9010\u5c0f\u65f6\u7528\u91cf"} icon="chart-bar" className="min-w-0" description={"\u70b9\u51fb\u6216\u952e\u76d8\u9009\u62e9\u5c0f\u65f6\uff0c\u66f4\u65b0\u5f53\u524d\u7a97\u53e3\u4e0e\u53c2\u8003"}>
-        <div className="history-trend flex min-w-0 flex-col"><UsageTrend data={e.hours.map(h=>({key:String(h.hour),label:String(h.hour).padStart(2,"0"),value:Number(h.values[metric])/scale}))} name={metricNames[metric]} unit={unit} selectedKey={String(e.slot)} ariaLabel={"\u6838\u9a8c\u9010\u5c0f\u65f6\u7528\u91cf"} formatValue={v=>n(v,2)} onSelect={hour=>navigate({slot:hour})}/></div>
+        <div className="site-analysis-trend flex min-w-0 flex-col"><UsageTrend data={e.hours.map(h=>({key:String(h.hour),label:String(h.hour).padStart(2,"0"),value:Number(h.values[metric])/scale}))} name={metricNames[metric]} unit={unit} selectedKey={String(e.slot)} ariaLabel={"\u6838\u9a8c\u9010\u5c0f\u65f6\u7528\u91cf"} formatValue={v=>n(v,2)} onSelect={hour=>navigate({slot:hour})}/></div>
       </PanelCard>
       <PanelCard title={"\u56db\u5468\u53c2\u8003\u539f\u503c"} icon="calendar" className="min-w-0" description={"\u6765\u6e90\u8303\u56f4\u4ee5\u524d\u7684\u53c2\u8003\u4e0d\u8865\u96f6\uff0c\u4e0d\u6539\u52a8\u5f53\u524d\u6d4b\u91cf"}>
         <DataTable rows={selected.flatMap(s=>s.references.map(r=>({...r,code:s.code,key:s.code+r.start})))} rowKey={r=>r.key} columns={[
@@ -58,13 +60,13 @@ export default function HistoryEvidenceDetail({data:e,scope:q}:{data:StationEvid
     <PanelCard title={"\u5f53\u65e5\u7b5b\u67e5\u7ebf\u7d22"} icon="list-checks" className="min-w-0" description={"\u9010\u8fd0\u8425\u5546\u670d\u52a1\u5173\u7cfb\u72ec\u7acb\u7b5b\u67e5\uff1b\u4ec5\u5f53\u524d\u65e5\u671f\uff0c\u4e0d\u4ee3\u8868\u6574\u6bb5\u5206\u6790\u5468\u671f\u7684\u5f02\u5e38\u603b\u91cf"}>
       <DataTable rows={e.findings} rowKey={r=>r.code+r.start+r.kind} columns={[
         {id:"op",header:"\u8fd0\u8425\u5546",cell:r=>operatorNames[r.code]},
-        {id:"time",header:"\u53d1\u751f\u7a97\u53e3",cell:r=><Button variant="link" onClick={()=>navigate({operator:r.code,slot:String(Number(timeLabel(r.start).slice(11,13)))})}>{windowLabel(r.start,r.end)}</Button>},
+        {id:"time",header:"\u53d1\u751f\u7a97\u53e3",cell:r=><Button size="xl" variant="link" onClick={()=>navigate({operator:r.code,slot:String(Number(timeLabel(r.start).slice(11,13)))})}>{windowLabel(r.start,r.end)}</Button>},
         {id:"kind",header:"\u7ebf\u7d22\u7c7b\u522b",cell:r=>kindNames[r.kind]},
         {id:"actual",header:"\u5b9e\u9645\u7528\u91cf",cell:r=>quantity(r.current,metric)},
         {id:"base",header:"\u53c2\u8003\u7528\u91cf",cell:r=>quantity(r.referenceNumerator,metric,2)},
       ]} empty={<EmptyState title={"\u5f53\u65e5\u672a\u53d1\u73b0\u6ee1\u8db3\u7b5b\u67e5\u6761\u4ef6\u7684\u7ebf\u7d22"} description={"\u8fd9\u4e0d\u4ee3\u8868\u5df2\u7ecf\u5b8c\u6210\u4eba\u5de5\u539f\u56e0\u786e\u8ba4\u6216\u590d\u6838\u3002"}/>}/>
     </PanelCard>
-    <Collapsible open={raw} onOpenChange={setRaw}><CollapsibleTrigger asChild><Button variant="ghost"><Icon name="database" size="sm"/>{"\u7cbe\u786e\u8ba1\u6570\u4e0e\u4f9d\u636e\u7248\u672c"}</Button></CollapsibleTrigger><CollapsibleContent>
+    <Collapsible open={raw} onOpenChange={setRaw}><CollapsibleTrigger asChild><Button size="xl" variant="ghost"><Icon name="database" size="sm"/>{"\u7cbe\u786e\u8ba1\u6570\u4e0e\u4f9d\u636e\u7248\u672c"}</Button></CollapsibleTrigger><CollapsibleContent>
       <PanelCard title={"\u539f\u59cb\u8ba1\u6570"} icon="database" className="min-w-0" description={(metric==="bytes"?"B":metric==="voiceSeconds"?"s":"\u6761")+" \u00b7 \u4e2d\u4f4d\u6570\u4e0e\u5dee\u503c\u4f7f\u7528\u5206\u6bcd2"}>
         <DataTable rows={selected} rowKey={r=>r.code} columns={[
           {id:"op",header:"\u8fd0\u8425\u5546",cell:r=>operatorNames[r.code]},

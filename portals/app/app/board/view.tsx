@@ -1,4 +1,6 @@
 "use client";
+import OperatorIdentity from "../portal/operator-identity";
+import {useOperatorNames} from "../portal/operator-identities";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
@@ -20,6 +22,7 @@ const themes: { value: BoardTheme; label: string; icon: "gauge" | "chart-bar" | 
   { value: "energy", label: "\u8fd0\u884c\u53c2\u6570", icon: "lightning" },
 ];
 export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
+ const names=useOperatorNames();
   const router = useRouter(), root = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<BoardTheme>("status"), [playing, setPlaying] = useState(false);
   const [full, setFull] = useState(false), [fullscreenError, setFullscreenError] = useState(false);
@@ -119,7 +122,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
           </PanelCard>
           <PanelCard title={"\u8fd0\u8425\u5546\u7528\u91cf"} icon="chart-pie" description={context + " \u00b7 \u6d41\u91cf\u5360\u6bd4"} className="min-w-0">
             <div className="flex flex-col gap-md">{demo.usage.rows.map(row => <a key={row.code} target="_blank" rel="noopener noreferrer" href={scope("&usage=hour&operator=" + row.code)} className="flex flex-col gap-2xs no-underline">
-              <div className="flex justify-between gap-sm text-body-small"><span className="text-foreground">{names[row.code]}</span>
+              <div className="flex justify-between gap-sm text-body-small"><span className="text-foreground"><OperatorIdentity code={row.code}/></span>
                 <span className="tabular-nums text-muted-foreground">{n(row.bytes / 1073741824, 1) + " GiB \u00b7 " + pct(s.bytes ? row.bytes / s.bytes : null)}</span></div>
               <Progress value={s.bytes ? row.bytes / s.bytes * 100 : 0} aria-label={names[row.code] + "\u6d41\u91cf\u5360\u6bd4"} />
             </a>)}</div>

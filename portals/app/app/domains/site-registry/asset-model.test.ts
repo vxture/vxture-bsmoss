@@ -1,0 +1,90 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {mkdtemp,readFile,writeFile,readdir} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {assetRegistry,assetDetail,hasAsset} from "./asset-model";
+import {emptyMaintenance,applyMaintenance,maintenanceCommand,readMaintenance} from "./maintenance-rules";
+import {FileRegistryMaintenanceStore} from "./maintenance-store";
+import {registryMaintenanceService} from "./maintenance-service";
+import {POST} from "../../api/product-preview/site-registry/maintenance/route";
+import {GET} from "../../api/product-preview/site-registry/[id]/route";
+const command={kind:"site" as const,id:"SX-DEMO-001",revision:0,alias:"Local alias",locationNote:"North gate",note:"Check label"};
+const at="2026-11-09T08:00:00.000Z";
+test("site ledger paginates physical sites and retains unique devices only inside their parent dossiers",()=>{
+ const blank=emptyMaintenance(),ids=new Set<string>();let total=0;
+ const model=assetRegistry({pageSize:"100"},blank);
+ assert.equal(model.count,1080);assert.equal(assetRegistry({},blank).count,1080);
+ for(let page=1;page<=model.pages;page++){for(const row of assetRegistry({pageSize:"100",page:String(page)},blank).rows){
+  assert.equal(row.kind,"site");assert.ok(!("device" in row));
+  const dossier=assetDetail(row.id,blank)!;assert.equal(row.deviceCount,dossier.devices.length);
+  for(const device of dossier.devices){assert.ok(!ids.has(device.id));ids.add(device.id);assert.equal(device.siteId,row.id);total++;}
+ }}
+ assert.equal(total,9302);
+ const detail=assetDetail("SX-DEMO-001",blank)!;
+ const encoded=JSON.stringify(detail);
+ for(const key of ['"current"','"observation"','"usage"','"runtime"','"relations"','"period"'])assert.ok(!encoded.includes(key),key);
+ assert.equal(detail.source.sync,"unconnected");assert.equal(detail.source.syncedAt,null);
+ assert.equal(assetRegistry({view:"relations",status:"critical",sharing:"multi",sort:"load",hour:"2",period:"month"},blank).count,1080);
+ assert.equal(assetRegistry({view:"relations"},blank).query.view,"sites");
+ assert.equal(assetDetail("missing",blank),null);assert.equal(hasAsset("device","SX-DEMO-001"),false);
+});
+test("site filters intersect and retired device views normalize without leaking device conditions into site results",()=>{
+ const blank=emptyMaintenance(),catalog=applyMaintenance(blank,command,at,"local-preview"),before=assetDetail(command.id,blank)!;
+ const a=assetRegistry({city:"610100",county:"610116",operator:"mobile",pageSize:"100"},blank);
+ assert.ok(a.count>0);assert.ok(a.rows.every(r=>r.site.countyId==="610116"&&r.site.operators.includes("mobile")));
+ const retired=assetRegistry({view:"devices",site:command.id,category:"radio",owner:"mobile",maintenance:"maintained",page:"99",city:"610100"},blank);
+ assert.equal(retired.query.view,"sites");assert.equal(retired.query.site,"all");assert.equal(retired.query.category,"all");assert.equal(retired.query.owner,"all");
+ assert.equal(retired.query.page,1);assert.equal(retired.query.maintenance,"all");assert.equal(retired.count,240);assert.ok(retired.rows.every(r=>r.kind==="site"));
+ assert.equal(assetRegistry({search:"Local alias",maintenance:"maintained"},catalog).rows[0].id,command.id);
+ assert.equal(assetRegistry({search:"Check label"},catalog).count,1);
+ assert.equal(assetRegistry({maintenance:"unmaintained"},catalog).count,1079);
+ assert.deepEqual(assetDetail(command.id,catalog)!.site,before.site);
+ assert.equal(assetRegistry({page:"100000",pageSize:"100"},blank).query.page,11);
+ assert.equal(assetRegistry({view:"devices",category:"radio",owner:"tower"},blank).count,1080);
+ for(const input of [{category:"bogus"},{owner:"bogus"},{site:"../x"},{maintenance:"forged"}])assert.throws(()=>assetRegistry(input,blank));
+});
+test("maintenance whitelist, revision checks, no-op behavior and replay protect source and history",()=>{
+ const blank=emptyMaintenance(),next=applyMaintenance(blank,command,at,"preview");
+ assert.equal(next.records[0].revision,1);assert.equal(blank.records.length,0);
+ assert.deepEqual(readMaintenance(JSON.parse(JSON.stringify(next))),next);
+ assert.throws(()=>applyMaintenance(next,command,at,"preview"),/conflict/);
+ assert.equal(applyMaintenance(next,{...command,revision:1},at,"preview"),next);
+ for(const raw of [{...command,name:"Source overwrite"},{...command,kind:"relations"},{...command,id:"../escape"},{...command,revision:0.2},{...command,alias:"x\ny"},{...command,locationNote:"x\ty"},{...command,note:"\u0000"},{...command,alias:"x".repeat(81)},{...command,kind:"device"}])assert.throws(()=>maintenanceCommand(raw));
+ const tampered=structuredClone(next);tampered.records[0].alias="Forged";assert.throws(()=>readMaintenance(tampered));
+ const audit=structuredClone(next);audit.events[0].before.note="Forged";assert.throws(()=>readMaintenance(audit));
+ const deleted=structuredClone(next);deleted.events=[];assert.throws(()=>readMaintenance(deleted));
+});
+test("file store isolates workspace, makes concurrent writes atomic and revalidates permission before replacing",async()=>{
+ const root=await mkdtemp(join(tmpdir(),"bsmoss-assets-test-")),a=new FileRegistryMaintenanceStore(root,"a"),b=new FileRegistryMaintenanceStore(root,"b");
+ const outcomes=await Promise.allSettled([a.update(command,"preview",async()=>{}),a.update(command,"preview",async()=>{})]);
+ assert.equal(outcomes.filter(r=>r.status==="fulfilled").length,1);
+ assert.equal((await a.read()).events.length,1);assert.equal((await b.read()).events.length,0);
+ const service=registryMaintenanceService(a,async()=>{throw Error("permission_denied");});
+ await assert.rejects(service.update({...command,revision:1,alias:"Denied"}),/permission/);
+ await assert.rejects(a.update({...command,revision:1,alias:"Revoked"},"preview",async()=>{throw Error("revoked");}),/revoked/);
+ assert.equal((await a.read()).records[0].alias,command.alias);
+ await a.update({...command,revision:1,alias:"Allowed"},"preview",async()=>{});
+ assert.equal((await a.read()).records[0].revision,2);
+ const folder=join(root,(await readdir(root))[0]),path=join(folder,"catalog.json");
+ const raw=await readFile(path,"utf8");await writeFile(path,"broken");await assert.rejects(a.read());await assert.rejects(a.update({...command,revision:2},"preview",async()=>{}));assert.equal(await readFile(path,"utf8"),"broken");await writeFile(path,raw);
+ await assert.rejects(registryMaintenanceService(a,async()=>{}).update({...command,id:"missing"}),/asset_not_found/);
+});
+test("preview maintenance HTTP enforces origin, body, asset identity and stale revisions; GET returns persisted supplemental data",async t=>{
+ const keys=["BSMOSS_PRODUCT_PREVIEW","HOSTNAME_BIND","PORT","OIDC_RP_ENABLED","BSMOSS_REGISTRY_MAINTENANCE_DIR"],prior=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ t.after(()=>{for(const k of keys){if(prior[k]===undefined)delete process.env[k];else process.env[k]=prior[k];}});
+ process.env.BSMOSS_REGISTRY_MAINTENANCE_DIR=await mkdtemp(join(tmpdir(),"bsmoss-asset-http-"));
+ process.env.BSMOSS_PRODUCT_PREVIEW="on";process.env.HOSTNAME_BIND="127.0.0.1";process.env.PORT="63335";process.env.OIDC_RP_ENABLED="off";
+ const req=(body:unknown=command,origin="http://127.0.0.1:63335",media="application/json")=>new Request("http://127.0.0.1:63335/api/product-preview/site-registry/maintenance",{method:"POST",headers:{origin,"Content-Type":media},body:JSON.stringify(body)});
+ assert.equal((await POST(req(command,"http://evil.example"))).status,403);
+ assert.equal((await POST(req(command,undefined,"text/plain"))).status,415);
+ assert.equal((await POST(req({...command,name:"overwrite"}))).status,400);
+ assert.equal((await POST(req({...command,id:"missing"}))).status,404);
+ assert.equal((await POST(req({...command,note:"x".repeat(9000)}))).status,413);
+ const response=await POST(req());assert.equal(response.status,200);assert.equal(response.headers.get("cache-control"),"no-store");
+ assert.equal((await POST(req())).status,409);
+ const result=await GET(new Request("http://localhost/api/product-preview/site-registry/SX-DEMO-001"),{params:Promise.resolve({id:command.id})});
+ assert.equal(result.status,200);assert.equal((await result.json()).maintenance.records[0].alias,command.alias);
+ process.env.HOSTNAME_BIND="0.0.0.0";assert.equal((await POST(req())).status,404);
+ process.env.BSMOSS_PRODUCT_PREVIEW="off";assert.equal((await POST(req())).status,404);
+});

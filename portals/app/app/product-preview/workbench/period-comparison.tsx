@@ -1,4 +1,5 @@
 'use client';
+import {SegmentedControl} from "@vxture/design-system";
 import {useEffect,useMemo,useState} from 'react';
 import {PeriodContributionView} from './period-contribution.tsx';
 import {LoaderCircle,RotateCcw} from 'lucide-react';
@@ -13,8 +14,8 @@ export function PeriodComparisonView({data,onPick}:{data:PeriodComparison;onPick
   const [view,setView]=useState<'overview'|'contribution'>('overview');
   const [daily,setDaily]=useState(false),c=data.current,p=data.previous;
   return <section className={'mw-period-comparison'+(view==='contribution'?' is-contribution':'')} aria-label={'\u5468\u671f\u73af\u6bd4\u5206\u6790'}>
-    <div className="mw-comparison-trend-head"><span>{'\u76f8\u90bb\u5b8c\u6574\u5468\u671f'}<small>{COMPARISON_REASONS[data.reason]}</small></span><div className="mw-usage-period" role="group" aria-label={'\u73af\u6bd4\u663e\u793a\u53e3\u5f84'}><button className={!daily?'active':''} aria-pressed={!daily} onClick={()=>setDaily(false)}>{'\u603b\u91cf'}</button><button className={daily?'active':''} aria-pressed={daily} onClick={()=>setDaily(true)}>{'\u65e5\u5747'}</button></div></div>
-    <div className="mw-contribution-switch" role="group" aria-label={'\u5206\u6790\u5185\u5bb9'}><button aria-pressed={view==='overview'} onClick={()=>setView('overview')}>{'\u73af\u6bd4\u6982\u89c8'}</button><button aria-pressed={view==='contribution'} onClick={()=>setView('contribution')}>{'\u6392\u884c\u4e0e\u8d21\u732e'}</button></div>
+    <div className="mw-comparison-trend-head"><span>{'\u76f8\u90bb\u5b8c\u6574\u5468\u671f'}<small>{COMPARISON_REASONS[data.reason]}</small></span><SegmentedControl ariaLabel="环比显示口径" value={daily?'daily':'total'} onChange={value=>setDaily(value==='daily')} items={[{value:'total',label:'总量'},{value:'daily',label:'日均'}]}/></div>
+    <SegmentedControl ariaLabel="分析内容" value={view} onChange={setView} items={[{value:'overview',label:'环比概览'},{value:'contribution',label:'排行与贡献'}]}/>
     <div className="mw-period-windows"><div><small>{'\u672c\u671f \xb7 '+c.days+' \u5929'}</small><strong>{windowLabel(c.window)}</strong></div><div><small>{'\u57fa\u671f \xb7 '+p.days+' \u5929'}</small><strong>{windowLabel(p.window)}</strong></div></div>
     {view==='overview'?<>
     <div className="mw-usage-table-scroll"><table className="mw-usage-table mw-period-table"><thead><tr><th>{daily?'\u65e5\u5747\u6307\u6807':'\u5468\u671f\u6307\u6807'}</th><th>{'\u672c\u671f'}</th><th>{'\u57fa\u671f'}</th><th>{'\u73af\u6bd4'}</th></tr></thead><tbody>{COMPARISON_METRICS.map(m=>{

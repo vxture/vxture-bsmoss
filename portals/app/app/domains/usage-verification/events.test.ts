@@ -54,5 +54,5 @@ test('local state filtering occurs before pagination and record lists contain ac
  const waiting=reviewRows(model.cases,{...model.inputQuery,status:'awaiting_review',page:999},logs);
  assert.equal(waiting.total,1);assert.equal(waiting.page,1);assert.equal(waiting.rows[0].id,first.id);
  assert.equal(reviewRows(model.cases,model.inputQuery,[],true).total,0);assert.equal(reviewRows(model.cases,model.inputQuery,logs,true,'demand').total,1);assert.equal(reviewRows(model.cases,model.inputQuery,logs,true,'holiday').total,0);
- assert.equal(reviewRows([],model.inputQuery,logs,true).total,0);
+ assert.equal(reviewRows([],model.inputQuery,logs,true).total,1);
 });

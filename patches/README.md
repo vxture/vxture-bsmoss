@@ -1,14 +1,21 @@
-# Shared sidebar correction
+# Released view mode control
 
-The @vxture/design-system 15.0.0 patch is built from the local design repository:
-D:/MyWebSite/vxture/vxture-design, commit 0033b60dd9f2c970898c49ffe63b1f7a8eb93b8d.
+BS-MOSS pins @vxture/design-system 15.6.1 from GitHub Packages. The umbrella
+resolves @vxture/design-ui 12.5.1 and @vxture/design-tokens 4.1.0. The shared
+ViewModeSwitch is now official DS functionality, consumed directly by five
+pages; no view-mode dependency patch or application control wrapper is needed.
 
-It restores the console navigation geometry after the token size migration,
-adds optional server-seeded group state, and fixes collapsed link names and
-keyboard isolation of closed groups. The patch includes the corresponding ESM,
-CJS, declarations, source maps and component stylesheet. Product code does not
-replace the DS component or override its tokens. Dependencies retain their
-existing locked versions. pnpm install --frozen-lockfile applies this patch.
+Release PR: https://github.com/vxture/vxture-design/pull/142
+Publish run: https://github.com/vxture/vxture-design/actions/runs/43581008582
 
-No registry package has been published. Remove this patch when an official DS
-release containing this correction is adopted.
+# Remaining sidebar compatibility patch
+
+The @vxture/design-system 15.6.1 patch preserves the pre-existing BS-MOSS
+server-seeded closed-group preference and change callback, plus keyboard
+isolation of hidden groups. These optional props are not in the official
+15.6.1 sidebar API. New official sidebar geometry is retained; this patch does
+not modify ViewModeSwitch, tokens or other controls.
+
+ESM, CJS and both type declarations are patched. pnpm 10.30.3 applies the patch
+recorded in package.json and pnpm-lock.yaml. Remove it only after an official
+release includes the corresponding sidebar preference API.

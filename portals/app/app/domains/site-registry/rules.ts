@@ -6,8 +6,9 @@ export type { SiteType } from "../business-parameters/classification";
 export type SiteQuery = {
   siteType: "all" | SiteType;
   city: string; county: string; operator: string; status: string; sharing: string; scene: string;
-  search: string; view: "sites" | "relations"; sort: "name" | "operators" | "load"; direction: "asc" | "desc";
-  page: number; hour: number; tab: SiteTab; period: "day" | "week" | "month";
+  search: string; view: "sites" | "relations" | "devices"; sort: "name" | "operators" | "load"; direction: "asc" | "desc";
+  category: string; owner: string; site: string; maintenance: "all" | "maintained" | "unmaintained";
+  page: number; pageSize: number; hour: number; tab: SiteTab; period: "day" | "week" | "month";
 };
 export interface SiteRecord extends DemoSite {
   siteType: SiteType;
@@ -15,12 +16,12 @@ export interface SiteRecord extends DemoSite {
   roomType: string; commissioned: string; assetCode: string; address: string; current: HourMetrics;
 }
 export const DEFAULT_SITE_QUERY: SiteQuery = { siteType: "all", city: "all", county: "all", operator: "all", status: "all", sharing: "all", scene: "all",
-  search: "", view: "sites", sort: "name", direction: "asc", page: 1, hour: 18, tab: "overview", period: "day" };
+  search: "", view: "sites", sort: "name", direction: "asc", category: "all", owner: "all", site: "all", maintenance: "all", page: 1, pageSize: 20, hour: 18, tab: "overview", period: "day" };
 export function parseSiteQuery(input: Record<string, string | string[] | undefined>, region: RegionDefinition): SiteQuery {
   const q = { ...DEFAULT_SITE_QUERY };
   for (const [key, value] of Object.entries(input)) {
     if (!Object.hasOwn(q, key) || typeof value !== "string") throw Error("invalid_site_query");
-    if (["page", "hour"].includes(key)) {
+    if (["page", "pageSize", "hour"].includes(key)) {
       if (!/^(0|[1-9]\d*)$/.test(value)) throw Error("invalid_site_number");
       Object.assign(q, { [key]: Number(value) });
     } else Object.assign(q, { [key]: value });
@@ -32,11 +33,15 @@ export function parseSiteQuery(input: Record<string, string | string[] | undefin
   valid(q.siteType, ["all", ...SITE_TYPES]);
   valid(q.status, ["all", "normal", "warning", "critical"]); valid(q.sharing, ["all", "single", "shared", "multi"]);
   valid(q.scene, ["all", ...SCENES]);
-  valid(q.view, ["sites", "relations"]); valid(q.sort, ["name", "operators", "load"]); valid(q.direction, ["asc", "desc"]);
+  valid(q.view, ["sites", "relations", "devices"]); valid(q.sort, ["name", "operators", "load"]); valid(q.direction, ["asc", "desc"]);
+  valid(q.category, ["all", "tower", "power", "battery", "meter", "cooling", "radio"]);
+  valid(q.owner, ["all", "tower", "mobile", "telecom", "unicom", "broadcast", "other"]);
+  valid(q.maintenance, ["all", "maintained", "unmaintained"]);
+  if (q.site !== "all" && !/^[A-Za-z0-9-]{1,40}$/.test(q.site)) throw Error("invalid_site_filter");
   valid(q.tab, SITE_TABS); valid(q.period, ["day", "week", "month"]);
   q.search = q.search.trim();
   if (q.search.length > 80 || !Number.isSafeInteger(q.page) || q.page < 1 || q.page > 100000 ||
-    !Number.isInteger(q.hour) || q.hour < 0 || q.hour > 23) throw Error("invalid_site_range");
+    ![10, 20, 50, 100].includes(q.pageSize) || !Number.isInteger(q.hour) || q.hour < 0 || q.hour > 23) throw Error("invalid_site_range");
   return q;
 }
 export function siteQueryString(q: SiteQuery, patch: Partial<SiteQuery> = {}) {

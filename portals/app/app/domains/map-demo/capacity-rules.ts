@@ -1,25 +1,32 @@
-import { TOPIC_THRESHOLDS as T } from "../business-parameters/policies";
+import {DEFAULT_CAPACITY_PARAMETERS,capacityMetricLevel,type CapacityParameters} from "../capacity/parameters";
+export {capacityMetricLevel};
 import {siteHour,DEMO_DATE,DEMO_VERSION} from './rules';
-import {analyzeTopic,evaluateTopic,TOPIC_POLICY} from './topic-rules';
+import {analyzeTopic,evaluateTopic,evaluateCapacity,TOPIC_POLICY} from './topic-rules';
 import {OPERATOR_CODES,type DemoSite,type HourMetrics,type MapQuery} from './types';
 
 export const CAPACITY_MODEL='bsmoss-capacity-contributions-v1';
 type Counters=Pick<HourMetrics,'used'|'capacity'|'attempts'|'connected'>;
-export function capacityObservation(m:Counters){
+export function capacityObservation(m:Counters,parameters:CapacityParameters=DEFAULT_CAPACITY_PARAMETERS){
  const load=m.capacity>0?m.used/m.capacity:null,connection=m.attempts>0?m.connected/m.attempts:null;
  return {...m,failed:m.attempts-m.connected,load,connection,
-  highLoad:load!==null&&load>=T.loadWarningPct/100,lowConnection:connection!==null&&connection<T.connectionWarningPct/100};
+  highLoad:load!==null&&load>=parameters.loadWarningPct/100,lowConnection:connection!==null&&connection<parameters.connectionWarningPct/100};
 }
-export function summarizeCapacity(metrics:readonly HourMetrics[]){
+export function summarizeCapacity(metrics:readonly Counters[],parameters:CapacityParameters=DEFAULT_CAPACITY_PARAMETERS){
  let used=0,capacity=0,attempts=0,connected=0,capacityKnown=0,connectionKnown=0,highLoad=0,lowConnection=0,both=0,attention=0,unknown=0;
+ const levels={highLoad:{warning:0,critical:0},lowConnection:{warning:0,critical:0},both:{warning:0,critical:0},attention:{warning:0,critical:0}};
  for(const m of metrics){
-  const o=capacityObservation(m),signal=evaluateTopic('capacity',m);
+  const o=capacityObservation(m,parameters),signal=evaluateCapacity(m,parameters);
+  const loadLevel=capacityMetricLevel(o.load,'load',parameters),connectionLevel=capacityMetricLevel(o.connection,'connection',parameters);
+  if(loadLevel==='warning'||loadLevel==='critical')levels.highLoad[loadLevel]++;
+  if(connectionLevel==='warning'||connectionLevel==='critical')levels.lowConnection[connectionLevel]++;
+  if(o.highLoad&&o.lowConnection&&(signal.level==='warning'||signal.level==='critical'))levels.both[signal.level]++;
+  if(signal.level==='warning'||signal.level==='critical')levels.attention[signal.level]++;
   used+=m.used;capacity+=m.capacity;attempts+=m.attempts;connected+=m.connected;
   capacityKnown+=Number(o.load!==null);connectionKnown+=Number(o.connection!==null);
   highLoad+=Number(o.highLoad);lowConnection+=Number(o.lowConnection);both+=Number(o.highLoad&&o.lowConnection);
   attention+=Number(signal.level==='critical'||signal.level==='warning');unknown+=Number(signal.level==='unknown');
  }
- return {sites:metrics.length,...capacityObservation({used,capacity,attempts,connected}),capacityKnown,connectionKnown,highLoad,lowConnection,both,attention,unknown};
+ return {sites:metrics.length,...capacityObservation({used,capacity,attempts,connected},parameters),capacityKnown,connectionKnown,highLoad,lowConnection,both,attention,unknown,levels};
 }
 const aggregate=(sites:readonly DemoSite[],hour:number,operator:MapQuery['operator'])=>summarizeCapacity(sites.map(site=>siteHour(site,hour,operator)));
 export function capacityShares(row:{used:number;failed:number},total:{used:number;failed:number}){

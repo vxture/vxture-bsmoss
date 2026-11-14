@@ -35,7 +35,7 @@ export default function SourcePreflightForm({ record: r, onForbidden }: { record
     } catch { if (!controller.signal.aborted) setError("\u9884\u68c0\u6682\u4e0d\u53ef\u7528\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002"); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
-  const field = (label: string, value: string, update: (v: string) => void, maxLength = 2048) => <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{label}</span><Input value={value} required maxLength={maxLength} onChange={e => { invalidate(); update(e.target.value); }} /></label>;
+  const field = (label: string, value: string, update: (v: string) => void, maxLength = 2048) => <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{label}</span><Input className="h-control-xl text-body" value={value} required maxLength={maxLength} onChange={e => { invalidate(); update(e.target.value); }} /></label>;
   const facts = result ? [
     ["\u767b\u8bb0\u7248\u672c", "v" + result.before.revision, "v" + result.proposed.binding.revision],
     ["\u767b\u8bb0\u72b6\u6001", result.before.status === "active" ? "\u767b\u8bb0\u542f\u7528" : "\u767b\u8bb0\u6682\u505c", result.proposed.status === "active" ? "\u767b\u8bb0\u542f\u7528" : "\u767b\u8bb0\u6682\u505c"],
@@ -45,12 +45,12 @@ export default function SourcePreflightForm({ record: r, onForbidden }: { record
     ["\u7269\u7406\u7ad9\u5740\u53c2\u6570", result.before.binding.scope.allowSiteParameters ? "\u5141\u8bb8" : "\u672a\u6388\u6743", result.proposed.binding.scope.allowSiteParameters ? "\u5141\u8bb8" : "\u672a\u6388\u6743"],
   ] : [];
   return <section className="flex min-w-0 flex-col gap-lg border-t border-dashed border-border pt-lg">
-    <div className="flex flex-wrap items-center justify-between gap-md"><h3 className="text-label font-medium">{"\u53d8\u66f4\u9884\u68c0"}</h3><Button variant="outline" aria-expanded={open} onClick={() => { invalidate(); setOpen(!open); }}>{open ? "\u6536\u8d77\u9884\u68c0" : "\u9884\u68c0\u914d\u7f6e"}</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-md"><h3 className="text-label font-medium">{"\u53d8\u66f4\u9884\u68c0"}</h3><Button className="h-control-xl text-body" variant="outline" aria-expanded={open} onClick={() => { invalidate(); setOpen(!open); }}>{open ? "\u6536\u8d77\u9884\u68c0" : "\u9884\u68c0\u914d\u7f6e"}</Button></div>
     <p className="text-body-small text-muted-foreground">{"\u8c03\u6574\u72b6\u6001\u3001\u7248\u672c\u3001\u8986\u76d6\u8d77\u70b9\u4e0e\u6570\u636e\u8303\u56f4\u3002\u914d\u7f6e\u6807\u8bc6\u548c\u6765\u6e90\u8eab\u4efd\u4fdd\u6301\u56fa\u5b9a\uff1b\u9700\u8981\u72ec\u7acb\u9884\u68c0\u6743\u9650\u3002\u7ed3\u679c\u4e0d\u4fdd\u5b58\u3001\u4e0d\u5ba1\u6279\u3001\u4e0d\u751f\u6548\u3002"}</p>
     {open && <><form onSubmit={preview} autoComplete="off" aria-label={"\u6765\u6e90\u914d\u7f6e\u53d8\u66f4\u9884\u68c0"} className="flex min-w-0 flex-col gap-lg">
       <p className="break-all text-body-small text-muted-foreground">{"\u767b\u8bb0\u7248\u672c v" + r.revision + " \u2192 v" + next}</p>
       <div className="grid min-w-0 gap-lg sm:grid-cols-2">
-        <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{"\u62df\u767b\u8bb0\u72b6\u6001"}</span><NativeSelect aria-label={"\u62df\u767b\u8bb0\u72b6\u6001"} value={status} onChange={e => { invalidate(); setStatus(e.target.value as "active" | "paused"); }}><option value="active">{"\u767b\u8bb0\u542f\u7528"}</option><option value="paused">{"\u767b\u8bb0\u6682\u505c"}</option></NativeSelect></label>
+        <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{"\u62df\u767b\u8bb0\u72b6\u6001"}</span><NativeSelect className="h-control-xl text-body" aria-label={"\u62df\u767b\u8bb0\u72b6\u6001"} value={status} onChange={e => { invalidate(); setStatus(e.target.value as "active" | "paused"); }}><option value="active">{"\u767b\u8bb0\u542f\u7528"}</option><option value="paused">{"\u767b\u8bb0\u6682\u505c"}</option></NativeSelect></label>
         {field("\u62df\u9002\u914d\u7248\u672c", adapter, setAdapter)}
         {field("\u62df\u8f6c\u6362\u7248\u672c", transform, setTransform)}
         {field("\u62df\u8986\u76d6\u8d77\u70b9\uff08UTC\u6574\u70b9\uff09", start, setStart, 24)}
@@ -59,12 +59,12 @@ export default function SourcePreflightForm({ record: r, onForbidden }: { record
       <details className="min-w-0"><summary className="cursor-pointer text-label font-medium">{"\u8c03\u6574\u6570\u636e\u8303\u56f4"}</summary><div className="mt-lg flex min-w-0 flex-col gap-lg">
         <p className="text-body-small text-muted-foreground">{"\u6bcf\u884c\u4e00\u4e2a\u5b8c\u6574\u6807\u8bc6\uff1b\u6307\u6807\u4f7f\u7528 code@version\u3002\u6240\u6709\u539f\u3001\u65b0\u8303\u56f4\u5fc5\u987b\u5728\u60a8\u7684\u6388\u6743\u5185\uff0c\u670d\u52a1\u548c\u8bbe\u5907\u5fc5\u987b\u5f52\u5c5e\u62df\u914d\u7f6e\u7684\u7ad9\u5740\u3002"}</p>
         {dimensions.map(k => <label key={k} className="flex min-w-0 flex-col gap-sm text-body-small"><span>{names[k] + "\u6807\u8bc6\uff08\u6bcf\u884c\u4e00\u4e2a\uff09"}</span><Textarea aria-label={names[k] + "\u6807\u8bc6\uff08\u6bcf\u884c\u4e00\u4e2a\uff09"} rows={3} value={ids[k]} onChange={e => { invalidate(); setIds(v => ({ ...v, [k]: e.target.value })); }} /></label>)}
-        <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{"\u7269\u7406\u7ad9\u5740\u53c2\u6570"}</span><NativeSelect aria-label={"\u7269\u7406\u7ad9\u5740\u53c2\u6570"} value={String(allow)} onChange={e => { invalidate(); setAllow(e.target.value === "true"); }}><option value="false">{"\u672a\u6388\u6743"}</option><option value="true">{"\u5141\u8bb8"}</option></NativeSelect></label>
+        <label className="flex min-w-0 flex-col gap-sm text-body-small"><span>{"\u7269\u7406\u7ad9\u5740\u53c2\u6570"}</span><NativeSelect className="h-control-xl text-body" aria-label={"\u7269\u7406\u7ad9\u5740\u53c2\u6570"} value={String(allow)} onChange={e => { invalidate(); setAllow(e.target.value === "true"); }}><option value="false">{"\u672a\u6388\u6743"}</option><option value="true">{"\u5141\u8bb8"}</option></NativeSelect></label>
       </div></details>
       {field("\u53d8\u66f4\u4f9d\u636e\u5f15\u7528", reference, setReference)}
       {field("\u4f9d\u636e\u539f\u4ef6 SHA-256", sha256, setSha256, 64)}
       <p className="text-body-small text-muted-foreground">{"\u4f9d\u636e\u4e0e\u6458\u8981\u4ec5\u4f5c\u672c\u6b21\u58f0\u660e\uff0c\u672a\u9a8c\u771f\u3001\u672a\u6279\u51c6\u3002\u5173\u95ed\u8be6\u60c5\u5373\u6e05\u9664\u8349\u6848\uff0c\u4e0d\u5199\u5165\u914d\u7f6e\u5e93\u6216\u6d4f\u89c8\u5668\u5b58\u50a8\u3002"}</p>
-      <Button type="submit" className="self-start" disabled={busy || next.length > 30}>{busy ? "\u6b63\u5728\u9884\u68c0" : "\u6267\u884c\u9884\u68c0"}</Button>
+      <Button type="submit" className="self-start h-control-xl text-body" disabled={busy || next.length > 30}>{busy ? "\u6b63\u5728\u9884\u68c0" : "\u6267\u884c\u9884\u68c0"}</Button>
       {next.length > 30 && <p role="alert" className="text-body-small text-danger-text">{"\u767b\u8bb0\u7248\u672c\u5df2\u8fbe\u4e0a\u9650\uff0c\u9700\u8981\u53d7\u5ba1\u5904\u7406\u3002"}</p>}
     </form>{error && <p role="alert" className="text-body-small text-danger-text">{error}</p>}
     {result && <div role="status" className="flex min-w-0 flex-col gap-lg rounded-lg border border-border p-lg">
