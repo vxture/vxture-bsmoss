@@ -12,6 +12,10 @@ on:
         description: Registered bsmoss-app repository plus @sha256 digest
         type: string
         required: true
+      provision_runtime_role:
+        description: First empty-stack initialization only; apply reviewed private DBA role SQL
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -64,6 +68,19 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
           scp -i ~/.ssh/deploy_key -P "$DEPLOY_PORT" -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
+      - name: Provision reviewed runtime role on first initialization
+        if: ${{ inputs.provision_runtime_role }}
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+          DATABASE_ROLE_SQL: ${{ secrets.DATABASE_ROLE_SQL }}
+        run: |
+          set -euo pipefail
+          [[ -n "$DATABASE_ROLE_SQL" ]]
+          printf '%s\n' "$DATABASE_ROLE_SQL" | ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/provision-runtime-role.sh'"
       - name: Run db-init
         env:
           STACK_ROOT: ${{ vars.STACK_ROOT }}
