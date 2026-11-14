@@ -27,7 +27,10 @@ if [[ $workers == on ]]; then
   services+=(aggregate-worker report-worker)
 fi
 "${compose[@]}" config --quiet
-"${compose[@]}" pull "${services[@]}"
+# The approved GHCR image is public. Isolate its pull from stale host credentials.
+pull_config="$(mktemp -d)"
+trap 'rmdir "$pull_config"' EXIT
+DOCKER_CONFIG="$pull_config" "${compose[@]}" pull "${services[@]}"
 if [[ $workers == on ]]; then
   # Validate the exact image and mounted config before replacing current workers.
   for service in aggregate-worker report-worker; do
