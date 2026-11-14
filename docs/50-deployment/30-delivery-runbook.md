@@ -46,7 +46,7 @@ provisioning webhook `/api/webhooks/vxture`，backchannel `/auth/backchannel-log
 8. 用真实测试账号验证 C1→C2→C3、本地授权、受限测量查询，以及拒绝跨 workspace/站址访问。
    配套来源与三类口径签认之后，才可以启用连接器和正式周期结果。
 
-空库初始化的管理连接不会加载进应用容器。应用启动命令仅运行 Next.js。
+空库初始化的管理连接不会加载进应用容器。Web应用启动命令仅运行Next.js；可选独立后台进程与明确workers=on／off交付见[周期任务进程交付](50-worker-host-runbook.md)，不会在启动时执行DDL。
 local_usage 标准表目前只读预留，不会将站址业务流量自动上报为 SaaS 计费量。
 对账服务 `pollProvisioning` 已实现但没有自动调度，待运行环境确认后纳入任务生命周期。
 

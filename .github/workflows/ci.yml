@@ -82,6 +82,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
       - run: pnpm build
+      - run: pnpm build:worker && pnpm test:worker-host
+      - name: Install and verify explicit preview history fixture
+        run: pnpm seed:tower-history
       - run: pnpm test:portal
   test-coverage:
     name: test-coverage

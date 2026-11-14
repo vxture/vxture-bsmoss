@@ -12,6 +12,12 @@ on:
         description: Registered bsmoss-app repository plus @sha256 digest
         type: string
         required: true
+      workers:
+        description: Explicitly enable or drain both reviewed background workers
+        type: choice
+        required: true
+        default: "off"
+        options: ["off", "on"]
 permissions:
   contents: read
 concurrency:
@@ -27,49 +33,55 @@ jobs:
       - name: Validate configuration
         env:
           STACK_ROOT: ${{ vars.STACK_ROOT }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
           IMAGE_REF: ${{ inputs.image_ref }}
           IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY }}
         run: |
           set -euo pipefail
           bash deploy/assert-stack-root.sh "$STACK_ROOT"
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] && ((DEPLOY_PORT >= 1 && DEPLOY_PORT <= 65535))
           [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
           [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
           [[ "$IMAGE_REF" =~ ^[a-z0-9./_-]+/bsmoss-app@sha256:[a-f0-9]{64}$ ]]
           [[ "$IMAGE_REPOSITORY" =~ ^ghcr.io/[a-z0-9_-]+/bsmoss-app$ ]]
           [[ "$IMAGE_REF" == "$IMAGE_REPOSITORY@sha256:"* ]]
-      - name: SSH credentials
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |-
-          set -euo pipefail
-          umask 077
-          mkdir -p ~/.ssh
-          printf "%s\n" "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          printf "%s\n" "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          test -s ~/.ssh/known_hosts
+      - name: Join tailnet and prepare SSH
+        uses: ./.github/actions/tailnet-ssh-connect
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tailscale-tag: ${{ vars.TAILSCALE_OAUTH_CLIENT_TAG }}
+          deploy-host: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          deploy-port: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          deploy-ssh-key: ${{ secrets.DEPLOY_SSH_KEY || secrets.DEPLOY_WORKER02_SSH_KEY }}
+          deploy-ssh-passphrase: ${{ secrets.DEPLOY_SSH_KEY_PASSPHRASE || secrets.DEPLOY_WORKER02_SSH_KEY_PASSPHRASE }}
+          deploy-known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS || secrets.DEPLOY_WORKER02_KNOWN_HOSTS }}
       - name: Deliver reviewed bundle
         env:
           STACK_ROOT: ${{ vars.STACK_ROOT }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
         run: |-
           set -euo pipefail
-          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml
-          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
-          scp -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
-          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
+          tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml docker-compose.workers.yml
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
+          scp -i ~/.ssh/deploy_key -P "$DEPLOY_PORT" -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
       - name: Run rollback
         env:
           STACK_ROOT: ${{ vars.STACK_ROOT }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
           IMAGE_REF: ${{ inputs.image_ref }}
+          WORKERS: ${{ inputs.workers }}
         run: |-
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/rollback.sh'"
+          [[ "$WORKERS" == on || "$WORKERS" == off ]]
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "BSMOSS_DEPLOY_WORKERS='$WORKERS' STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash '$STACK_ROOT/deploy/rollback.sh'"
       - name: Remove runner SSH key
         if: ${{ always() }}
-        run: rm -f ~/.ssh/id_ed25519
+        run: rm -f ~/.ssh/deploy_key

@@ -19,7 +19,7 @@ const panelKeys = ["id", "category", "metricRef", "view", "grain", "displayUnit"
 function keys(value: object, allowed: readonly string[]) {
   if (Object.keys(value).some(k => !allowed.includes(k))) throw new Error("unknown_field");
 }
-function validate(panel: Panel, registry: Registry) {
+export function validatePanel(panel: Panel, registry: Registry) {
   keys(panel,panelKeys); keys(panel.metricRef,["code","version"]);
   const m = registry.get(panel.metricRef);
   if (!panel.id.trim() || !m || m.lifecycle === "retired") throw new Error("unavailable_metric");
@@ -36,7 +36,7 @@ function apply(panels: Map<string,Panel>, patches: readonly Patch[], registry: R
     keys(patch,panelKeys);
     if (seen.has(patch.id)) throw new Error("duplicate_panel"); seen.add(patch.id);
     const prior = panels.get(patch.id); if (!prior) throw new Error("unknown_panel");
-    const merged = {...prior,...patch}; validate(merged,registry); panels.set(patch.id,merged);
+    const merged = {...prior,...patch}; validatePanel(merged,registry); panels.set(patch.id,merged);
   }
 }
 export function resolvePanels(registry: Registry, input: ResolveInput) {
@@ -45,7 +45,7 @@ export function resolvePanels(registry: Registry, input: ResolveInput) {
   if (!["interactive","report"].includes(input.mode)) throw new Error("invalid_mode");
   const panels = new Map<string,Panel>();
   for (const p of input.template.panels) {
-    validate(p,registry); if (panels.has(p.id)) throw new Error("duplicate_panel");
+    validatePanel(p,registry); if (panels.has(p.id)) throw new Error("duplicate_panel");
     panels.set(p.id,{...p,metricRef:{...p.metricRef}});
   }
   const roles = [...(input.roles ?? [])].sort((a,b) => a.priority-b.priority);

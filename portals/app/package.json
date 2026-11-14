@@ -5,6 +5,11 @@
   "version": "0.0.0",
   "dependencies": {
     "@bsmoss/shared": "workspace:*",
+    "@fontsource/funnel-display": "^5.3.0",
+    "@fontsource/geist-mono": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@vxture/design-system": "15.6.1",
     "@vxture/shared": "2.0.0",
     "echarts": "^6.1.0",
     "ioredis": "5.8.2",
@@ -12,15 +17,22 @@
     "lucide-react": "^1.66.0",
     "maplibre-gl": "^6.16.0",
     "next": "15.5.28",
+    "next-themes": "^0.4.6",
     "pg": "8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "0.35.5",
+    "tailwindcss": "^4.3.4",
+    "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.16"
   },
   "scripts": {
     "dev": "node ../../scripts/prepare-map-assets.mjs && node ../../scripts/portal.mjs dev",
-    "build": "node ../../scripts/prepare-map-assets.mjs && next build",
+    "build": "node ../../scripts/prepare-map-assets.mjs && node --import tsx ../../scripts/prepare-overview-reports.mjs && node --import tsx ../../scripts/prepare-history.mjs && next build",
     "start": "node ../../scripts/portal.mjs start",
     "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.4"
   }
 }

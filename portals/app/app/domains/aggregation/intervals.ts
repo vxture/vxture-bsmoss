@@ -1,3 +1,4 @@
+import { normalizeAuthorityRevisions, type AuthorityRevision } from "./authority-revisions.ts";
 import { createHash } from "node:crypto";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type Grain, type MetricRef, type createRegistry } from "../catalog/registry.ts";
@@ -25,6 +26,7 @@ export interface IntervalInput {
   value: { kind: "integer_delta"; value: string } | { kind: "ratio_parts"; numerator: string; denominator: string };
 }
 export interface AggregationPlan {
+  authorityRevisions?: readonly AuthorityRevision[];
   workspaceId: string;
   sourceId: string;
   subjectKey: string;
@@ -48,6 +50,7 @@ export interface CompletionEvidence {
   watermark: string;
   evidenceRef: string;
   evidenceSha256: string;
+  mappingSet?: { version: 1; sha256: string };
 }
 export type AggregateValue = { kind: "integer"; value: string } | { kind: "ratio"; numerator: string; denominator: string };
 const key = (value: unknown): string => {
@@ -59,6 +62,17 @@ const key = (value: unknown): string => {
   return JSON.stringify(value) ?? "null";
 };
 export function fingerprintOf(value: unknown) { return createHash("sha256").update(key(value)).digest("hex"); }
+export function mappingSetFingerprint(windows: readonly MappingWindow[]) {
+  return fingerprintOf({ version: "mapping-set-v1", windows: [...windows].sort((a, b) => Date.parse(a.period.start) - Date.parse(b.period.start)) });
+}
+export function completionMatches(e: CompletionEvidence, inputFingerprint: string, windows?: readonly MappingWindow[]) {
+  if (e.mappingSet === undefined && windows && new Set(windows.map(w => w.mappingId)).size > 1) return false;
+  if (e.mappingSet !== undefined) {
+    if (!e.mappingSet || e.mappingSet.version !== 1 || !/^[a-f0-9]{64}$/.test(e.mappingSet.sha256) || !windows) throw new Error("invalid_completion_mapping_set");
+    if (e.mappingSet.sha256 !== mappingSetFingerprint(windows)) return false;
+  }
+  return e.inputFingerprint === inputFingerprint;
+}
 function identity(value: string) {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_identity");
 }
@@ -72,6 +86,7 @@ export function aggregateIntervals(
   registry: ReturnType<typeof createRegistry> = FIRST_METRICS,
 ) {
   const plan = structuredClone(rawPlan), inputs = structuredClone(rawInputs);
+  if (plan.authorityRevisions !== undefined) plan.authorityRevisions = normalizeAuthorityRevisions(plan.authorityRevisions);
   for (const value of [plan.workspaceId, plan.sourceId, plan.subjectKey, plan.authorityVersion]) identity(value);
   const [start, end] = bounds(plan.period);
   const canonical = bucketFor(plan.period.start, plan.grain);
@@ -81,7 +96,7 @@ export function aggregateIntervals(
   plan.watermark = new Date(instant(plan.watermark)).toISOString();
   if (!Number.isSafeInteger(plan.metric.version) || plan.metric.version < 1) throw new Error("invalid_metric_version");
   const metric = registry.get(plan.metric);
-  if (!metric || metric.lifecycle === "retired" || !metric.grains.includes(plan.grain) || metric.semantic === "state") throw new Error("unsupported_aggregate_metric");
+  if (!metric || metric.lifecycle === "retired" || !metric.grains.includes(plan.grain) || !["interval_delta", "ratio", "derived"].includes(metric.semantic)) throw new Error("unsupported_aggregate_metric");
   if (!["direct", "dependencies"].includes(plan.inputMode) ||
       metric.semantic === "derived" && plan.inputMode !== "dependencies" ||
       plan.inputMode === "dependencies" && metric.dependencies.length !== 2) throw new Error("invalid_input_mode");
@@ -210,7 +225,7 @@ export function aggregateIntervals(
     if (Date.parse(e.watermark) < start || e.status === "confirmed" && Date.parse(e.watermark) < end) throw new Error("invalid_completion_watermark");
     const basePlan = { ...plan, watermark: plan.period.start, sourceComplete: false };
     delete basePlan.completionEvidence;
-    const matches = e.inputFingerprint === fingerprintOf({ version: AGGREGATION_VERSION, plan: basePlan, selected });
+    const matches = completionMatches(e, fingerprintOf({ version: AGGREGATION_VERSION, plan: basePlan, selected }), plan.mappingWindows);
     const confirmed = e.status === "confirmed" && matches;
     if (plan.sourceComplete !== confirmed || plan.watermark !== (confirmed ? e.watermark : plan.period.start)) throw new Error("completion_binding_mismatch");
     if (!matches) reasons.add("source_confirmation_stale");
@@ -225,6 +240,7 @@ export function aggregateIntervals(
   return {
     aggregationVersion: AGGREGATION_VERSION, inputFingerprint: fingerprint,
     workspaceId: plan.workspaceId, sourceId: plan.sourceId, subjectKey: plan.subjectKey, authorityVersion: plan.authorityVersion,
+    ...(plan.authorityRevisions === undefined ? {} : { authorityRevisions: structuredClone(plan.authorityRevisions) }),
     unit: metric.unit, category: metric.category,
     metric: { ...plan.metric }, period: { ...plan.period }, grain: plan.grain, nativeGrain: plan.nativeGrain,
     value: plan.inputMode === "dependencies" && validWindows < expected.length ? null : knownValue,
@@ -234,7 +250,7 @@ export function aggregateIntervals(
     validMilliseconds, watermark: plan.watermark, requiredWatermark,
     reasons: [...reasons].sort(),
     ...(plan.mappingWindows === undefined ? {} : { mappingWindows: structuredClone(plan.mappingWindows) }),
-    ...(plan.completionEvidence === undefined ? {} : { completionEvidence: { ...plan.completionEvidence } }),
+    ...(plan.completionEvidence === undefined ? {} : { completionEvidence: structuredClone(plan.completionEvidence) }),
     evidence: selected.map(row => ({ sourceId: row.sourceId, eventId: row.eventId, componentKey: row.componentKey,
       revision: row.revision, qualityRevision: row.qualityRevision, payloadSha256: row.payloadSha256,
       mappingVersion: row.mappingVersion, ...(row.mappingId === undefined ? {} : { mappingId: row.mappingId }), transformVersion: row.transformVersion, metric: { ...row.metric } })),

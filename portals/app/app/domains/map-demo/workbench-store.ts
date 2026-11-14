@@ -45,11 +45,11 @@ export const useWorkbench=create<WorkbenchState>((set,get)=>({cityId:'all',count
     if(patch.selectionOpen===true||patch.leftOpen===true||patch.drawing===true)next.compareOpen=false;
     if(patch.compareOpen===true){next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;}
     if(patch.selectionOpen===true||patch.leftOpen===true||patch.drawing===true||patch.compareOpen===true)next.topicOpen=false;
-    if(patch.topicOpen===true){next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search='';}
+    if(patch.topicOpen===true){next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search=patch.search??'';}
     if(patch.detailOpen===true||patch.selectionOpen===true||patch.leftOpen===true||patch.drawing===true||patch.compareOpen===true||patch.topicOpen===true)next.usageOpen=false;
-    if(patch.usageOpen===true){next.topicOpen=false;next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search='';}
+    if(patch.usageOpen===true){next.topicOpen=false;next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search=patch.search??'';}
     if(patch.detailOpen===true||patch.selectionOpen===true||patch.leftOpen===true||patch.drawing===true||patch.compareOpen===true||patch.topicOpen===true||patch.usageOpen===true)next.reportOpen=false;
-    if(patch.reportOpen===true){next.usageOpen=false;next.topicOpen=false;next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search='';next.playing=false;}
+    if(patch.reportOpen===true){next.usageOpen=false;next.topicOpen=false;next.compareOpen=false;next.selectionOpen=false;next.leftOpen=false;next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;next.drawing=false;next.search=patch.search??'';next.playing=false;}
     if(patch.expanded===false)next.expandedPanel=null;
     if(patch.selectedId===null||patch.detailOpen===false){next.runtimeOpen=false;next.businessOpen=false;next.expandedPanel=null;}
     if(patch.detailOpen===true&&!next.runtimeOpen&&!next.businessOpen)next[next.tab==='runtime'?'runtimeOpen':'businessOpen']=true;

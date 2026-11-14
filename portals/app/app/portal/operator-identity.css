@@ -1,0 +1,4 @@
+.operator-logo { display: inline-block; flex-shrink: 0; object-fit: contain; }
+.operator-logo-inline { width: 1em; height: 1em; vertical-align: middle; }
+.operator-logo-large { width: var(--space-control-2xl); height: var(--space-control-2xl); }
+.operator-identity { font-size: inherit; line-height: inherit; }

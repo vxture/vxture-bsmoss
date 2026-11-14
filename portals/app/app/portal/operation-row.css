@@ -1,0 +1,58 @@
+/* One operation rhythm for business, reports and configuration pages. Controls
+   remain published DS components; wrapping adds tracks, never larger controls. */
+.site-analysis-page :is(.site-analysis-action-row,.site-analysis-toolbar,.resource-operation-row) {
+ box-sizing:border-box; min-width:0; min-height:var(--space-control-xl);
+ padding-block:0; row-gap:var(--space-sm); column-gap:var(--space-md);
+ align-items:center;
+}
+.site-analysis-page :is(.site-analysis-action-row,.resource-operation-row),
+.site-analysis-page .site-analysis-toolbar:has(> :is(.judgment-analysis-context,.service-analysis-context,.evidence-analysis-context)) {
+ display:flex; flex-wrap:wrap; justify-content:space-between;
+}
+.site-analysis-page :is(.judgment-analysis-context,.service-analysis-context,.evidence-analysis-context,.resource-operation-context) {
+ display:flex; flex-wrap:wrap; align-items:center; min-width:0; max-width:100%;
+ gap:var(--space-sm) var(--space-lg);
+}
+.product-section-heading {
+ display:flex; align-items:center; flex:0 1 auto; min-width:0;
+ min-height:var(--space-control-xl); gap:var(--space-sm);
+}
+.product-section-icon { display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--color-muted-foreground); }
+.product-section-icon > svg { width:var(--spacing-icon-xl); height:var(--spacing-icon-xl); }
+.product-section-title { min-width:0; min-height:var(--space-control-xl); padding-block:0; }
+.product-section-title h2 { margin:0; }
+.site-analysis-page :is(.site-analysis-action-row,.site-analysis-toolbar,.resource-operation-row)
+ :is(button:not([role=radio]),a.inline-flex,input,select,[role=combobox],[data-slot=input-group]) {
+ box-sizing:border-box; height:var(--space-control-xl); min-height:var(--space-control-xl); max-height:var(--space-control-xl);
+ font-family:var(--body-font-family); font-size:var(--body-font-size);
+}
+
+.site-analysis-page :is(.site-analysis-toolbar,.resource-operation-row) > .snapshot-controls-compact {
+ width:auto; max-width:100%; flex:0 1 auto; margin-inline-start:auto;
+ min-height:var(--space-control-xl); padding-block:0;
+}
+.site-analysis-page .snapshot-controls-compact > .tower-history-controls {
+ min-width:0; max-width:100%; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-xs);
+}
+.site-analysis-page .overview-analysis-row > .site-analysis-summary { flex:0 1 auto; }
+.site-analysis-page .overview-analysis-row > .snapshot-controls { flex-wrap:wrap; }
+.site-analysis-page :is(.judgment-analysis-context,.service-analysis-context,.evidence-analysis-context,.resource-operation-context) .site-analysis-summary {
+ min-height:var(--space-control-xl); gap:var(--space-xs) var(--space-md);
+}
+.site-analysis-page :is(.judgment-analysis-context,.service-analysis-context,.evidence-analysis-context,.resource-operation-context) .site-analysis-summary-item + .site-analysis-summary-item {
+ border-inline-start:var(--border-width-thin) solid var(--color-border); padding-inline-start:var(--space-md); margin-inline-start:0;
+}
+.site-analysis-page :is(.site-analysis-toolbar,.resource-operation-row) .site-analysis-summary-item { font-size:var(--body-font-size); }
+.site-analysis-page :is(.site-analysis-table,.evidence-table,.judgment-table,.energy-customer-table,.sharing-customer-table,.site-analysis-table-tools-single-line,.evidence-summary-tools,.service-matrix-tools) { position:relative; max-width:100%; }
+/* A toolbar owns spacing once, including when a snapshot group is nested. */
+.site-analysis-page .site-analysis-toolbar > .site-analysis-action-row { padding-block:0; }
+/* PanelCard already uses DS SectionHeader (level 3). Only its action track
+   shares the page control size; descriptions retain the DS header spacing. */
+.site-analysis-page .grid.items-center > .row-start-1 > :is(button,a.inline-flex),
+.site-analysis-page .grid.items-center .service-panel-actions > :is(button,a.inline-flex) {
+ height:var(--space-control-xl); min-height:var(--space-control-xl); max-height:var(--space-control-xl);
+}
+@media (max-width:47.999rem) {
+ .site-analysis-page :is(.judgment-analysis-context,.service-analysis-context,.evidence-analysis-context,.resource-operation-context) { flex:1 1 100%; }
+ .site-analysis-page :is(.site-analysis-toolbar,.resource-operation-row) > :is(.snapshot-controls-compact,.sharing-period-tools) { margin-inline-start:auto; justify-content:flex-end; }
+}

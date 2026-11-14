@@ -18,5 +18,6 @@ export const FIRST_METRICS = createRegistry([
   metric("status.radio.prb_utilization", "ratio", { category: "operational_status", semantic: "ratio", object: "cell", timeAggregation: "ratio_parts", objectAggregation: "ratio_parts", displayUnits: ["%"] }),
   metric("runtime.energy.site_wh", "Wh", { category: "runtime_parameter", object: "station_meter", attribution: "physical_object", displayUnits: ["Wh", "kWh"] }),
   metric("runtime.device.state", "enum", { category: "runtime_parameter", semantic: "state", object: "device", attribution: "physical_object", timeAggregation: "state_duration", objectAggregation: "state_counts", displayUnits: ["state", "second", "device_count"] }),
+  metric("runtime.environment.temperature_c", "degC", { category: "runtime_parameter", semantic: "gauge", object: "device", attribution: "physical_object", timeAggregation: "gauge_summary", objectAggregation: "not_additive", displayUnits: ["degC"] }),
 ]);
 

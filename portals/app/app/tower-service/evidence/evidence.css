@@ -1,0 +1,47 @@
+@import '../grouped-table.css';
+/* Evidence composition reuses the portal's DS surfaces and natural page scroll. */
+.evidence-workspace { min-height:100%; }
+.evidence-heading-links { display:flex; flex-wrap:wrap; gap:var(--space-sm); }
+.evidence-body { display:flex; flex-direction:column; flex:1; min-width:0; gap:var(--space-lg); }
+.evidence-details { display:flex; flex-direction:column; gap:var(--space-lg); }
+.evidence-tools { display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:var(--space-md); overflow-x:auto; min-height:32px; }
+.evidence-tools > :first-child { flex-shrink:0; }
+.evidence-tools .site-analysis-search { margin-inline-start:auto; }
+.evidence-table { min-width:0; overflow-x:auto; overflow-y:visible; }
+.evidence-table > div { max-height:none; overflow-y:visible; }
+.evidence-table tbody tr { cursor:pointer; }
+.evidence-table th:first-child,.evidence-table th:last-child { width:64px; }
+.evidence-summary-tools { display:flex; align-items:center; justify-content:space-between; gap:var(--space-lg); }
+.evidence-summary-tool-actions { display:flex; align-items:center; gap:var(--space-xs); margin-inline-start:auto; flex-shrink:0; }
+.evidence-card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,var(--container-xs)),1fr)); gap:var(--space-lg); }
+.evidence-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-md) var(--space-lg); }
+.evidence-fields dd { margin:0; overflow-wrap:anywhere; }
+@media (max-width:47.999rem) {
+ .evidence-loading { order:3; flex-basis:100%; }
+}
+/* The service matrix is the open-list baseline, including its hierarchy. */
+.evidence-summary-open { display:flex; flex-direction:column; gap:var(--space-md); min-width:0; }
+.evidence-summary-open .service-matrix-table { position:relative; flex:initial; overflow-x:auto; overflow-y:visible; }
+.evidence-summary-open .service-matrix-table > div,
+.evidence-summary-open .service-matrix-table > div > div:first-child { max-height:none; overflow-y:visible; }
+.evidence-summary-table .service-matrix-child { min-width:0; }
+.evidence-summary-table .service-matrix-child > :first-child { flex-shrink:0; }
+.evidence-summary-table :is(th,td):nth-child(n+3):not(:last-child) { padding-inline:var(--space-xs); }
+/* Column widths belong to the table, never to the expanded row content. */
+.evidence-summary-table table { table-layout:fixed; width:100%; }
+.evidence-summary-table :is(th,td):nth-child(2) { width:calc(50% - 128px); overflow:hidden; }
+.evidence-summary-table :is(th,td):nth-child(n+3):nth-child(-n+6) { width:12.5%; }
+.evidence-summary-table .service-matrix-child { width:100%; }
+.evidence-summary-table .evidence-service-name { display:flex; justify-content:flex-start; flex:1; min-width:0; height:32px; min-height:32px; max-height:32px; padding:0; text-align:start; }
+.evidence-summary-table .evidence-service-name,
+.evidence-summary-table .evidence-service-name:hover,
+.evidence-summary-table .evidence-service-name:active { background:transparent; box-shadow:none; }
+.evidence-summary-table .evidence-service-name > div { min-width:0; max-width:100%; }
+.evidence-summary-table .evidence-service-name [class*="truncate"] { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.evidence-summary-table tbody tr:has(.evidence-service-name[aria-expanded=true]) { background:color-mix(in srgb,var(--color-primary) 9%,transparent); }
+@media (max-width:47.999rem) {
+ .evidence-summary-tools { overflow-x:auto; gap:var(--space-sm); }
+ .evidence-summary-tool-actions { gap:var(--space-sm); }
+ .evidence-summary-tool-actions [role=combobox] { flex-shrink:0; }
+ .evidence-summary-tools > :first-child { flex-shrink:0; }
+}

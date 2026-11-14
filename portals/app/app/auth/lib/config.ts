@@ -38,7 +38,7 @@ export function getOidcConfig(): OidcConfig {
     scopes: env("OIDC_SCOPES", "openid profile email phone"),
     enabled: env("OIDC_RP_ENABLED", "off") === "on" && Boolean(env("OIDC_CLIENT_SECRET").trim()) &&
       Boolean(env("OIDC_REDIRECT_URI").trim()) && Boolean(env("REDIS_URL").trim()) &&
-      ["bsmoss","bsmoss-beta"].includes(env("OIDC_CLIENT_ID", "bsmoss")),
+      (env("OIDC_CLIENT_MODE") === "third_party" ? /^[a-zA-Z0-9._:-]{1,200}$/.test(env("OIDC_CLIENT_ID")) : ["bsmoss","bsmoss-beta"].includes(env("OIDC_CLIENT_ID", "bsmoss"))),
     sessionTtlSeconds: Number(env("RP_SESSION_TTL", "2592000")),
     cookieName: defaultCookieName(),
     appOrigin: env("NEXT_PUBLIC_APP_URL", env("OIDC_REDIRECT_URI").replace(/\/(api\/auth\/oidc|auth)\/callback$/, "")),

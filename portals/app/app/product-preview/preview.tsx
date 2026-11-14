@@ -1,4 +1,8 @@
 "use client";
+import ResetButton from "../portal/reset-button";
+import { Button as HeadingButton, SegmentedControl ,Switch} from "@vxture/design-system";
+import PageHeading from "../portal/page-heading";
+import ProductWorkspace from "../portal/workspace";
 import { useEffect, useRef, useState } from "react";
 import {
   CATEGORY_LABELS,
@@ -305,7 +309,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">
-            <Icon name="tower" />
+            <img src="/assets/brand/guanlan-mark-dark-v2.svg" width={28} height={28} alt="" />
           </div>
           <div>
             <strong>
@@ -313,7 +317,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
               <span>BS-MOSS</span>
             </strong>
             <small>
-              {"\u57fa\u7ad9\u591a\u57df\u8fd0\u884c\u76d1\u7ba1\u5e73\u53f0"}
+              {"\u7ad9\u5740\u591a\u57df\u8fd0\u8425\u76d1\u7ba1"}
             </small>
           </div>
         </div>
@@ -330,21 +334,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
           <span className="workspace-code">SX</span>
         </div>
         <div className="nav-heading">{"\u5468\u671f\u5206\u6790"}</div>
-        <nav aria-label={"\u4e3b\u5bfc\u822a"}>
-          {(Object.keys(CATEGORY_LABELS) as Category[]).map((c, i) => (
-            <button
-              key={c}
-              aria-label={CATEGORY_LABELS[c]}
-              className={category === c ? "nav-item active" : "nav-item"}
-              onClick={() => categoryChange(c)}
-              disabled={busy}
-            >
-              <Icon name={i === 0 ? "chart" : i === 1 ? "grid" : "tower"} />
-              <span>{CATEGORY_LABELS[c]}</span>
-              <span className="nav-number">{"0" + (i + 1)}</span>
-            </button>
-          ))}
-        </nav>
+        <SegmentedControl ariaLabel="指标类别" value={category} onChange={categoryChange} items={(Object.keys(CATEGORY_LABELS) as Category[]).map(value=>({value,label:CATEGORY_LABELS[value],disabled:busy}))}/>
         <div className="nav-heading secondary-label">
           {"\u663e\u793a\u7ba1\u7406"}
         </div>
@@ -388,44 +378,10 @@ export function Preview({ initial }: { initial: PreviewData }) {
             <span className="avatar small-avatar">{"\u89c8"}</span>
           </div>
         </header>
-        <main className="content" aria-busy={busy}>
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">MULTI-DOMAIN OBSERVATORY</div>
-              <h1>
-                {CATEGORY_LABELS[category]}
-                <span>{"\u5468\u671f\u5206\u6790"}</span>
-              </h1>
-              <p>
-                {
-                  "\u4ece\u4e1a\u52a1\u627f\u8f7d\u5230\u8bbe\u5907\u8fd0\u884c\uff0c\u8ba9\u6bcf\u4e00\u4e2a\u6307\u6807\u6709\u636e\u53ef\u5faa\u3002"
-                }
-              </p>
-            </div>
-            <button
-              className="button"
-              onClick={() => dialog.current?.showModal()}
-            >
-              <Icon name="gear" />
-              {"\u914d\u7f6e\u663e\u793a"}
-            </button>
-          </div>
-          <nav
-            className="mobile-category"
-            aria-label={"\u6307\u6807\u5206\u7c7b"}
-          >
-            {(Object.keys(CATEGORY_LABELS) as Category[]).map((c) => (
-              <button
-                key={c}
-                disabled={busy}
-                aria-pressed={category === c}
-                className={category === c ? "active" : ""}
-                onClick={() => categoryChange(c)}
-              >
-                {CATEGORY_LABELS[c]}
-              </button>
-            ))}
-          </nav>
+        <ProductWorkspace className="product-workspace-auxiliary"><main className="content product-page-inset" aria-busy={busy}>
+          <PageHeading title={CATEGORY_LABELS[category] + "\u5468\u671f\u5206\u6790"} description={"\u4e1a\u52a1\u3001\u72b6\u6001\u4e0e\u8fd0\u884c\u6307\u6807\u5468\u671f\u5206\u6790"}
+            actions={<HeadingButton variant="outline" size="md" onClick={() => dialog.current?.showModal()}>{"\u914d\u7f6e\u663e\u793a"}</HeadingButton>} />
+          <div className="mobile-category"><SegmentedControl ariaLabel="移动端指标类别" value={category} onChange={categoryChange} items={(Object.keys(CATEGORY_LABELS) as Category[]).map(value=>({value,label:CATEGORY_LABELS[value],disabled:busy}))}/></div>
           <div className="sample-banner">
             <span className="sample-pill">{"\u6837\u4f8b\u6a21\u5f0f"}</span>
             <span>
@@ -495,9 +451,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
           {error && (
             <div role="alert" className="error-message">
               {error}
-              <button disabled={busy} onClick={() => void reset()}>
-                {"\u6062\u590d\u9ed8\u8ba4"}
-              </button>
+              <ResetButton disabled={busy} onClick={() => void reset()} label={"\u6062\u590d\u9ed8\u8ba4"}/>
             </div>
           )}
           <div className="section-heading">
@@ -773,7 +727,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
               }
             </span>
           </footer>
-        </main>
+        </main></ProductWorkspace>
       </div>
       <dialog ref={dialog} className="config-dialog">
         <div className="config-header">
@@ -805,13 +759,12 @@ export function Preview({ initial }: { initial: PreviewData }) {
               <div className="config-row" key={o.id}>
                 <div className="config-row-title">
                   <label>
-                    <input
-                      type="checkbox"
+                    <Switch
                       disabled={busy}
                       aria-label={"\u663e\u793a" + o.name}
                       checked={o.visible}
-                      onChange={(e) =>
-                        preference({ id: o.id, visible: e.target.checked })
+                      onCheckedChange={checked =>
+                        preference({ id: o.id, visible: (checked === true) })
                       }
                     />
                     <strong>{o.name}</strong>
@@ -888,13 +841,7 @@ export function Preview({ initial }: { initial: PreviewData }) {
           )}
         </div>
         <div className="config-footer">
-          <button
-            className="button subtle"
-            disabled={busy}
-            onClick={() => void reset()}
-          >
-            {"\u6062\u590d\u9ed8\u8ba4"}
-          </button>
+          <ResetButton variant="outline" disabled={busy} onClick={() => void reset()} label={"\u6062\u590d\u9ed8\u8ba4"}/>
           <button className="button primary" disabled={busy} onClick={save}>
             {"\u4fdd\u5b58\u672c\u673a\u504f\u597d"}
           </button>

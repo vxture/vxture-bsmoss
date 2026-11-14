@@ -1,0 +1,33 @@
+.service-matrix-category { display:flex; flex-direction:column; gap:var(--space-xs); }
+.service-matrix-category-button { display:inline-flex; align-items:center; justify-content:center; padding:0; }
+.service-matrix-table tbody tr:has(.service-matrix-category-button) { background:transparent; cursor:pointer; }
+.service-matrix-table tbody tr:has(.service-matrix-category-button[aria-expanded=true]) { background:color-mix(in srgb,var(--color-primary) 9%,transparent); }
+.service-matrix-table tbody tr:has(.service-matrix-child):not(:has(.service-matrix-category-button)) { background:color-mix(in srgb,var(--color-primary) 3%,transparent); }
+.service-matrix-table tbody tr:has(.service-matrix-category-button):hover,
+.service-matrix-table tbody tr:has(.service-matrix-category-button):focus-within { background:color-mix(in srgb,var(--color-primary) 12%,transparent); }
+.service-matrix-table tbody tr:has(.service-matrix-child):not(:has(.service-matrix-category-button)):hover,
+.service-matrix-table tbody tr:has(.service-matrix-child):not(:has(.service-matrix-category-button)):focus-within { background:color-mix(in srgb,var(--color-primary) 6%,transparent); }
+.service-matrix-table th:first-child,
+.service-matrix-table th:last-child,
+.service-matrix-table td:first-child,
+.service-matrix-table td:last-child { width:64px; min-width:64px; max-width:64px; }
+.service-matrix-table td:first-child,
+.service-matrix-table td:last-child { padding-inline:0; text-align:center; }
+.service-matrix-actions { min-width:var(--space-control-md); }
+.service-matrix-actions > button { width:32px; min-width:32px; height:32px; padding:0; }
+.service-matrix-actions svg { width:20px; height:20px; }
+.service-matrix-table .service-matrix-category-button,
+.service-matrix-table .service-matrix-category-button:hover,
+.service-matrix-table .service-matrix-category-button:active { background:transparent; border-radius:0; box-shadow:none; }
+.service-matrix-table tbody tr:has(.service-matrix-category-button) td { background:transparent; }
+.service-matrix-primary { color:var(--color-muted-foreground); }
+.service-matrix-primary strong,
+.service-matrix-primary button,
+.service-matrix-primary .font-medium,
+.service-matrix-primary .font-semibold { font-weight:var(--font-weight-normal); }
+.service-matrix-child { display:flex; align-items:center; gap:var(--space-sm); padding-inline-start:var(--space-sm); }
+
+/* Open matrices share transparent headings; no nested header surface. */
+:is(.service-matrix-open,.evidence-summary-open) .service-matrix-table thead,
+:is(.service-matrix-open,.evidence-summary-open) .service-matrix-table thead tr,
+:is(.service-matrix-open,.evidence-summary-open) .service-matrix-table thead th { background:transparent; }

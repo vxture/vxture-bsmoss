@@ -1,0 +1,9 @@
+.review-workspace { min-width: 0; }
+.review-search { width: var(--container-overlay-md); max-width: 100%; }
+.review-table-scroll { scrollbar-width: none; }
+.review-table-scroll::-webkit-scrollbar { display: none; }
+.review-table-scroll:focus-visible { outline: var(--border-width-medium) solid var(--color-ring); outline-offset: calc(-1 * var(--border-width-medium)); }
+/* Remove when the published DS includes the upstream pagination-pages slot. */
+.review-pagination:not([data-slot="pagination"]) > div:last-child > div:last-child { gap: var(--space-xs); }
+.review-pagination:not([data-slot="pagination"]) button:not([aria-label]) { min-width: var(--space-control-md); padding-inline: var(--space-2xs); font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) { .review-search { width: 100%; } }

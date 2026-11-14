@@ -1,4 +1,7 @@
 'use client';
+import {SegmentedControl} from '@vxture/design-system';
+import {useOperatorNames} from "../../portal/operator-identities";
+import BusinessPageLink from './business-page-link';
 import CalendarPanel from './calendar-panel.tsx';
 import PeriodSelector from './period-selector.tsx';
 import {PeriodComparisonView} from './period-comparison.tsx';
@@ -19,15 +22,16 @@ export default function ReportPanel({region,onPick}:{region:RegionDefinition;onP
  return state.reportPeriod==='day'?<DailyReportPanel region={region} onPick={onPick}/>:<CalendarPanel mode="report" region={region} onPick={onPick}/>;
 }
 function DailyReportPanel({region,onPick}:{region:RegionDefinition;onPick:(id:string)=>void}) {
+ const OP_NAMES=useOperatorNames(false);
  const state=useWorkbench();
  const [snapshot,setSnapshot]=useState<DailyReport|null>(null),[error,setError]=useState(false),[revision,setRevision]=useState(0);
  const [section,setSection]=useState<'overview'|'comparison'|'operators'|'evidence'>('overview');
  const contentRef=useRef<HTMLDivElement>(null);
  const [metric,setMetric]=useState<'bytes'|'voiceSeconds'|'sms'>('bytes');
- const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:0,selection:state.selection??undefined,search:''}),[region.id,state.cityId,state.countyId,state.operator,state.selection]);
+ const query=useMemo(()=>({regionId:region.id,cityId:state.cityId,countyId:state.countyId,operator:state.operator,hour:0,selection:state.selection??undefined,search:state.search}),[region.id,state.cityId,state.countyId,state.operator,state.selection,state.search]);
  const params=useMemo(()=>{
   const p=new URLSearchParams({regionId:query.regionId,cityId:query.cityId,countyId:query.countyId,operator:query.operator,date:DEMO_DATE});
-  if(query.selection)p.set('selection',serializeSelection(query.selection));
+  if(query.search)p.set('search',query.search);if(query.selection)p.set('selection',serializeSelection(query.selection));
   return p.toString();
  },[query]);
  const key=reportContextKey(query);
@@ -44,9 +48,9 @@ function DailyReportPanel({region,onPick}:{region:RegionDefinition;onPick:(id:st
  const scale=metric==='bytes'?GIB:metric==='voiceSeconds'?3600:1,unit=metric==='bytes'?'GiB':metric==='voiceSeconds'?'\u5c0f\u65f6':'\u6761';
  const scope=region.counties.find(c=>c.id===state.countyId)?.name??region.cities.find(c=>c.id===state.cityId)?.name??region.name;
  return <aside className="mw-comparison mw-report-panel" aria-label={'\u5468\u671f\u5206\u6790\u62a5\u544a'}>
-  <header><span><FileText size={15}/>{'\u7528\u91cf\u65e5\u62a5'}<small>{'\u6a21\u62df\u6570\u636e \xb7 \u5f85\u590d\u6838'}</small></span><div>{r&&!error&&<a className="mw-report-download" href={'/api/product-preview/reports?'+params+'&format=html'} download aria-label={'\u4e0b\u8f7d\u7528\u91cf\u65e5\u62a5'}><Download size={13}/>{'\u4e0b\u8f7d\u62a5\u544a'}</a>}<button aria-label={'\u5173\u95ed\u5468\u671f\u62a5\u544a'} onClick={()=>state.set({reportOpen:false})}><X size={15}/></button></div></header>
-  <div className="mw-comparison-context"><span>{scope+(state.selection?' \xb7 '+selectionLabel(state.selection):'')+' \xb7 '+DEMO_DATE+' \xb7 \u5168\u5929'}</span><PeriodSelector mode="report"/><select aria-label={'\u62a5\u544a\u8fd0\u8425\u5546'} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,playing:false})}><option value="all">{'\u5168\u90e8\u8fd0\u8425\u5546'}</option>{Object.entries(OP_NAMES).map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></div>
-  <div className="mw-report-tabs" aria-label={'\u62a5\u544a\u7ae0\u8282'}>{([{key:'overview',label:'\u65e5\u5185\u5206\u6790'},{key:'comparison',label:'\u73af\u6bd4\u5206\u6790'},{key:'operators',label:'\u8fd0\u8425\u5546\u5206\u9879'},{key:'evidence',label:'\u53e3\u5f84\u4e0e\u4f9d\u636e'}] as const).map(tab=><button key={tab.key} className={section===tab.key?'active':''} onClick={()=>setSection(tab.key)}>{tab.label}</button>)}</div>
+  <header><span><FileText size={15}/>{'\u7528\u91cf\u65e5\u62a5'}<small>{'\u6a21\u62df\u6570\u636e \xb7 \u5f85\u590d\u6838'}</small></span><div><BusinessPageLink kind="usage-reports"/>{r&&!error&&<a className="mw-report-download" href={'/api/product-preview/reports?'+params+'&format=html'} download aria-label={'\u4e0b\u8f7d\u7528\u91cf\u65e5\u62a5'}><Download size={13}/>{'\u4e0b\u8f7d\u62a5\u544a'}</a>}<button aria-label={'\u5173\u95ed\u5468\u671f\u62a5\u544a'} onClick={()=>state.set({reportOpen:false})}><X size={15}/></button></div></header>
+  <div className="mw-comparison-context mw-report-context"><span>{scope+(state.selection?' \xb7 '+selectionLabel(state.selection):'')+' \xb7 '+DEMO_DATE+' \xb7 \u5168\u5929'}</span><PeriodSelector mode="report"/><select aria-label={'\u62a5\u544a\u8fd0\u8425\u5546'} value={state.operator} onChange={e=>state.set({operator:e.target.value as OperatorFilter,playing:false})}><option value="all">{'\u5168\u90e8\u8fd0\u8425\u5546'}</option>{Object.entries(OP_NAMES).map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></div>
+  <SegmentedControl ariaLabel={'\u62a5\u544a\u7ae0\u8282'} value={section} onChange={setSection} items={([{key:'overview',label:'\u65e5\u5185\u5206\u6790'},{key:'comparison',label:'\u73af\u6bd4\u5206\u6790'},{key:'operators',label:'\u8fd0\u8425\u5546\u5206\u9879'},{key:'evidence',label:'\u53e3\u5f84\u4e0e\u4f9d\u636e'}] as const).map(tab=>({value:tab.key,label:tab.label}))}/>
   <div ref={contentRef} className="mw-comparison-content">
   {error?<div className="mw-comparison-empty"><span>{'\u62a5\u544a\u52a0\u8f7d\u5931\u8d25'}</span><button onClick={()=>setRevision(v=>v+1)}><RotateCcw size={13}/>{'\u91cd\u8bd5'}</button></div>:!r||!u||!t?<div className="mw-comparison-empty"><LoaderCircle size={22} className="mw-spin"/><span>{'\u6b63\u5728\u751f\u6210\u65e5\u62a5'}</span></div>:<>
    {section==='overview'&&<>

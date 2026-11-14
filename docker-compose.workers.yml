@@ -1,0 +1,70 @@
+# Opt-in overlay. Both processes use the same reviewed image as the Web app.
+services:
+  aggregate-worker:
+    image: ${IMAGE_REF:?set an immutable image digest}
+    command: [node, /app/worker/worker.cjs]
+    env_file:
+      - path: ${WORKER_ENV_FILE:-./etc/worker.env}
+        required: false
+    environment:
+      NODE_ENV: production
+      BSMOSS_WORKER_ENABLED: "on"
+      BSMOSS_WORKER_KIND: aggregate
+      BSMOSS_PRODUCT_PREVIEW: "off"
+      BSMOSS_WORKER_CONFIG_FILE: /etc/bsmoss/worker.json
+      BSMOSS_WORKER_HEALTH_FILE: /tmp/bsmoss-worker-health.json
+    volumes: ["${AGGREGATE_WORKER_CONFIG_FILE:-./etc/aggregate-worker.json}:/etc/bsmoss/worker.json:ro"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, /app/worker/worker.cjs, health]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 120s
+    mem_limit: ${WORKER_MEM_LIMIT:-1g}
+    cpus: ${WORKER_CPUS:-1}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  report-worker:
+    image: ${IMAGE_REF:?set an immutable image digest}
+    command: [node, /app/worker/worker.cjs]
+    env_file:
+      - path: ${WORKER_ENV_FILE:-./etc/worker.env}
+        required: false
+    environment:
+      NODE_ENV: production
+      BSMOSS_WORKER_ENABLED: "on"
+      BSMOSS_WORKER_KIND: report
+      BSMOSS_PRODUCT_PREVIEW: "off"
+      BSMOSS_WORKER_CONFIG_FILE: /etc/bsmoss/worker.json
+      BSMOSS_WORKER_HEALTH_FILE: /tmp/bsmoss-worker-health.json
+    volumes: ["${REPORT_WORKER_CONFIG_FILE:-./etc/report-worker.json}:/etc/bsmoss/worker.json:ro"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, /app/worker/worker.cjs, health]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 120s
+    mem_limit: ${WORKER_MEM_LIMIT:-1g}
+    cpus: ${WORKER_CPUS:-1}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }

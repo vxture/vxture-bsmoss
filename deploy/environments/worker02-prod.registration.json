@@ -1,0 +1,36 @@
+{
+  "product": "bsmoss",
+  "origin": "https://bsmoss.ruyin.work",
+  "targetHost": "vx-worker-02",
+  "stackRoot": "/srv/md0/bsmoss",
+  "status": "registered-not-deployed",
+  "oidc": {
+    "clientId": "bsmoss",
+    "redirectUris": [
+      "https://bsmoss.ruyin.work/api/auth/oidc/callback"
+    ],
+    "postLogoutRedirectUris": [
+      "https://bsmoss.ruyin.work/"
+    ],
+    "backchannelLogoutUri": "https://bsmoss.ruyin.work/auth/backchannel-logout",
+    "scopes": [
+      "openid",
+      "profile",
+      "email"
+    ],
+    "pkceRequired": true,
+    "sloParticipation": true,
+    "enabled": true
+  },
+  "health": "https://bsmoss.ruyin.work/api/health",
+  "readiness": "https://bsmoss.ruyin.work/api/ready",
+  "hostPort": 3270,
+  "registrationType": "third_party",
+  "integration": [
+    "account",
+    "oidc_login"
+  ],
+  "provider": "Ruyin Studio",
+  "integrationMode": "sso_only",
+  "platformProductStatus": "draft"
+}

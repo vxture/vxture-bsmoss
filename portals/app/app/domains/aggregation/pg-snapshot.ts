@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { FIRST_METRICS } from "../catalog/first-metrics.ts";
 import { refKey, type MetricRef } from "../catalog/registry.ts";
 import type { MeasurementScope } from "../measurements/store.ts";
@@ -8,6 +8,8 @@ import { planMappingWindows } from "./applicability.ts";
 import type { AggregateSnapshotReader, AggregateTarget } from "./snapshot.ts";
 import {resolveIntervalInputPolicy} from './input-policy.ts';
 import { bindSourceCompletion } from "./completion.ts";
+import { mappedSubject } from "./subjects.ts";
+import { readAuthorityRevisions, type AuthorityRef } from "./pg-authority-revisions.ts";
 
 function identity(value: unknown): asserts value is string {
   if (typeof value !== "string" || !value.trim() || value.trim() !== value || value === "*" || value.includes("\0")) throw new Error("invalid_aggregate_identity");
@@ -25,7 +27,7 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
     if (typeof scope.allowSiteParameters !== "boolean") throw new Error("invalid_aggregate_scope");
     this.scope = scope;
   }
-  async load(input: AggregateTarget) {
+  async load(input: AggregateTarget, transaction?: PoolClient) {
     const target = structuredClone(input);
     identity(target.sourceId); identity(target.mappingId);
     if (!this.scope.sourceIds.includes(target.sourceId) || !this.scope.metricKeys.includes(refKey(target.metric))) throw new Error("aggregate_scope_denied");
@@ -35,10 +37,10 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         !["interval_delta", "derived", "ratio"].includes(metric.semantic) || !metric.grains.includes(target.grain)) throw new Error("unsupported_aggregate_metric");
     if(metric.semantic==='derived')resolveIntervalInputPolicy(target.metric,target.grain,'dependencies',this.scope.metricKeys);
     const period = bucketFor(target.at, target.grain);
-    const client = await this.pool.connect();
+    const client = transaction ?? await this.pool.connect();
     let discard = false;
     try {
-      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      if (!transaction) await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
       const mapping = (await client.query(`SELECT m.*,n.kind,s.valid_from AS service_from,s.valid_to AS service_to
         FROM bsmoss_integration.source_mapping m
         LEFT JOIN bsmoss_resource.network_object n ON (n.workspace_id,n.id)=(m.workspace_id,m.network_object_id)
@@ -91,7 +93,12 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
       // Select latest fact BEFORE applying mapping/time/quality. A newer fact moved
       // to another object/window must retract the old fact, never revive it.
       const rows=[];
-      for(const ref of refs){const batch = (await client.query(`SELECT m.*,r.payload_sha256,q.revision AS quality_revision,q.quality
+      for(const ref of refs){
+        // Facts wholly outside an inactive service window cannot become active
+        // evidence. Latest-revision selection still precedes this time filter.
+        if (!applicability.applicablePeriods.length) break;
+        const activeFrom = applicability.applicablePeriods[0]!.start, activeTo = applicability.applicablePeriods.at(-1)!.end;
+        const batch = (await client.query(`SELECT m.*,r.payload_sha256,q.revision AS quality_revision,q.quality
         FROM bsmoss_metering.measurement m
         JOIN bsmoss_integration.raw_event r ON (r.workspace_id,r.source_id,r.event_id,r.revision)=(m.workspace_id,m.source_id,m.event_id,m.event_revision)
         LEFT JOIN LATERAL (SELECT revision,quality FROM bsmoss_metering.quality_decision
@@ -101,11 +108,11 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         AND NOT EXISTS (SELECT 1 FROM bsmoss_metering.measurement newer WHERE newer.workspace_id=m.workspace_id AND newer.source_id=m.source_id
           AND newer.event_id=m.event_id AND newer.component_key=m.component_key AND newer.metric_code=m.metric_code
           AND newer.metric_version=m.metric_version AND newer.event_revision>m.event_revision)
-        ORDER BY m.id LIMIT 100001`, [this.workspaceId, target.sourceId, mappingIds, ref.code, ref.version, period.start, period.end])).rows;
+        ORDER BY m.id LIMIT 100001`, [this.workspaceId, target.sourceId, mappingIds, ref.code, ref.version, activeFrom, activeTo])).rows;
         if(rows.length+batch.length>100000)throw Error("input_bound_exceeded");
         for(const row of batch)rows.push(row);
       }
-      const subjectKey = JSON.stringify(["mapped-object-v1", mapping.station_id, mapping.service_id, mapping.network_object_id, mapping.device_id]);
+      const subjectKey = mappedSubject(mapping.station_id, mapping.service_id, mapping.network_object_id, mapping.device_id);
       const inputs: IntervalInput[] = rows.map(row => {
         if (!row.quality_revision) throw new Error("quality_decision_required");
         if (row.value_kind !== "integer_delta" && row.value_kind !== "ratio_parts") throw new Error("metric_value_mismatch");
@@ -115,8 +122,13 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
           period: { start: row.period_start.toISOString(), end: row.period_end.toISOString() },
           value: row.value_kind === "integer_delta" ? { kind: "integer_delta", value: row.integer_value } : { kind: "ratio_parts", numerator: row.numerator, denominator: row.denominator } };
       });
-      const basePlan = { workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey,
-        authorityVersion: fingerprintOf({ policy, mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })),
+      const authorityRefs: AuthorityRef[] = [{ kind: "source_capability", id: capability.id },
+        ...inputCapabilities.map(c => ({ kind: "source_capability" as const, id: c.id })),
+        ...related.map(m => ({ kind: "source_mapping" as const, id: m.id })), { kind: "source_mapping", id: mapping.id },
+        ...(mapping.service_id ? [{ kind: "station_service" as const, id: mapping.service_id }] : [])];
+      const authorityRevisions = await readAuthorityRevisions(client, this.workspaceId, authorityRefs);
+      const basePlan = { workspaceId: this.workspaceId, sourceId: target.sourceId, subjectKey, authorityRevisions,
+        authorityVersion: fingerprintOf({ authorityRevisions, policy, mappings: related.map(m => ({ id: m.id, version: m.version, from: m.valid_from.toISOString(), to: m.valid_to.toISOString() })),
           servicePeriod: mapping.service_id ? { start: mapping.service_from.toISOString(), end: mapping.service_to.toISOString() } : null,
           capabilityId: capability.id, validationRef: capability.validation_ref,
           ...(inputMode==='dependencies'?{inputCapabilities:inputCapabilities.map(c=>({ref:c.ref,id:c.id,validationRef:c.validation_ref,
@@ -125,22 +137,30 @@ export class PgAggregateSnapshotReader implements AggregateSnapshotReader {
         ...applicability,
         // Missing confirmation never falls back to observed maximum sample time.
         watermark: period.start, sourceComplete: false };
-      // The current ledger attests one mapping. Never reuse one segment's proof
-      // as a completion proof for a combined multi-mapping snapshot.
+      // Object-scoped ledger wins even after topology shrinks to one mapping.
+      // Select the latest revision BEFORE comparing its manifest/fingerprint;
+      // a stale/revoked set must never fall back to an older segment proof.
+      const setCompletion = (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256,mapping_manifest_sha256
+        FROM bsmoss_integration.source_completion_set WHERE workspace_id=$1 AND source_id=$2 AND station_id=$3
+        AND service_id IS NOT DISTINCT FROM $4 AND network_object_id IS NOT DISTINCT FROM $5 AND device_id IS NOT DISTINCT FROM $6
+        AND metric_code=$7 AND metric_version=$8 AND grain=$9 AND period_start=$10 AND period_end=$11
+        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, mapping.station_id, mapping.service_id,
+        mapping.network_object_id, mapping.device_id, metric.code, metric.version, target.grain, period.start, period.end])).rows[0];
       const completionMapping = new Set(applicability.mappingWindows.map(w => w.mappingId));
       const completionId = completionMapping.size === 1 ? [...completionMapping][0]! : null;
-      const completion = completionId === null ? undefined : (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256
+      const completion = setCompletion ?? (completionId === null ? undefined : (await client.query(`SELECT revision,status,input_fingerprint,watermark,evidence_ref,evidence_sha256
         FROM bsmoss_integration.source_completion WHERE workspace_id=$1 AND source_id=$2 AND mapping_id=$3
         AND metric_code=$4 AND metric_version=$5 AND grain=$6 AND period_start=$7 AND period_end=$8
-        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, completionId, metric.code, metric.version, target.grain, period.start, period.end])).rows[0];
+        ORDER BY revision DESC LIMIT 1`, [this.workspaceId, target.sourceId, completionId, metric.code, metric.version, target.grain, period.start, period.end])).rows[0]);
       const plan = bindSourceCompletion(basePlan, inputs, completion ? { revision: completion.revision, status: completion.status,
         inputFingerprint: completion.input_fingerprint, watermark: completion.watermark.toISOString(),
-        evidenceRef: completion.evidence_ref, evidenceSha256: completion.evidence_sha256 } : undefined);
-      await client.query("COMMIT");
+        evidenceRef: completion.evidence_ref, evidenceSha256: completion.evidence_sha256,
+        ...(setCompletion ? { mappingSet: { version: 1 as const, sha256: setCompletion.mapping_manifest_sha256 } } : {}) } : undefined);
+      if (!transaction) await client.query("COMMIT");
       return { plan, inputs };
     } catch (error) {
-      try { await client.query("ROLLBACK"); } catch { discard = true; }
+      if (!transaction) try { await client.query("ROLLBACK"); } catch { discard = true; }
       throw error;
-    } finally { client.release(discard); }
+    } finally { if (!transaction) client.release(discard); }
   }
 }

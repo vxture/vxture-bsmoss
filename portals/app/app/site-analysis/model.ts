@@ -1,0 +1,35 @@
+import { DEMO_REGION, DEMO_SITES } from "../domains/map-demo/resources";
+import { DEMO_DATE, DEMO_VERSION } from "../domains/map-demo/rules";
+import { registryRecord } from "../domains/site-registry/demo-store";
+import { filterSites, parseSiteQuery } from "../domains/site-registry/rules";
+import { previewAvailability } from "../domains/data-updates/preview";
+import { commonThrough } from "../domains/data-updates/rules";
+import { resourceGraph } from "../domains/site-registry/resource-rules";
+export function siteAnalysisModel(input: Record<string,string|string[]|undefined>) {
+ const {asOf:rawAsOf,period:rawPeriod,operatorCount:rawCount,pageSize:rawPageSize,...filters}=input;
+ const pageSize=rawPageSize??'20';
+ if(typeof pageSize!=='string'||!['10','20','50','100'].includes(pageSize))throw Error('invalid_page_size');
+ const operatorCount=rawCount??'all';
+ if(typeof operatorCount!=='string'||!['all','1','2','3','4','5'].includes(operatorCount))throw Error('invalid_operator_count');
+ const period=rawPeriod??'day';
+ if(typeof period!=='string'||!['hour','day','week','month'].includes(period))throw Error('invalid_period');
+ const raw=rawAsOf===undefined?DEMO_DATE+'T18:00:00':rawAsOf;
+ if(typeof raw!=='string'||!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/.test(raw))throw Error('invalid_customer_use_date');
+ const instant=new Date(raw.length===10?raw+'T18:00:00+08:00':raw+'+08:00');
+ if(!Number.isFinite(instant.getTime()))throw Error('invalid_site_analysis_date');
+ const local=new Date(instant.getTime()+8*3600000).toISOString();
+ if(local.slice(0,10)!==raw.slice(0,10))throw Error('invalid_customer_use_date');
+ const requestedAsOf=local.slice(0,13)+':00:00';
+ const asOf=DEMO_DATE+'T18:00:00';
+ const q=parseSiteQuery({...filters,period:period==='hour'?'day':period},DEMO_REGION);
+ const available=true;
+ const sites=filterSites(DEMO_SITES.map(s=>registryRecord(s,q.hour)),q);
+ const occupancyCounts=['all','1','2','3','4','5'].map(value=>({value,count:sites.filter(site=>value==='all'||site.operators.length===Number(value)).length}));
+ const operatorDeviceIds=new Map<string,Set<string>>();
+ const rows=(available?sites:[]).filter(site=>operatorCount==='all'||site.operators.length===Number(operatorCount)).map(site=>{const graph=resourceGraph(site,DEMO_DATE,DEMO_VERSION);const relations=graph.relations.filter(r=>q.operator==='all'||r.code===q.operator);const ids=new Set(relations.flatMap(r=>r.deviceIds));for(const relation of relations){const devices=operatorDeviceIds.get(relation.code)??new Set<string>();for(const id of relation.deviceIds)devices.add(id);operatorDeviceIds.set(relation.code,devices);}return {id:site.id,name:site.name,city:site.cityId,county:site.countyId,operators:relations.map(r=>r.code),allOperators:site.operators,cityName:site.cityName,countyName:site.countyName,devices:graph.devices.filter(d=>ids.has(d.id)).map(d=>({id:d.id,name:d.name,category:d.category,owner:d.owner})),resources:ids.size};});
+ const operators=['mobile','telecom','unicom','broadcast','other'].filter(code=>q.operator==='all'||code===q.operator).map(code=>({code,resources:operatorDeviceIds.get(code)?.size??0,sites:rows.filter(s=>s.operators.includes(code as typeof s.operators[number])).length}));
+ const regions=q.county!=='all'?[]:q.city==='all'?DEMO_REGION.cities.map(c=>({id:c.id,name:c.name,city:c.id,county:'all',count:rows.filter(s=>s.city===c.id).length})):DEMO_REGION.counties.filter(c=>c.cityId===q.city).map(c=>({id:c.id,name:c.name,city:c.cityId,county:c.id,count:rows.filter(s=>s.county===c.id).length}));
+ regions.sort((a,b)=>a.id.localeCompare(b.id));
+ return {query:{...q,pageSize:Number(pageSize),operatorCount,period:period as "hour"|"day"|"week"|"month",asOf},requestedAsOf,adjusted:requestedAsOf!==asOf,previousAsOf:null as string|null,nextAsOf:null as string|null,snapshotAt:asOf,updatedThrough:commonThrough(previewAvailability("station")),available,date:DEMO_DATE,occupancyCounts,rows,operators,regions,region:DEMO_REGION.name,cityName:DEMO_REGION.cities.find(c=>c.id===q.city)?.name,countyName:DEMO_REGION.counties.find(c=>c.id===q.county)?.name,summary:{sites:rows.length,relations:rows.reduce((n,s)=>n+s.operators.length,0),resources:rows.reduce((n,s)=>n+s.resources,0)}};
+}
+export type SiteAnalysisModel=ReturnType<typeof siteAnalysisModel>;

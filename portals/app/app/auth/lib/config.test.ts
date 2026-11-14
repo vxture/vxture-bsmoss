@@ -1,3 +1,4 @@
+import {getS2SConfig} from '../../platform/s2s';
 // Adapted from the yucer engineering reference for product bsmoss.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -46,3 +47,7 @@ test("OIDC remains disabled until this product's confidential configuration is c
   }
   withEnv({ ...valid, OIDC_CLIENT_ID: "another-product" }, () => assert.equal(getOidcConfig().enabled, false));
 });
+
+test("explicit third-party mode accepts its registered client without enabling a product identity",()=>{withEnv({OIDC_RP_ENABLED:'on',OIDC_CLIENT_MODE:'third_party',OIDC_CLIENT_ID:'third-party-client',OIDC_CLIENT_SECRET:'fixture',OIDC_REDIRECT_URI:'https://bsmoss.ruyin.work/api/auth/oidc/callback',REDIS_URL:'redis://redis:6379'},()=>assert.equal(getOidcConfig().enabled,true));});
+
+test("third-party OIDC secret cannot silently enable S2S",()=>{assert.equal(getS2SConfig({OIDC_CLIENT_MODE:'third_party',OIDC_CLIENT_ID:'bsmoss',OIDC_CLIENT_SECRET:'fixture'}).enabled,false)});

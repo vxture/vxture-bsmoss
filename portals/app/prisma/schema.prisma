@@ -140,6 +140,24 @@ model SourceCapability {
   @@schema("bsmoss_integration")
 }
 
+model AuthorityChange {
+  workspaceId String @map("workspace_id")
+  id String
+  entityKind String @map("entity_kind")
+  entityId String @map("entity_id")
+  revision Decimal @db.Decimal(30,0)
+  operation String
+  beforeSnapshot Json? @map("before_snapshot") @db.JsonB
+  afterSnapshot Json? @map("after_snapshot") @db.JsonB
+  evidenceSha256 String @map("evidence_sha256")
+  databaseActor String @map("database_actor")
+  recordedAt DateTime @map("recorded_at") @db.Timestamptz() @default(now())
+  @@id([workspaceId,id])
+  @@unique([workspaceId,entityKind,entityId,revision])
+  @@map("authority_change")
+  @@schema("bsmoss_integration")
+}
+
 model Measurement {
   workspaceId String @map("workspace_id")
   id String
@@ -219,6 +237,9 @@ model UserPreference {
   templateVersion Decimal @map("template_version") @db.Decimal(30,0)
   revision Decimal @db.Decimal(30,0)
   definition Json @db.JsonB
+  definitionSha256 String @map("definition_sha256")
+  databaseSha256 String @map("database_sha256") @default("")
+  recordedBy String @map("recorded_by") @default(dbgenerated("SESSION_USER"))
   createdAt DateTime @map("created_at") @db.Timestamptz() @default(now())
   @@id([workspaceId,subject,templateCode,templateVersion,revision])
   @@map("user_preference")
@@ -237,6 +258,40 @@ model VxProvisionAppInstance {
   updated_at DateTime @db.Timestamptz()
   @@map("app_instance")
   @@schema("vx_provision")
+}
+
+model TemplatePublication {
+  workspace_id String
+  code String
+  version Decimal @db.Decimal(30,0)
+  subject String
+  command_id String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  recorded_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,code,version])
+  @@map("template_publication")
+  @@schema("bsmoss_views")
+}
+
+model TemplateSelectionEvent {
+  workspace_id String
+  scope_key String
+  revision Decimal @db.Decimal(30,0)
+  subject String
+  command_id String
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  recorded_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,scope_key,revision])
+  @@map("template_selection_event")
+  @@schema("bsmoss_views")
 }
 
 model VxProvisionWebhookDelivery {
@@ -371,6 +426,8 @@ model AggregateRevision {
   integer_value Decimal? @db.Decimal(30,0)
   numerator Decimal? @db.Decimal(30,0)
   denominator Decimal? @db.Decimal(30,0)
+  state_value Json?
+  gauge_value Json?
   result_payload Json
   input_manifest Json
   published_by String
@@ -394,6 +451,7 @@ model AggregateOutbox {
 
 model SourceCompletion {
   workspace_id String
+  id String
   source_id String
   mapping_id String
   station_id String
@@ -412,5 +470,561 @@ model SourceCompletion {
   recorded_at DateTime @db.Timestamptz()
   @@id([workspace_id,source_id,mapping_id,metric_code,metric_version,grain,period_start,period_end,revision])
   @@map("source_completion")
+  @@schema("bsmoss_integration")
+}
+
+model SourceCompletionSet {
+  workspace_id String
+  id String
+  source_id String
+  station_id String
+  service_id String?
+  network_object_id String?
+  device_id String?
+  metric_code String
+  metric_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  revision Decimal @db.Decimal(30,0)
+  status String
+  input_fingerprint String
+  mapping_manifest_sha256 String
+  watermark DateTime @db.Timestamptz()
+  evidence_ref String
+  evidence_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_completion_set")
+  @@schema("bsmoss_integration")
+}
+
+model RefreshJob {
+  workspace_id String
+  id String
+  dedupe_key String
+  source_id String
+  subject_key String
+  metric_key String
+  mapping_id String
+  trigger_ref String
+  target Json
+  max_attempts Decimal @db.Decimal(30,0)
+  attempt Decimal @db.Decimal(30,0)
+  status String
+  lease_token String? @db.Uuid
+  lease_until DateTime? @db.Timestamptz()
+  available_at DateTime @db.Timestamptz()
+  created_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("refresh_job")
+  @@schema("bsmoss_analysis")
+}
+
+model RefreshAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  lease_token String @db.Uuid
+  outcome String
+  failure_code String?
+  result_ref String?
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("refresh_attempt")
+  @@schema("bsmoss_analysis")
+}
+
+model InputChange {
+  workspace_id String
+  id String
+  measurement_id String?
+  legacy_completion_id String?
+  completion_set_id String?
+  authority_change_id String?
+  change_kind String
+  quality_revision Decimal? @db.Decimal(30,0)
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("input_change")
+  @@schema("bsmoss_metering")
+}
+
+model InputRefreshReceipt {
+  workspace_id String
+  change_id String
+  subscription_sha256 String
+  partition_id String?
+  partition_revision Decimal? @db.Decimal(30,0)
+  manifest_sha256 String
+  manifest Json
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,change_id,subscription_sha256])
+  @@map("input_refresh_receipt")
+  @@schema("bsmoss_analysis")
+}
+
+model AggregateAuthorityInvalidation {
+  workspace_id String
+  series_id String
+  invalidated_revision Decimal @db.Decimal(30,0)
+  authority_change_id String
+  subscription_sha256 String
+  reason String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,series_id,invalidated_revision,authority_change_id,subscription_sha256])
+  @@map("aggregate_authority_invalidation")
+  @@schema("bsmoss_analysis")
+}
+
+model InputDispatchEvent {
+  workspace_id String
+  change_id String
+  subscription_sha256 String
+  partition_id String?
+  partition_revision Decimal? @db.Decimal(30,0)
+  revision Decimal @db.Decimal(30,0)
+  attempt Decimal @db.Decimal(30,0)
+  state String
+  failure_code String?
+  reason_ref String?
+  available_at DateTime @db.Timestamptz()
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,change_id,subscription_sha256,revision])
+  @@map("input_dispatch_event")
+  @@schema("bsmoss_analysis")
+}
+
+model RefreshPartitionRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  config Json
+  config_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("refresh_partition_revision")
+  @@schema("bsmoss_integration")
+}
+
+model RefreshPartitionHead {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("refresh_partition_head")
+  @@schema("bsmoss_integration")
+}
+
+model RefreshScanReceipt {
+  workspace_id String
+  partition_id String
+  partition_revision Decimal @db.Decimal(30,0)
+  scan_hour DateTime @db.Timestamptz()
+  manifest Json
+  manifest_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,partition_id,partition_revision,scan_hour])
+  @@map("refresh_scan_receipt")
+  @@schema("bsmoss_analysis")
+}
+
+model ObjectRollupRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  config Json
+  config_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("object_rollup_revision")
+  @@schema("bsmoss_integration")
+}
+
+model ReportSeries {
+  workspace_id String
+  id String
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  current_revision Decimal? @db.Decimal(30,0)
+  current_publication_revision Decimal? @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("report_series")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportRevision {
+  workspace_id String
+  report_id String
+  revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  manifest Json
+  generated_by String
+  generated_at DateTime @db.Timestamptz()
+  @@id([workspace_id,report_id,revision])
+  @@map("report_revision")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportOutbox {
+  workspace_id String
+  id String
+  report_id String
+  revision Decimal @db.Decimal(30,0)
+  event_type String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("report_outbox")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportPublicationEvent {
+  workspace_id String
+  report_id String
+  event_revision Decimal @db.Decimal(30,0)
+  previous_event_revision Decimal? @db.Decimal(30,0)
+  report_revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  command_id String
+  action String
+  reason_ref String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,report_id,event_revision])
+  @@map("report_publication_event")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportPublicationOutbox {
+  workspace_id String
+  id String
+  report_id String
+  event_revision Decimal @db.Decimal(30,0)
+  action String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("report_publication_outbox")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportJob {
+  workspace_id String
+  id String
+  report_id String
+  publication_revision Decimal @db.Decimal(30,0)
+  publication_action String
+  report_revision Decimal @db.Decimal(30,0)
+  manifest_sha256 String
+  renderer_version String
+  command_id String
+  requested_by String
+  requested_at DateTime @db.Timestamptz()
+  status String
+  attempt Decimal @db.Decimal(30,0)
+  available_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  artifact_sha256 String?
+  @@id([workspace_id,id])
+  @@map("report_export_job")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportArtifact {
+  workspace_id String
+  job_id String
+  renderer_version String
+  html String
+  content_sha256 String
+  created_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id])
+  @@map("report_export_artifact")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  artifact_sha256 String?
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("report_export_attempt")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportScheduleRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  config Json
+  template_code String
+  template_version Decimal @db.Decimal(30,0)
+  grain String
+  config_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("report_schedule_revision")
+  @@schema("bsmoss_integration")
+}
+
+model ReportScheduleHead {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("report_schedule_head")
+  @@schema("bsmoss_integration")
+}
+
+model ReportScheduleScan {
+  workspace_id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  scan_hour DateTime @db.Timestamptz()
+  manifest Json
+  manifest_sha256 String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,schedule_id,schedule_revision,scan_hour])
+  @@map("report_schedule_scan")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationJob {
+  workspace_id String
+  id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  schedule_sha256 String
+  scan_hour DateTime @db.Timestamptz()
+  grain String
+  period_start DateTime @db.Timestamptz()
+  period_end DateTime @db.Timestamptz()
+  due_at DateTime @db.Timestamptz()
+  requested_by String
+  requested_at DateTime @db.Timestamptz()
+  status String
+  attempt Decimal @db.Decimal(30,0)
+  available_at DateTime @db.Timestamptz()
+  updated_at DateTime @db.Timestamptz()
+  result_report_id String?
+  result_report_revision Decimal? @db.Decimal(30,0)
+  result_current_revision Decimal? @db.Decimal(30,0)
+  result_manifest_sha256 String?
+  result_outcome String
+  recovery_of String?
+  scan_job_id String?
+  @@id([workspace_id,id])
+  @@map("report_generation_job")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationAttempt {
+  workspace_id String
+  job_id String
+  attempt Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  generation_status String?
+  report_id String?
+  report_revision Decimal? @db.Decimal(30,0)
+  report_current_revision Decimal? @db.Decimal(30,0)
+  manifest_sha256 String?
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,job_id,attempt])
+  @@map("report_generation_attempt")
+  @@schema("bsmoss_analysis")
+}
+
+model RefreshRecovery {
+  workspace_id String
+  command_id String
+  original_job_id String
+  original_attempt Decimal @db.Decimal(30,0)
+  original_outcome String
+  replacement_job_id String
+  reason_ref String
+  requested_by String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,command_id])
+  @@map("refresh_recovery")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportExportRecovery {
+  workspace_id String
+  command_id String
+  original_job_id String
+  original_attempt Decimal @db.Decimal(30,0)
+  original_outcome String
+  replacement_job_id String
+  reason_ref String
+  requested_by String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,command_id])
+  @@map("report_export_recovery")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportGenerationRecovery {
+  workspace_id String
+  command_id String
+  original_job_id String
+  original_attempt Decimal @db.Decimal(30,0)
+  original_outcome String
+  replacement_job_id String
+  reason_ref String
+  requested_by String
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,command_id])
+  @@map("report_generation_recovery")
+  @@schema("bsmoss_analysis")
+}
+
+model ReportHistoryCheck {
+  workspace_id String
+  schedule_id String
+  schedule_revision Decimal @db.Decimal(30,0)
+  scan_hour DateTime @db.Timestamptz()
+  report_id String
+  original_revision Decimal @db.Decimal(30,0)
+  original_sha256 String
+  result_revision Decimal @db.Decimal(30,0)
+  result_sha256 String
+  result_current_revision Decimal @db.Decimal(30,0)
+  outcome String
+  failure_code String?
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  database_actor String
+  recorded_by String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,schedule_id,schedule_revision,scan_hour,report_id])
+  @@map("report_history_check")
+  @@schema("bsmoss_analysis")
+}
+
+model DataUpdateRequest {
+  workspace_id String
+  id String
+  partition_id String
+  partition_revision Decimal @db.Decimal(30,0)
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  requested_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("data_update_request")
+  @@schema("bsmoss_analysis")
+}
+
+model SourceBindingRevision {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  source_id String
+  status String
+  binding Json
+  binding_sha256 String
+  database_sha256 String
+  review_ref String
+  database_actor String
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id,revision])
+  @@map("source_binding_revision")
+  @@schema("bsmoss_integration")
+}
+
+model SourceBindingHead {
+  workspace_id String
+  id String
+  revision Decimal @db.Decimal(30,0)
+  @@id([workspace_id,id])
+  @@map("source_binding_head")
+  @@schema("bsmoss_integration")
+}
+
+model SourceIntakeReceipt {
+  workspace_id String
+  id String
+  binding_id String
+  binding_revision Decimal @db.Decimal(30,0)
+  sequence Decimal @db.Decimal(30,0)
+  previous_id String?
+  manifest Json
+  manifest_sha256 String
+  database_sha256 String
+  received_by String
+  received_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_intake_receipt")
+  @@schema("bsmoss_integration")
+}
+
+model SourceIntakeTask {
+  workspace_id String
+  id String
+  command_id String
+  binding_id String
+  binding_revision Decimal @db.Decimal(30,0)
+  binding_sha256 String
+  requested_by String
+  created_at DateTime @db.Timestamptz()
+  @@id([workspace_id,id])
+  @@map("source_intake_task")
+  @@schema("bsmoss_integration")
+}
+
+model SourceIntakeTaskEvent {
+  workspace_id String
+  task_id String
+  revision Decimal @db.Decimal(30,0)
+  attempt Int
+  state String
+  command_id String
+  reason_ref String?
+  actor String
+  lease_until DateTime @db.Timestamptz()
+  receipt_id String?
+  inserted Int
+  duplicates Int
+  failure_code String?
+  recorded_at DateTime @db.Timestamptz()
+  @@id([workspace_id,task_id,revision])
+  @@map("source_intake_task_event")
   @@schema("bsmoss_integration")
 }

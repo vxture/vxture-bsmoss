@@ -3,13 +3,23 @@ import type { MeasurementScope } from "../measurements/store.ts";
 
 // Internal ports, not platform wire schemas. Only an RP that has verified the
 // signature, issuer, audience, lifetime and server session may implement C1.
-export interface VerifiedIdentity {
+export interface VerifiedUserIdentity {
+  kind?: "user";
   sub: string;
   activeWorkspace: string | null;
   accountStatus: string | null;
   governanceRoles: readonly string[];
   expiresAt: number;
 }
+export interface VerifiedServiceIdentity {
+  kind: "service";
+  sub: "s2s:bsmoss";
+  callerProduct: "bsmoss";
+  activeWorkspace: string;
+  expiresAt: number;
+  tokenId: string;
+}
+export type VerifiedIdentity = VerifiedUserIdentity | VerifiedServiceIdentity;
 export interface Coverage {
   workspaceId: string;
   product: string;
@@ -25,7 +35,7 @@ export interface LocalGrant {
   scope: MeasurementScope;
   expiresAt: number;
 }
-export type MeasurementOperation = "view" | "ingest" | "aggregate";
+export type MeasurementOperation = "analysis_rules_view" | "analysis_rules_edit" | "operators_view" | "operators_edit" | "source_position_preview" | "mapping_aggregates_impact_view" | "mapping_reports_impact_view" | "source_intake_impact_view" | "sources_preflight" | "mappings_preflight" | "mappings_view" | "sources_view" | "configuration_audit_view" | "members_view" | "jurisdiction_view" | "view" | "ingest" | "aggregate" | "job_view" | "job_recover" | "report_jobs_view" | "report_jobs_recover" | "report_generate" | "report_publish" | "report_export" | "report_export_execute" | "template_view" | "template_publish" | "template_select";
 export type AccessPlane = "interactive" | "data";
 export interface AccessPorts {
   // These closures are wired by the server composition root, never by a request.
@@ -53,9 +63,35 @@ export interface MeasurementAccess {
   expiresAt: number;
 }
 const permissions = {
+  analysis_rules_view: "admin.analysis_rules.view",
+  analysis_rules_edit: "admin.analysis_rules.edit",
+  operators_view: "admin.operators.view",
+  operators_edit: "admin.operators.edit",
+  source_position_preview: "admin.sources.position.preview",
+  mapping_aggregates_impact_view: "admin.mappings.aggregate_impact.view",
+  mapping_reports_impact_view: "admin.mappings.report_impact.view",
+  source_intake_impact_view: "admin.sources.intake_impact.view",
+  sources_preflight: "admin.sources.preflight",
+  mappings_preflight: "admin.mappings.preflight",
+  mappings_view: "admin.mappings.view",
+  sources_view: "admin.sources.view",
+  configuration_audit_view: "admin.configuration_audit.view",
+  members_view: "admin.members.view",
+  jurisdiction_view: "admin.jurisdiction.view",
   view: "metering.view",
   ingest: "metering.ingest",
   aggregate: "metering.aggregate",
+  job_view: "metering.jobs.view",
+  job_recover: "metering.jobs.recover",
+  report_jobs_view: "reports.jobs.view",
+  report_jobs_recover: "reports.jobs.recover",
+  report_generate: "reports.generate",
+  report_publish: "reports.publish",
+  report_export: "reports.export",
+  report_export_execute: "reports.export.execute",
+  template_view: "views.templates.view",
+  template_publish: "views.templates.publish",
+  template_select: "views.templates.select",
 } as const;
 function required(value: unknown): value is string {
   return (
@@ -134,12 +170,19 @@ export async function resolveMeasurementAccess(
     !identity ||
     !required(identity.sub) ||
     !required(identity.activeWorkspace) ||
-    identity.accountStatus !== "active" ||
-    !fresh(identity.expiresAt, now()) ||
-    !Array.isArray(identity.governanceRoles) ||
-    !identity.governanceRoles.every(required)
+    !fresh(identity.expiresAt, now())
   )
     throw new Error("identity_required");
+  const service = identity.kind === "service";
+  if (service) {
+    if (identity.sub !== "s2s:bsmoss" || identity.callerProduct !== "bsmoss" || !required(identity.tokenId))
+      throw new Error("identity_required");
+    if (plane !== "data" || !["aggregate", "report_generate", "report_export_execute"].includes(operation))
+      throw new Error("permission_denied");
+  } else if ((identity.kind !== undefined && identity.kind !== "user") || identity.sub.startsWith("s2s:") ||
+    identity.accountStatus !== "active" || !Array.isArray(identity.governanceRoles) || !identity.governanceRoles.every(required)) {
+    throw new Error("identity_required");
+  }
   const workspaceId = identity.activeWorkspace;
   const coverage = structuredClone(await ports.readCoverage(workspaceId));
   if (
@@ -159,7 +202,7 @@ export async function resolveMeasurementAccess(
     ports.featuresFor(Object.freeze(coverage), plane),
   );
   if (!features.has("metering")) throw new Error("feature_denied");
-  const workspaceOwner = identity.governanceRoles.includes("workspace:owner");
+  const workspaceOwner = !service && identity.governanceRoles.includes("workspace:owner");
   const rawGrant = await ports.readLocalGrant(
     Object.freeze({
       workspaceId,
@@ -177,7 +220,7 @@ export async function resolveMeasurementAccess(
     !fresh(grant.expiresAt, now())
   )
     throw new Error("permission_denied");
-  // Workspace owner has a view/ingest baseline; aggregate requires an explicit
+  // Workspace owner has a view/ingest baseline; generation requires an explicit
   // local grant. Even the owner receives a finite data scope from the store.
   const permission = permissions[operation];
   const granted = readonlySet(grant.permissions);
@@ -186,7 +229,7 @@ export async function resolveMeasurementAccess(
     sub: identity.sub,
     features,
     permissions: readonlySet(
-      workspaceOwner && operation !== "aggregate"
+      workspaceOwner && (operation === "view" || operation === "ingest")
         ? [permission]
         : [...granted].filter((p) => p === permission),
     ),

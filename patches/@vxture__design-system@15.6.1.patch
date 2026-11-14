@@ -1,0 +1,124 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 7e2bfe69d97030c1484def1c6c1283b19d8a573a..203c8f6efb198aab7448ffc4c84bd435e230d466 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -2207,27 +2207,31 @@ function ShellSidebarNav({
+   linkComponent = "a",
+   footer,
+   subLabelReveal = "always",
++  initialClosedGroups,
++  onClosedGroupsChange,
+   labels
+ }) {
+   const text = { ...DEFAULT_LABELS2, ...labels };
+   const groupsStorageKey = `${storageKeyPrefix}-groups-closed`;
+   const [closedGroups, setClosedGroups] = React.useState(
+-    () => /* @__PURE__ */ new Set()
++    () => /* @__PURE__ */ new Set(initialClosedGroups ?? [])
+   );
+   React.useEffect(() => {
+-    setClosedGroups(readClosedGroups(groupsStorageKey));
++    if (initialClosedGroups === void 0) setClosedGroups(readClosedGroups(groupsStorageKey));
+   }, []);
+   const toggleGroup = /* @__PURE__ */ __name((title) => setClosedGroups((prev) => {
+     const next = new Set(prev);
+     if (next.has(title)) next.delete(title);
+     else next.add(title);
+     writeClosedGroups(groupsStorageKey, next);
++    onClosedGroupsChange?.([...next]);
+     return next;
+   }), "toggleGroup");
+   const allClosed = sections.length > 0 && closedGroups.size >= sections.length;
+   const toggleAllGroups = /* @__PURE__ */ __name(() => setClosedGroups((prev) => {
+     const next = prev.size >= sections.length ? /* @__PURE__ */ new Set() : new Set(sections.map((section) => section.title));
+     writeClosedGroups(groupsStorageKey, next);
++    onClosedGroupsChange?.([...next]);
+     return next;
+   }), "toggleAllGroups");
+   return (
+@@ -2311,7 +2315,9 @@ function ShellSidebarNav({
+                             "grid transition-[grid-template-rows] duration-base ease-standard motion-reduce:transition-none",
+                             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                           ),
+-                          children: /* @__PURE__ */ jsxRuntime.jsx("div", { className: "overflow-hidden", children: /* @__PURE__ */ jsxRuntime.jsx(
++                          children: /* @__PURE__ */ jsxRuntime.jsx("div", { className: "overflow-hidden",
++                    inert: !open,
++                    "aria-hidden": !open, children: /* @__PURE__ */ jsxRuntime.jsx(
+                             "nav",
+                             {
+                               className: "flex flex-col gap-sidebar",
+diff --git a/dist/index.d.cts b/dist/index.d.cts
+index db798dd850fc081305ce26728ad6c1a301829f46..9d52b6832f4627b94d68b3c3c41b5d3e61ebe7e1 100644
+--- a/dist/index.d.cts
++++ b/dist/index.d.cts
+@@ -1113,6 +1113,8 @@ interface ShellNavSection {
+ /** `subLabel` 第二行的显隐策略，见 `ShellSidebarNavProps.subLabelReveal`。 */
+ type ShellNavSubLabelReveal = "always" | "active-hover";
+ interface ShellSidebarNavProps {
++    readonly initialClosedGroups?: readonly string[];
++    readonly onClosedGroupsChange?: (groups: readonly string[]) => void;
+     /**
+      * 侧栏顶部的域名称（title 行的文字）。**可选**——不传就不渲染那行文字，
+      * 只剩两个按钮。
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 7049f6381eb557411a0f3e96adabfe0b4709896e..1aca2ac6b1cb3d9d18a42236379722dfea433559 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1113,6 +1113,8 @@ interface ShellNavSection {
+ /** `subLabel` 第二行的显隐策略，见 `ShellSidebarNavProps.subLabelReveal`。 */
+ type ShellNavSubLabelReveal = "always" | "active-hover";
+ interface ShellSidebarNavProps {
++    readonly initialClosedGroups?: readonly string[];
++    readonly onClosedGroupsChange?: (groups: readonly string[]) => void;
+     /**
+      * 侧栏顶部的域名称（title 行的文字）。**可选**——不传就不渲染那行文字，
+      * 只剩两个按钮。
+diff --git a/dist/index.mjs b/dist/index.mjs
+index ba4c46cc176de5f47815046f1a75b01cd972f4d9..5499f744fb82fa2c7b655b0f1805750e937f60f9 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -2188,27 +2188,31 @@ function ShellSidebarNav({
+   linkComponent = "a",
+   footer,
+   subLabelReveal = "always",
++  initialClosedGroups,
++  onClosedGroupsChange,
+   labels
+ }) {
+   const text = { ...DEFAULT_LABELS2, ...labels };
+   const groupsStorageKey = `${storageKeyPrefix}-groups-closed`;
+   const [closedGroups, setClosedGroups] = useState(
+-    () => /* @__PURE__ */ new Set()
++    () => /* @__PURE__ */ new Set(initialClosedGroups ?? [])
+   );
+   useEffect(() => {
+-    setClosedGroups(readClosedGroups(groupsStorageKey));
++    if (initialClosedGroups === void 0) setClosedGroups(readClosedGroups(groupsStorageKey));
+   }, []);
+   const toggleGroup = /* @__PURE__ */ __name((title) => setClosedGroups((prev) => {
+     const next = new Set(prev);
+     if (next.has(title)) next.delete(title);
+     else next.add(title);
+     writeClosedGroups(groupsStorageKey, next);
++    onClosedGroupsChange?.([...next]);
+     return next;
+   }), "toggleGroup");
+   const allClosed = sections.length > 0 && closedGroups.size >= sections.length;
+   const toggleAllGroups = /* @__PURE__ */ __name(() => setClosedGroups((prev) => {
+     const next = prev.size >= sections.length ? /* @__PURE__ */ new Set() : new Set(sections.map((section) => section.title));
+     writeClosedGroups(groupsStorageKey, next);
++    onClosedGroupsChange?.([...next]);
+     return next;
+   }), "toggleAllGroups");
+   return (
+@@ -2292,7 +2296,9 @@ function ShellSidebarNav({
+                             "grid transition-[grid-template-rows] duration-base ease-standard motion-reduce:transition-none",
+                             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                           ),
+-                          children: /* @__PURE__ */ jsx("div", { className: "overflow-hidden", children: /* @__PURE__ */ jsx(
++                          children: /* @__PURE__ */ jsx("div", { className: "overflow-hidden",
++                    inert: !open,
++                    "aria-hidden": !open, children: /* @__PURE__ */ jsx(
+                             "nav",
+                             {
+                               className: "flex flex-col gap-sidebar",

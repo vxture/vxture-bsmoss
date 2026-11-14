@@ -1,0 +1,16 @@
+/* Keep the official reset control geometry inside the isolated legacy skins. */
+.legacy-metrics button.product-reset-button[data-product-reset],
+.mw-hud button.product-reset-button[data-product-reset] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-control-xl);
+  height: var(--space-control-xl);
+  min-width: var(--space-control-xl);
+  padding: 0;
+}
+.legacy-metrics button.product-reset-button[data-product-reset] svg,
+.mw-hud button.product-reset-button[data-product-reset] svg {
+  width: var(--space-control-xs);
+  height: var(--space-control-xs);
+}

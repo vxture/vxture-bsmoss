@@ -29,7 +29,7 @@ test('dated samples preserve existing demo day, vary by date and conserve operat
     }
     assert.equal(all.bytes,all.upBytes+all.downBytes);assert.ok(all.used<=all.capacity);assert.ok(all.connected<=all.attempts);assert.ok(ops.every(m=>m.energyWh===null));
   }
-  for(const date of ['2026-08-31','2026-09-31','2026-11-01','2026-10-32','2026-10-00'])assert.throws(()=>sample(date,1));assert.throws(()=>sample('2026-10-25',24));
+  for(const date of ['2024-10-31','2026-09-31','2026-11-01','2026-10-32','2026-10-00'])assert.throws(()=>sample(date,1));assert.throws(()=>sample('2026-10-25',24));
 });
 test('calendar day exactly matches legacy daily counters and physical parameters',()=>{
   const dated=analyzeCalendarUsage([site],q,'day'),daily=queryOperatorUsage(new URLSearchParams('period=day&search=SX-DEMO-006'));

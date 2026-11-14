@@ -77,7 +77,8 @@ const defaults: Record<string, string> = {
   Wh: "kWh",
   enum: "state",
 };
-const codeList = FIRST_METRICS.list();
+// Keep this established synthetic fixture limited to metrics it actually models.
+const codeList = FIRST_METRICS.list().filter(m => m.semantic !== "gauge");
 const template = {
   workspaceId: "preview",
   code: "tower-sample",

@@ -1,0 +1,26 @@
+import {randomBytes} from 'node:crypto';
+import {cookies} from 'next/headers';
+import {boundedText} from '../../../lib/http';
+import {privateReportResponse} from '../../../domains/reports/http';
+import {PREVIEW_COOKIE,previewFoundation,validPreviewSession} from '../../../domains/tower-service/preview';
+import type {DirectoryEntry,RuleVersion,SyncPlan} from '../../../domains/tower-service/foundation';
+export const dynamic='force-dynamic';
+const reply=(status:number,error:string)=>privateReportResponse(Response.json({error},{status}));
+function localOrigin(request:Request){try{const origin=request.headers.get('origin'),target=new URL(request.url),host=request.headers.get('host');if(!origin||!host)return false;const source=new URL(origin);return ['127.0.0.1','localhost'].includes(target.hostname)&&['127.0.0.1','localhost'].includes(source.hostname)&&source.protocol==='http:'&&source.origin===origin&&source.host===host;}catch{return false;}}
+async function session(create:boolean){const jar=await cookies(),current=jar.get(PREVIEW_COOKIE)?.value;if(validPreviewSession(current))return current;if(!create)throw Error('preview_session_required');const token=randomBytes(32).toString('hex');jar.set(PREVIEW_COOKIE,token,{httpOnly:true,sameSite:'strict',secure:false,path:'/',maxAge:30*86400});return token;}
+export async function GET(request:Request){if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return reply(404,'NOT_AVAILABLE');if(new URL(request.url).search)return reply(400,'INVALID_QUERY');try{const result=await previewFoundation(await session(true)).read();const state=result.state;return privateReportResponse(Response.json({revision:state.revision,snapshots:state.snapshots.map(s=>({...s,inventory:{descriptor:s.inventory.descriptor,provinceId:s.inventory.provinceId,tenantMonths:s.inventory.tenancy?.refs??[]},sites:s.inventory.rows.length,facilities:s.inventory.rows.reduce((n,r)=>n+r.devices.filter(d=>d.owner==='\u94c1\u5854').length,0)})),runs:state.runs,plans:state.plans,rules:state.rules,directory:state.directory,audit:state.audit,access:result.access}));}catch{return reply(503,'FOUNDATION_UNAVAILABLE');}}
+export async function POST(request:Request){
+ if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return reply(404,'NOT_AVAILABLE');
+ const url=new URL(request.url);if(!localOrigin(request))return reply(403,'ORIGIN_DENIED');
+ if(!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return reply(415,'JSON_REQUIRED');if(url.search)return reply(400,'INVALID_QUERY');
+ try{const service=previewFoundation(await session(false)),body=JSON.parse(await boundedText(request,32768));if(!body||Array.isArray(body)||typeof body!=='object')throw Error('invalid_command');const fields=(keys:string[])=>{if(Object.keys(body).sort().join()!==['action',...keys].sort().join())throw Error('invalid_command');};let result:unknown;
+  switch(body.action){case 'sync':fields(['key','city','operators']);if(typeof body.key!=='string'||typeof body.city!=='string'||!Array.isArray(body.operators))throw Error('invalid_command');result=await service.sync(body);break;
+   case 'retry':fields(['runId','key']);if(typeof body.runId!=='string'||typeof body.key!=='string')throw Error('invalid_command');result=await service.retry(body.runId,body.key);break;
+   case 'plan':fields(['plan','revision']);if(!Number.isSafeInteger(body.revision)||!body.plan||Object.keys(body.plan).sort().join()!=='city,enabled,id,intervalMinutes,nextAt,operators,sourceId')throw Error('invalid_command');result=await service.savePlan(body.plan as SyncPlan,body.revision);break;
+   case 'directory':fields(['entry','revision']);if(!Number.isSafeInteger(body.revision)||!body.entry||Object.keys(body.entry).sort().join()!=='id,kind,name,operator,units')throw Error('invalid_command');result=await service.addDirectory(body.entry as DirectoryEntry,body.revision);break;
+   case 'rule':fields(['rule','revision']);if(!Number.isSafeInteger(body.revision)||!body.rule||Object.keys(body.rule).filter(k=>k!=='metering'&&k!=='judgment').sort().join()!=='attention,boundary,city,confirmed,createdAt,createdBy,customerId,from,id,kind,monthPolicy,operator,reference,revision,series,service,severe,state,tiers,to,unit')throw Error('invalid_command');result=await service.saveRule(body.rule as RuleVersion,body.revision);break;
+   case 'transition':fields(['ruleId','state','revision']);if(!Number.isSafeInteger(body.revision)||typeof body.ruleId!=='string'||!['active','retired'].includes(body.state))throw Error('invalid_command');result=await service.transitionRule(body.ruleId,body.state,body.revision);break;
+   default:throw Error('invalid_command');}
+  return privateReportResponse(Response.json({result}));
+ }catch(error){const code=error instanceof Error?error.message:'unknown';if(code==='body_too_large')return reply(413,'BODY_TOO_LARGE');if(code==='preview_session_required')return reply(401,'SESSION_REQUIRED');if(code==='permission_denied'||code==='workspace_mismatch')return reply(403,'POLICY_DENIED');if(code==='revision_conflict')return reply(409,'REVISION_CONFLICT');if(error instanceof SyntaxError||/^(invalid_|rule_)/.test(code))return reply(400,code);return reply(503,'FOUNDATION_UNAVAILABLE');}
+}

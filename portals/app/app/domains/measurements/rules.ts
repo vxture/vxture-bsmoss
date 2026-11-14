@@ -33,7 +33,7 @@ export function normalizeDraft(input: MeasurementDraft, registry: ReturnType<typ
   const v = r.value;
   const keys = {integer_delta:["kind","value"],ratio_parts:["kind","numerator","denominator"],state_event:["kind","state","validUntil"],fixed_point:["kind","unscaled","scale"]};
   if (!keys[v.kind] || Object.keys(v).some(k=>!keys[v.kind].includes(k))) throw new Error("invalid_value_fields");
-  const kind = {interval_delta:"integer_delta",ratio:"ratio_parts",state:"state_event"}[m.semantic];
+  const kind = {interval_delta:"integer_delta",ratio:"ratio_parts",state:"state_event",gauge:"fixed_point"}[m.semantic];
   if (v.kind !== kind) throw new Error("metric_value_mismatch");
   if (v.kind === "integer_delta") integer(v.value);
   else if (v.kind === "ratio_parts") {
@@ -44,7 +44,10 @@ export function normalizeDraft(input: MeasurementDraft, registry: ReturnType<typ
     v.validUntil=timestamp(v.validUntil);
     if (v.validUntil !== r.periodEnd) throw new Error("invalid_state_expiry");
   }
-  // fixed_point is reserved by the schema; no first-batch metric permits it yet.
+  else if (v.kind === "fixed_point") {
+    integer(v.unscaled, true);
+    if (!Number.isSafeInteger(v.scale) || v.scale < 0 || v.scale > 9) throw new Error("invalid_gauge_scale");
+  }
   return r;
 }
 export function normalizeFilter(input: MeasurementFilter): MeasurementFilter {

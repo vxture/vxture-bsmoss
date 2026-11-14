@@ -1,0 +1,9 @@
+.operator-config-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.operator-config-row { display: flex; align-items: center; gap: var(--space-md); padding-block: var(--space-md); border-bottom: var(--border-width-thin) dashed var(--border); }
+.operator-config-row:first-child { padding-top: 0; }
+.operator-config-row:last-child { padding-bottom: 0; border-bottom: 0; }
+.operator-config-logo { display: flex; align-items: center; justify-content: center; width: var(--space-control-3xl); height: var(--space-control-3xl); flex-shrink: 0; }
+.operator-config-logo img { width: var(--space-control-2xl); height: var(--space-control-2xl); object-fit: contain; }
+.operator-config-preview { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md); border-radius: var(--radius-lg); background: var(--muted); }
+.operator-config-preview > img { width: var(--space-control-3xl); height: var(--space-control-3xl); object-fit: contain; flex-shrink: 0; }
+.operator-config-dialog { max-height: calc(100dvh - var(--space-xl)); overflow-y: auto; }

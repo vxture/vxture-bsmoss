@@ -19,6 +19,27 @@ assert.ok(compose.includes("APP_PUBLISH_PORT:?"));
 assert.ok(compose.includes('BSMOSS_PRODUCT_PREVIEW: "off"'));
 assert.ok(!compose.includes("4060") && !compose.includes("4061"));
 const dockerfile = read("portals/app/Dockerfile");
+const workerCompose = YAML.parse(read("docker-compose.workers.yml"));
+for (const name of ["aggregate-worker", "report-worker"]) {
+  const worker = workerCompose.services[name];
+  assert.equal(worker.image, '${IMAGE_REF:?set an immutable image digest}');
+  assert.deepEqual(worker.command, ['node', '/app/worker/worker.cjs']);
+  assert.equal(worker.environment.BSMOSS_PRODUCT_PREVIEW, 'off');
+  assert.equal(worker.environment.BSMOSS_WORKER_KIND, name.replace('-worker', ''));
+  assert.ok(worker.read_only && worker.init && !worker.ports && worker.cap_drop.includes('ALL'));
+  assert.equal(worker.stop_grace_period, '120s');
+  assert.ok(worker.healthcheck.test.includes('health'));
+}
+assert.ok(dockerfile.includes('RUN pnpm build:worker') && dockerfile.includes('/repo/artifacts/worker/worker.cjs'));
+for (const name of ['deploy', 'rollback']) {
+  assert.deepEqual(workflows[name + '.yml'].on.workflow_dispatch.inputs.workers.options, ['off', 'on']);
+  assert.ok(read('.github/workflows/' + name + '.yml').includes("BSMOSS_DEPLOY_WORKERS='$WORKERS'"));
+}
+assert.ok(read('deploy/deploy.sh').includes('worker.cjs validate'));
+assert.ok(read('deploy/deploy.sh').includes('stop -t 120 aggregate-worker report-worker'));
+assert.ok(read('deploy/env-update.sh').includes('chmod 0644 "$tmp"'));
+assert.ok(read('deploy/env-update.sh').includes('chmod 0700 "$STACK_ROOT/etc"'));
+assert.ok(read('deploy/deploy.sh').includes('up -d --no-deps --force-recreate'));
 const dockerIgnore=read(".dockerignore").split(/\r?\n/);
 assert.ok(dockerIgnore.includes('tmp')&&dockerIgnore.includes('/*.pdf'), 'local logs and customer proposal must stay out of images');
 assert.ok(dockerfile.includes("USER nextjs"));

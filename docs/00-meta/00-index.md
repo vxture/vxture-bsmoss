@@ -55,3 +55,17 @@
 - [真实接入与上线前置](../50-deployment/40-live-prerequisites.md)
 
 - [可信依赖输入](../40-implementation/300-trusted-derived-inputs.md)：方向总流量、次数接通率的授权快照与原始证据。
+- [跨映射组合完成证明](../40-implementation/310-composite-completion.md)：全对象周期确认、最高撤销和不可变证据。
+- [持久刷新队列](../40-implementation/320-durable-refresh-queue.md)：租约抢占、失败重试与结果／回执原子提交。
+- [授权刷新协调](../40-implementation/330-authorized-refresh-coordination.md)：全批入队、周期／历史影响规划、有限候选及并发快照修复。
+- [设备状态持久化](../40-implementation/340-device-state-persistence.md)：可信心跳有效期、未知时长、组合证明和调度原子发布。
+- [测量及质量变化传播](../40-implementation/350-input-change-dispatch.md)：事务变化记录、旧新及依赖窗口、消费清单与晚提交处理。
+- [来源完成及撤销传播](../40-implementation/360-completion-change-dispatch.md)：精确指标／周期、最高证明优先及当前结果降级。
+- [正式报告工作区](../40-implementation/480-formal-report-workspace.md)：授权分页、历史回看、生成发布撤回和异步导出操作。
+- [登记报告周期生成](../40-implementation/490-registered-report-calendar.md)：北京时间日周月日历、持久作业、原子回执和有限重试。
+- [报告worker循环](../40-implementation/500-report-worker-loop.md)：授权导出待办、轮转限额、独立退避与事务停机恢复。
+- [聚合任务工作台与受审恢复](../40-implementation/530-aggregate-job-supervision.md)：授权任务历史、不可变恢复链、同命令重试与末次验权。
+- [报告任务监控](../40-implementation/540-report-job-inspection.md)：生成／导出历史、原登记和精确修订跳转。
+- [导出受审恢复](../40-implementation/550-report-export-recovery.md)：保留失败证据、精确发布复核、关联任务和恢复链。
+- [生成受审恢复](../40-implementation/560-report-generation-recovery.md)：原扫描来源、登记主体、精确终态和不可变复核链。
+- [历史报告核验](../40-implementation/570-report-history-reconciliation.md)：近期回看范围以外的周期修订、公平选择和不可变核验回执。
