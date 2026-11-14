@@ -1,3 +1,4 @@
+import {renderedHtml as rendered} from './rendered-html.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
@@ -11,7 +12,6 @@ const appRoot=new URL('../portals/app/',import.meta.url),require=createRequire(n
 async function server(preview,run){const child=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','--hostname','127.0.0.1','--port','0'],{cwd:appRoot,env:{...process.env,BSMOSS_PRODUCT_PREVIEW:preview?'on':'off',OIDC_RP_ENABLED:'off',NEXT_TELEMETRY_DISABLED:'1',DATABASE_URL:''},stdio:['ignore','pipe','pipe'],windowsHide:true});let output='';try{const base=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('server_timeout')),30000),collect=chunk=>{output+=chunk;const match=output.match(/http:\/\/127\.0\.0\.1:\d+/);if(match&&output.includes('Ready')){clearTimeout(timer);resolve(match[0]);}};child.stdout.on('data',collect);child.stderr.on('data',collect);child.once('error',reject);child.once('exit',()=>{clearTimeout(timer);reject(Error(output));});});await run(base);}finally{if(child.exitCode===null){const stopped=new Promise(resolve=>child.once('exit',resolve));child.kill();await stopped;}}}
 const root='/tower-service/',foundation='/api/product-preview/tower-foundation',reports='/api/product-preview/tower-reports';
 const views=[['overview',''],['network',''],...['sites','sharing','regions'].map(v=>['resources',v]),...['operators','composition','periods'].map(v=>['services',v]),...['summary','details','rules'].map(v=>['evidence',v]),...['findings','reports'].map(v=>['judgment',v]),...['plans','snapshots','logs'].map(v=>['sync',v]),...['agreements','judgment','access'].map(v=>['rules',v])];
-const rendered=html=>html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'');
 await test('T08 all 19 views retain the formal source boundary',{timeout:120000},()=>server(false,async base=>{
  assert.equal(views.length,19);
  for(const [page,view] of views){const r=await fetch(base+root+page+(view?'?view='+view:'')),html=rendered(await r.text());assert.equal(r.status,200,page+'/'+view);assert.ok(html.includes('\u5854\u670d\u7814\u5224'));assert.ok(!html.includes('SX-DEMO-001'));assert.ok(!html.includes('1,080'));}

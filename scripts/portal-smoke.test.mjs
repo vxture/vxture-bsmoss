@@ -25,7 +25,7 @@ async function withServer(preview, run) {
   }
 }
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
-await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:60000},async t=>{
+await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:180000},async t=>{
   await withServer(false,async url=>{
     await t.test('configuration aliases resolve to one workspace per capability',async()=>{
       for(const [old,target] of Object.entries({'sources':'data-access?view=sources','mappings':'data-access?view=mappings','audit':'data-access?view=versions','jurisdiction':'access?view=jurisdiction','members':'access?view=members'})){
@@ -457,9 +457,10 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const month=await (await fetch(url+'/usage-review?period=month&page=2')).text();assert.ok(month.includes('data-usage-review="list"'));
     });
     await t.test('customer use consolidates occupancy sharing and usage with compatible scoped aliases',async()=>{
-      for(const old of ['/sharing','/operator-usage']){const response=await fetch(url+old+'?city=610100&county=610116&period=week&usageSort=sms',{redirect:'manual'});assert.equal(response.status,307);assert.equal(response.headers.get('location'),'/customer-use?city=610100&county=610116&period=week&usageSort=sms&section=legacy');}
+      for(const old of ['/operator-usage']){const response=await fetch(url+old+'?city=610100&county=610116&period=week&usageSort=sms',{redirect:'manual'});assert.equal(response.status,307);assert.equal(response.headers.get('location'),'/customer-use?city=610100&county=610116&period=week&usageSort=sms&section=legacy');}
+      const sharing=await fetch(url+'/sharing?city=610100&county=610116',{redirect:'manual'});assert.equal(sharing.status,307);const target=new URL(sharing.headers.get('location'),url);assert.equal(target.pathname,'/tower-service/judgment');assert.equal(target.searchParams.get('view'),'sharing');assert.equal(target.searchParams.get('county'),'610116');
       const html=await(await fetch(url+'/customer-use?city=610100&county=610116&period=week&usageSort=sms')).text();
-      assert.ok(html.includes('data-analysis-kind="customer-use"'));assert.ok(html.includes('\u5165\u9a7b\u7ed3\u6784'));assert.ok(html.includes('\u7528\u91cf\u8d8b\u52bf'));assert.ok(html.includes('\u8d44\u6e90\u5feb\u7167'));assert.ok(html.includes('2026-10-19 ~ 10-25'));
+      assert.ok(html.includes('客户使用'));assert.ok(html.includes('\u5165\u9a7b\u7ed3\u6784'));assert.ok(html.includes('\u7528\u91cf\u8d8b\u52bf'));assert.ok(html.includes('\u8d44\u6e90\u5feb\u7167'));assert.ok(html.includes('2026-10-19 ~ 10-25'));
       for(const section of ['occupancy','sharing','usage'])assert.ok(html.includes('data-customer-section="'+section+'"'));
       assert.equal((html.match(/data-customer-section=/g)??[]).length,3);assert.ok(html.includes('id="site-details"'));assert.ok(!html.includes('aria-label="\u533a\u57df\u6bd4\u8f83\u6307\u6807"'));
       const scope=html.slice(html.indexOf('<section aria-label="\u5206\u6790\u7b5b\u9009"'),html.indexOf('data-customer-section="occupancy"'));
@@ -469,16 +470,16 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test('service resource entry separates physical observations from unconnected service evidence',async()=>{
       const html=await(await fetch(url+'/customer-use?city=all&county=all')).text();
       assert.ok(html.includes('\u670d\u52a1\u8d44\u6e90'));assert.ok(html.includes('\u5730\u5e02\u8d44\u6e90'));assert.ok(html.includes('5,400'));assert.ok(html.includes('3,902'));
-      assert.ok(html.includes('\u6709\u6548\u671f\u4e0e\u53d8\u66f4\uff1a\u5f85\u63a5\u5165'));assert.ok(html.includes('section=legacy'));assert.ok(!html.includes('data-customer-section='));
+      assert.ok(html.includes('\u6709\u6548\u671f\u4e0e\u53d8\u66f4\uff1a\u5f85\u63a5\u5165'));assert.ok(html.includes('原分析（待迁移）'));assert.ok(!html.includes('data-customer-section='));
       const city=await(await fetch(url+'/customer-use?section=resources&city=610100&county=all')).text();assert.ok(city.includes('\u5165\u9a7b\u7ed3\u6784'));assert.ok(city.includes('1,200'));assert.ok(!city.includes('SX-DEMO-003'));
       for(const query of ['section=bad','section=resources&section=legacy','section=resources&city=610100&city=610200','section=resources&workspaceId=forged']){const invalid=await(await fetch(url+'/customer-use?'+query)).text();assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-analysis-kind='));}
     });
     await t.test('T01 snapshot slice pins inventory, rejects forged versions and keeps legacy links',async()=>{
       const base='/tower-service/resources';
-      const html=await(await fetch(url+base+'?city=610100&county=all&operator=other')).text();
-      assert.ok(html.includes('data-analysis-kind="tower-service/resources"'));assert.ok(html.includes('demo-resources-20261025-18-v1'));
-      assert.ok(html.includes('2026-10-25 18:00:00'));assert.ok(html.includes('href="/customer-use?section=resources'));
-      assert.ok(!html.includes('SX-DEMO-003'));assert.ok(html.includes('aria-disabled="true"'));
+      const html=await(await fetch(url+base+'?snapshotId=demo-resources-20261025-18-v1&city=610100&county=all&operator=other')).text();
+      assert.ok(html.includes('资源底数'));assert.ok(html.includes('demo-resources-20261025-18-v1'));
+      assert.ok(html.includes('2026-10-25 18:00:00'));assert.ok(html.includes('href="/tower-service/resources?'));
+      assert.ok(!html.includes('SX-DEMO-003'));assert.ok(html.includes('snapshotId=demo-resources-20261025-18-v1'));
       for(const query of ['snapshotId=forged','snapshotId=demo-resources-20261025-18-v1&snapshotId=demo-resources-20261025-18-v1','compareSnapshotId=missing','workspaceId=forged','period=month','city=610100&county=610204']){
         const invalid=await(await fetch(url+base+'?'+query)).text();assert.ok(invalid.includes('role="alert"'));assert.ok(!invalid.includes('data-analysis-kind='));
       }

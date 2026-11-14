@@ -1,3 +1,4 @@
+import {renderedHtml as rendered} from './rendered-html.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
@@ -9,7 +10,6 @@ async function server(preview,run){
  try{const base=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('server_timeout')),30000);const collect=chunk=>{output+=chunk;const match=output.match(/http:\/\/127\.0\.0\.1:\d+/);if(match&&output.includes('Ready')){clearTimeout(timer);resolve(match[0]);}};child.stdout.on('data',collect);child.stderr.on('data',collect);child.once('error',reject);child.once('exit',()=>{clearTimeout(timer);reject(Error(output));});});await run(base);}finally{if(child.exitCode===null){const stopped=new Promise(resolve=>child.once('exit',resolve));child.kill();await stopped;}}
 }
 const root='/tower-service/services',old='/tower-service/evidence',api='/api/product-preview/tower-foundation',csv='/api/product-preview/tower-evidence/export',snapshot='tower-demo-history-v1:month:2026-10-01';
-const rendered=html=>html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'');
 await test('merged service board preserves scopes, compatibility and export',{timeout:180000},async t=>server(true,async base=>{
  const session=await fetch(base+api),cookie=session.headers.get('set-cookie').split(';')[0],headers={cookie},before=await session.json();
  const get=async params=>{const r=await fetch(base+root+'?'+new URLSearchParams({snapshotId:snapshot,...params}),{headers});assert.equal(r.status,200);return rendered(await r.text());};
