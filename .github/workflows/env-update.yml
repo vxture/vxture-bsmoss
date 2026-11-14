@@ -63,7 +63,7 @@ jobs:
         run: |-
           set -euo pipefail
           tar -czf /tmp/bsmoss-delivery.tgz deploy docker-compose.yml docker-compose.workers.yml
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$STACK_ROOT'"
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "test -d '$STACK_ROOT' || sudo -n install -d -m 0700 -o '$DEPLOY_USER' '$STACK_ROOT'"
           scp -i ~/.ssh/deploy_key -P "$DEPLOY_PORT" -o StrictHostKeyChecking=yes /tmp/bsmoss-delivery.tgz "$DEPLOY_USER@$DEPLOY_HOST:$STACK_ROOT/delivery.tgz"
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf '$STACK_ROOT/delivery.tgz' -C '$STACK_ROOT'"
       - name: Run env-update app
