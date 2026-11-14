@@ -21,6 +21,7 @@ async function withServer(preview, run) {
     });
     try { await run(url); } catch(error) { console.error(output); throw error; }
   } finally {
+    if (/Error[:\s]|invalid_|ENOENT/.test(output)) console.error(output);
     if(child.exitCode===null){const stopped=new Promise(resolve=>child.once("exit",resolve));child.kill();await stopped;}
   }
 }
