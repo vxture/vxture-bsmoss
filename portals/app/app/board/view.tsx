@@ -1,4 +1,6 @@
 "use client";
+import MapLoading from "../portal/map-loading";
+
 import OperatorIdentity from "../portal/operator-identity";
 import {useOperatorNames} from "../portal/operator-identities";
 import dynamic from "next/dynamic";
@@ -13,7 +15,7 @@ import type { BoardDemo } from "./model";
 import type { BoardTheme } from "./network-map";
 import "./board.css";
 const NetworkMap = dynamic(() => import("./network-map"), { ssr: false, loading: () =>
-  <div className="flex h-full items-center justify-center text-body-small text-muted-foreground">{"\u5730\u56fe\u52a0\u8f7d\u4e2d"}</div> });
+  <MapLoading/> });
 const names: Record<string, string> = { mobile: "\u79fb\u52a8", telecom: "\u7535\u4fe1", unicom: "\u8054\u901a", broadcast: "\u5e7f\u7535", other: "\u5176\u4ed6" };
 const n = (value: number, digits = 0) => value.toLocaleString("zh-CN", { maximumFractionDigits: digits });
 const pct = (value: number | null) => value === null ? "\u2014" : n(value * 100, 1) + "%";
@@ -85,7 +87,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
             description={themes.find(item => item.value === theme)!.label + " \u00b7 " + context}
             className="min-w-0">
             <div className="flex justify-end pb-md"><SegmentedControl items={themes} value={theme} onChange={setTheme} size="sm" ariaLabel={"\u51b3\u7b56\u5206\u6790\u4e13\u9898"} /></div>
-            <div className="decision-map overflow-hidden rounded-md"><NetworkMap demo={demo} theme={theme}
+            <div className="decision-map relative overflow-hidden rounded-md"><NetworkMap demo={demo} theme={theme}
               onPick={id => { setPlaying(false); window.open(scope("&site=" + encodeURIComponent(id)), "_blank", "noopener,noreferrer"); }} /></div>
             <div className="flex flex-wrap items-center justify-between gap-sm pt-md text-body-small text-muted-foreground">
               <span>{n(s.count) + " \u5ea7\u7ad9\u5740"}</span>

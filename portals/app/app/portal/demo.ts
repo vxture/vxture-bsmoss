@@ -37,6 +37,7 @@ export function portalDemoSummary(input: Record<string, string | string[] | unde
   return {
     date: DEMO_DATE, hour: query.hour, version: snapshot.version, dataUpdate: previewAvailability("overview"),
     query, region: DEMO_REGION, status: snapshot.summary, usage,
+    occupiedSites: cohort.filter(site => site.operators.length > 0).length,
     runtime: { battery: current.filter(m => m.power === "battery").length, hot: current.filter(m => m.temperature >= 35).length },
     metrics: overviewMetricFacts(cohort, query.hour),
     signals: overviewSignals(cohort, query.hour),

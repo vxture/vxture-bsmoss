@@ -156,7 +156,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const home=await(await fetch(url)).text();assert.ok(home.includes('href="/tower-service/rules"'));
       for(const path of ['/settings/templates','/settings/dictionaries']) assert.ok(!home.includes('href="'+path+'"'));
       const settings=await(await fetch(url+'/settings')).text();
-      for(const path of ['/settings/templates','/settings/dictionaries','/tower-service/overview?city=all&amp;county=all']) assert.ok(settings.includes('href="'+path+'"'));
+      for(const path of ['/settings/templates','/settings/dictionaries','/']) assert.ok(settings.includes('href="'+path+'"'));
       for(const path of ['/operations/data-updates','/operations/aggregation','/reports/tasks','/preferences/overview']) assert.ok(!settings.includes('href="'+path+'"'));
       const catalog=await(await fetch(url+'/settings/metrics')).text();assert.ok(catalog.includes('\u53ea\u8bfb\u89c4\u8303'));
       assert.ok(catalog.includes('service.voice.connected_seconds') || catalog.includes('\u901a\u8bdd\u65f6\u957f'));
@@ -219,7 +219,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((await fetch(url+"/api/product-preview",{method:"POST",body:JSON.stringify(request)})).status,404);
       const root=await fetch(url);assert.equal(root.status,200);assert.ok(!(await root.text()).includes("fixture-hourly-v1"));
       const formalRoot=await fetch(url,{redirect:'manual'});assert.equal(formalRoot.status,200);
-      const formalHome=await formalRoot.text();assert.ok(formalHome.includes('\u8fd0\u884c\u603b\u89c8'));
+      const formalHome=await formalRoot.text();assert.ok(formalHome.includes('\u4ece\u7ad9\u7f51\u5f00\u59cb'));
       for(const sample of ['data-portal-mode','shaanxi-scenario-v1','SX-DEMO-','href="/product-preview'])assert.ok(!formalHome.includes(sample));
     });
     await t.test('site registry and dossiers never expose synthetic assets with preview disabled',async()=>{
@@ -507,8 +507,6 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
         const html=await (await fetch(url+'/'+kind+'?'+query)).text();
         assert.match(html,/\u7b5b\u9009\u65e0\u6548|\u6761\u4ef6\u65e0\u6548/);assert.ok(!html.includes('data-business-analysis='));
       }
-      const home=await (await fetch(url+'/')).text();
-      for(const path of ['/capacity','/efficiency','/operator-usage','/reports'])assert.ok(home.includes(path),path);
     });
     await t.test('site management keeps devices within sites and preserves canonical dossiers',async()=>{
       const list=await(await fetch(url+'/sites?city=610100&county=610113&operator=telecom&search=SX-DEMO-001')).text();
@@ -533,35 +531,18 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       const exported=await fetch(url+'/api/report-exports/demo-job?format=html');assert.equal(exported.status,401);assert.equal(exported.headers.get('x-content-type-options'),'nosniff');assert.ok(exported.headers.get('vary').toLowerCase().includes('cookie'));assert.equal((await exported.json()).code,'AUTH_REQUIRED');
       for(const path of ['/api/report-jobs?kind=export','/api/report-jobs/untrusted?kind=generation'])assert.equal((await fetch(url+path)).status,401);assert.equal((await fetch(url+'/operations/reports')).status,200);assert.equal((await fetch(url+'/api/aggregate-jobs?status=dead')).status,401);assert.equal((await fetch(url+'/api/aggregate-jobs/demo-job/recover',{method:'POST',headers:{origin:url,'content-type':'application/json'},body:'{}'})).status,401);
     });
-    await t.test("overview scopes its business summaries and leaves map navigation to the launcher",async()=>{
-      const root=await fetch(url,{redirect:"manual"});assert.equal(root.status,200);
-      const home=await root.text();assert.ok(home.includes('data-portal-mode="demo"'));assert.ok(home.includes('2026-10-25'));
-      assert.ok(home.includes('data-overview-attention="capacity"'));assert.ok(home.includes('data-overview-verification'));
-      assert.ok(home.includes('data-overview-report="day"'));assert.ok(home.includes('bsmoss-demo-review-scenarios-v1'));
-      assert.ok(home.includes('data-overview-metrics="bsmoss-overview-metrics-v1"'));
-      assert.ok(home.includes('\u6570\u636e\u66f4\u65b0\u81f3'));assert.ok(home.includes('2026-10-26 00:00'));assert.ok(home.includes('\u72b6\u6001\u65f6\u70b9 18:00'));assert.ok(!home.includes('\u81ea\u52a8\u65f6\u6bb5'));
-      assert.ok(!home.includes('\u5168\u65e5 00:00\u201324:00 \u00b7 \u65f6\u70b9'));
-      assert.ok(home.includes('\u8f83\u6628\u65e5'));
-      const settings=await fetch(url+'/preferences/overview',{redirect:'manual'});assert.equal(settings.status,307);assert.equal(settings.headers.get('location'),'/settings/overview');
-      assert.ok(!home.includes('aria-label="\u603b\u89c8\u663e\u793a"'));assert.ok(!home.includes('href="/preferences/overview"'));
+    await t.test("home shows scoped management summaries without embedding the map or a detail list",async()=>{
+      const readHome=async query=>{const r=await fetch(url+'/'+query,{redirect:'manual'});assert.equal(r.status,200);return r.text();};
+      const home=await readHome('?city=all&county=all');
+      for(const label of ['\u7ad9\u5740\u5229\u7528','\u670d\u52a1\u589e\u957f','\u670d\u52a1\u5065\u5eb7','\u8fd0\u884c\u80fd\u8017','\u6682\u4e0d\u53ef\u8bc4\u5206']) assert.ok(home.includes(label),label);
+      assert.match(home,/<dd>1,080<span/);
+      assert.ok(home.includes('href="/product-preview?hour=18"'));
+      for(const marker of ['maplibregl-canvas','data-overview-report=','data-overview-verification','href="/preferences/overview"']) assert.ok(!home.includes(marker),marker);
+      const scoped=await readHome('?city=610100&county=all');
+      assert.ok(scoped.includes('<dd>240<span'));
+      const invalid=await readHome('?city=110100');
+      assert.ok(!invalid.includes('<dd>1,080<span'));
       assert.ok((await(await fetch(url+'/settings/overview')).text()).includes('data-overview-display-settings'));
-      const config=await (await fetch(url+'/settings')).text();assert.ok(!config.includes('href="/preferences/overview"'));assert.ok(config.includes('href="/settings/dictionaries"'));
-      for(const period of ['week','month']) {
-        const report=await (await fetch(url+'/?reportPeriod='+period)).text();
-        assert.ok(report.includes('data-overview-report="'+period+'"'));
-        assert.ok(report.includes('period='+period+'&amp;format=html'));
-      }
-      assert.ok(!home.includes('href="/product-preview?hour=18"'));assert.ok(!home.includes('maplibregl-canvas'));
-      const scoped=await (await fetch(url+'/?city=610100&county=610113')).text();
-      assert.ok(scoped.includes('href="/sites?city=610100&amp;county=610113"'));
-      assert.ok(scoped.includes('data-overview-structure="bytes"'));
-      assert.ok(!scoped.includes('/sites/DEMO-00419'));
-      for(const query of ['city=110100','county=610113','city=610100&city=610200','workspaceId=forged','hour=12','reportPeriod=year','reportPeriod=day&reportPeriod=week']) {
-        const invalid=await (await fetch(url+'/?'+query)).text();
-        assert.ok(invalid.includes('\u603b\u89c8\u8303\u56f4\u65e0\u6548'));assert.ok(!invalid.includes('data-portal-mode="demo"'));
-      }
-      const page=await fetch(url+"/product-preview");assert.equal(page.status,200);
-      const html=await page.text();assert.ok(html.includes("SX-DEMO-001"));assert.ok(html.includes("shaanxi-scenario-v1"));
     });
     await t.test('decision board is independent, scoped and has no default station selection',async()=>{
       const response=await fetch(url+'/board');assert.equal(response.status,200);

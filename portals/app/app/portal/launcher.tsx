@@ -89,6 +89,8 @@ export default function ProductLauncher({ active, preview, regionSelection }: { 
     <PopoverTrigger asChild><ShellIconButton icon="app-grid" label={panelLabels[domain]} className="size-control-xl"><Icon name="app-grid" size="lg" /></ShellIconButton></PopoverTrigger>
     <ShellPanelContent align="start" aria-label={panelLabels[domain]} onOpenAutoFocus={event => { if(firstEntry.current){event.preventDefault();firstEntry.current.focus();} }}
       className={"portal-launcher gap-md p-md sm:p-lg" + (management ? "" : " portal-launcher-business")}>
+      <ShellPanelSection divided={false}><ShellPanelRow icon="house-line" label={"\u9996\u9875"} href="/" linkComponent={Link} chevron={false} aria-current={pathname === '/' ? 'page' : undefined} onClick={() => setOpen(false)} /></ShellPanelSection>
+      <Separator/>
       {management ? <>
         {migrated}<Separator/><details open={!primaryLauncherPage} className="flex min-w-0 flex-col gap-md"><summary className="cursor-pointer text-body-small text-muted-foreground">{legacyNavigationTitle}</summary><div className="flex min-w-0 flex-col gap-md pt-md">
         <div className="grid gap-x-lg gap-y-md md:grid-cols-2">

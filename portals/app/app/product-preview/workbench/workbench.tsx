@@ -1,4 +1,6 @@
 'use client';
+import MapLoading from "../../portal/map-loading";
+
 import {useOperatorNames} from "../../portal/operator-identities";
 import ResetButton from "../../portal/reset-button";
 import ProductBrandMark from "../../portal/brand";
@@ -31,7 +33,7 @@ import './hud.css';
 import ActivityTicker from './activity-ticker.tsx';
 import {SummaryStrip,SummarySettings} from './display-controls.tsx';
 import {DISPLAY_KEY,resolveDisplay,displayedTopicPoints} from '../../domains/map-demo/display-rules.ts';
-const MapCanvas=dynamic(()=>import('./map-canvas.tsx'),{ssr:false,loading:()=> <div className="mw-map-loading"><span/>{'\u5730\u56fe\u5f15\u64ce\u52a0\u8f7d\u4e2d'}</div>});
+const MapCanvas=dynamic(()=>import('./map-canvas.tsx'),{ssr:false,loading:()=> <MapLoading/>});
 const SCENES=[{id:'SX-DEMO-001',city:'610100',label:'\u5546\u5708\u5fd9\u65f6',icon:Activity},{id:'SX-DEMO-002',city:'610100',label:'\u4ea4\u901a\u6f6e\u6c50',icon:ScanLine},{id:'SX-DEMO-003',city:'610300',label:'\u56ed\u533a\u4e1a\u52a1',icon:BarChart3},{id:'SX-DEMO-004',city:'610100',label:'\u4f9b\u7535\u4fdd\u969c',icon:Zap},{id:'SX-DEMO-005',city:'610400',label:'\u80fd\u6548\u89c2\u5bdf',icon:Layers},{id:'SX-DEMO-006',city:'610100',label:'\u591a\u65b9\u5171\u4eab',icon:RadioTower}];
 const n=(value:number,digits=1)=>value.toLocaleString('zh-CN',{maximumFractionDigits:digits});
 function queryString(state:ReturnType<typeof useWorkbench.getState>,region:RegionDefinition,viewport=false) {
