@@ -2705,3 +2705,34 @@ GitHub用户已登录IAB tab5并确认六项worker02组织Secret授权。均保�
 
 2026-11-15 bootstrap delivery: root ff2d30f initialized main under explicit one-time approval; complete delivery pushed to feat/bootstrap-bsmoss, PR #6. Latest d3ab92d security/audit/quality/db-contract/coverage passed; portal regression has two Linux-only failures, local66/66 passed. Added response/server diagnostics before further action. APP_ENV_FILE/STACK_ENV_FILE/DATABASE_ROLE_SQL are configured in prod through private files; no database initialization or deployment yet. Worker preflight, runtime-role provisioning and tailnet binding are reviewed in PR. Prior entries describing uncommitted work are historical.
 
+
+## 2026-11-15 实际发布状态（替代前文准备阶段描述）
+
+首次根提交初始化已按用户单次例外执行。完整交付 PR #6、部署修复 PR #7/#8 均在六项必需 CI 与 CodeQL 通过后合并。CI 门户缺少历史 fixture 的问题通过显式 seed:tower-history 修复，本地门户66/66通过；原全量业务1063/1063通过。
+
+worker02 只读检查43624676814成功：专用目录未使用、正式端口空闲。app/stack配置通过prod环境Secrets下发（43626001846/43625996894）。镜像43625992131通过Trivy，运行镜像移除不需要的npm/Corepack。不可变镜像 ghcr.io/vxture/bsmoss-app@sha256:8bbe217ec7a079794eb5dfaed7cbba6af0d193ec117600eee8741bb156c87eb3。数据库首次初始化43626360843成功，vx_bsmoss_db、bsmoss_owner、非owner bsmoss_svc；不重跑初始化。
+
+部署43627027436成功，应用容器健康与/api/ready通过；后台workers off，预览off。首次GHCR拉取因主机凭据返回denied，改为仅本次public pull使用临时空Docker config后成功，不修改共享凭据。
+
+Cloudflare已按CoSpace新增bsmoss.ruyin.work A到worker01，DNS only/Auto；Google公共DNS确认。worker02无公网地址，仅尾网绑定。截图tmp/platform-entry/bsmoss-dns-success.png。正式域名仍未接通，真实OIDC回调/会话恢复/退出未验收，平台产品仍draft，不宣称已公网发布。
+
+用户明确禁止修改platform代码。平台本地新增基建登记行已完整撤回，无platform tracked diff、提交或发布。运营人机验证循环已报vxture-platform/vxture-platform#677；边缘上游、既有sync-product-edge与基建登记、sso_only检查范围交由#678。平台最新main已有ruyin.work通配路由/证书域配置，仍须平台确认运行态。继续工作仅修改BS-MOSS仓，平台问题发issue。
+
+## Map loading presentation (2026-11-15)
+User reports corner text and empty map during loading. Added shared portal/map-loading component using DS Spinner, semantic tokens, centered map marker/grid and honest waiting copy; used for both dynamic module and canvas initialization in product-preview and board. Board container explicitly relative so fallback stays within map. Typecheck passed; build log tmp/map-loading-build.log. Existing local origin browser denial preserved, no visual acceptance claimed. No platform operations, commit or deployment.
+
+
+### 2026-11-15 Simple product home
+- Root now shows a DS-based product introduction, shared spatial motif and six business destinations; launcher and brand link return home.
+- CoSpace kit defines homepage motif treatment but no complete business homepage template. Existing tower overview remains at /tower-service/overview.
+- Type check and nine navigation tests passed. Local browser visual verification remains unavailable; no platform changes or deployment performed.
+
+
+### 2026-11-15 Home revision
+- Replaced the launcher-card homepage after inspecting the actual CoSpace home: task-oriented hero, inline resource summary, and attention sections.
+- Uses scoped existing preview summaries only with explicit preview mode; formal mode displays unavailable data. Development preview runs at 127.0.0.1:63333.
+- Type check passed. Browser security policy denies localhost observation; visual acceptance remains pending.
+
+
+- Home proportions calibrated against observed CoSpace DOM: centered page-2xl width, 32px gutters, responsive 36-48px title, 30px metrics, 32px DS actions and reference section rhythm. Replaced spatial planes with decorative tower/service topology and reduced-motion-aware signal animation. Type check and HTTP 200 passed; localhost browser policy still prevents visual inspection.
+

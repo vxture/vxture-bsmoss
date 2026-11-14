@@ -2,14 +2,13 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname,useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { MANAGEMENT_NAV_COOKIE, MANAGEMENT_GROUPS_COOKIE, saveManagementPreference } from "./management-preference";
 import { Drawer, ShellHeader, ShellHeaderDivider, ShellHeaderDomain, ShellIconButton, ShellProductTitle,
   ShellSidebarNav, ShellViewport, StatusBadge, useMediaQuery } from "@vxture/design-system";
 import { portalNavigation, type PortalPage } from "./navigation";
 import ProductLauncher from "./launcher";
-import {towerEntry,towerDomain,towerHome,towerBrand,legacyNavigationTitle} from './tower-navigation';
-import {towerNavigationHref} from '../tower-service/links';
+import {towerEntry,towerDomain,towerBrand,legacyNavigationTitle} from './tower-navigation';
 import { managementSections } from "./management-navigation";
 import ProductAccount, { type HeaderIdentity } from "./account";
 import ProductBrandMark from "./brand";
@@ -17,7 +16,7 @@ import ProductHeaderTools from "./header-tools";
 import ProductWorkspace from "./workspace";
 import RegionSelector from "./region-selector";
 import { useHeaderRegion } from "./header-region";
-import { regionLink, type RegionPreference } from "./region-scope";
+import { type RegionPreference } from "./region-scope";
 
 export default function ProductChrome({ active, preview, children, identity, loginEnabled, consoleHref, regionPreference, initialNavCollapsed, initialClosedGroups }: {
   active: PortalPage; preview: boolean; children: ReactNode; identity: HeaderIdentity | null; loginEnabled: boolean; consoleHref?: string;
@@ -28,7 +27,7 @@ export default function ProductChrome({ active, preview, children, identity, log
   const [closedGroups, setClosedGroups] = useState(initialClosedGroups);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const mobile = useMediaQuery("(max-width: 767px)");
-  const pathname = usePathname(),query=useSearchParams().toString(),primary=towerEntry(pathname);
+  const pathname = usePathname(),primary=towerEntry(pathname);
   const domain = towerDomain(pathname,active), management = domain === "management";
   const nav = portalNavigation(preview, domain);
   const current = primary ?? (management ? [...nav].sort((a, b) => b.href.length - a.href.length).find(item => pathname === item.href || pathname.startsWith(item.href + "/")) : nav.find(item => item.id === active));
@@ -45,13 +44,13 @@ export default function ProductChrome({ active, preview, children, identity, log
     isActive={href => href === current?.href} storageKeyPrefix="bsmoss-management" linkComponent={Link}
     labels={{ expandNav: "\u5c55\u5f00\u5bfc\u822a", collapseNav: "\u6536\u8d77\u5bfc\u822a", expandAllGroups: "\u5c55\u5f00\u5206\u7ec4", collapseAllGroups: "\u6536\u8d77\u5206\u7ec4" }}
     />;
-  return <><ShellViewport sidebarMode={management && !mobile ? collapsed ? "collapsed" : "expanded" : "hidden"}
+  return <><ShellViewport className={pathname === "/" ? "bsmoss-home-shell" : undefined} sidebarMode={management && !mobile ? collapsed ? "collapsed" : "expanded" : "hidden"}
     sidebar={management ? sidebar(collapsed) : null}
     header={<ShellHeader className="px-xs sm:px-lg" leading={<>
       {management && mobile ? <ShellIconButton icon="sidebar" label={"\u6253\u5f00\u914d\u7f6e\u5bfc\u822a"} className="size-control-xl"
         aria-haspopup="dialog" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(true)} />
         : <ProductLauncher active={active} preview={preview} regionSelection={scope.value} />}
-      <Link href={towerNavigationHref(regionLink(towerHome,scope.value),pathname,query)} className="flex h-control-xl shrink-0 items-center gap-xs no-underline" aria-label={towerBrand.name+"\u7ecf\u8425\u603b\u89c8"}>
+      <Link href="/" className="flex h-control-xl shrink-0 items-center gap-xs no-underline" aria-label={towerBrand.name+"\u9996\u9875"}>
         <span className="flex shrink-0 items-center gap-xs"><ProductBrandMark />
           <ShellProductTitle name={<span className="block text-heading-1">{towerBrand.name}</span>} /></span>
         <span className="hidden truncate text-heading-2 text-muted-foreground lg:block">{towerBrand.fullName}</span>

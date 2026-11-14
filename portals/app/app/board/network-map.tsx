@@ -1,4 +1,6 @@
 "use client";
+import MapLoading from "../portal/map-loading";
+
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource } from "maplibre-gl";
@@ -120,7 +122,7 @@ export default function NetworkMap({ demo, theme, onPick }: { demo: BoardDemo; t
     <div ref={node} className="board-map-canvas" role="region" aria-label={"\u9655\u897f\u7ad9\u7f51\u5730\u7406\u6001\u52bf"} />
     {(failed || offline) && <div className="absolute left-md top-md"><StatusBadge tone="warning">
       {failed ? "\u5730\u56fe\u5f15\u64ce\u4e0d\u53ef\u7528\uff0c\u53f3\u4fa7\u5730\u5e02\u4e0e\u91cd\u70b9\u7ad9\u5740\u4ecd\u53ef\u67e5\u770b" : "\u8fb9\u754c\u52a0\u8f7d\u5f02\u5e38\uff0c\u7ad9\u5740\u6307\u6807\u4ecd\u53ef\u67e5\u770b"}</StatusBadge></div>}
-    {!ready && !failed && <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-body-small text-muted-foreground">{"\u7ad9\u7f51\u5730\u56fe\u52a0\u8f7d\u4e2d"}</div>}
+    {!ready && !failed && <MapLoading/>}
     <div className="absolute bottom-md right-md flex flex-col gap-xs" aria-label={"\u51b3\u7b56\u5206\u6790\u5730\u56fe\u64cd\u4f5c"}>
       <Button size="icon-md" variant="secondary" aria-label={"\u590d\u4f4d\u5730\u56fe"} onClick={() => map.current?.fitBounds((demo.region.counties.find(county => county.id === demo.countyId)?.bounds ?? demo.region.cities.find(city => city.id === demo.cityId)?.bounds ?? demo.region.bounds) as [number, number, number, number], { padding: 28 })}><Icon name="target" size="sm" /></Button>
       <Button size="icon-md" variant="secondary" aria-label={"\u653e\u5927\u5730\u56fe"} onClick={() => map.current?.zoomIn()}><Icon name="plus" size="sm" /></Button>
