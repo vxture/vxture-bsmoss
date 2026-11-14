@@ -19,7 +19,7 @@ async function withServer(preview, run) {
       child.once("error",error=>{if(!settled){settled=true;clearTimeout(timer);reject(error);}});
       child.once("exit",()=>{if(!settled){settled=true;clearTimeout(timer);reject(Error(output));}});
     });
-    await run(url);
+    try { await run(url); } catch(error) { console.error(output); throw error; }
   } finally {
     if(child.exitCode===null){const stopped=new Promise(resolve=>child.once("exit",resolve));child.kill();await stopped;}
   }
@@ -465,7 +465,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((html.match(/data-customer-section=/g)??[]).length,3);assert.ok(html.includes('id="site-details"'));assert.ok(!html.includes('aria-label="\u533a\u57df\u6bd4\u8f83\u6307\u6807"'));
       const scope=html.slice(html.indexOf('<section aria-label="\u5206\u6790\u7b5b\u9009"'),html.indexOf('data-customer-section="occupancy"'));
       assert.ok(!scope.includes('aria-label="\u5206\u6790\u5468\u671f"'));assert.ok(scope.includes('aria-label="\u8fd0\u8425\u5546"'));
-      const invalid=await(await fetch(url+'/sharing?city=610100&city=610200')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(invalid.includes('\u5feb\u7167\u67e5\u8be2\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-customer-section='));
+      const invalid=await(await fetch(url+'/sharing?city=610100&city=610200')).text();assert.ok(invalid.includes('role="alert"'),invalid.slice(-6000));assert.ok(invalid.includes('\u5feb\u7167\u67e5\u8be2\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-customer-section='));
     });
     await t.test('service resource entry separates physical observations from unconnected service evidence',async()=>{
       const html=await(await fetch(url+'/customer-use?city=all&county=all')).text();
@@ -477,7 +477,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test('T01 snapshot slice pins inventory, rejects forged versions and keeps legacy links',async()=>{
       const base='/tower-service/resources';
       const html=await(await fetch(url+base+'?snapshotId=demo-resources-20261025-18-v1&city=610100&county=all&operator=other')).text();
-      assert.ok(html.includes('资源底数'));assert.ok(html.includes('demo-resources-20261025-18-v1'));
+      assert.ok(html.includes('资源底数'),html.slice(-6000));assert.ok(html.includes('demo-resources-20261025-18-v1'));
       assert.ok(html.includes('2026-10-25 18:00:00'));assert.ok(html.includes('href="/tower-service/resources?'));
       assert.ok(!html.includes('SX-DEMO-003'));assert.ok(html.includes('snapshotId=demo-resources-20261025-18-v1'));
       for(const query of ['snapshotId=forged','snapshotId=demo-resources-20261025-18-v1&snapshotId=demo-resources-20261025-18-v1','compareSnapshotId=missing','workspaceId=forged','period=month','city=610100&county=610204']){
