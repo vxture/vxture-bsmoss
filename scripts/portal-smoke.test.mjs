@@ -465,7 +465,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       assert.equal((html.match(/data-customer-section=/g)??[]).length,3);assert.ok(html.includes('id="site-details"'));assert.ok(!html.includes('aria-label="\u533a\u57df\u6bd4\u8f83\u6307\u6807"'));
       const scope=html.slice(html.indexOf('<section aria-label="\u5206\u6790\u7b5b\u9009"'),html.indexOf('data-customer-section="occupancy"'));
       assert.ok(!scope.includes('aria-label="\u5206\u6790\u5468\u671f"'));assert.ok(scope.includes('aria-label="\u8fd0\u8425\u5546"'));
-      const invalid=await(await fetch(url+'/sharing?city=610100&city=610200')).text();assert.ok(!invalid.includes('data-analysis-kind="customer-use"'));assert.ok(invalid.includes('\u5206\u6790\u6761\u4ef6\u65e0\u6548'));
+      const invalid=await(await fetch(url+'/sharing?city=610100&city=610200')).text();assert.ok(invalid.includes('role="alert"'));assert.ok(invalid.includes('\u5feb\u7167\u67e5\u8be2\u6761\u4ef6\u65e0\u6548'));assert.ok(!invalid.includes('data-customer-section='));
     });
     await t.test('service resource entry separates physical observations from unconnected service evidence',async()=>{
       const html=await(await fetch(url+'/customer-use?city=all&county=all')).text();

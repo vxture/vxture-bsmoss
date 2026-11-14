@@ -1,0 +1,51 @@
+name: worker02-preflight
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/tailnet-ssh-connect
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tailscale-tag: ${{ vars.TAILSCALE_OAUTH_CLIENT_TAG }}
+          deploy-host: ${{ secrets.DEPLOY_WORKER02_HOST }}
+          deploy-port: ${{ secrets.DEPLOY_WORKER02_PORT }}
+          deploy-ssh-key: ${{ secrets.DEPLOY_WORKER02_SSH_KEY }}
+          deploy-ssh-passphrase: ${{ secrets.DEPLOY_WORKER02_SSH_KEY_PASSPHRASE }}
+          deploy-known-hosts: ${{ secrets.DEPLOY_WORKER02_KNOWN_HOSTS }}
+      - name: Inspect dedicated target without changing services
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_WORKER02_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_WORKER02_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_WORKER02_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+          df -h /srv/md0
+          free -m
+          if [[ -e /srv/md0/bsmoss ]]; then
+            echo 'Existing BS-MOSS directory: inspect before provisioning'
+            find /srv/md0/bsmoss -maxdepth 1 -type d
+          else
+            echo 'Dedicated BS-MOSS directory is unused'
+          fi
+          if ss -ltnH 'sport = :3270' | grep -q .; then
+            echo 'Registered production port is occupied' >&2
+            exit 1
+          fi
+          docker ps --format '{{.Names}} {{.Ports}}'
+          REMOTE
+      - name: Remove runner SSH key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/deploy_key
