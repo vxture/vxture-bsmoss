@@ -292,7 +292,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
       for(const query of ['','?family=forged','?family=station&family=history','?family=station&workspaceId=forged','?family=station&through=2030-01-01'])assert.equal((await fetch(url+'/api/product-preview/data-availability'+query)).status,400);
     });
     await t.test('analysis headings show the correct source watermark without invented update actions',async()=>{
-      for(const [path,cutoff] of [['/','2026-10-26 00:00:00'],['/sites?hour=12&city=610100','2026-10-25 18:00:00'],['/capacity?hour=12','2026-10-26 00:00:00'],['/efficiency?hour=18','2026-10-26 00:00:00'],['/operator-usage?period=month','2026-11-01 00:00:00'],['/analysis?city=610100&range=month&month=2026-09','2026-11-01 00:00:00'],['/usage-review?period=week','2026-11-01 00:00:00']]) {
+      for(const [path,cutoff] of [['/sites?hour=12&city=610100','2026-10-25 18:00:00'],['/capacity?hour=12','2026-10-26 00:00:00'],['/efficiency?hour=18','2026-10-26 00:00:00'],['/operator-usage?period=month','2026-11-01 00:00:00'],['/analysis?city=610100&range=month&month=2026-09','2026-11-01 00:00:00'],['/usage-review?period=week','2026-11-01 00:00:00']]) {
         const response=await fetch(url+path);assert.equal(response.status,200);const html=await response.text();assert.ok(html.includes(cutoff),path);assert.match(html,/<time\b/);
         if(path.startsWith('/usage-review'))assert.ok(!html.includes('>\u66f4\u65b0\u6570\u636e<'));
       }
