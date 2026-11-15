@@ -5,9 +5,9 @@ import { createRequire } from "node:module";
 
 const appRoot=new URL("../portals/app/",import.meta.url);
 const require=createRequire(new URL("package.json",appRoot));
-async function withServer(preview, run) {
+async function withServer(preview, run, runtimeEnv = {}) {
   const child=spawn(process.execPath,[require.resolve("next/dist/bin/next"),"start","--hostname","127.0.0.1","--port","0"],{
-    cwd:appRoot,env:{...process.env,BSMOSS_PRODUCT_PREVIEW:preview?"on":"off",NEXT_TELEMETRY_DISABLED:"1",OIDC_RP_ENABLED:"off",DATABASE_URL:"",PROVISION_WEBHOOK_SECRET:"",PROVISION_WEBHOOK_SECRET_NEXT:""},stdio:["ignore","pipe","pipe"],
+    cwd:appRoot,env:{...process.env,BSMOSS_PRODUCT_PREVIEW:preview?"on":"off",NEXT_TELEMETRY_DISABLED:"1",OIDC_RP_ENABLED:"off",DATABASE_URL:"",PROVISION_WEBHOOK_SECRET:"",PROVISION_WEBHOOK_SECRET_NEXT:"",BSMOSS_DATA_MODE:"",...runtimeEnv},stdio:["ignore","pipe","pipe"],
   });
   let output="",settled=false;
   try {
@@ -25,6 +25,26 @@ async function withServer(preview, run) {
     if(child.exitCode===null){const stopped=new Promise(resolve=>child.once("exit",resolve));child.kill();await stopped;}
   }
 }
+await test("published demo sends anonymous pages to the public sign-in entry", {timeout:60000}, async()=>{
+  const origin = "https://bsmoss.example.com";
+  await withServer(false, async url=>{
+    for (const path of ["/", "/tower-service/services?city=610100&county=610113"]) {
+      const response = await fetch(url + path, {redirect:"manual"});
+      const entry = new URL("/entry", origin);
+      entry.searchParams.set("returnTo", path);
+      assert.equal(response.status, 307, path);
+      assert.equal(response.headers.get("location"), entry.href);
+      assert.equal(response.headers.get("cache-control"), "private, no-store");
+    }
+    assert.equal((await fetch(url + "/api/product-preview/map", {redirect:"manual"})).status, 401);
+    assert.equal((await fetch(url + "/entry", {redirect:"manual"})).status, 200);
+    for (const theme of ["light", "dark"]) {
+      const mark = await fetch(url + "/assets/brand/guanlan-mark-" + theme + "-24-v2.svg", {redirect:"manual"});
+      assert.equal(mark.status, 200);
+      assert.match(mark.headers.get("content-type"), /^image\/svg\+xml/);
+    }
+  }, {BSMOSS_DATA_MODE:"demo", NEXT_PUBLIC_APP_URL:origin});
+});
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
 await test("preview is explicitly gated and its HTTP boundary validates configuration",{timeout:180000},async t=>{
   await withServer(false,async url=>{
