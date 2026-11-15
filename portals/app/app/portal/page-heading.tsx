@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ViewHeader, type IconName } from "@vxture/design-system";
 import type { DataAvailability } from "../domains/data-updates/rules";
-import { DataUpdateProvider, DataUpdateButton, DataUpdateTime } from "./data-update";
+import { DataUpdateProvider, DataUpdateTime } from "./data-update";
 import ModuleFunctionMenu from './module-function-menu';
 
 // Metadata occupies the subtitle; secondary destinations and actions share one
@@ -26,7 +26,7 @@ export default function PageHeading({ title, icon, iconVisual, description, seco
         {header}
       </div> : header}</div>
       <div className="product-page-utilities">
-        <div className="product-page-actions" role="group" aria-label={"\u9875\u9762\u64cd\u4f5c"}>{dataUpdate && <DataUpdateButton />}{actions}<ModuleFunctionMenu/></div>
+        <div className="product-page-actions" role="group" aria-label={"\u9875\u9762\u64cd\u4f5c"}>{actions}<ModuleFunctionMenu/></div>
       </div>
     </div>
     {toolbar && <div className="product-page-toolbar">{toolbar}</div>}

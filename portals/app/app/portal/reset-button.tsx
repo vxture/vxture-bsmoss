@@ -6,7 +6,7 @@ import "./reset-button.css";
 type ResetButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "aria-label" | "title"> & {
   href?: string;
   label?: string;
-  variant?: "ghost" | "outline";
+  variant?: "ghost" | "outline" | "secondary";
 };
 
 export default function ResetButton({ href, label = "\u91cd\u7f6e\u7b5b\u9009", variant = "ghost", className, ...props }: ResetButtonProps) {
