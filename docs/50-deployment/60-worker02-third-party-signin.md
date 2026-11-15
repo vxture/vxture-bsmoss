@@ -2,7 +2,21 @@
 
 2026-11-15。用户指定域名 https://bsmoss.ruyin.work，部署 worker02（与 yucer 同机）。用户进一步明确：按第三方应用登记，只接账号与登录，不接模型、能力、订阅权益、S2S 或用量上报。本次范围覆盖此前首次交付通用文档中的平台商业接入要求；那些要求不作为本次第三方账号登记的前提。业务数据源及产品自身权限仍独立管理，不因登录而开放。
 
-## 已准备
+## 当前权威状态（2026-11-15）
+
+BS-MOSS 演示系统已在 worker02 上线，公开入口 https://bsmoss.ruyin.work/entry，正式端口 3270。worker02 无公网地址，经既有平台边缘转发接入。仅对接第三方账号及 OIDC 登录，不接模型、能力、商业权益或 S2S。平台目录草稿状态是登记时快照，本记录不宣称已变更该平台状态。
+
+- 应用发布：PR #14；代码 53590e76aa7202d2d93e5491f7f33889af8222cc；镜像构建 43710051022；部署 43710782085。
+- 镜像：ghcr.io/vxture/bsmoss-app@sha256:d6b921cd2f50bfde840d3a696733e9dc2a9d18447949106b996580aaadff3e2a。
+- 演示数据库：PostgreSQL；运行账号 bsmoss_svc 只读；数据集 50dde9506262efd846f8695fea6c856059bbe479e1bafb68cbf46d25484cd13e；2848460 条日明细、364774 条周期记录、712 个预计算文件。
+- 数据发布：seed 43706298399、rollup 43706599955、activate 43706842922 均成功；页面发布不重跑 db-init。
+- 已验收：health/ready 200，匿名业务页跳转登录，匿名业务 API 401；既有账号会话可读取业务页面。新版入口欢迎行、透明外壳、说明区和浅色全屏背景已在正式域名观察。
+- workers 保持 off；平台问题只发 issue，不修改平台代码或触发平台部署。
+
+以下为历史过程记录，其中“未部署”“未接通”等描述仅适用于当时，不代表当前状态。
+
+## 历史准备记录
+
 
 - yucer 工作区原为干净 main，已 fetch 并快进到 f918c15c9c0445a33067b849ad3de00fc89ae02b。未修改 yucer 业务源码。
 - 公开登记参数：deploy/environments/worker02-prod.registration.json。平台已签发 client ID bsmoss；产品保持草稿，客户端 stable 已启用，文件不表示已经部署。
@@ -34,3 +48,15 @@
 2026-11-15 用户完成 GitHub 登录，并逐项确认向 vxture/vxture-bsmoss 开放六项 DEPLOY_WORKER02_* 组织密钥（HOST/PORT/USER/KNOWN_HOSTS/SSH_KEY/SSH_KEY_PASSPHRASE）。已保存，仅新增本仓授权，各密钥原八仓授权保留，密钥值未读取、轮换或复制。Tailscale、NODE_AUTH_TOKEN 与 ACR 组织密钥/变量对公开仓库可用；本仓为公开仓库。四个 SSH 工作流优先环境专用 DEPLOY_*，再回退 worker02 组织密钥，保留严格主机指纹校验。
 
 已创建 build/prod Environment，设置 IMAGE_REPOSITORY、正式 STACK_ROOT、PROJECT_NAME 和登记端口变量。尚未上传生产 app/stack 配置、初始化数据库或部署服务。全量业务测试 1063/1063，通过当前交付文件及145个历史提交的 gitleaks 扫描。用户明确批准空仓一次性以根提交 ff2d30f 初始化 main，再提交完整交付 feature PR，六项 CI 通过后合并并推进发布。
+
+## 2026-11-15 实际发布状态（替代前文准备阶段描述）
+
+首次根提交初始化已按用户单次例外执行。完整交付 PR #6、部署修复 PR #7/#8 均在六项必需 CI 与 CodeQL 通过后合并。CI 门户缺少历史 fixture 的问题通过显式 seed:tower-history 修复，本地门户66/66通过；原全量业务1063/1063通过。
+
+worker02 只读检查43624676814成功：专用目录未使用、正式端口空闲。app/stack配置通过prod环境Secrets下发（43626001846/43625996894）。镜像43625992131通过Trivy，运行镜像移除不需要的npm/Corepack。不可变镜像 ghcr.io/vxture/bsmoss-app@sha256:8bbe217ec7a079794eb5dfaed7cbba6af0d193ec117600eee8741bb156c87eb3。数据库首次初始化43626360843成功，vx_bsmoss_db、bsmoss_owner、非owner bsmoss_svc；不重跑初始化。
+
+部署43627027436成功，应用容器健康与/api/ready通过；后台workers off，预览off。首次GHCR拉取因主机凭据返回denied，改为仅本次public pull使用临时空Docker config后成功，不修改共享凭据。
+
+Cloudflare已按CoSpace新增bsmoss.ruyin.work A到worker01，DNS only/Auto；Google公共DNS确认。worker02无公网地址，仅尾网绑定。截图tmp/platform-entry/bsmoss-dns-success.png。正式域名仍未接通，真实OIDC回调/会话恢复/退出未验收，平台产品仍draft，不宣称已公网发布。
+
+用户明确禁止修改platform代码。平台本地新增基建登记行已完整撤回，无platform tracked diff、提交或发布。运营人机验证循环已报vxture-platform/vxture-platform#677；边缘上游、既有sync-product-edge与基建登记、sso_only检查范围交由#678。平台最新main已有ruyin.work通配路由/证书域配置，仍须平台确认运行态。继续工作仅修改BS-MOSS仓，平台问题发issue。

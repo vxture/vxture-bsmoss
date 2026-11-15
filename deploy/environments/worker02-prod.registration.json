@@ -3,7 +3,7 @@
   "origin": "https://bsmoss.ruyin.work",
   "targetHost": "vx-worker-02",
   "stackRoot": "/srv/md0/bsmoss",
-  "status": "registered-not-deployed",
+  "status": "deployed-demo",
   "oidc": {
     "clientId": "bsmoss",
     "redirectUris": [
@@ -32,5 +32,5 @@
   ],
   "provider": "Ruyin Studio",
   "integrationMode": "sso_only",
-  "platformProductStatus": "draft"
+  "platformProductStatusAtRegistration": "draft"
 }
