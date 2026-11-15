@@ -32,13 +32,16 @@ pull_config=$(mktemp -d)
 trap 'rmdir "$pull_config"' EXIT
 DOCKER_CONFIG="$pull_config" "${maintenance[@]}" pull demo-maintenance
 owner_run() {
+  local command=$1
   # Owner credentials stay on worker02, in a pipe to the one-shot container.
   docker inspect --format '{{json .Config.Env}}' "$db_id" |
-    "${maintenance[@]}" run --rm -T --no-deps demo-maintenance "$1"
+    "${maintenance[@]}" run --rm -T --no-deps demo-maintenance "$command"
 }
 case "$operation" in
   seed) owner_run seed; exit 0 ;;
   rollup) owner_run rollup; owner_run verify; exit 0 ;;
+  activate) ;;
+  *) exit 2 ;;
 esac
 current=$(cat state/current-image)
 [[ $current =~ ^ghcr\.io/[a-z0-9_-]+/bsmoss-app@sha256:[a-f0-9]{64}$ ]]
@@ -72,8 +75,6 @@ APP_ENV_FILE="$candidate" "${compose[@]}" run --rm -T --no-deps app node /app/ma
 rollback=1
 mv -f "$candidate" "$APP_ENV_FILE"
 "${compose[@]}" up -d --no-deps --force-recreate --wait --wait-timeout 240 app
-port=$("${compose[@]}" port app 3000)
-curl --fail --silent --max-time 10 "http://${port}/api/ready" >/dev/null
 "${compose[@]}" exec -T app node /app/maintenance/demo.cjs runtime-check
 printf '%s\n' "$current" >state/previous-image
 printf '%s\n' "$IMAGE_REF" >state/current-image
