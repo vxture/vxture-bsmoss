@@ -13,15 +13,18 @@ export default function LandingHome({demo, growth}: {demo: HomeSummary | null; g
   : "\u2014";
  const energy = demo?.report.energyWh;
  const month = demo?.report.window.start.slice(0, 7);
- const score = demo?.usage.physicalSites ? demo.healthTotal / demo.usage.physicalSites : null;
+ const score = demo?.quality?.score ?? null;
+ const qualityDelta = demo?.quality?.delta ?? null;
+ const roundedQualityDelta = qualityDelta===null?null:Math.round(Math.abs(qualityDelta)*10)/10;
+ const qualityChange = roundedQualityDelta===null?"\u6682\u65e0\u53ef\u6bd4\u4e0a\u6708":roundedQualityDelta===0?"\u8f83\u4e0a\u6708\u6301\u5e73 0.0 \u5206":"\u8f83\u4e0a\u6708"+(qualityDelta!>0?"\u589e\u52a0 ":"\u51cf\u5c11 ")+roundedQualityDelta.toFixed(1)+" \u5206";
  const priorDaily = demo ? demo.report.previousEnergyWh / demo.report.previousDays : 0;
  const energyDelta = demo && priorDaily ? (demo.report.energyWh / demo.report.days / priorDaily - 1) * 100 : null;
  const signed = (value:number) => (value > 0 ? "+" : "") + fmt(value);
  const delta = growth ? (growth.net > 0 ? "+" : "") + fmt(growth.net) : missing;
  const facts = [
   {label:"\u7ad9\u5740\u5229\u7528", value:demo ? fmt(demo.usage.physicalSites) : missing, unit:"\u7ad9", detail:"\u5171\u4eab\u7387 " + shared},
-  {label:"\u670d\u52a1\u589e\u957f", value:delta, unit:"\u7ad9", detail:"\u8f83\u4e0a\u6708\u672b\u51c0\u589e\u51cf"},
-  {label:"\u670d\u52a1\u5065\u5eb7", value:score===null?missing:fmt(score), unit:"\u5206", detail:score===null?"\u6682\u4e0d\u53ef\u8bc4\u5206":"\u6f14\u793a\u7ad9\u5740\u5065\u5eb7\u5e73\u5747\u5206"},
+  {label:"\u670d\u52a1\u589e\u957f", value:delta, unit:"\u7ad9", detail:growth?"\u589e\u52a0 "+fmt(growth.entered)+" \u7ad9 · \u51cf\u5c11 "+fmt(growth.exited)+" \u7ad9":"\u6682\u65e0\u53ef\u6bd4\u4e0a\u6708"},
+  {label:"\u670d\u52a1\u8d28\u91cf", value:score===null?missing:score.toFixed(1), unit:"\u5206", detail:score===null?"\u6682\u4e0d\u53ef\u8bc4\u5206":qualityChange},
   {label:"\u8fd0\u884c\u80fd\u8017", value:energy == null ? missing : fmt(energy / 1_000_000), unit:"MWh", detail:month ? month + " \u7d2f\u8ba1\u7528\u7535" : "\u672c\u6708\u7d2f\u8ba1\u7528\u7535"},
  ];
  const watch = [

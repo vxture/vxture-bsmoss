@@ -554,7 +554,7 @@ await test("preview is explicitly gated and its HTTP boundary validates configur
     await t.test("home shows scoped management summaries without embedding the map or a detail list",async()=>{
       const readHome=async query=>{const r=await fetch(url+'/'+query,{redirect:'manual'});assert.equal(r.status,200);return r.text();};
       const home=await readHome('?city=all&county=all');
-      for(const label of ['\u5854\u670d\u667a\u5224','\u7ad9\u5740\u5229\u7528','\u670d\u52a1\u589e\u957f','\u670d\u52a1\u5065\u5eb7','\u8fd0\u884c\u80fd\u8017','\u6f14\u793a\u7ad9\u5740\u5065\u5eb7\u5e73\u5747\u5206']) assert.ok(home.includes(label),label);
+      for(const label of ['\u5854\u670d\u667a\u5224','\u7ad9\u5740\u5229\u7528','\u670d\u52a1\u589e\u957f','\u670d\u52a1\u8d28\u91cf','\u8fd0\u884c\u80fd\u8017']) assert.ok(home.includes(label),label);
       assert.match(home,/<dd>1,080<span/);
       assert.ok(home.includes('href="/product-preview?hour=18"'));
       for(const marker of ['maplibregl-canvas','data-overview-report=','data-overview-verification','href="/preferences/overview"']) assert.ok(!home.includes(marker),marker);

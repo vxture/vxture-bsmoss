@@ -25,3 +25,5 @@
 13. [服务量化：计量依据精细化设计（依据汇总／计量明细，口径对照归配置管理）](130-metering-evidence-refinement.md)
 
 14. [分析研判与原能力渐进迁移（能耗／共享／入驻变化／区域对比，按业务归属渐进承接）](140-judgment-analysis-migration.md)
+
+15. [服务质量评分框架 V0.1（待评审设计）](150-service-quality-scoring.md)
