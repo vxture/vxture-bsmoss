@@ -5,7 +5,7 @@ import { Button, PanelCard } from "@vxture/design-system";
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'BS-MOSS | Map sources and copyright' };
+
 
 export default function CopyrightPage() {
   if (!demoDataEnabled()) notFound();
