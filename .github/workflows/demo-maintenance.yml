@@ -1,0 +1,78 @@
+name: demo-maintenance
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        type: choice
+        required: true
+        options:
+          - beta
+          - prod
+      image_ref:
+        description: Registered bsmoss-app repository plus @sha256 digest
+        type: string
+        required: true
+      operation:
+        description: Execute exactly one BS-MOSS maintenance stage
+        type: choice
+        required: true
+        options: [schema, seed, rollup, activate]
+permissions:
+  contents: read
+concurrency:
+  group: delivery-${{ inputs.stage }}
+  cancel-in-progress: false
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.stage }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate configuration
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+          IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          bash deploy/assert-stack-root.sh "$STACK_ROOT"
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] && ((DEPLOY_PORT >= 1 && DEPLOY_PORT <= 65535))
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$IMAGE_REF" =~ ^[a-z0-9./_-]+/bsmoss-app@sha256:[a-f0-9]{64}$ ]]
+          [[ "$IMAGE_REPOSITORY" =~ ^ghcr.io/[a-z0-9_-]+/bsmoss-app$ ]]
+          [[ "$IMAGE_REF" == "$IMAGE_REPOSITORY@sha256:"* ]]
+      - name: Join tailnet and prepare SSH
+        uses: ./.github/actions/tailnet-ssh-connect
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tailscale-tag: ${{ vars.TAILSCALE_OAUTH_CLIENT_TAG }}
+          deploy-host: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          deploy-port: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          deploy-ssh-key: ${{ secrets.DEPLOY_SSH_KEY || secrets.DEPLOY_WORKER02_SSH_KEY }}
+          deploy-ssh-passphrase: ${{ secrets.DEPLOY_SSH_KEY_PASSPHRASE || secrets.DEPLOY_WORKER02_SSH_KEY_PASSPHRASE }}
+          deploy-known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS || secrets.DEPLOY_WORKER02_KNOWN_HOSTS }}
+      - name: Run reviewed BS-MOSS maintenance stage
+        env:
+          STACK_ROOT: ${{ vars.STACK_ROOT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || secrets.DEPLOY_WORKER02_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || secrets.DEPLOY_WORKER02_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || secrets.DEPLOY_WORKER02_USER || vars.DEPLOY_USER }}
+          IMAGE_REF: ${{ inputs.image_ref }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in schema|seed|rollup|activate) ;; *) exit 2 ;; esac
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          ssh_opts=(-i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes)
+          # Send only reviewed maintenance files; leave the running stack bundle in place.
+          tar -czf - deploy/assert-stack-root.sh deploy/demo-maintenance.sh deploy/database/ddl/90_demo.sql docker-compose.demo.yml |
+            ssh "${ssh_opts[@]}" "$remote" "cd '$STACK_ROOT' && tar -xzf - && STACK_ROOT='$STACK_ROOT' IMAGE_REF='$IMAGE_REF' bash deploy/demo-maintenance.sh '$OPERATION'"
+      - name: Remove runner SSH key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/deploy_key

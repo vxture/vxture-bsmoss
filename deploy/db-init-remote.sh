@@ -11,6 +11,6 @@ compose=(docker compose --env-file "$STACK_ROOT/etc/stack.env" -f docker-compose
 "${compose[@]}" exec -T db sh -c 'set -eu; tmp="$(mktemp /tmp/bsmoss-init.XXXXXX)"; trap "rm -f $tmp" EXIT; cat >"$tmp"; psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -v ON_ERROR_STOP=1 -f "$tmp"' < <(
   printf '%s\n' "BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('bsmoss-empty-init',0));"
   printf '%s\n' "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname IN ('bsmoss_resource','vx_provision','local_authz','local_usage')) THEN RAISE EXCEPTION 'empty database required'; END IF; END \$\$;"
-  cat deploy/database/ddl/00_baseline.sql deploy/database/ddl/97_runtime_grants.sql deploy/database/ddl/98_column_locks.sql
+  cat deploy/database/ddl/00_baseline.sql deploy/database/ddl/90_demo.sql deploy/database/ddl/97_runtime_grants.sql deploy/database/ddl/98_column_locks.sql
   printf '%s\n' 'COMMIT;'
 )

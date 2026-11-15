@@ -5,6 +5,7 @@ import type {QueryInput,SnapshotDescriptor} from './query';
 import {serviceDescriptor} from './quantification';
 import {previewAccess,previewFoundation,previewReadInventory,previewRoot,previewSeed,validPreviewSession} from './preview';
 import {readDemoHistory} from './history-store';
+import {postgresDemoEnabled,readDemoPeriods} from './demo-artifact';
 import {historyAggregate,historyScope,materializeHistory,type DemoHistory} from './history';
 import {DEFAULT_HISTORY_ID,HISTORY_START,HISTORY_END,HISTORY_VERSION,parseHistoryId,historyWindow,stepHistory,yearHistory} from './history-calendar';
 let reference: ReturnType<typeof previewSeed> | undefined;
@@ -17,8 +18,12 @@ export async function readTowerPreview(input:QueryInput,session:string|undefined
  if(authenticatedDemoEnabled())session=undefined;
  const original=validPreviewSession(session)?await previewFoundation(session).read():{state:reference??(reference=previewSeed('reference-only')),access:previewAccess('reference-only')};
  const access:FoundationAccess={...previewAccess(validPreviewSession(session)?'preview-'+session:'reference-only'),...original.access};assertAccess(access,'read',Date.now());
- const bundle=await readDemoHistory(previewRoot()+'/demo-history',previewReadInventory(),false,input.view==='periods'),h=bundle.history,scope=historyScope(h,access,Date.now());
+ const databasePeriods=postgresDemoEnabled() && input.view==='periods';
+ const bundle=await readDemoHistory(previewRoot()+'/demo-history',previewReadInventory(),false,input.view==='periods'&&!databasePeriods);
+ let h=bundle.history;
  const query={...input};if(!query.snapshotId)query.snapshotId=DEFAULT_HISTORY_ID;
+ if(databasePeriods)h={...h,rollups:await readDemoPeriods(historyWindow(parseHistoryId(query.snapshotId)?.id??DEFAULT_HISTORY_ID))};
+ const scope=historyScope(h,access,Date.now());
  const selected=parseHistoryId(query.snapshotId),ids=new Set<string>();if(selected){ids.add(selected.id);if(options.comparison||query.view==='periods'||query.view==='comparison'){const mode=query.comparisonMode??(query.compareSnapshotId?'custom':'previous'),baseline=mode==='year'?yearHistory(selected.id):mode==='previous'?stepHistory(selected.id,-1):null;if(baseline)ids.add(baseline);}}
  if(typeof query.compareSnapshotId==='string'&&parseHistoryId(query.compareSnapshotId))ids.add(query.compareSnapshotId);
  const versions=[...original.state.snapshots,...[...ids].map(id=>capturedHistory(h,id,scope))];

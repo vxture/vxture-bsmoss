@@ -65,11 +65,11 @@ await test("empty-database PostgreSQL contract", async t => {
     const target = new URL(connectionString); target.pathname = "/" + dbName;
     db = new Client({connectionString:target.toString()}); await db.connect();
     await t.test("baseline plus grants and column locks apply to an empty database", async () => {
-      for (const name of ["00_baseline.sql","97_runtime_grants.sql","98_column_locks.sql"]) {
+      for (const name of ["00_baseline.sql","90_demo.sql","97_runtime_grants.sql","98_column_locks.sql"]) {
         await db.query(readFileSync(new URL("../../deploy/database/ddl/"+name,import.meta.url),"utf8"));
       }
       const tables = await db.query("SELECT count(*)::int AS n FROM information_schema.tables WHERE (table_schema LIKE 'bsmoss_%' OR table_schema IN ('vx_provision','local_authz','local_usage')) AND table_type='BASE TABLE'");
-      assert.equal(tables.rows[0].n,67);
+      assert.equal(tables.rows[0].n,71);
       const version = await db.query("SHOW server_version"); console.log("PostgreSQL:",version.rows[0].server_version);
     });
     await t.test("actual PostgreSQL columns match the Prisma scalar mirror",async()=>{
