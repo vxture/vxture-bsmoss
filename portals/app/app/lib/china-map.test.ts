@@ -28,11 +28,16 @@ test('China basemap is local and includes all province-level resources', () => {
   data.features.forEach((feature: { geometry: { coordinates: unknown } }) => checkCoordinates(feature.geometry.coordinates));
 });
 
-test('both map entries use China scope without remote global basemaps', () => {
+test('map entries retain padded camera bounds and workbench restores detailed map and opt-in imagery', () => {
   for (const path of ['../board/network-map.tsx', '../product-preview/workbench/map-canvas.tsx']) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
     assert.match(source, /maxBounds:\s*CHINA_CAMERA_BOUNDS/);
-    assert.match(source, /china:\s*CHINA_MAP_SOURCE/);
-    assert.doesNotMatch(source, /arcgisonline|cartocdn|tile\.openstreetmap|World_Imagery|World_Topo_Map/);
   }
+  const source = readFileSync(new URL('../product-preview/workbench/map-canvas.tsx', import.meta.url), 'utf8');
+  assert.match(source, /World_Topo_Map/);
+  assert.match(source, /World_Imagery/);
+  assert.match(source, /basemap==='satellite'&&!map.getSource\('satellite'\)/);
+  assert.match(source, /setBasemap\(value\)/);
+  assert.match(source, /cluster:true/);
+  assert.match(source, /type:'heatmap'/);
 });
