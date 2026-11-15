@@ -2736,3 +2736,8 @@ User reports corner text and empty map during loading. Added shared portal/map-l
 
 - Home proportions calibrated against observed CoSpace DOM: centered page-2xl width, 32px gutters, responsive 36-48px title, 30px metrics, 32px DS actions and reference section rhythm. Replaced spatial planes with decorative tower/service topology and reduced-motion-aware signal animation. Type check and HTTP 200 passed; localhost browser policy still prevents visual inspection.
 
+
+
+## 2026-11-15 当前发布与一致性
+
+BS-MOSS 正式域名已上线，PR #14 发布代码 53590e7，部署 43710782085 成功。入口页已观察欢迎行、统一卡片、透明背景和常驻说明。演示 PostgreSQL 数据集与评分在 PR #13 完成发布。当前事实及不可变镜像凭据见 docs/50-deployment/60-worker02-third-party-signin.md；以上准备阶段文字为历史，不再作为待办。平台代码与配置不改动。

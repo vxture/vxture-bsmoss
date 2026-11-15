@@ -5,8 +5,10 @@ taxonomy. Product code is bsmoss; package scope is @bsmoss. Source and root
 metadata are ASCII; Chinese product specifications live under docs/.
 
 This repository started empty. Work on feature branches; do not push main or
-release tags directly. No external deployment, registry allocation, OIDC client
-registration or platform entitlement catalog has been performed.
+release tags directly. BS-MOSS is deployed on worker02 at bsmoss.ruyin.work with third-party OIDC
+account login. Only account/login integration is enabled; no model, capability,
+subscription or S2S integration is required. Current deployment receipts live in
+docs/50-deployment/60-worker02-third-party-signin.md.
 
 Rules are pure. Services enforce platform entitlement then product permission
 and workspace scope. Store adapters must enforce tenant isolation and atomic
@@ -16,7 +18,7 @@ settlements or mutate evidence. No drones, robot dogs or actuator control.
 
 DDL under deploy/database/ddl is the sole schema authority. Apply it only through
 a reviewed db-init path; never during application startup. Prisma is a scalar client-generation mirror only; DDL owns constraints. The measurement PostgreSQL adapter is implemented and locally tested; production
-identity wiring is implemented, while live registration and deployment remain pending. Do not copy yucer sales tables,
+identity registration and deployment are complete. Do not copy yucer sales tables,
 credentials, release history or successful deployment claims into this product.
 
 
