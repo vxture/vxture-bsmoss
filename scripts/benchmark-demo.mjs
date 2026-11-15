@@ -1,0 +1,15 @@
+import {performance} from 'node:perf_hooks';
+import {readHomeSummary} from '../portals/app/app/portal/home-read-model.ts';
+import {readTowerPreview} from '../portals/app/app/domains/tower-service/history-reader.ts';
+import {publishedPageRead} from '../portals/app/app/domains/tower-service/page-read-model.ts';
+import {dashboardModel} from '../portals/app/app/tower-service/dashboard/model.ts';
+process.env.BSMOSS_DATA_MODE='demo';
+const measure=async(run,n=25)=>{const values=[];for(let i=0;i<n;i++){const t=performance.now();await run();values.push(performance.now()-t);}values.sort((a,b)=>a-b);return {p50Ms:+values[Math.floor(n*.5)].toFixed(2),p95Ms:+values[Math.floor(n*.95)].toFixed(2)};};
+const load=async()=>{if(!await publishedPageRead('dashboard',{}))throw Error('published_model_missing');};
+const start=performance.now();await load();const coldDashboardMs=performance.now()-start;
+const home=await measure(()=>readHomeSummary({city:'610100',county:'all'}));
+const dashboard=await measure(load);
+const cold=performance.now(),r=await readTowerPreview({},undefined);
+const coldHistoryMs=performance.now()-cold;
+const before=await measure(()=>dashboardModel(r.input,r.versions,r.access.operators),3);
+console.log(JSON.stringify({coldDashboardMs:Math.round(coldDashboardMs),coldHistoryMs:Math.round(coldHistoryMs),home,dashboard,previousDashboardModel:before},null,2));

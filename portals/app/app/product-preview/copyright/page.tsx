@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import PageHeading from "../../portal/page-heading";
 import ProductWorkspace from "../../portal/workspace";
 import { Button, PanelCard } from "@vxture/design-system";
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'BS-MOSS | Map sources and copyright' };
 
 export default function CopyrightPage() {
-  if (process.env.BSMOSS_PRODUCT_PREVIEW !== 'on') notFound();
+  if (!demoDataEnabled()) notFound();
   return <ProductWorkspace className="product-workspace-standalone"><main className="product-page-inset flex flex-col gap-lg bg-background text-foreground">
     <article className="flex min-w-0 flex-col gap-lg">
       <PageHeading title={'\u5730\u56fe\u6765\u6e90\u4e0e\u7248\u6743\u58f0\u660e'} actions={<Button asChild variant="outline"><a target="_blank" rel="noopener noreferrer" href="/product-preview">{'\u6253\u5f00\u7ad9\u7f51\u5168\u666f'}</a></Button>} />

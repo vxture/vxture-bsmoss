@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import {loadVerificationConfiguration} from "../../domains/usage-verification/parameter-http";
 import ResetButton from "../../portal/reset-button";
 import {readInvestigation} from '../../portal/investigation-server';
@@ -11,7 +12,7 @@ import ReviewDetail from "../detail";
 import {validSession} from '../../domains/usage-verification/indexeddb-store';
 export const dynamic = "force-dynamic";
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (process.env.BSMOSS_PRODUCT_PREVIEW !== "on") notFound();
+  if (!demoDataEnabled()) notFound();
   const { id } = await params;
   let journey;
   let model,recordSession:string|undefined,eventNumber:number|undefined;

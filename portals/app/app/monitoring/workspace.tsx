@@ -8,8 +8,8 @@ import {n} from "../sites/labels";
 import {localTime,recordNames,levelNames,levelTones,signalNames,filterNames} from "./labels";
 import MonitoringOverview from "./overview";
 import MonitoringDetail from "./detail";
-import type {MonitoringModel} from "./model";
-export default function MonitoringWorkspace({data}:{data:MonitoringModel}) {
+import type {MonitoringPage} from "./model";
+export default function MonitoringWorkspace({data}:{data:MonitoringPage}) {
  const m=data.monitoring,s=m.runtimeSummary;
  const facetIcons:Record<string,IconName>={all:"app-grid",warning:"warning",critical:"warning",alarm:"flag",current:"warning",period:"chart-line-up",data:"help"};
  const shortFilters:Record<string,string>={all:"\u5168\u90e8",warning:"\u5173\u6ce8",critical:"\u4e25\u91cd",alarm:"\u544a\u8b66",current:"\u5408\u8ba1",period:"\u5468\u671f",data:"\u7f3a\u6570"};
@@ -18,7 +18,7 @@ export default function MonitoringWorkspace({data}:{data:MonitoringModel}) {
  const state=(id:string)=>{const r=byId.get(id)!.runtime;return <StatusBadge tone={levelTones[r.level]} size="sm">{levelNames[r.level]}</StatusBadge>;};
  return <><MonitoringParameterRefresh revision={m.configuration.revision}/><SiteAnalysisWorkspace data={data} presentation={{path:"/monitoring",icon:monitoringIcon,title:"\u8fd0\u884c\u76d1\u6d4b",description:"\u638c\u63e1\u7ad9\u5740\u8fd0\u884c\u72b6\u6001\u3001\u5f02\u5e38\u7ebf\u7d22\u4e0e\u76d1\u6d4b\u4f9d\u636e",
  tableTitle:"\u8fd0\u884c\u7ad9\u5740\u660e\u7ec6",tableDescription:"\u4f18\u5148\u5c55\u793a\u9700\u5173\u6ce8\u7ad9\u5740 \u00b7 \u70b9\u51fb\u67e5\u770b\u6307\u6807\u4e0e\u5f02\u5e38\u4f9d\u636e",detailLabel:"\u8fd0\u884c\u8be6\u60c5",
- query:{recordState:m.recordState,runtimeFilter:m.runtimeFilter},resetQuery:{recordState:"all",runtimeFilter:"all"},hideResourceColumn:true,hideOperatorColumn:true,hideOperatorFilter:true,replaceNotes:true,
+ pagination:data.pagination,query:{recordState:m.recordState,runtimeFilter:m.runtimeFilter},resetQuery:{recordState:"all",runtimeFilter:"all"},hideResourceColumn:true,hideOperatorColumn:true,hideOperatorFilter:true,replaceNotes:true,
  metricsNote:"\u5468\u671f\u5185\u66fe\u5f02\u5e38 "+n(s.periodAbnormal)+" \u7ad9",
  metrics:[{key:"sites",description:"\u7269\u7406\u7ad9\u5740\u53bb\u91cd",label:"\u8303\u56f4\u7ad9\u5740",icon:"building",value:n(s.sites),unit:"\u7ad9"},
  {key:"warning",description:"\u5468\u671f\u672b\u6709\u6548\u5c0f\u65f6\uff0c\u4e0d\u542b\u4e25\u91cd",label:"\u5f53\u524d\u5173\u6ce8",shortLabel:"\u5173\u6ce8",tone:"warning",icon:"warning",value:n(s.levels.warning),unit:"\u7ad9"},

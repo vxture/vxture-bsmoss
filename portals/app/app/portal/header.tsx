@@ -1,3 +1,4 @@
+import { authenticatedDemoEnabled } from "../lib/demo-mode";
 import EntryGate from '../entry/view';
 import {legacyNavigationTitle} from './tower-navigation';
 import { cookies } from "next/headers";
@@ -13,6 +14,7 @@ export default async function ProductFrame({ active, children, preview = process
   active: PortalPage; children: ReactNode; preview?: boolean;
 }) {
   const cfg = getOidcConfig();
+  const localPreview = preview && !authenticatedDemoEnabled();
   const jar = await cookies();
   const initialNavCollapsed = jar.get(MANAGEMENT_NAV_COOKIE)?.value === "collapsed";
   const initialClosedGroups = readManagementGroups(jar.get(MANAGEMENT_GROUPS_COOKIE)?.value??encodeURIComponent(JSON.stringify([legacyNavigationTitle])));
@@ -26,6 +28,6 @@ export default async function ProductFrame({ active, children, preview = process
     const url = new URL(process.env.NEXT_PUBLIC_CONSOLE_URL ?? "");
     if (url.protocol === "https:" && !url.username && !url.password) consoleHref = url.href;
   } catch { /* An unconfigured account centre is not a navigation target. */ }
-  const chrome = <ProductChrome active={active} preview={preview} identity={identity} loginEnabled={cfg.enabled} consoleHref={consoleHref} regionPreference={preference} initialNavCollapsed={initialNavCollapsed} initialClosedGroups={initialClosedGroups}>{children}</ProductChrome>;
-  return (cfg.enabled || process.env.OIDC_CLIENT_MODE === "third_party") && !preview ? <EntryGate>{chrome}</EntryGate> : chrome;
+  const chrome = <ProductChrome active={active} preview={preview || authenticatedDemoEnabled()} identity={identity} loginEnabled={cfg.enabled} consoleHref={consoleHref} regionPreference={preference} initialNavCollapsed={initialNavCollapsed} initialClosedGroups={initialClosedGroups}>{children}</ProductChrome>;
+  return (cfg.enabled || process.env.OIDC_CLIENT_MODE === "third_party") && !localPreview ? <EntryGate initialResult={identity ? {state:"connected",identity:{displayName:identity.displayName,organization:identity.organization}} : undefined}>{chrome}</EntryGate> : chrome;
 }

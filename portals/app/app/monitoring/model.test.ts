@@ -1,8 +1,16 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {metricEvidence,monitoringSummary,type MonitoringEvidence} from "../domains/monitoring/rules";
-import {monitoringModel,monitoringWindow} from "./model";
+import {monitoringModel,monitoringPage,monitoringWindow} from "./model";
 const evidence=(patch:Partial<MonitoringEvidence>={}):MonitoringEvidence=>({metric:"energy",connected:null,applicable:null,expected:null,samples:[],...patch});
+test("monitoring sends only the requested page while retaining scope counts and evidence",()=>{
+ const full=monitoringModel({city:"610100",page:"2",pageSize:"10",runtimeFilter:"period"}),page=monitoringPage(full);
+ assert.deepEqual(page.pagination,{page:2,total:full.rows.length});
+ assert.deepEqual(page.rows.map(row=>row.id),full.rows.slice(10,20).map(row=>row.id));
+ assert.deepEqual(new Set(page.monitoring.observations.map(row=>row.id)),new Set(page.rows.map(row=>row.id)));
+ assert.ok(page.monitoring.observations.every(row=>row.runtime.context.length>0));
+ assert.deepEqual(page.monitoring.runtimeSummary,full.monitoring.runtimeSummary);
+});
 test("records distinguish zero, missing, confirmed unconnected and unknown without claiming online",()=>{
  assert.equal(metricEvidence(evidence({samples:[{at:"2026-10-25T12:00:00+08:00",value:0}]})).state,"observed");
  assert.equal(metricEvidence(evidence()).state,"unknown");

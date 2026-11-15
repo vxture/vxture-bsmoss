@@ -1,7 +1,8 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {queryOperatorUsage,queryCalendarUsage} from '../../../domains/map-demo/service.ts';
 export const dynamic='force-dynamic';
 export function GET(request:Request) {
-  if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return new Response(null,{status:404});
+  if(!demoDataEnabled())return new Response(null,{status:404});
   if(request.url.length>3000)return Response.json({error:'request_too_large'},{status:413});
   try {
     const p=new URL(request.url).searchParams;

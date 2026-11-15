@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../lib/demo-mode";
 import { rememberedRegionInput } from "../portal/region-preference";
 import PageHeading from "../portal/page-heading";
 import ProductFrame from "../portal/header";
@@ -6,7 +7,7 @@ import { boardDemo } from "./model";
 import DecisionBoard from "./view";
 export const dynamic = "force-dynamic";
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const preview = process.env.BSMOSS_PRODUCT_PREVIEW === "on";
+  const preview = demoDataEnabled();
   if (!preview) return <ProductFrame active="board" preview={false}><ShellPageContainer className="product-page-inset">
     <PageHeading title={"\u51b3\u7b56\u5206\u6790\u5c1a\u672a\u5f00\u653e"} description={"\u5b8c\u6210\u5e73\u53f0\u63a5\u5165\u540e\uff0c\u53ef\u67e5\u770b\u6388\u6743\u8303\u56f4\u5185\u7684\u5168\u7701\u6001\u52bf\u3002"} />
   </ShellPageContainer></ProductFrame>;

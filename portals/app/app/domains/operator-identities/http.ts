@@ -1,3 +1,5 @@
+import { authenticatedDemoEnabled } from "../../lib/demo-mode";
+import { defaultCatalog } from "./rules";
 import {cookies} from "next/headers";
 import {getOidcConfig} from "../../auth/lib/config";
 import {operatorIdentitiesForSession} from "../access/runtime";
@@ -11,6 +13,7 @@ const reply=(status:number,error:string)=>privateReportResponse(Response.json({e
 function previewAllowed(){return process.env.BSMOSS_PRODUCT_PREVIEW==="on"&&!getOidcConfig().enabled&&["127.0.0.1","localhost"].includes(process.env.HOSTNAME_BIND??"127.0.0.1");}
 export async function identityRead(management=false){
   try{
+    if(authenticatedDemoEnabled()){const catalog=defaultCatalog();return privateReportResponse(Response.json(management?{catalog,canEdit:false}:catalog));}
     if(previewAllowed()){const catalog=await operatorIdentityStore("preview").read();return privateReportResponse(Response.json(management?{catalog,canEdit:true}:catalog));}
     const cfg=getOidcConfig(),sid=(await cookies()).get(cfg.cookieName)?.value;
     if(!cfg.enabled||!sid)return reply(401,"AUTH_REQUIRED");

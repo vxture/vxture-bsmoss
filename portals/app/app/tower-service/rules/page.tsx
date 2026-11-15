@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import ProductFrame from '../../portal/header';
 import FoundationAdmin from '../admin';
 import {cookies} from 'next/headers';
@@ -9,7 +10,7 @@ import type {RuleComparisonData} from '../rule-comparison';
 import ConfigurationComparison from './comparison';
 export const dynamic='force-dynamic';
 export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
- const input=await searchParams,preview=process.env.BSMOSS_PRODUCT_PREVIEW==='on';
+ const input=await searchParams,preview=demoDataEnabled();
  const view=typeof input.view==='string'&&['agreements','judgment','access'].includes(input.view)?input.view:'agreements';
  if(view==='agreements'&&input.tool==='compare'){
   let frozen:RuleComparisonData|undefined,error:string|undefined;

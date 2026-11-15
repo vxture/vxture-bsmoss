@@ -6,9 +6,9 @@ import AnalysisOverview from "../site-analysis/overview";
 import type {AnalysisHref} from "../site-analysis/workspace";
 import {n} from "../sites/labels";
 import {localTime,signalNames} from "./labels";
-import type {MonitoringModel} from "./model";
+import type {MonitoringPage} from "./model";
 const signalIcons={battery:BatteryVerticalFullIcon,temperature:ThermometerIcon,intensity:LightningIcon};
-export default function MonitoringOverview({data,href}:{data:MonitoringModel;href:AnalysisHref}) {
+export default function MonitoringOverview({data,href}:{data:MonitoringPage;href:AnalysisHref}) {
  const {query:q,monitoring:m}=data,s=m.runtimeSummary;
  const {rules:signalRules,tips:signalTips}=runtimePolicyLabels(m.configuration.parameters);
  const regions=m.runtimeRegions.length?m.runtimeRegions:[{id:q.county,name:data.countyName??"",city:q.city,county:q.county,...s}];

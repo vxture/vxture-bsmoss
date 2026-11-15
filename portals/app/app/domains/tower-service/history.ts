@@ -55,9 +55,15 @@ export function relationUsage(h:DemoHistory,pair:number,from:string,to:string){
  if(a===start+first*DAY&&b===start+last*DAY)return p[offset+last]-p[offset+first];
  let sum=0;for(let day=first;day<=Math.min(last,h.days-1);day++){const lo=Math.max(0,(a-start-day*DAY)/3600000),hi=Math.min(24,(b-start-day*DAY)/3600000);if(hi>lo)sum+=hourlyShares(h.daily[pair*h.days+day],pair,day).slice(lo,hi).reduce((a,b)=>a+b,0);}return sum;
 }
+const rollupIndex = new WeakMap<DemoHistory,Map<string,HistoryRollup[]>>();
+function periodRollups(h:DemoHistory,id:string) {
+ let index=rollupIndex.get(h);
+ if(!index){index=new Map();for(const row of h.rollups??[]){const rows=index.get(row.id)??[];rows.push(row);index.set(row.id,rows);}rollupIndex.set(h,index);}
+ return index.get(id);
+}
 export function historyAggregate(h:DemoHistory,id:string,metricId:string,scope:HistoryScope,region:{city:string;county:string;operator?:string}){
  const p=parseHistoryId(id)!,m=h.metrics.find(m=>m.id===metricId);if(!m)throw Error('invalid_history_metric');
- if(p.grain==='month'&&h.rollups&&h.sites.every(s=>scope.siteIds.has(s.id))){const rows=h.rollups.filter(r=>r.id===id&&scope.operators.includes(r.operator)&&(!region.operator||region.operator==='all'||r.operator===region.operator)&&(region.city==='all'||r.city===region.city)&&(region.county==='all'||r.county===region.county)),quantity=rows.reduce((n,r)=>n+r.quantities[h.metrics.indexOf(m)],0);return {quantity:String(quantity),partialQuantity:String(quantity),coverage:new Set(rows.flatMap(r=>r.covered)).size,endCoverage:new Set(rows.flatMap(r=>r.active)).size};}
+ if(p.grain!=='hour'&&h.rollups&&h.sites.every(s=>scope.siteIds.has(s.id))&&periodRollups(h,id)){const rows=periodRollups(h,id)!.filter(r=>scope.operators.includes(r.operator)&&(!region.operator||region.operator==='all'||r.operator===region.operator)&&(region.city==='all'||r.city===region.city)&&(region.county==='all'||r.county===region.county)),quantity=rows.reduce((n,r)=>n+r.quantities[h.metrics.indexOf(m)],0);return {quantity:p.complete||m.kind==='stock'?String(quantity):null,partialQuantity:String(quantity),coverage:new Set(rows.flatMap(r=>r.covered)).size,endCoverage:new Set(rows.flatMap(r=>r.active)).size};}
  const selected=new Set(h.relations.flatMap((r,i)=>{const s=h.sites[r.site];return scope.siteIds.has(s.id)&&scope.operators.includes(r.operator)&&(region.operator==='all'||!region.operator||r.operator===region.operator)&&(region.city==='all'||s.city===region.city)&&(region.county==='all'||s.county===region.county)?[i]:[];}));
  const point=(Date.parse(p.to)-Date.parse(h.start)-1)/DAY,coverage=new Set<number>(),endCoverage=new Set<number>();let total=0;
  const lo=(Date.parse(p.from)-Date.parse(h.start))/DAY,hi=(Date.parse(p.to)-Date.parse(h.start))/DAY;
@@ -65,11 +71,13 @@ export function historyAggregate(h:DemoHistory,id:string,metricId:string,scope:H
  if(m.kind==='stock')for(const c of h.configs)if(selected.has(c.pair)&&c.metric===h.metrics.indexOf(m)&&c.from<=point&&c.to>point)total+=c.quantity;
  return {quantity:p.complete||m.kind==='stock'?String(total):null,partialQuantity:String(total),coverage:coverage.size,endCoverage:endCoverage.size};
 }
-// Persist only month x county x customer aggregates. Province/city totals sum
+// Publish day/week/month/year x county x customer read tables. Province/city totals sum
 // these additive quantities; coverage always unions identities, never counts.
 export function buildHistoryRollups(h:DemoHistory):HistoryRollup[]{
  const out:HistoryRollup[]=[];
- for(const id of historyWindow(historyId('month',HISTORY_START))){const p=parseHistoryId(id)!,lo=historyDay(p.from),hi=historyDay(p.to),groups=new Map<string,{row:HistoryRollup;covered:Set<number>;active:Set<number>}>(),point=hi-1/DAY;
+ const ids:string[]=[];
+ for(const grain of ['day','week','month','year'] as const){let cursor=HISTORY_START;while(Date.parse(cursor)<Date.parse(HISTORY_END)){const id=historyId(grain,cursor),period=parseHistoryId(id)!;ids.push(id);cursor=period.end;}}
+ for(const id of ids){const p=parseHistoryId(id)!,lo=historyDay(p.from),hi=historyDay(p.to),groups=new Map<string,{row:HistoryRollup;covered:Set<number>;active:Set<number>}>(),point=hi-1/DAY;
   const group=(pair:number)=>{const r=h.relations[pair],site=h.sites[r.site],key=site.county+':'+r.operator;let g=groups.get(key);if(!g){g={row:{id,city:site.city,county:site.county,operator:r.operator,quantities:h.metrics.map(()=>0),covered:[],active:[]},covered:new Set(),active:new Set()};groups.set(key,g);}return g;};
   h.relations.forEach((r,pair)=>{if(r.from>=hi||r.to<=lo)return;const g=group(pair);g.covered.add(r.site);if(r.from<=point&&r.to>point)g.active.add(r.site);g.row.quantities[h.metrics.findIndex(m=>m.kind==='usage')]+=relationUsage(h,pair,p.from,p.to);});
   for(const c of h.configs)if(c.from<=point&&c.to>point)group(c.pair).row.quantities[c.metric]+=c.quantity;
@@ -108,10 +116,12 @@ export function historyTenancy(h:DemoHistory,month:string,scope:HistoryScope,cut
 export function materializeHistory(h:DemoHistory,id:string,scope:HistoryScope,withEvidence=true):PublishedSnapshot {
  const p=parseHistoryId(id);if(!p)throw Error('invalid_history_id');const lo=historyDay(p.from),hi=(Date.parse(p.to)-Date.parse(h.start))/DAY,point=hi-1/DAY;
  const pairs=new Set(h.relations.flatMap((r,i)=>scope.siteIds.has(h.sites[r.site].id)&&scope.operators.includes(r.operator)&&r.from<hi&&r.to>lo?[i]:[]));
+ const activeBySite = new Map<number,string[]>(), periodSites = new Set<number>();
+ h.relations.forEach((r,index)=>{if(pairs.has(index))periodSites.add(r.site);if(r.from<=point&&r.to>point&&scope.operators.includes(r.operator)){const list=activeBySite.get(r.site)??[];list.push(r.operator);activeBySite.set(r.site,list);}});
  const rows=h.sites.flatMap((raw,i)=>{
   if(!scope.siteIds.has(raw.id)||h.activated[i]>point)return [];
-  const active=h.relations.filter(r=>r.site===i&&r.from<=point&&r.to>point&&scope.operators.includes(r.operator)).map(r=>r.operator);
-  if(!active.length&&!h.relations.some((r,j)=>r.site===i&&pairs.has(j)))return [];
+  const active=activeBySite.get(i)??[];
+  if(!active.length&&!periodSites.has(i))return [];
   const row=structuredClone(raw);row.allOperators=active;row.devices=row.devices.filter(d=>d.owner==='\u94c1\u5854'||active.includes(d.owner));row.graph.devices=row.graph.devices.filter(d=>d.owner==='\u94c1\u5854'||active.includes(d.owner));row.graph.relations=row.graph.relations.filter(r=>active.includes(r.code));const relationIds=new Set(row.graph.relations.map(r=>r.id));row.graph.devices=row.graph.devices.map(d=>({...d,relationIds:d.relationIds.filter(id=>relationIds.has(id))}));row.graph.observedAt=p.to;return [row];
  });
  const rowIds=new Set(rows.map(r=>r.id)),customers=OPERATORS.filter(o=>scope.operators.includes(o)).map(operator=>({id:customerId(operator),operator,name:names[operator]+' (DEMO)'}));
@@ -133,8 +143,8 @@ export function materializeHistory(h:DemoHistory,id:string,scope:HistoryScope,wi
  const services:ServiceCapture={id:id+':services',sourceVersion:HISTORY_VERSION,catalogVersion:HISTORY_VERSION+':catalog',mappingVersion:HISTORY_VERSION+':mapping',ruleSetVersion:'DEMO-SERVICE-v1',operatorScope:[...scope.operators],period:{start:p.start,end:p.end},stockAsOf,dataThrough:p.to,periodComplete:p.complete,configComplete:true,usageComplete:true,customers,metrics:structuredClone(h.metrics),configurations,usage};
  const months=h.months.filter(m=>m.month>=p.from.slice(0,7)&&m.month<=beijing(Date.parse(p.to)-1).slice(0,7)).map(m=>historyTenancy(h,m.month,scope,Date.parse(p.to)-1)!);
  let evidence:EvidenceCapture|undefined;
- if(withEvidence){const years=[...new Set(usage.map(u=>u.from.slice(0,4)))];evidence={id:id+':evidence',sourceVersion:HISTORY_VERSION,mappingVersion:HISTORY_VERSION+':meters',ruleSetVersion:'DEMO-METER-v1',period:{start:p.from,end:p.to},dataThrough:p.to,complete:p.complete,applicabilityComplete:true,operatorScope:[...scope.operators],customers,meters:[],records:[],bindings:[],items:[],rules:structuredClone((h.rules??historyRules()).filter(r=>years.includes(r.from.slice(0,4))&&scope.operators.includes(r.operator)))};
-  for(const u of usage){const meterId='demo-meter-'+u.siteId+'-'+u.customerId;if(!evidence.meters.some(m=>m.id===meterId))evidence.meters.push({id:meterId,siteId:u.siteId,unit:'Wh',scale:0,boundary:u.physicalBoundary,role:'independent',parentId:null,sourceRef:HISTORY_VERSION+'/meters/'+meterId});evidence.records.push({id:u.id+':reading',meterId,from:u.from,to:u.to,kind:'interval',quantity:u.quantity,startValue:null,endValue:null,multiplier:'1',epoch:HISTORY_VERSION,event:'none',reliable:true,sourceRef:u.sourceRef});evidence.bindings.push({id:u.id+':binding',meterId,customerId:u.customerId!,service:'power',from:u.from,to:u.to,sourceRef:u.sourceRef});evidence.items.push({id:u.basisId,siteId:u.siteId,meterId,customerId:u.customerId,service:'power',from:u.from,to:u.to,method:'measured',ruleIds:[u.ruleVersion!],sharingRuleIds:[],sharingRequired:false,sharingReferenceAt:null,sourceRef:u.sourceRef});}
+ if(withEvidence){const meterIds=new Set<string>();const years=[...new Set(usage.map(u=>u.from.slice(0,4)))];evidence={id:id+':evidence',sourceVersion:HISTORY_VERSION,mappingVersion:HISTORY_VERSION+':meters',ruleSetVersion:'DEMO-METER-v1',period:{start:p.from,end:p.to},dataThrough:p.to,complete:p.complete,applicabilityComplete:true,operatorScope:[...scope.operators],customers,meters:[],records:[],bindings:[],items:[],rules:structuredClone((h.rules??historyRules()).filter(r=>years.includes(r.from.slice(0,4))&&scope.operators.includes(r.operator)))};
+  for(const u of usage){const meterId='demo-meter-'+u.siteId+'-'+u.customerId;if(!meterIds.has(meterId)){meterIds.add(meterId);evidence.meters.push({id:meterId,siteId:u.siteId,unit:'Wh',scale:0,boundary:u.physicalBoundary,role:'independent',parentId:null,sourceRef:HISTORY_VERSION+'/meters/'+meterId});}evidence.records.push({id:u.id+':reading',meterId,from:u.from,to:u.to,kind:'interval',quantity:u.quantity,startValue:null,endValue:null,multiplier:'1',epoch:HISTORY_VERSION,event:'none',reliable:true,sourceRef:u.sourceRef});evidence.bindings.push({id:u.id+':binding',meterId,customerId:u.customerId!,service:'power',from:u.from,to:u.to,sourceRef:u.sourceRef});evidence.items.push({id:u.basisId,siteId:u.siteId,meterId,customerId:u.customerId,service:'power',from:u.from,to:u.to,method:'measured',ruleIds:[u.ruleVersion!],sharingRuleIds:[],sharingRequired:false,sharingReferenceAt:null,sourceRef:u.sourceRef});}
  }
  const descriptor={id,dataset:'site-resources',mode:'demo' as const,sourceVersion:HISTORY_VERSION,mappingVersion:HISTORY_VERSION+':resources',stockAsOf:p.to,businessPeriod:{start:p.start,end:p.end},dataThrough:p.to,syncedAt:HISTORY_END,publishedAt:HISTORY_END,periodComplete:p.complete,ruleSetVersion:HISTORY_VERSION,scopeKey:JSON.stringify([...scope.operators].sort())};
  return {id,previousId:null,origin:'reference',digest:HISTORY_VERSION+':'+id,checks:[],inventory:{descriptor,provinceId:'610000',expectedSites:rows.length,expectedDevices:rows.reduce((n,r)=>n+r.devices.length,0),rows,services,evidence,judgmentRules:historyJudgments(h.metrics,scope.operators),tenancy:{snapshots:months,refs:months.map(m=>({month:m.month,snapshotId:m.id}))}}};

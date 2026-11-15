@@ -1,10 +1,11 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {businessReportArtifact} from '../../../reports/business-service';
 import {boundedText} from '../../../lib/http';
 import {operatorIdentityStore} from '../../../domains/operator-identities/runtime-store';
 export const dynamic='force-dynamic';
 export async function POST(request:Request){
  const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return new Response(null,{status:404,headers});
+ if(!demoDataEnabled())return new Response(null,{status:404,headers});
  if(request.headers.get('content-type')?.split(';')[0]!=='application/json')return Response.json({error:'invalid_report_request'},{status:415,headers});
  try{const input=JSON.parse(await boundedText(request,4096));if(!input||typeof input!=='object'||Array.isArray(input))throw Error('invalid_report_request');
  const catalog=await operatorIdentityStore('preview').read();

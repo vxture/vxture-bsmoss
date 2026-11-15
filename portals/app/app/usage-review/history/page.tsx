@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import {readInvestigation} from '../../portal/investigation-server';
 import {InvestigationProvider} from '../../portal/investigation';
 import {notFound} from "next/navigation";
@@ -10,7 +11,7 @@ import HistoryEvidenceDetail from "./detail";
 import {rememberedRegionInput} from "../../portal/region-preference";
 export const dynamic="force-dynamic";
 export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}) {
-  if(process.env.BSMOSS_PRODUCT_PREVIEW!=="on")notFound();
+  if(!demoDataEnabled())notFound();
   let scope,data,journey;
   try {const extracted=readInvestigation(await searchParams);journey=extracted.journey;scope=parseHistoryQuery(await rememberedRegionInput(extracted.input));data=stationEvidence(scope);}
   catch(error) {

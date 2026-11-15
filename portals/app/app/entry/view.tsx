@@ -8,15 +8,15 @@ import ProductBrandMark from '../portal/brand';
 import {SpatialMotif} from './motif';
 import type {EntryResult,EntryState} from './model';
 import './entry.css';
-const titles:Record<EntryState,string>={signin:'\u7ad9\u5740\u670d\u52a1\u7ecf\u8425\u5206\u6790',connecting:'\u6b63\u5728\u8fde\u63a5',restoring:'\u6b63\u5728\u6062\u590d\u767b\u5f55','checking-access':'\u6b63\u5728\u786e\u8ba4\u8d26\u53f7\u72b6\u6001',unavailable:'\u6682\u65f6\u65e0\u6cd5\u8fde\u63a5',recovery:'\u7b49\u5f85\u6062\u590d\u767b\u5f55','signed-out':'\u5df2\u9000\u51fa\u767b\u5f55',unassigned:'\u8d26\u53f7\u6682\u4e0d\u53ef\u7528',connected:'\u5e73\u53f0\u8d26\u53f7\u5df2\u8fde\u63a5'};
-export default function EntryGate({children,accountHref='https://accounts.vxture.com/'}:{children?:ReactNode;accountHref?:string}){
- const path=usePathname(),query=useSearchParams(),[result,setResult]=useState<EntryResult>({state:'checking-access'}),[busy,setBusy]=useState(true),pending=useRef(false),controller=useRef<AbortController|null>(null);
+const titles:Record<EntryState,string>={signin:towerBrand.fullName,connecting:'\u6b63\u5728\u8fde\u63a5',restoring:'\u6b63\u5728\u6062\u590d\u767b\u5f55','checking-access':'\u6b63\u5728\u786e\u8ba4\u8d26\u53f7\u72b6\u6001',unavailable:'\u6682\u65f6\u65e0\u6cd5\u8fde\u63a5',recovery:'\u7b49\u5f85\u6062\u590d\u767b\u5f55','signed-out':'\u5df2\u9000\u51fa\u767b\u5f55',unassigned:'\u8d26\u53f7\u6682\u4e0d\u53ef\u7528',connected:'\u5e73\u53f0\u8d26\u53f7\u5df2\u8fde\u63a5'};
+export default function EntryGate({children,accountHref='https://accounts.vxture.com/',initialResult}:{children?:ReactNode;accountHref?:string;initialResult?:EntryResult}){
+ const path=usePathname(),query=useSearchParams(),[result,setResult]=useState<EntryResult>(initialResult??{state:'checking-access'}),[busy,setBusy]=useState(!initialResult),pending=useRef(false),controller=useRef<AbortController|null>(null);
  const requested=path==='/entry'?safeReturnTo(query.get('returnTo')):safeReturnTo(path+(query.size?'?'+query.toString():''));
  const target=/^\/entry(?:[?#]|$)/.test(requested)?'/':requested;
- const check=useCallback(async()=>{if(pending.current)return;pending.current=true;setBusy(true);const abort=new AbortController();controller.current=abort;const timer=setTimeout(()=>abort.abort(),15000);try{const response=await fetch('/api/entry-status',{cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('entry_unavailable');setResult(await response.json() as EntryResult);}catch{if(controller.current===abort)setResult({state:'unavailable'});}finally{clearTimeout(timer);if(controller.current===abort){pending.current=false;setBusy(false);}}},[]);
- useEffect(()=>{const timer=setTimeout(()=>void check(),0);return()=>{clearTimeout(timer);controller.current?.abort();controller.current=null;pending.current=false;};},[check,path]);
+ const check=useCallback(async()=>{if(pending.current)return;pending.current=true;const abort=new AbortController();controller.current=abort;const timer=setTimeout(()=>abort.abort(),15000);try{const response=await fetch('/api/entry-status',{cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('entry_unavailable');setResult(await response.json() as EntryResult);}catch{if(controller.current===abort)setResult({state:'unavailable'});}finally{clearTimeout(timer);if(controller.current===abort){pending.current=false;setBusy(false);}}},[]);
+ useEffect(()=>{const timer=setTimeout(()=>void check(),0);return()=>{clearTimeout(timer);controller.current?.abort();controller.current=null;pending.current=false;};},[check]);
  useEffect(()=>{const resume=()=>{if(document.visibilityState==='visible')void check();};window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);return()=>{window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume);};},[check]);
- const state=busy?'checking-access':result.state;
+ const state=busy && result.state!=='connected'?'checking-access':result.state;
  useEffect(()=>{if(state==='connected'&&!children)window.location.replace(target==='/entry'?'/':target);},[state,children,target]);
  if(state==='connected'&&children)return <>{children}</>;
  const login=()=>window.location.assign('/auth/login?returnTo='+encodeURIComponent(target==='/entry'?'/':target));
