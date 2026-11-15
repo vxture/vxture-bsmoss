@@ -47,17 +47,11 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
   return <div data-history-analysis data-history-version={data.version} aria-busy={pending}><fieldset disabled={pending} className="min-w-0"><ShellPageContainer className="site-analysis-page product-page-inset max-w-none gap-lg">
     <InvestigationReturn source="history"/><PageHeading icon={businessAnalysisIcon} title={data.siteName?"\u5355\u7ad9\u7ecf\u8425\u5206\u6790":"\u7ecf\u8425\u5206\u6790"} description={"\u670d\u52a1\u4ea7\u51fa\u3001\u533a\u57df\u5dee\u5f02\u4e0e\u540c\u671f\u53d8\u5316"}
       dataUpdate={data.dataUpdate}
-      actions={<><Button size="xl" asChild variant="outline"><a href={carry(relatedReviewHref(q.query,"month",q.site,q.metric))}>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
-        <Button size="xl" asChild variant="outline"><a href={keep(historyReportHref(q))}>{"\u5386\u53f2\u62a5\u544a"}</a></Button>
-        {q.site&&<Button size="xl" asChild variant="outline"><a href={carry(relatedDossierHref(q.site,q.query))}><Icon name="building" size="sm"/>{"\u7ad9\u5740\u6863\u6848"}</a></Button>}</>}
+      actions={<><Button size="xl" asChild variant="secondary"><a href={carry(relatedReviewHref(q.query,"month",q.site,q.metric))}><Icon name="list-checks" size="sm"/>{"\u573a\u666f\u5e93\u6838\u9a8c\u7ebf\u7d22"}</a></Button>
+        <Button size="xl" asChild variant="secondary"><a href={keep(historyReportHref(q))}><Icon name="file-text" size="sm"/>{"\u5386\u53f2\u62a5\u544a"}</a></Button>
+        {q.site&&<Button size="xl" asChild variant="secondary"><a href={carry(relatedDossierHref(q.site,q.query))}><Icon name="building" size="sm"/>{"\u7ad9\u5740\u6863\u6848"}</a></Button>}</>}
       />
     <section className="site-analysis-toolbar">
-        <nav className="flex flex-wrap items-center gap-xs text-body-small" aria-label={"\u5206\u6790\u5c42\u7ea7"}>
-          <Button size="xl" className="h-control-xl text-body" variant="ghost" onClick={()=>navigate({city:"all",county:"all",site:undefined})}>{data.region.name}</Button>
-          {q.query.cityId!=="all"&&<><Icon name="chevron-right" size="xs"/><Button size="xl" className="h-control-xl text-body" variant="ghost" onClick={()=>navigate({county:"all",site:undefined})}>{data.region.cities.find(c=>c.id===q.query.cityId)?.name}</Button></>}
-          {q.query.countyId!=="all"&&<><Icon name="chevron-right" size="xs"/><Button size="xl" className="h-control-xl text-body" variant="ghost" onClick={()=>navigate({site:undefined})}>{data.region.counties.find(c=>c.id===q.query.countyId)?.name}</Button></>}
-          {data.siteName&&<><Icon name="chevron-right" size="xs"/><span aria-current="page">{data.siteName}</span></>}
-        </nav>
         <form className="site-analysis-filters site-analysis-action-row" aria-label={"\u7ecf\u8425\u5206\u6790\u6761\u4ef6"} onSubmit={e=>{e.preventDefault();navigate({range:"custom",from,to});}}>
           <AnalysisSummary items={metrics.map(m=>({key:m.value,label:m.label,icon:m.value==="bytes"?"arrows-down-up":m.value==="voiceSeconds"?"phone":"chat-circle",value:metricValue(m.value),unit:m.value==="bytes"?"TiB":m.value==="voiceSeconds"?"\u4e07\u5206\u949f":"\u4e07\u6761",description:"\u8f83\u4e0a\u5e74\u540c\u671f "+changeText(historyChange(data.totals,data.previous,m.value,q.window.days,previousDays).rate)}))} note={"\u8986\u76d6 "+n(data.physicalSites)+" \u7ad9 \u00b7 "+n(data.observedSiteDays)+" \u6709\u6548\u7ad9\u65e5"}/>
           <div className="site-analysis-time-tools">
@@ -71,7 +65,7 @@ export default function HistoryWorkspace({data}:{data:HistoryModel}) {
             <Button size="xl" type="submit" disabled={pending}>{"\u5e94\u7528"}</Button></>}
 
           <Button size="icon-xl" type="button" variant="ghost" aria-label={"\u7ad9\u7fa4\u7b5b\u9009"+(filterCount?" \u00b7 "+filterCount:"")} title={"\u7ad9\u7fa4\u7b5b\u9009"+(filterCount?" \u00b7 "+filterCount:"")} aria-expanded={filters} aria-controls="history-cohort-filters" onClick={()=>setFilters(value=>!value)}><Icon name="filter" size="sm"/></Button>
-          <ResetButton variant="outline" label={"\u91cd\u7f6e\u5206\u6790\u5468\u671f\u4e0e\u7b5b\u9009"} onClick={()=>{setPage(1);navigate({range:'12m',month:undefined,from:undefined,to:undefined,operator:"all",scene:"all",siteType:"all",sharing:"all",band:"all",sort:"total"});}}/>
+          <ResetButton variant="secondary" label={"\u91cd\u7f6e\u5206\u6790\u5468\u671f\u4e0e\u7b5b\u9009"} onClick={()=>{setPage(1);navigate({range:'12m',month:undefined,from:undefined,to:undefined,operator:"all",scene:"all",siteType:"all",sharing:"all",band:"all",sort:"total"});}}/>
           </div>
         </form>
         <Collapsible open={filters} onOpenChange={setFilters}><CollapsibleContent id="history-cohort-filters"><div className="site-analysis-filters site-analysis-action-row">
