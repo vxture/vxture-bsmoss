@@ -1,3 +1,5 @@
+import {pageMetadata} from '../portal/page-metadata';
+export const metadata=pageMetadata('/settings');
 import type { ReactNode } from "react";
 import ProductFrame from "../portal/header";
 

@@ -58,7 +58,7 @@ export default function ContributionBoard({model:m,controls,onChange}:{model:Jud
   </ul>
  </div>;
  return <section className="contribution-section" aria-label={'\u53d8\u5316\u8d21\u732e\u5206\u6790'}>
-  <div className="judgment-tools site-analysis-action-row"><SegmentedControl size="md" ariaLabel={'\u8d21\u732e\u5206\u6790\u7ef4\u5ea6'} value={dimension} onChange={dimension=>onChange({dimension})} items={[{value:'operators',label:'\u8fd0\u8425\u5546'},{value:'regions',label:'\u533a\u57df'},{value:'sites',label:'\u7ad9\u5740'}]}/><div className="judgment-tool-actions">{controls}</div></div>
+  <div className="judgment-tools site-analysis-action-row"><SegmentedControl className="h-control-xl" size="md" ariaLabel={'\u8d21\u732e\u5206\u6790\u7ef4\u5ea6'} value={dimension} onChange={dimension=>onChange({dimension})} items={[{value:'operators',label:'\u8fd0\u8425\u5546'},{value:'regions',label:'\u533a\u57df'},{value:'sites',label:'\u7ad9\u5740'}]}/><div className="judgment-tool-actions">{controls}</div></div>
   {dimension==='sites'?<div className="contribution-sites">
    <div className="contribution-list-summary text-body-small text-muted-foreground"><span>{metric?.name+' \u00b7 '+(analysis.revision?'\u4fee\u8ba2\u5dee\u5f02':'\u7ad9\u5740\u53d8\u5316\u660e\u7ec6')}</span><span>{'\u672c\u671f '+quantities(analysis.total.current)+' / \u57fa\u671f '+quantities(analysis.total.previous)+' '+(metric?.unit??'')}</span></div>
    {empty??<div className="judgment-table" onClick={configurationRowClick(rows,drill)}><DataTable rows={rows} rowKey={r=>r.id} columns={[

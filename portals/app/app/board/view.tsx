@@ -86,7 +86,7 @@ export default function DecisionBoard({ demo }: { demo: BoardDemo }) {
           <PanelCard title={(selectedRegion) + "\u7ad9\u7f51\u6001\u52bf"} icon="map-pin"
             description={themes.find(item => item.value === theme)!.label + " \u00b7 " + context}
             className="min-w-0">
-            <div className="flex justify-end pb-md"><SegmentedControl items={themes} value={theme} onChange={setTheme} size="sm" ariaLabel={"\u51b3\u7b56\u5206\u6790\u4e13\u9898"} /></div>
+            <div className="flex justify-end pb-md"><SegmentedControl className="h-control-xl" items={themes} value={theme} onChange={setTheme} size="sm" ariaLabel={"\u51b3\u7b56\u5206\u6790\u4e13\u9898"} /></div>
             <div className="decision-map relative overflow-hidden rounded-md"><NetworkMap demo={demo} theme={theme}
               onPick={id => { setPlaying(false); window.open(scope("&site=" + encodeURIComponent(id)), "_blank", "noopener,noreferrer"); }} /></div>
             <div className="flex flex-wrap items-center justify-between gap-sm pt-md text-body-small text-muted-foreground">

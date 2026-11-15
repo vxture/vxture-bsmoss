@@ -26,7 +26,7 @@ export default function OverviewDisplayEditor() {
     [items[index], items[target]] = [items[target], items[index]]; update(items);
   }
   return <section className="flex min-w-0 flex-col gap-md text-body" data-overview-display-settings aria-busy={!ready}>
-    <div className="site-analysis-action-row"><div className="site-analysis-occupancy-scroll"><SegmentedControl size="md" className="site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:3]" ariaLabel={"\u663e\u793a\u6307\u6807\u7c7b\u522b"} value={category} onChange={setCategory} items={CATEGORIES.map(value => ({value, label: categoryNames[value]}))}/></div></div>
+    <div className="site-analysis-action-row"><div className="site-analysis-occupancy-scroll"><SegmentedControl size="md" className="h-control-xl site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:3]" ariaLabel={"\u663e\u793a\u6307\u6807\u7c7b\u522b"} value={category} onChange={setCategory} items={CATEGORIES.map(value => ({value, label: categoryNames[value]}))}/></div></div>
     <fieldset className="min-w-0" disabled={!ready}>
       <legend className="text-body-small text-muted-foreground">{categoryNames[category]+" \u00b7 \u5df2\u9009 "+selections.length+" / 4"}</legend>
       <div className="grid gap-x-lg md:grid-cols-2 xl:grid-cols-3">{ordered.map(def => {
