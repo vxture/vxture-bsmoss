@@ -42,7 +42,7 @@ async function locked(client,id,run) {
   const result=await run();await client.query('COMMIT');return result;
  }catch(error){await client.query('ROLLBACK');throw error;}
 }
-async function verify(client,bundle) {
+export async function verify(client,bundle) {
  const result=await client.query('SELECT count(*)::text AS count,coalesce(sum(quantity),0)::text AS total FROM bsmoss_demo.daily_fact WHERE dataset_id=$1',[bundle.id]);
  let total=0n;for(let i=0;i<bundle.daily.length;i+=4)total+=BigInt(bundle.daily.readUInt32LE(i));
  if(result.rows[0].count!==String(bundle.daily.length/4)||result.rows[0].total!==String(total))throw Error('demo_fact_reconciliation_failed');

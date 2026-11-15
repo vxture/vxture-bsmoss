@@ -8,8 +8,14 @@ import {gzipSync} from 'node:zlib';
 import pg from 'pg';
 import {inspectBundle,seedDemo,rebuildDemo,resetDemo,recomputeDemoRollups} from './demo-data.mjs';
 import {readPgDemoArtifact,readPgDemoPeriods} from '../../portals/app/app/domains/tower-service/demo-artifact.ts';
+import {ownerConfiguration,run} from './demo-entry.mjs';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
+test('maintenance owner configuration preserves escaped credential values and fixes the DB destination',()=>{
+ const config=ownerConfiguration(['POSTGRES_USER=owner','POSTGRES_DB=bsmoss','POSTGRES_PASSWORD=a=b','PGHOST=external']);
+ assert.equal(config.host,'db');assert.equal(config.password,'a=b');
+ assert.throws(()=>ownerConfiguration([]),/owner_configuration_missing/);
+});
 async function fixture(root){
  const path='tower-demo-history-v1-'+'a'.repeat(64)+'.json.gz';
  const daily=Buffer.alloc(24);[1,2,3,4,5,6].forEach((n,i)=>daily.writeUInt32LE(n,i*4));
@@ -57,6 +63,7 @@ await test('demo lifecycle on an isolated local PostgreSQL database', {timeout:1
    assert.deepEqual(await readPgDemoArtifact(db,bundle.id,'pages/test.json.gz'),bundle.files.find(f=>f.path==='pages/test.json.gz').bytes);
    assert.deepEqual(await readPgDemoPeriods(db,bundle.id,['test:day']),bundle.rollups);
    assert.deepEqual(await readPgDemoPeriods(db,bundle.id,['other:day']),[]);
+   assert.equal((await run('verify',{connectionString:url.href},root)).status,'verified');
    await assert.rejects(readPgDemoArtifact(db,bundle.id,'missing'),{code:'ENOENT'});
    await assert.rejects(readPgDemoArtifact(db,'b'.repeat(64),'pages/test.json.gz'),/demo_dataset_not_ready/);
    await db.query('BEGIN');await db.query("UPDATE bsmoss_demo.artifact SET content='AAAA'");

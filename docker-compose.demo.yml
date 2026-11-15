@@ -1,0 +1,14 @@
+services:
+  demo-maintenance:
+    image: ${IMAGE_REF:?set an immutable image digest}
+    entrypoint: [node, /app/maintenance/demo.cjs]
+    environment:
+      NODE_ENV: production
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${DEMO_MEM_LIMIT:-3g}
+    cpus: ${DEMO_CPUS:-2}
+    restart: "no"

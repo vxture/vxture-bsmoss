@@ -29,4 +29,8 @@
 
 ## 发布状态
 
-此文对应数据维护分支的实现，尚未应用 worker02 数据库结构，也没有切换线上存储。平台代码、平台配置和平台部署不在本次范围。
+worker02 使用 BS-MOSS 自身的 `demo-maintenance` 工作流，固定同一镜像摘要，依次执行 `schema`、`seed`、`rollup`。现有库的 `schema` 阶段只应用演示 schema，不重跑空库初始化；重复执行只核对既有演示表。`rollup` 阶段同时校验事实、读模型摘要和汇总数量。
+
+三项完成后执行 `activate`：再次核验数据，用应用只读账号预检，再更新本产品的 `BSMOSS_DEMO_STORAGE`／`BSMOSS_DEMO_DATASET` 并替换应用容器。失败自动恢复原应用配置和镜像；成功后原配置保存在 worker02 的私有 `etc/app.env.previous-demo`，不回传聊天或 GitHub。后台 workers 必须保持 off，未在此流程启用。
+
+维护容器来自经过扫描的同一应用镜像，不公开端口、不挂载 Docker socket，也不持有平台凭据。数据库 owner 配置仅在 worker02 内通过标准输入传递；应用始终只使用运行账号。平台代码、平台配置和平台部署不在本次范围。

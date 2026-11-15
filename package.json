@@ -28,7 +28,8 @@
     "db:demo:reset": "node scripts/database/demo-data.mjs reset",
     "db:demo:schema": "node scripts/database/demo-schema.mjs",
     "test:demo-db": "node --import tsx --test scripts/database/demo-data.test.mjs",
-    "db:demo:prepare": "node scripts/prepare-demo.mjs"
+    "db:demo:prepare": "node scripts/prepare-demo.mjs",
+    "build:demo-maintenance": "node scripts/build-demo-maintenance.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
