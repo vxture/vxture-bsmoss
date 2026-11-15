@@ -1,8 +1,9 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {buildHistoryReport,assertHistorySnapshot} from '../../../analysis/history-report-service';
 import {renderHistoryReport} from '../../../analysis/history-report-html';
 export const dynamic='force-dynamic';
 export function GET(request:Request){
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return new Response(null,{status:404});
+ if(!demoDataEnabled())return new Response(null,{status:404});
  if(request.url.length>6000)return Response.json({error:'request_too_large'},{status:413});
  try{
   const p=new URL(request.url).searchParams;

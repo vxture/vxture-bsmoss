@@ -1,3 +1,5 @@
+import { authenticatedDemoEnabled } from "../../lib/demo-mode";
+import { defaultVerificationConfiguration } from "./parameters";
 import {cookies} from "next/headers";
 import {getOidcConfig} from "../../auth/lib/config";
 import {verificationParametersForSession} from "../access/runtime";
@@ -8,8 +10,9 @@ import {verificationCommand} from "./parameters";
 const reply=(status:number,error:string)=>privateReportResponse(Response.json({error},{status}));
 export function verificationPreviewAllowed(){return process.env.BSMOSS_PRODUCT_PREVIEW==="on"&&!getOidcConfig().enabled&&["127.0.0.1","localhost"].includes(process.env.HOSTNAME_BIND??"127.0.0.1");}
 async function session(){const cfg=getOidcConfig(),sid=(await cookies()).get(cfg.cookieName)?.value;if(!cfg.enabled||!sid)throw Error("identity_required");return verificationParametersForSession(sid);}
-export async function loadVerificationConfiguration(){try{return await (verificationPreviewAllowed()?verificationParameterStore("preview").read():(await session()).read());}catch{throw Error("verification_configuration_unavailable");}}
+export async function loadVerificationConfiguration(){try{if(authenticatedDemoEnabled())return defaultVerificationConfiguration();return await (verificationPreviewAllowed()?verificationParameterStore("preview").read():(await session()).read());}catch{throw Error("verification_configuration_unavailable");}}
 export async function verificationParameterRead(management=false){try{
+ if(authenticatedDemoEnabled()){const configuration=defaultVerificationConfiguration();return privateReportResponse(Response.json(management?{configuration,canEdit:false}:configuration));}
  if(verificationPreviewAllowed()){const configuration=await verificationParameterStore("preview").read();return privateReportResponse(Response.json(management?{configuration,canEdit:true}:configuration));}
  const service=await session(),configuration=await service.read(management);return privateReportResponse(Response.json(management?{configuration,canEdit:await service.canEdit()}:configuration));
  }catch(error){return parameterError(error);}}

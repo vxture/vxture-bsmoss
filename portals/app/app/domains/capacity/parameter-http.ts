@@ -1,3 +1,5 @@
+import { authenticatedDemoEnabled } from "../../lib/demo-mode";
+import { defaultCapacityConfiguration } from "./parameters";
 import {cookies} from "next/headers";
 import {getOidcConfig} from "../../auth/lib/config";
 import {capacityParametersForSession} from "../access/runtime";
@@ -8,8 +10,9 @@ import {capacityCommand} from "./parameters";
 const reply=(status:number,error:string)=>privateReportResponse(Response.json({error},{status}));
 export function capacityPreviewAllowed(){return process.env.BSMOSS_PRODUCT_PREVIEW==="on"&&!getOidcConfig().enabled&&["127.0.0.1","localhost"].includes(process.env.HOSTNAME_BIND??"127.0.0.1");}
 async function session(){const cfg=getOidcConfig(),sid=(await cookies()).get(cfg.cookieName)?.value;if(!cfg.enabled||!sid)throw Error("identity_required");return capacityParametersForSession(sid);}
-export async function loadCapacityConfiguration(){try{return await (capacityPreviewAllowed()?capacityParameterStore("preview").read():(await session()).read());}catch{throw Error("capacity_configuration_unavailable");}}
+export async function loadCapacityConfiguration(){try{if(authenticatedDemoEnabled())return defaultCapacityConfiguration();return await (capacityPreviewAllowed()?capacityParameterStore("preview").read():(await session()).read());}catch{throw Error("capacity_configuration_unavailable");}}
 export async function capacityParameterRead(management=false){try{
+ if(authenticatedDemoEnabled()){const configuration=defaultCapacityConfiguration();return privateReportResponse(Response.json(management?{configuration,canEdit:false}:configuration));}
  if(capacityPreviewAllowed()){const configuration=await capacityParameterStore("preview").read();return privateReportResponse(Response.json(management?{configuration,canEdit:true}:configuration));}
  const service=await session(),configuration=await service.read(management);return privateReportResponse(Response.json(management?{configuration,canEdit:await service.canEdit()}:configuration));
  }catch(error){return parameterError(error);}}

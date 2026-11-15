@@ -1,3 +1,4 @@
+import { authenticatedDemoEnabled, demoDataEnabled } from "../../../../lib/demo-mode";
 import {cookies} from 'next/headers';
 import {PREVIEW_COOKIE,previewFoundation,validPreviewSession} from '../../../../domains/tower-service/preview';
 import {privateReportResponse} from '../../../../domains/reports/http';
@@ -8,8 +9,8 @@ import {readTowerPreview} from '../../../../domains/tower-service/history-reader
 export const dynamic='force-dynamic';
 // Text cells are spreadsheet-formula safe, including user-controlled source refs.
 export async function GET(request:Request){
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return privateReportResponse(Response.json({error:'NOT_AVAILABLE'},{status:404}));
- const session=(await cookies()).get(PREVIEW_COOKIE)?.value;if(!validPreviewSession(session))return privateReportResponse(Response.json({error:'SESSION_REQUIRED'},{status:401}));
+ if(!demoDataEnabled())return privateReportResponse(Response.json({error:'NOT_AVAILABLE'},{status:404}));
+ const session=(await cookies()).get(PREVIEW_COOKIE)?.value;if(!authenticatedDemoEnabled()&&!validPreviewSession(session))return privateReportResponse(Response.json({error:'SESSION_REQUIRED'},{status:401}));
  try{const input:Record<string,string|string[]>={};for(const [key,value] of new URL(request.url).searchParams){if(key in input)input[key]=[...(Array.isArray(input[key])?input[key]:[input[key]]) as string[],value];else input[key]=value;}
   const result=await readTowerPreview(input,session),model=evidenceModel(result.input,result.versions,result.access.operators,true);
   const headers=['snapshot','basis','site','customer','service','meter','from','to','quantity','unit','boundary','method','state','agreement','rule','binding','source','tenant_month','tenant_snapshot','tenant_count','anchor','sharing_rule','factor_bps','source_kind','service_item','configuration_object','stock_as_of','source_version'];

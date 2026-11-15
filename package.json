@@ -19,7 +19,7 @@
     "build": "pnpm --filter @bsmoss/app build",
     "build:worker": "node scripts/build-worker.mjs",
     "test:worker-host": "node --test scripts/worker-host-smoke.test.mjs scripts/worker-delivery.test.mjs",
-    "test:portal": "node --test scripts/portal-smoke.test.mjs",
+    "test:portal": "node --import tsx --test scripts/demo-auth.test.mjs && node --test scripts/portal-smoke.test.mjs",
     "lint:sca": "node scripts/guardrails/check-sca-consistency.mjs --strict",
     "lint:delivery": "node scripts/guardrails/check-delivery.mjs"
   },

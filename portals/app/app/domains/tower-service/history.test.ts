@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,stat,rm} from 'node:fs/promises';
+import {mkdtemp,stat,rm,copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join,basename} from 'node:path';
 import {previewInventory,previewAccess} from './preview';
 import {generateHistory,historyAggregate,historyScope,hourlyShares,relationUsage,materializeHistory,buildHistoryRollups} from './history';
 import {readDemoHistory} from './history-store';
@@ -144,4 +144,18 @@ test('period models find adjacent and year baselines from real generated interva
 });
 test('installer is repeatable, read-only verification needs installed files and preserves bytes',async()=>{
  const root=await mkdtemp(join(tmpdir(),'tower-history-'));try{await assert.rejects(readDemoHistory(root,base),/not_installed/);const first=await readDemoHistory(root,base,true),before=await stat(first.path),second=await readDemoHistory(root,base,true);assert.equal(first.digest,second.digest);assert.equal((await stat(first.path)).mtimeMs,before.mtimeMs);assert.equal(second.history.daily.length,h.daily.length);assert.ok(second.history.rollups!.length>0);assert.ok(first.bytes<2000000);}finally{await rm(root,{recursive:true,force:true});}
+});
+test('detail facts load without a rollup file, while trend reads require it',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'tower-history-facts-'));
+ try{
+  const installed=await readDemoHistory(root,base,true);
+  const detailRoot=await mkdtemp(join(tmpdir(),'tower-history-detail-'));
+  try{
+   await copyFile(installed.path,join(detailRoot,basename(installed.path)));
+   const detail=await readDemoHistory(detailRoot,base,false,false);
+   assert.equal(detail.history.rollups,undefined);
+   assert.equal(detail.digest,installed.digest);
+   await assert.rejects(readDemoHistory(detailRoot,base),/rollups_not_installed/);
+  }finally{await rm(detailRoot,{recursive:true,force:true});}
+ }finally{await rm(root,{recursive:true,force:true});}
 });

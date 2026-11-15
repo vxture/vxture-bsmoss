@@ -12,6 +12,7 @@ services:
       PORT: "3000"
       HOSTNAME: 0.0.0.0
       BSMOSS_PRODUCT_PREVIEW: "off"
+      BSMOSS_DATA_MODE: "demo"
     ports: ["${APP_BIND_HOST:-127.0.0.1}:${APP_PUBLISH_PORT:?set registered host port}:3000"]
     depends_on:
       db: { condition: service_healthy }

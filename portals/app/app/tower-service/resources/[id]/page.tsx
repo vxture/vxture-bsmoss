@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {cookies} from 'next/headers';
 import {notFound} from 'next/navigation';
 import ProductFrame from '../../../portal/header';
@@ -7,7 +8,7 @@ import Detail from './site-detail';
 import {readTowerPreview} from '../../../domains/tower-service/history-reader';
 export const dynamic='force-dynamic';
 export default async function Page({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')notFound();
+ if(!demoDataEnabled())notFound();
  const session=(await cookies()).get(PREVIEW_COOKIE)?.value;
  try{const result=await readTowerPreview(await searchParams,session),input=result.input,versions=result.versions,model=baselineModel(input,versions),id=(await params).id,inventory=versions.find(s=>s.id===model.context.snapshotId)!.inventory;
   const row=inventory.rows.find(r=>r.id===id&&(model.context.city==='all'||r.city===model.context.city)&&(model.context.county==='all'||r.county===model.context.county)&&(model.context.operator==='all'||r.allOperators.includes(model.context.operator)));if(!row)notFound();

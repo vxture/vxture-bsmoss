@@ -1,10 +1,11 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {queryDailyReport,queryCalendarReport} from '../../../domains/map-demo/service.ts';
 import {renderDailyReport} from '../../../domains/map-demo/report-html.ts';
 import {renderCalendarReport} from '../../../domains/map-demo/period-report-html.ts';
 import {parseReportPeriod} from '../../../domains/map-demo/period-rules.ts';
 export const dynamic='force-dynamic';
 export function GET(request:Request) {
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return new Response(null,{status:404});
+ if(!demoDataEnabled())return new Response(null,{status:404});
  if(request.url.length>3000)return Response.json({error:'request_too_large'},{status:413});
  try {
   const params=new URL(request.url).searchParams,format=params.get('format')??'json';

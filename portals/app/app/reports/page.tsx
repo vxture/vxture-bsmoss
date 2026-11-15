@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../lib/demo-mode";
 import { Button } from "@vxture/design-system";
 import {readInvestigation} from "../portal/investigation-server";
 import {InvestigationProvider} from "../portal/investigation";
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params=await searchParams;
   if(params.view==='tower'){
-    const preview=process.env.BSMOSS_PRODUCT_PREVIEW==='on';
+    const preview=demoDataEnabled();
     if(preview){try{
       const input=await rememberedRegionInput({...params,view:'reports'}),session=(await cookies()).get(PREVIEW_COOKIE)?.value;
       const result=await readTowerPreview(input,session),m=extendHistoryCatalog(judgmentModel(result.input,result.versions,result.access.operators),result);
@@ -36,7 +37,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // Platform result links always resolve the exact server report revision,
   // including when the browser-local preview library is enabled.
   const platformResult=params.report!==undefined||params.revision!==undefined;
-  if(process.env.BSMOSS_PRODUCT_PREVIEW==='on'&&!platformResult){
+  if(demoDataEnabled()&&!platformResult){
     let query,journey;
     try{const extracted=readInvestigation(await searchParams);journey=extracted.journey;query=localReportQuery(await rememberedRegionInput(extracted.input));parseMapQuery(new URLSearchParams({cityId:query.city,countyId:query.county,operator:query.operator}));}
     catch{return <ProductFrame active="reports" preview><div role="alert"><WorkspaceAvailability actions={<Button asChild variant="outline"><a href="/reports">{"\u62a5\u544a\u4e2d\u5fc3"}</a></Button>} title={"\u62a5\u544a\u4e2d\u5fc3"} stateTitle={"\u62a5\u544a\u6761\u4ef6\u65e0\u6548"} message={"\u8bf7\u68c0\u67e5\u533a\u57df\u3001\u8fd0\u8425\u5546\u6216\u6587\u4ef6\u7248\u672c\u6761\u4ef6\u3002"}/></div></ProductFrame>;}

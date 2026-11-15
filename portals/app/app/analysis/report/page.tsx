@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import {readInvestigation} from '../../portal/investigation-server';
 import {InvestigationProvider} from '../../portal/investigation';
 import {keepInvestigation} from '../../portal/investigation-links';
@@ -10,7 +11,7 @@ import {buildHistoryReport,assertHistorySnapshot} from "../history-report-servic
 import HistoryReportView from "./view";
 export const dynamic="force-dynamic";
 export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=="on")notFound();
+ if(!demoDataEnabled())notFound();
  let report,pinned=false,journey;
  try{
   const extracted=readInvestigation(await searchParams);journey=extracted.journey;const {snapshot,...input}=extracted.input;report=buildHistoryReport(await rememberedRegionInput(input));

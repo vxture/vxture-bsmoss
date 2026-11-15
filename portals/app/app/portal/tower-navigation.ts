@@ -13,7 +13,7 @@ const text:Record<string,{label:string;description:string;icon:IconName;domain:P
  resources:{label:'\u8d44\u6e90\u5e95\u6570',description:'\u7ad9\u5740\u8bbe\u65bd\u4e0e\u79df\u6237',icon:'building',domain:'business'},
  services:{label:'\u670d\u52a1\u91cf\u5316',description:'\u670d\u52a1\u6570\u91cf\u3001\u7528\u91cf\u4e0e\u4f9d\u636e',icon:'users',domain:'business'},
  evidence:{label:'\u8ba1\u91cf\u4f9d\u636e',description:'\u7528\u91cf\u8bb0\u5f55\u4e0e\u53e3\u5f84',icon:'list-checks',domain:'business'},
- judgment:{label:'\u5206\u6790\u7814\u5224',description:'\u8fd0\u884c\u3001\u8fd0\u8425\u4e0e\u7ecf\u8425\u4e13\u9898\u5206\u6790',icon:'chart-line-up',domain:'business'},
+ judgment:{label:'\u667a\u80fd\u7814\u5224',description:'\u8fd0\u884c\u3001\u8fd0\u8425\u4e0e\u7ecf\u8425\u4e13\u9898\u5206\u6790',icon:'chart-line-up',domain:'business'},
  reports:{label:'\u62a5\u544a\u4e2d\u5fc3',description:'\u751f\u6210\u3001\u5f52\u6863\u4e0e\u4efb\u52a1',icon:'file-text',domain:'business'},
  sync:{label:'\u6570\u636e\u540c\u6b65',description:'\u8ba1\u5212\u3001\u7248\u672c\u4e0e\u6821\u9a8c',icon:'database',domain:'management'},
  rules:{label:'\u89c4\u5219\u914d\u7f6e',description:'\u534f\u8bae\u3001\u9608\u503c\u4e0e\u8303\u56f4',icon:'faders',domain:'management'},
@@ -27,4 +27,4 @@ export const towerDataNavigation={id:'data-updates',path:'/operations/data-updat
 export function towerEntry(path:string){if(path===towerDataNavigation.path||path.startsWith(towerDataNavigation.path+'/')||path==='/operations/aggregation'||path.startsWith('/operations/aggregation/'))return towerDataNavigation;const module=businessModuleForPath(path);return towerNavigation.find(t=>module?t.id===module:path===t.path||path.startsWith(t.path+'/'));}
 export function towerDomain(path:string,active:PortalPage){return towerEntry(path)?.domain??portalDomain(active);}
 export const legacyNavigationTitle='\u539f\u6709\u529f\u80fd\uff08\u5f85\u8fc1\u79fb\uff09';
-export const towerBrand={name:'\u5854\u670d\u7814\u5224',fullName:'\u94c1\u5854\u8fd0\u8425\u5546\u670d\u52a1\u91cf\u5316\u4e0e\u7814\u5224\u5e73\u53f0'};
+export const towerBrand={name:'\u5854\u670d\u667a\u5224',fullName:'\u94c1\u5854\u8fd0\u8425\u670d\u52a1\u91cf\u5316\u4e0e\u667a\u80fd\u7814\u5224\u5e73\u53f0'};

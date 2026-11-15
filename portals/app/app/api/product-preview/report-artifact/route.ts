@@ -1,7 +1,8 @@
+import { demoDataEnabled } from "../../../lib/demo-mode";
 import {reportArtifact} from '../../../reports/local-service';
 export const dynamic='force-dynamic';
 export function GET(request:Request){
- if(process.env.BSMOSS_PRODUCT_PREVIEW!=='on')return new Response(null,{status:404});
+ if(!demoDataEnabled())return new Response(null,{status:404});
  const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
  if(request.url.length>8192)return Response.json({error:'request_too_large'},{status:413,headers});
  try{

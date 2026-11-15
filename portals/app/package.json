@@ -28,7 +28,7 @@
   },
   "scripts": {
     "dev": "node ../../scripts/prepare-map-assets.mjs && node ../../scripts/portal.mjs dev",
-    "build": "node ../../scripts/prepare-map-assets.mjs && node --import tsx ../../scripts/prepare-overview-reports.mjs && node --import tsx ../../scripts/prepare-history.mjs && next build",
+    "build": "node ../../scripts/prepare-map-assets.mjs && node --import tsx ../../scripts/seed-tower-history.ts && node --import tsx ../../scripts/prepare-home.mjs && node --import tsx ../../scripts/prepare-overview-reports.mjs && node --import tsx ../../scripts/prepare-history.mjs && node --import tsx ../../scripts/prepare-page-models.mjs && node --import tsx ../../scripts/prepare-published-demo.mjs && node --import tsx ../../scripts/prepare-monitoring.mjs && next build",
     "start": "node ../../scripts/portal.mjs start",
     "type-check": "tsc --noEmit"
   },

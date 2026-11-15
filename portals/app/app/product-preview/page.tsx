@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../lib/demo-mode";
 import {readInvestigation} from '../portal/investigation-server';
 import {InvestigationProvider} from '../portal/investigation';
 import { notFound } from "next/navigation";
@@ -8,7 +9,7 @@ import { inheritRegionInput } from "../portal/region-scope";
 import { normalizeRegion } from "../portal/region-selection";
 export const dynamic = "force-dynamic";
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (process.env.BSMOSS_PRODUCT_PREVIEW !== "on") notFound();
+  if (!demoDataEnabled()) notFound();
   const initial=initialWorkbench();
   const { preference } = await getRegionPreference();
   let extracted;try{extracted=readInvestigation(await searchParams);}catch{notFound();}

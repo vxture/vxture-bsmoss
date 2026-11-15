@@ -58,7 +58,7 @@ export default function EnergyWorkspace({model:m}:{model:EnergyModel}){
   ['\u5206\u8868\u5f85\u786e\u8ba4',amount(detail.pendingMeasured)+' kWh'],['\u5206\u644a\u5f85\u786e\u8ba4',amount(detail.pendingAllocated)+' kWh']
  ]:[];
  return <ShellPageContainer className="site-analysis-page product-page-inset gap-lg energy-workspace">
-  <PageHeading title={'\u5206\u6790\u7814\u5224'} icon="chart-line-up" description={'\u56f4\u7ed5\u7ad9\u5740\u8fd0\u884c\u3001\u8fd0\u8425\u4e0e\u7ecf\u8425\u5f00\u5c55\u4e13\u9898\u5206\u6790'}
+  <PageHeading title={'\u667a\u80fd\u7814\u5224'} icon="chart-line-up" description={'\u56f4\u7ed5\u7ad9\u5740\u8fd0\u884c\u3001\u8fd0\u8425\u4e0e\u7ecf\u8425\u5f00\u5c55\u4e13\u9898\u5206\u6790'}
    context={<><span className="text-body-small text-muted-foreground">{'\u6570\u636e\u622a\u81f3 '}<time dateTime={m.snapshot.dataThrough}>{configurationTime(m.snapshot.dataThrough)}</time></span></>} actions={<AnalysisNavigation context={m.context} active="energy" pending={busy}/>}/>
   <section className="site-analysis-toolbar judgment-analysis-row" aria-busy={busy}>
    <div className="judgment-analysis-context"><SectionHeading title={'\u80fd\u8017\u5206\u6790'} iconVisual={<LightningIcon aria-hidden="true" className="size-icon-xl text-muted-foreground shrink-0"/>}/>

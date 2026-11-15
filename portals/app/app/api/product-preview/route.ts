@@ -1,7 +1,8 @@
+import { demoDataEnabled } from "../../lib/demo-mode";
 import { NextResponse } from "next/server";
 import { buildPreview } from "../../domains/preview/model.ts";
 export async function POST(request: Request) {
-  if (process.env.BSMOSS_PRODUCT_PREVIEW !== "on")
+  if (!demoDataEnabled())
     return new Response(null, { status: 404 });
   try {
     const text = await request.text();

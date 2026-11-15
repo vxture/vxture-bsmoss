@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../lib/demo-mode";
 import { cache } from "react";
 import { hkdfSync } from "node:crypto";
 import { cookies } from "next/headers";
@@ -14,7 +15,7 @@ export const getRegionPreference = cache(async () => {
   // Domain-separated identity namespace only; no password or token is an input.
   const namespace = active ? Buffer.from(hkdfSync("sha256", JSON.stringify([active.sub, active.activeOrg, active.activeWorkspace]), "bsmoss-region-v1", "preference-cookie-namespace", 12)).toString("hex") : "preview";
   // Formal catalogues must come from the authorized read model, never fixtures.
-  const source = process.env.BSMOSS_PRODUCT_PREVIEW === "on" ? (await import("../domains/map-demo/resources")).DEMO_REGION : null;
+  const source = demoDataEnabled() ? (await import("../domains/map-demo/resources")).DEMO_REGION : null;
   const catalog = source ? { id: source.id, name: source.name, cities: source.cities.map(({ id, name }) => ({ id, name })), counties: source.counties.map(({ id, cityId, name }) => ({ id, cityId, name })) } : null;
   const cookieName = "bsmoss-region-v1-" + namespace;
   const preference: RegionPreference = { catalog, cookieName, selection: catalog ? decodeRegionPreference(catalog, jar.get(cookieName)?.value) ?? PROVINCE_SCOPE : PROVINCE_SCOPE };

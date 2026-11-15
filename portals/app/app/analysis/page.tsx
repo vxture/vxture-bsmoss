@@ -1,3 +1,4 @@
+import { demoDataEnabled } from "../lib/demo-mode";
 import ResetButton from "../portal/reset-button";
 import {readInvestigation} from '../portal/investigation-server';
 import {InvestigationProvider} from '../portal/investigation';
@@ -16,7 +17,7 @@ import {businessAnalysisIcon} from "../portal/business-icons";
 
 export const dynamic = "force-dynamic";
 export default async function AnalysisPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (process.env.BSMOSS_PRODUCT_PREVIEW === "on") {
+  if (demoDataEnabled()) {
     let data,journey;
     try { const extracted=readInvestigation(await searchParams);journey=extracted.journey;data = historyModel(await rememberedRegionInput(extracted.input)); }
     catch {
