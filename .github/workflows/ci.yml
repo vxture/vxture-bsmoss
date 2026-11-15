@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
       - name: Cache osv-scanner binary
         id: osv-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/osv-bin
           key: osv-scanner-${{ env.OSV_SCANNER_VERSION }}-linux-amd64
