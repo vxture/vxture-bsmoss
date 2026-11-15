@@ -53,7 +53,7 @@ export default function CapacityPanel({data,q,region,pending,navigate}:{data:Cap
    </DetailList>
   </PanelCard>
   <PanelCard title={'\u8d21\u732e\u5206\u6790'} icon="city" className="min-w-0" description={view==='regions'?'\u5730\u57df\u4e92\u65a5\u5206\u7ec4 \u00b7 \u6309\u672a\u63a5\u901a\u547c\u53eb\u6570\u964d\u5e8f':'\u670d\u52a1\u5173\u7cfb\u5207\u7247 \u00b7 \u5171\u4eab\u7ad9\u5740\u8de8\u8fd0\u8425\u5546\u4e0d\u76f8\u52a0'}>
-   <div className="flex flex-wrap justify-end gap-sm pb-md"><SegmentedControl ariaLabel={'\u8d21\u732e\u5206\u6790\u89c6\u89d2'} value={view} onChange={setView} items={[{value:'regions',label:'\u533a\u57df',icon:'city'},{value:'operators',label:'\u8fd0\u8425\u5546',icon:'users'}]}/></div>
+   <div className="flex flex-wrap justify-end gap-sm pb-md"><SegmentedControl className="h-control-xl" ariaLabel={'\u8d21\u732e\u5206\u6790\u89c6\u89d2'} value={view} onChange={setView} items={[{value:'regions',label:'\u533a\u57df',icon:'city'},{value:'operators',label:'\u8fd0\u8425\u5546',icon:'users'}]}/></div>
    <DataTable rows={rows} rowKey={r=>r.key} columns={[
     {id:'name',header:view==='regions'?'\u533a\u57df':'\u8fd0\u8425\u5546',cell:r=><Button variant="link" disabled={pending||(view==='regions'&&data.regionLevel==='current')} onClick={()=>drill(r.key)}>{r.name}</Button>},
     {id:'sites',header:'\u7ad9\u5740 / \u5173\u6ce8',cell:r=>n(r.sites)+' / '+n(r.attention)},
@@ -66,7 +66,7 @@ export default function CapacityPanel({data,q,region,pending,navigate}:{data:Cap
    <p className="pt-md text-body-small text-muted-foreground">{'\u8d21\u732e\u5206\u6bcd\u4e3a\u5f53\u524d\u8303\u56f4\u603b\u5360\u7528\u3001\u603b\u672a\u63a5\u901a\u547c\u53eb\uff1b\u5206\u6bcd\u4e3a\u96f6\u65f6\u672a\u77e5\u3002\u6bd4\u7387\u6309\u539f\u59cb\u91cf\u6c47\u603b\uff0c\u4e0d\u5e73\u5747\u5404\u7ad9\u767e\u5206\u6bd4\u3002\u533a\u57df\u4e0e\u8fd0\u8425\u5546\u4e3a\u72ec\u7acb\u5207\u7247\uff0c\u5173\u6ce8\u7ad9\u6570\u4e0d\u53ef\u8de8\u89c6\u89d2\u76f8\u52a0\u3002'}</p>
   </PanelCard>
   <PanelCard title={'24\u5c0f\u65f6\u65f6\u70b9\u8d8b\u52bf'} icon="chart-bar" className="min-w-0" description={'\u540c\u4e00\u7ad9\u5740\u8303\u56f4 \u00b7 \u5404\u65f6\u70b9\u72ec\u7acb\u5224\u5b9a\uff0c\u4e0d\u5f53\u4f5c\u8fde\u7eed\u6545\u969c\u65f6\u957f'}>
-   <div className="flex flex-wrap justify-end gap-sm pb-md"><SegmentedControl ariaLabel={'\u5bb9\u91cf\u8d8b\u52bf\u6307\u6807'} value={metric} onChange={setMetric} items={metricItems}/></div>
+   <div className="flex flex-wrap justify-end gap-sm pb-md"><SegmentedControl className="h-control-xl" ariaLabel={'\u5bb9\u91cf\u8d8b\u52bf\u6307\u6807'} value={metric} onChange={setMetric} items={metricItems}/></div>
    {chart.length?<div className="min-w-0 overflow-x-auto"><BarChart className="min-w-panel-lg" data={chart} labelEvery={4} formatValue={v=>n(v,metric==='attention'?0:1)+(metric==='attention'?' \u5ea7':'%')} peakLabel={'\u5cf0\u503c'} aria-label={'\u5bb9\u91cf\u8d28\u91cf24\u5c0f\u65f6\u8d8b\u52bf'}/></div>:<EmptyState title={'\u8be5\u6307\u6807\u6682\u65e0\u53ef\u8bc4\u4f30\u6837\u672c'}/>}
    {chart.length<24&&<p className="pt-sm text-body-small text-muted-foreground">{'\u65e0\u6709\u6548\u5206\u6bcd\u7684\u65f6\u70b9\u4e0d\u7ed8\u5236\u4e3a\u96f6\u3002'}</p>}
   </PanelCard>

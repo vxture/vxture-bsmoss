@@ -49,7 +49,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
       map=new maplibregl.Map({container:node.current,center:region.center,zoom:5.8,minZoom:3.5,maxZoom:17,trackResize:true,
         attributionControl:false,renderWorldCopies:false,canvasContextAttributes:{antialias:false},
         style:{version:8,glyphs:'/geo/fonts/{fontstack}/{range}.pbf',sources:{
-          carto:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">&copy; OpenStreetMap contributors</a>'},
+          carto:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Tiles &copy; Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, METI, Esri China (Hong Kong), OpenStreetMap contributors'},
           districts:{type:'geojson',data:region.boundaryUrl},
           counties:{type:'geojson',data:{type:'FeatureCollection',features:[]}},
           sites:{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:true,clusterMaxZoom:9,clusterRadius:35,
@@ -100,7 +100,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
         });
       });
       map.on('moveend',report);
-      map.on('error',event=>{if(('sourceId' in event && (event.sourceId==='carto'||event.sourceId==='satellite')) || /basemaps|arcgis|fetch/i.test(event.error.message))setTileOffline(true);});
+      map.on('error',event=>{if(('sourceId' in event && (event.sourceId==='carto'||event.sourceId==='satellite')) || /basemaps|arcgis|fetch/i.test(event.error.message)){setTileOffline(true);const source='sourceId' in event?event.sourceId:undefined;if(source==='carto'||source==='satellite'){try{map.setLayoutProperty(source,'visibility','none');}catch{/* Preserve local overlays when a remote basemap fails. */}}}});
       map.on('click','site-points',event=>{const id=event.features?.[0]?.properties?.id;if(typeof id==='string')pickRef.current(id);});
       map.on('click','comparison-ring',event=>{const id=event.features?.[0]?.properties?.id;if(typeof id==='string')pickRef.current(id);});
       map.on('click','clusters',async event=>{

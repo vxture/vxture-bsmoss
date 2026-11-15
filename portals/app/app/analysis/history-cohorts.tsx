@@ -12,7 +12,7 @@ export default function HistoryCohorts({data,unit,scale,navigate}:{data:HistoryM
   return <div data-history-cohorts className="flex min-w-0 flex-col gap-lg">
     <PanelCard title={"\u540c\u7c7b\u7ad9\u7fa4\u5bf9\u6807"} icon="building" className="min-w-0"
       description={"\u76f8\u540c\u533a\u57df\u3001\u5468\u671f\u4e0e\u8fd0\u8425\u5546\u53e3\u5f84 \u00b7 \u603b\u91cf\u770b\u89c4\u6a21\uff0c\u5355\u7ad9\u65e5\u5747\u770b\u5f3a\u5ea6"}>
-      <div className="site-analysis-table-tools site-analysis-action-row"><div className="site-analysis-occupancy-scroll"><SegmentedControl size="md" className="site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:3]" ariaLabel={"\u7ad9\u7fa4\u5206\u7ec4\u65b9\u5f0f"} value={q.groupBy} onChange={value=>navigate({groupBy:value,band:"all"})} items={groupItems}/></div></div>
+      <div className="site-analysis-table-tools site-analysis-action-row"><div className="site-analysis-occupancy-scroll"><SegmentedControl size="md" className="h-control-xl site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:3]" ariaLabel={"\u7ad9\u7fa4\u5206\u7ec4\u65b9\u5f0f"} value={q.groupBy} onChange={value=>navigate({groupBy:value,band:"all"})} items={groupItems}/></div></div>
       <DataTable rows={c.groups} rowKey={r=>r.id} columns={[
         {id:"name",header:"\u7ad9\u7fa4",cell:r=><Button size="xl" variant="ghost" onClick={()=>navigate({[q.groupBy]:r.id,band:"all",site:undefined})}>{groupName(r.id)}</Button>},
         {id:"sites",header:"\u7ad9\u5740 / \u5ea7",align:"center",cell:r=>n(r.sites)},

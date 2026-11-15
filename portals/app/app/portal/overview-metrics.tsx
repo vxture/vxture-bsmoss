@@ -60,7 +60,7 @@ export default function OverviewMetrics({ demo, scope }: { demo: PortalDemo; sco
       <DialogContent width="xl" className="grid-cols-1 w-[calc(100dvw-var(--space-xl))] max-h-[calc(100dvh-var(--space-xl))] overflow-y-auto">
         <DialogHeader><DialogTitle>{"\u4e09\u57df\u6307\u6807\u660e\u7ec6"}</DialogTitle>
           <DialogDescription>{data.currentDate + " \u5bf9\u6bd4 " + data.previousDate + " \u00b7 \u540c\u8303\u56f4\u7ad9\u7fa4 \u00b7 \u65f6\u70b9 " + hour}</DialogDescription></DialogHeader>
-        <div className="flex min-w-0"><SegmentedControl ariaLabel={"\u6307\u6807\u7c7b\u522b"} value={category} onChange={setCategory} items={CATEGORIES.map(c => ({ value: c, label: categoryNames[c] }))} /></div>
+        <div className="flex min-w-0"><SegmentedControl className="h-control-xl" ariaLabel={"\u6307\u6807\u7c7b\u522b"} value={category} onChange={setCategory} items={CATEGORIES.map(c => ({ value: c, label: categoryNames[c] }))} /></div>
         <div className="min-w-0"><DataTable rows={OVERVIEW_METRICS.filter(d => d.category === category)} rowKey={d => d.id} columns={[
           { id: "metric", header: "\u6307\u6807 / \u5355\u4f4d", cell: d => <div className="flex flex-col gap-xs"><span className="whitespace-nowrap">{d.label + " / " + overviewUnit(d.units[0]).label}</span><span className="text-body-small text-muted-foreground">{d.description}</span></div> },
           { id: "current", header: "\u672c\u671f", align: "numeric", cell: d => metricDisplay(fact(d.id).current, d.units[0], d.precision) },

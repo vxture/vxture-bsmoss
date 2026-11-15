@@ -50,7 +50,7 @@ export function OverviewAttention({ demo }: { demo: PortalDemo }) {
       description={"\u5404\u4e13\u9898\u72ec\u7acb\u5224\u5b9a\uff0c\u540c\u7ad9\u53ef\u547d\u4e2d\u591a\u4e2a\u4e13\u9898"}
       action={<Button asChild variant="ghost" size="sm"><a href={href}>{"\u8fdb\u5165\u4e13\u9898\u5206\u6790"}</a></Button>}>
       <div className="flex flex-wrap items-center justify-between gap-md pb-md">
-        <SegmentedControl ariaLabel={"\u91cd\u70b9\u5173\u6ce8\u4e13\u9898"} value={topic} onChange={setTopic} items={demo.signals.map(group => ({
+        <SegmentedControl className="h-control-xl" ariaLabel={"\u91cd\u70b9\u5173\u6ce8\u4e13\u9898"} value={topic} onChange={setTopic} items={demo.signals.map(group => ({
           value: group.topic, label: topics[group.topic] + " " + n(group.counts.critical + group.counts.warning),
         }))} />
         <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground">
@@ -82,7 +82,7 @@ export function OverviewAttention({ demo }: { demo: PortalDemo }) {
           <p className="text-body-small text-muted-foreground">{policy[item.topic]}</p>
           <div className="min-w-0">
             <PanelCard className="min-w-0" title={item.topic === "capacity" ? (evidenceMetric === "connection" ? "\u63a5\u901a\u7387 / %" : "\u8d44\u6e90\u8d1f\u8f7d / %") : item.topic === "power" ? "\u673a\u623f\u6e29\u5ea6 / \u00b0C" : "\u5355\u4f4d\u6d41\u91cf\u7535\u8017 / kWh/GiB"} tone="neutral"
-              action={item.topic === "capacity" ? <SegmentedControl size="sm" ariaLabel={"\u8bc1\u636e\u8d8b\u52bf\u6307\u6807"} value={evidenceMetric} onChange={setEvidenceMetric} items={[
+              action={item.topic === "capacity" ? <SegmentedControl className="h-control-xl" size="sm" ariaLabel={"\u8bc1\u636e\u8d8b\u52bf\u6307\u6807"} value={evidenceMetric} onChange={setEvidenceMetric} items={[
                 { value: "connection", label: "\u63a5\u901a\u7387" }, { value: "load", label: "\u8d1f\u8f7d" },
               ]} /> : undefined}>
               <BarChart data={signalSeries(item, item.topic === "power" || (item.topic === "capacity" && evidenceMetric === "connection"))}
@@ -155,7 +155,7 @@ export function OverviewReport({ demo }: { demo: PortalDemo }) {
   const rate = (value: number | null) => value === null ? "\u4e0d\u53ef\u6bd4" : (value > 0 ? "+" : "") + pct(value);
   return <section className="min-w-0" aria-busy={pending} data-overview-report={r.period}>
     <PanelCard className="min-w-0" title={"\u672c\u671f\u62a5\u544a"} icon="file-text" tone="brand" description={calendarLabel(r.period) + " \u00b7 " + r.window.dates.length + "\u5929"}
-      action={<fieldset disabled={pending}><SegmentedControl ariaLabel={"\u603b\u89c8\u62a5\u544a\u5468\u671f"} items={periodItems} value={r.period} onChange={choose} /></fieldset>}>
+      action={<fieldset disabled={pending}><SegmentedControl className="h-control-xl" ariaLabel={"\u603b\u89c8\u62a5\u544a\u5468\u671f"} items={periodItems} value={r.period} onChange={choose} /></fieldset>}>
       <div className="flex flex-col gap-md">
         {pending && <p role="status" className="text-body-small text-muted-foreground">{"\u6b63\u5728\u6c47\u603b\u62a5\u544a\u2026"}</p>}
         <div className="flex flex-wrap items-center gap-sm text-body-small text-muted-foreground"><StatusBadge size="sm" tone="warning">{"\u8349\u7a3f \u00b7 \u5f85\u590d\u6838"}</StatusBadge>

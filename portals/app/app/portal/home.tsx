@@ -79,7 +79,7 @@ export default function PortalHome({ demo, loginEnabled }: { demo: PortalDemo | 
           <CardContent><div className="flex flex-wrap items-center justify-between gap-md border-b border-dashed border-border pb-md">
             <SectionHeader level={3} divider={false} title={"\u4e1a\u52a1\u7528\u91cf\u8d8b\u52bf"} description={usage.physicalSites ? "\u5168\u65e5 \u00b7 " + unit + " \u00b7 \u5cf0\u503c " + peak.label + ":00" : "\u5f53\u524d\u8303\u56f4\u6682\u65e0\u7ad9\u5740"} />
             <div className="flex flex-wrap items-center justify-end gap-sm">
-              <SegmentedControl items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />
+              <SegmentedControl className="h-control-xl" items={metrics} value={metric} onChange={setMetric} ariaLabel={"\u7528\u91cf\u6307\u6807"} size="sm" />
               <Button asChild variant="outline" size="sm"><a href={businessHref("operator-usage", scope)}>{"\u7528\u91cf\u5206\u6790"}</a></Button>
             </div></div></CardContent>
           <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">

@@ -20,7 +20,7 @@ export default function ReportFileView({files}:{files:ReportFiles}){
 function BusinessReportView({report:r}:{report:BusinessReport}){
  const [metric,setMetric]=useState<UsageMetric>('bytes'),[page,setPage]=useState(1),[size,setSize]=useState(20);
  const pages=Math.max(1,Math.ceil(r.stations.length/size)),current=Math.min(page,pages);
- const selector=<SegmentedControl size="md" ariaLabel={"\u62a5\u544a\u7528\u91cf\u6307\u6807"} className="site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:4]" value={metric} onChange={setMetric} items={usageMetrics.map(value=>({value,ariaLabel:usageNames[value],label:<span className="site-analysis-occupancy-label"><Icon name={usageIcons[value]} size="sm"/>{usageShortNames[value]}</span>}))}/>;
+ const selector=<SegmentedControl size="md" ariaLabel={"\u62a5\u544a\u7528\u91cf\u6307\u6807"} className="h-control-xl site-analysis-occupancy site-analysis-occupancy-auto [--analysis-facet-columns:4]" value={metric} onChange={setMetric} items={usageMetrics.map(value=>({value,ariaLabel:usageNames[value],label:<span className="site-analysis-occupancy-label"><Icon name={usageIcons[value]} size="sm"/>{usageShortNames[value]}</span>}))}/>;
  const max=Math.max(1,...r.regions.map(row=>Number(row[metric])));
  return <div className="flex min-w-0 flex-col gap-lg" data-business-report={r.id}>
  <ReportAnalysisView report={r} summary/>
