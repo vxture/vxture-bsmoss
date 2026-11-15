@@ -30,3 +30,8 @@
 @media(max-width:420px){.entry-backdrop>svg{width:170%;max-width:none;margin-left:-35%}.entry-message p{max-width:28em}.entry-message span{font-size:10px;letter-spacing:.05em}}
 
 @media(max-width:380px){.entry-header{height:auto;min-height:64px}.entry-header>.entry-shell-width{flex-wrap:wrap;padding-block:12px;row-gap:8px}.entry-header-tools{margin-left:auto}.entry-legal nav{gap:12px}}
+
+/* All public states share heading, bottom-aligned actions and explanation slots. */
+.entry-card{position:relative;isolation:isolate;min-height:562px;gap:0}.entry-heading,.entry-operations,.entry-footnote{position:relative;z-index:1}.entry-heading{text-align:center}.entry-welcome{margin:0 0 16px;font-size:12px;font-weight:500;line-height:1.578571;color:var(--color-muted-foreground)}
+.entry-art{position:absolute;inset:0;z-index:0;display:block;min-height:0;padding:0;pointer-events:none;overflow:hidden;border-radius:inherit}.entry-motif{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%) scale(.8,1.08);opacity:.3}.entry-operations{margin-top:auto;padding-top:24px}.entry-footnote{box-sizing:border-box;flex-shrink:0;min-height:62px;margin-top:24px;padding-top:20px;line-height:1.7;border-color:color-mix(in srgb,var(--color-primary) 16%,transparent)}
+@media(max-width:699px){.entry-card{min-height:546px}}
