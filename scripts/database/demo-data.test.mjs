@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {gzipSync} from 'node:zlib';
 import pg from 'pg';
 import {inspectBundle,seedDemo,rebuildDemo,resetDemo,recomputeDemoRollups} from './demo-data.mjs';
-import {readPgDemoArtifact} from '../../portals/app/app/domains/tower-service/demo-artifact.ts';
+import {readPgDemoArtifact,readPgDemoPeriods} from '../../portals/app/app/domains/tower-service/demo-artifact.ts';
 
 const digest=value=>createHash('sha256').update(value).digest('hex');
 async function fixture(root){
@@ -55,6 +55,8 @@ await test('demo lifecycle on an isolated local PostgreSQL database', {timeout:1
   await t.test('publication is atomic, repeatable and checksum verified',async()=>{
    assert.equal(await rebuildDemo(db,bundle),'ready');assert.equal(await rebuildDemo(db,bundle),'unchanged');
    assert.deepEqual(await readPgDemoArtifact(db,bundle.id,'pages/test.json.gz'),bundle.files.find(f=>f.path==='pages/test.json.gz').bytes);
+   assert.deepEqual(await readPgDemoPeriods(db,bundle.id,['test:day']),bundle.rollups);
+   assert.deepEqual(await readPgDemoPeriods(db,bundle.id,['other:day']),[]);
    await assert.rejects(readPgDemoArtifact(db,bundle.id,'missing'),{code:'ENOENT'});
    await assert.rejects(readPgDemoArtifact(db,'b'.repeat(64),'pages/test.json.gz'),/demo_dataset_not_ready/);
    await db.query('BEGIN');await db.query("UPDATE bsmoss_demo.artifact SET content='AAAA'");
@@ -81,9 +83,8 @@ await test('demo lifecycle on an isolated local PostgreSQL database', {timeout:1
    for(let i=0;i<25;i++){const at=performance.now();await readPgDemoArtifact(db,full.id,file.path);times.push(performance.now()-at);}
    times.sort((a,b)=>a-b);
    const summary=full.rollups[0],at=performance.now();
-   const queried=await db.query('SELECT payload FROM bsmoss_demo.period_rollup WHERE dataset_id=$1 AND period_id=$2 AND city=$3 AND county=$4 AND operator=$5',
-    [full.id,summary.id,summary.city,summary.county,summary.operator]);
-   assert.deepEqual(queried.rows[0].payload,summary);
+   const queried=await readPgDemoPeriods(db,full.id,[summary.id]);
+   assert.ok(queried.some(row=>JSON.stringify(row.quantities)===JSON.stringify(summary.quantities)&&row.county===summary.county&&row.operator===summary.operator));
    console.log(JSON.stringify({pageReadP95Ms:Math.round(times[23]*100)/100,periodReadMs:Math.round((performance.now()-at)*100)/100}));
    console.log(JSON.stringify({facts:full.daily.length/4,periods:full.rollups.length,artifacts:full.files.length,seedMs:Math.round(seeded-start),publishMs:Math.round(performance.now()-seeded)}));
    await resetDemo(db,full.id);

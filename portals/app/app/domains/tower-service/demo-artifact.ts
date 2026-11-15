@@ -4,6 +4,18 @@ import {relative,resolve,sep} from 'node:path';
 import {getPool} from '../../lib/db';
 import {authenticatedDemoEnabled} from '../../lib/demo-mode';
 import type {Pool,PoolClient} from 'pg';
+import type {HistoryRollup} from './history';
+
+export const postgresDemoEnabled=()=>authenticatedDemoEnabled() && process.env.BSMOSS_DEMO_STORAGE==='postgres';
+export async function readPgDemoPeriods(client:Pick<Pool|PoolClient,'query'>,dataset:string,periods:string[]):Promise<HistoryRollup[]> {
+ if(!/^[a-f0-9]{64}$/.test(dataset))throw Error('demo_dataset_unconfigured');
+ const ready=await client.query("SELECT 1 FROM bsmoss_demo.dataset WHERE id=$1 AND status='ready'",[dataset]);
+ if(!ready.rows.length)throw Error('demo_dataset_not_ready');
+ const result=await client.query<{payload:HistoryRollup}>(
+  'SELECT payload FROM bsmoss_demo.period_rollup WHERE dataset_id=$1 AND period_id=ANY($2::text[])',[dataset,periods]);
+ return result.rows.map(row=>row.payload);
+}
+export const readDemoPeriods=(periods:string[])=>readPgDemoPeriods(getPool(),process.env.BSMOSS_DEMO_DATASET??'',periods);
 
 export async function readPgDemoArtifact(client:Pick<Pool|PoolClient,'query'>,dataset:string,path:string):Promise<Buffer> {
  if(!/^[a-f0-9]{64}$/.test(dataset))throw Error('demo_dataset_unconfigured');
