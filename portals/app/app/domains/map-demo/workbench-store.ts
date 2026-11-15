@@ -16,7 +16,7 @@ interface WorkbenchState {
   compareIds:string[]; compareOpen:boolean;
   addComparison:(id:string)=>void; removeComparison:(id:string)=>void; clearComparison:()=>void;
   cityId:string; countyId:string; operator:OperatorFilter; hour:number; selectedId:string|null; theme:Theme;
-  playing:boolean; showSites:boolean; showBoundaries:boolean; showHeat:boolean; showLabels:boolean;
+  playing:boolean; showSites:boolean; showBoundaries:boolean; showHeat:boolean; showLabels:boolean; showLegend:boolean;
   bounds:Bounds|null; tab:AnalysisPanel; expanded:boolean; search:string; leftOpen:boolean; detailOpen:boolean;
   selection:Selection|null; selectionOpen:boolean; drawing:boolean; drawMode:'rectangle'|'circle'|'polygon';
   beginSelection:(mode?:'rectangle'|'circle'|'polygon')=>void; finishSelection:(selection:Selection)=>void; cancelSelection:()=>void; clearSelection:()=>void;
@@ -28,7 +28,7 @@ interface WorkbenchState {
 }
 export const useWorkbench=create<WorkbenchState>((set,get)=>({cityId:'all',countyId:'all',operator:'all',hour:18,selectedId:null,theme:'status',
   stationPeriods:{runtime:'snapshot',business:'snapshot'},returnToReport:false,
-  playing:false,showSites:true,showBoundaries:true,showHeat:false,showLabels:true,bounds:null,tab:'runtime',expanded:false,search:'',leftOpen:false,detailOpen:false,
+  playing:false,showSites:true,showBoundaries:true,showHeat:false,showLabels:true,showLegend:true,bounds:null,tab:'runtime',expanded:false,search:'',leftOpen:false,detailOpen:false,
   reportOpen:false,reportPeriod:'day',usageOpen:false,usagePeriod:'hour',runtimeOpen:false,businessOpen:false,expandedPanel:null,selection:null,selectionOpen:false,drawing:false,drawMode:'rectangle',compareIds:[],compareOpen:false,topic:'capacity',topicOpen:false,display:defaultDisplay(),
   set:patch=>set(current=>{
     const next={...current,...patch};
