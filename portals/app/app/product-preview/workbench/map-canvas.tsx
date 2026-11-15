@@ -9,6 +9,7 @@ import { LocateFixed, Plus, Minus, Layers, Map as MapIcon, Satellite, RefreshCw,
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useWorkbench } from '../../domains/map-demo/workbench-store.ts';
 import { rectangle, circleFromPoints, polygonFromPoints, POLYGON_VERTEX_LIMIT, selectionPolygon, selectionBounds, selectionLabel } from '../../domains/map-demo/geometry.ts';
+import MapSettings from './map-settings.tsx';
 import { mapInsets } from './map-layout.ts';
 import { CHINA_CAMERA_BOUNDS, chinaMinimumZoom } from '../../lib/china-map.ts';
 import type { RegionDefinition, SitePoint, DemoSite, Bounds, Selection } from '../../domains/map-demo/types.ts';
@@ -20,6 +21,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
   const [tileOffline,setTileOffline]=useState(false),[tilted,setTilted]=useState(false);
   const [camera,setCamera]=useState<{lng:number;lat:number;zoom:number}|null>(null);
   const [mapSettingsOpen,setMapSettingsOpen]=useState(false);
+  const [scrollZoom,setScrollZoom]=useState(true),[autoFit,setAutoFit]=useState(true);
   const dockRef=useRef<HTMLElement>(null),settingsButton=useRef<HTMLButtonElement>(null);
   useEffect(()=>{
     if(!mapSettingsOpen)return;
@@ -131,9 +133,10 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
   },[ready,selected,state.compareOpen,state.usageOpen,state.reportOpen,state.topicOpen]);
   useEffect(()=>{
     const map=mapRef.current;if(!map||!ready)return;
+    if(!autoFit)return;
     const city=region.cities.find(c=>c.id===state.cityId),county=region.counties.find(c=>c.id===state.countyId),b=state.selection?selectionBounds(state.selection):county?.bounds??city?.bounds??region.bounds;
     map.fitBounds([[b[0],b[1]],[b[2],b[3]]],{padding:mapInsets(window.innerWidth,state.leftOpen,state.detailOpen,state.expanded,state.runtimeOpen&&state.businessOpen,state.selectionOpen,state.compareOpen||state.usageOpen||state.reportOpen,state.topicOpen),duration:800,essential:false});
-  },[state.cityId,state.countyId,state.selection,ready,region]);
+  },[state.cityId,state.countyId,state.selection,ready,region,autoFit]);
   useEffect(()=>{
     const map=mapRef.current;if(!map||!ready)return;
     for(const layer of ['clusters','cluster-count','cluster-halo','site-points','site-glow','comparison-ring','comparison-index'])if(map.getLayer(layer))map.setLayoutProperty(layer,'visibility',state.showSites?'visible':'none');
@@ -282,7 +285,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
     {!ready&&!failed&&<MapLoading/>}
     <section ref={dockRef} className="mw-map-dock" aria-label={'\u5730\u56fe\u64cd\u4f5c\u4e0e\u5b9a\u4f4d'}>
       <div className="mw-map-toolbar"><div className="mw-map-buttons"><button title={'\u9655\u897f\u5168\u57df'} aria-label={'\u9655\u897f\u5168\u57df'} onClick={reset}><LocateFixed size={17}/></button><button title={'\u653e\u5927\u5730\u56fe'} aria-label={'\u653e\u5927\u5730\u56fe'} onClick={()=>mapRef.current?.zoomIn()}><Plus size={18}/></button><button title={'\u7f29\u5c0f\u5730\u56fe'} aria-label={'\u7f29\u5c0f\u5730\u56fe'} onClick={()=>mapRef.current?.zoomOut()}><Minus size={18}/></button><button ref={settingsButton} title={'\u5730\u56fe\u8bbe\u7f6e'} aria-label={'\u5730\u56fe\u8bbe\u7f6e'} aria-expanded={mapSettingsOpen} aria-controls="mw-map-settings" className={mapSettingsOpen?'active':''} onClick={()=>setMapSettingsOpen(!mapSettingsOpen)}><Settings2 size={17}/></button></div></div>
-      {mapSettingsOpen&&<div id="mw-map-settings" className="mw-map-settings-popover" role="dialog" aria-label={'\u5730\u56fe\u8bbe\u7f6e'}><div className="mw-map-settings-heading"><span>{'\u5730\u56fe\u8bbe\u7f6e'}</span><button aria-label={'\u5173\u95ed\u5730\u56fe\u8bbe\u7f6e'} onClick={()=>{setMapSettingsOpen(false);settingsButton.current?.focus();}}><X size={13}/></button></div><SegmentedControl ariaLabel="底图" value={basemap} items={[{value:'map',label:'标准'},{value:'satellite',label:'卫星'}]} onChange={value=>{setBasemap(value);setMapSettingsOpen(false);settingsButton.current?.focus();}}/><Toggle size="xl" aria-label="倾斜视角" pressed={tilted} onPressedChange={next=>{setTilted(next);mapRef.current?.easeTo({pitch:next?42:0,bearing:next?-8:0,duration:650});}}>倾斜视角</Toggle></div>}
+      {mapSettingsOpen&&<MapSettings basemap={basemap} onBasemap={setBasemap} tilted={tilted} onTilt={next=>{setTilted(next);mapRef.current?.easeTo({pitch:next?42:0,bearing:next?-8:0,duration:650});}} scrollZoom={scrollZoom} onScrollZoom={next=>{setScrollZoom(next);if(next)mapRef.current?.scrollZoom.enable();else mapRef.current?.scrollZoom.disable();}} autoFit={autoFit} onAutoFit={setAutoFit} onClose={()=>{setMapSettingsOpen(false);settingsButton.current?.focus();}}/>}
       <div className="mw-map-footer">{context}<div className="mw-map-coordinates" aria-label={'\u5730\u56fe\u4e2d\u5fc3\u5750\u6807'}><span>{camera?camera.lng.toFixed(4)+' E / '+camera.lat.toFixed(4)+' N':'\u2014'}</span><small>{camera?'Z '+camera.zoom.toFixed(1):'Z \u2014'}</small></div></div>
     </section>
     {tileOffline&&<div className="mw-tile-status">{'\u5728\u7ebf\u5e95\u56fe\u6682\u4e0d\u53ef\u7528 \u00b7 \u672c\u5730\u884c\u653f\u533a\u4e0e\u7ad9\u70b9\u4ecd\u53ef\u6d4f\u89c8'}</div>}

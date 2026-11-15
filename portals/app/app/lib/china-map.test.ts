@@ -37,7 +37,7 @@ test('map entries retain padded camera bounds and workbench restores detailed ma
   assert.match(source, /World_Topo_Map/);
   assert.match(source, /World_Imagery/);
   assert.match(source, /basemap==='satellite'&&!map.getSource\('satellite'\)/);
-  assert.match(source, /setBasemap\(value\)/);
+  assert.match(source, /onBasemap=\{setBasemap\}/);
   assert.match(source, /cluster:true/);
   assert.match(source, /type:'heatmap'/);
 });
