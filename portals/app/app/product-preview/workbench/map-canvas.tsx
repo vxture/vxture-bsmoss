@@ -10,13 +10,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useWorkbench } from '../../domains/map-demo/workbench-store.ts';
 import { rectangle, circleFromPoints, polygonFromPoints, POLYGON_VERTEX_LIMIT, selectionPolygon, selectionBounds, selectionLabel } from '../../domains/map-demo/geometry.ts';
 import { mapInsets } from './map-layout.ts';
+import { CHINA_CAMERA_BOUNDS, CHINA_MAP_SOURCE, chinaMapLayers, chinaMinimumZoom } from '../../lib/china-map.ts';
 import type { RegionDefinition, SitePoint, DemoSite, Bounds, Selection } from '../../domains/map-demo/types.ts';
 
 export default function MapCanvas({region,points,selected,onPick,context}:{context:ReactNode;region:RegionDefinition;points:SitePoint[];selected:DemoSite|null;onPick:(id:string)=>void}) {
   const node=useRef<HTMLDivElement>(null),mapRef=useRef<MapInstance|null>(null);
   const pickRef=useRef(onPick);pickRef.current=onPick;
-  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false),[basemap,setBasemap]=useState<'map'|'satellite'>('map');
-  const [tileOffline,setTileOffline]=useState(false),[tilted,setTilted]=useState(false);
+  const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
+  const [resourceError,setResourceError]=useState(false),[tilted,setTilted]=useState(false);
   const [camera,setCamera]=useState<{lng:number;lat:number;zoom:number}|null>(null);
   const [mapSettingsOpen,setMapSettingsOpen]=useState(false);
   const dockRef=useRef<HTMLElement>(null),settingsButton=useRef<HTMLButtonElement>(null);
@@ -46,10 +47,10 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
     let map:MapInstance;
     try {
       maplibregl.setWorkerUrl('/vendor/maplibre/maplibre-gl-worker.mjs');
-      map=new maplibregl.Map({container:node.current,center:region.center,zoom:5.8,minZoom:3.5,maxZoom:17,trackResize:true,
-        attributionControl:false,renderWorldCopies:false,canvasContextAttributes:{antialias:false},
+      map=new maplibregl.Map({container:node.current,center:region.center,zoom:5.8,minZoom:chinaMinimumZoom(node.current.clientWidth,node.current.clientHeight),maxZoom:17,maxBounds:CHINA_CAMERA_BOUNDS,trackResize:true,
+        attributionControl:{compact:true},renderWorldCopies:false,canvasContextAttributes:{antialias:false},
         style:{version:8,glyphs:'/geo/fonts/{fontstack}/{range}.pbf',sources:{
-          carto:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Tiles &copy; Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, METI, Esri China (Hong Kong), OpenStreetMap contributors'},
+          china:CHINA_MAP_SOURCE,
           districts:{type:'geojson',data:region.boundaryUrl},
           counties:{type:'geojson',data:{type:'FeatureCollection',features:[]}},
           sites:{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:true,clusterMaxZoom:9,clusterRadius:35,
@@ -59,7 +60,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
           selected:{type:'geojson',data:{type:'FeatureCollection',features:[]}},
         },layers:[
           {id:'background',type:'background',paint:{'background-color':'#0a151c'}},
-          {id:'carto',type:'raster',source:'carto',paint:{'raster-opacity':0.88,'raster-saturation':-1,'raster-brightness-max':0.22}},
+          ...chinaMapLayers('#164039','#559c9b'),
           {id:'district-fill',type:'fill',source:'districts',paint:{'fill-color':['match',['get','adcode'],610100,'#164039',610300,'#15313c',610400,'#163b38',610600,'#183744',610800,'#20383c','#16343b'],'fill-opacity':0.18}},
           {id:'district-glow',type:'line',source:'districts',paint:{'line-color':'#52c5b1','line-width':5,'line-opacity':0.07}},
           {id:'district-lines',type:'line',source:'districts',paint:{'line-color':'#559c9b','line-width':1,'line-opacity':0.65}},
@@ -100,7 +101,7 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
         });
       });
       map.on('moveend',report);
-      map.on('error',event=>{if(('sourceId' in event && (event.sourceId==='carto'||event.sourceId==='satellite')) || /basemaps|arcgis|fetch/i.test(event.error.message)){setTileOffline(true);const source='sourceId' in event?event.sourceId:undefined;if(source==='carto'||source==='satellite'){try{map.setLayoutProperty(source,'visibility','none');}catch{/* Preserve local overlays when a remote basemap fails. */}}}});
+      map.on('error',event=>{if('sourceId' in event&&event.sourceId==='china')setResourceError(true);});
       map.on('click','site-points',event=>{const id=event.features?.[0]?.properties?.id;if(typeof id==='string')pickRef.current(id);});
       map.on('click','comparison-ring',event=>{const id=event.features?.[0]?.properties?.id;if(typeof id==='string')pickRef.current(id);});
       map.on('click','clusters',async event=>{
@@ -149,19 +150,8 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
     for(const layer of ['comparison-ring','comparison-index'])map.setLayoutProperty(layer,'visibility',state.showSites&&!state.topicOpen?'visible':'none');
   },[ready,state.showSites,state.showBoundaries,state.showHeat,state.showLabels,state.theme,state.topicOpen]);
   useEffect(()=>{
-    if(!ready||!mapRef.current||!mapRef.current.getLayer('carto'))return;
-    const map=mapRef.current;
-    // Imagery is opt-in: do not register or request its source during initial load.
-    if(basemap==='satellite'&&!map.getSource('satellite')){
-      map.addSource('satellite',{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Tiles &copy; Esri & contributors'});
-      map.addLayer({id:'satellite',type:'raster',source:'satellite',paint:{'raster-opacity':0.95,'raster-saturation':-0.5,'raster-brightness-max':0.59}},'district-fill');
-    }
-    map.setLayoutProperty('carto','visibility',basemap==='map'?'visible':'none');
-    if(map.getLayer('satellite'))map.setLayoutProperty('satellite','visibility',basemap==='satellite'?'visible':'none');setTileOffline(false);
-  },[ready,basemap]);
-  useEffect(()=>{
     const map=mapRef.current;if(!map)return;
-    const observer=new ResizeObserver(()=>map.resize());if(node.current)observer.observe(node.current);
+    const observer=new ResizeObserver(()=>{if(node.current)map.setMinZoom(chinaMinimumZoom(node.current.clientWidth,node.current.clientHeight));map.resize();});if(node.current)observer.observe(node.current);
     return ()=>observer.disconnect();
   },[ready]);
   useEffect(()=>{
@@ -281,9 +271,9 @@ export default function MapCanvas({region,points,selected,onPick,context}:{conte
     {!ready&&!failed&&<MapLoading/>}
     <section ref={dockRef} className="mw-map-dock" aria-label={'\u5730\u56fe\u64cd\u4f5c\u4e0e\u5b9a\u4f4d'}>
       <div className="mw-map-toolbar"><div className="mw-map-buttons"><button title={'\u9655\u897f\u5168\u57df'} aria-label={'\u9655\u897f\u5168\u57df'} onClick={reset}><LocateFixed size={17}/></button><button title={'\u653e\u5927\u5730\u56fe'} aria-label={'\u653e\u5927\u5730\u56fe'} onClick={()=>mapRef.current?.zoomIn()}><Plus size={18}/></button><button title={'\u7f29\u5c0f\u5730\u56fe'} aria-label={'\u7f29\u5c0f\u5730\u56fe'} onClick={()=>mapRef.current?.zoomOut()}><Minus size={18}/></button><button ref={settingsButton} title={'\u5730\u56fe\u8bbe\u7f6e'} aria-label={'\u5730\u56fe\u8bbe\u7f6e'} aria-expanded={mapSettingsOpen} aria-controls="mw-map-settings" className={mapSettingsOpen?'active':''} onClick={()=>setMapSettingsOpen(!mapSettingsOpen)}><Settings2 size={17}/></button></div></div>
-      {mapSettingsOpen&&<div id="mw-map-settings" className="mw-map-settings-popover" role="dialog" aria-label={'\u5730\u56fe\u8bbe\u7f6e'}><div className="mw-map-settings-heading"><span>{'\u5730\u56fe\u8bbe\u7f6e'}</span><button aria-label={'\u5173\u95ed\u5730\u56fe\u8bbe\u7f6e'} onClick={()=>{setMapSettingsOpen(false);settingsButton.current?.focus();}}><X size={13}/></button></div><SegmentedControl ariaLabel="底图" value={basemap} items={[{value:'map',label:'标准'},{value:'satellite',label:'卫星'}]} onChange={value=>{setBasemap(value);setMapSettingsOpen(false);settingsButton.current?.focus();}}/><Toggle size="xl" aria-label="倾斜视角" pressed={tilted} onPressedChange={next=>{setTilted(next);mapRef.current?.easeTo({pitch:next?42:0,bearing:next?-8:0,duration:650});}}>倾斜视角</Toggle></div>}
+      {mapSettingsOpen&&<div id="mw-map-settings" className="mw-map-settings-popover" role="dialog" aria-label={'\u5730\u56fe\u8bbe\u7f6e'}><div className="mw-map-settings-heading"><span>{'\u5730\u56fe\u8bbe\u7f6e'}</span><button aria-label={'\u5173\u95ed\u5730\u56fe\u8bbe\u7f6e'} onClick={()=>{setMapSettingsOpen(false);settingsButton.current?.focus();}}><X size={13}/></button></div><span>{"\u4e2d\u56fd\u672c\u5730\u5e95\u56fe"}</span><Toggle size="xl" aria-label="倾斜视角" pressed={tilted} onPressedChange={next=>{setTilted(next);mapRef.current?.easeTo({pitch:next?42:0,bearing:next?-8:0,duration:650});}}>倾斜视角</Toggle></div>}
       <div className="mw-map-footer">{context}<div className="mw-map-coordinates" aria-label={'\u5730\u56fe\u4e2d\u5fc3\u5750\u6807'}><span>{camera?camera.lng.toFixed(4)+' E / '+camera.lat.toFixed(4)+' N':'\u2014'}</span><small>{camera?'Z '+camera.zoom.toFixed(1):'Z \u2014'}</small></div></div>
     </section>
-    {tileOffline&&<div className="mw-tile-status">{'\u5728\u7ebf\u5e95\u56fe\u6682\u4e0d\u53ef\u7528 \u00b7 \u672c\u5730\u884c\u653f\u533a\u4e0e\u7ad9\u70b9\u4ecd\u53ef\u6d4f\u89c8'}</div>}
+    {resourceError&&<div className="mw-tile-status" role="status">{"\u4e2d\u56fd\u8fb9\u754c\u8d44\u6e90\u52a0\u8f7d\u5931\u8d25 \u00b7 \u9655\u897f\u4e1a\u52a1\u56fe\u5c42\u4ecd\u53ef\u6d4f\u89c8"}</div>}
   </div>;
 }

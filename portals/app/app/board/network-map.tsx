@@ -7,6 +7,7 @@ import type { GeoJSONSource } from "maplibre-gl";
 import { Button, Icon, StatusBadge } from "@vxture/design-system";
 import type { BoardDemo } from "./model";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { CHINA_CAMERA_BOUNDS, CHINA_MAP_SOURCE, chinaMapLayers, chinaMinimumZoom } from '../lib/china-map.ts';
 
 export type BoardTheme = "status" | "traffic" | "energy";
 function features(points: BoardDemo["snapshot"]["points"]) {
@@ -43,8 +44,9 @@ export default function NetworkMap({ demo, theme, onPick }: { demo: BoardDemo; t
     try {
       maplibregl.setWorkerUrl("/vendor/maplibre/maplibre-gl-worker.mjs");
       instance = new maplibregl.Map({ container: host, center: demo.region.center, zoom: 5.8,
-        minZoom: 4, maxZoom: 16, attributionControl: false, renderWorldCopies: false,
+        minZoom: chinaMinimumZoom(host.clientWidth, host.clientHeight), maxZoom: 16, maxBounds:CHINA_CAMERA_BOUNDS, attributionControl: { compact: true }, renderWorldCopies: false,
         style: { version: 8, glyphs: "/geo/fonts/{fontstack}/{range}.pbf", sources: {
+          china: CHINA_MAP_SOURCE,
           districts: { type: "geojson", data: demo.region.boundaryUrl },
           labels: { type: "geojson", data: { type: "FeatureCollection", features: demo.region.cities.map(city => ({
             type: "Feature", geometry: { type: "Point", coordinates: city.center }, properties: { name: city.name },
@@ -54,6 +56,7 @@ export default function NetworkMap({ demo, theme, onPick }: { demo: BoardDemo; t
               warning: ["+", ["case", ["==", ["get", "status"], "warning"], 1, 0]], traffic: ["+", ["get", "traffic"]], energy: ["+", ["get", "energy"]] } },
         }, layers: [
           { id: "background", type: "background", paint: { "background-color": c("background") } },
+          ...chinaMapLayers(c("primary"), c("primary")),
           { id: "district-fill", type: "fill", source: "districts", paint: { "fill-color": c("primary"), "fill-opacity": 0.09 } },
           { id: "district-line", type: "line", source: "districts", paint: { "line-color": c("primary"), "line-width": 1, "line-opacity": 0.5 } },
           { id: "clusters", type: "circle", source: "sites", filter: ["has", "point_count"],
@@ -86,7 +89,7 @@ export default function NetworkMap({ demo, theme, onPick }: { demo: BoardDemo; t
         instance.on("mouseleave", layer, () => { instance.getCanvas().style.cursor = ""; });
       }
     } catch { setFailed(true); return; }
-    const observer = new ResizeObserver(() => instance.resize()); observer.observe(host);
+    const observer = new ResizeObserver(() => { instance.setMinZoom(chinaMinimumZoom(host.clientWidth, host.clientHeight)); instance.resize(); }); observer.observe(host);
     return () => { observer.disconnect(); map.current = null; instance.remove(); };
     // A server navigation updates the existing map through the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,6 +100,8 @@ export default function NetworkMap({ demo, theme, onPick }: { demo: BoardDemo; t
     (instance.getSource("sites") as GeoJSONSource)?.setData(features(demo.snapshot.points));
     const c = (name: string) => colour(node.current!, "--" + name);
     instance.setPaintProperty("background", "background-color", c("background"));
+    instance.setPaintProperty("china-land", "fill-color", c("primary"));
+    instance.setPaintProperty("china-boundaries", "line-color", c("primary"));
     instance.setPaintProperty("district-fill", "fill-color", c("primary"));
     instance.setPaintProperty("district-line", "line-color", c("primary"));
     instance.setPaintProperty("cluster-count", "text-color", c("background"));
