@@ -1,0 +1,12 @@
+// Decorative network geography: no live assets, status or coverage implied.
+export default function EntryBackdrop() {
+ return <div className="entry-backdrop" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" fill="none">
+  <defs><linearGradient id="entry-network-fade" x1="0" y1="0" x2="0" y2="1"><stop stopColor="white" stopOpacity=".15"/><stop offset=".48" stopColor="white"/><stop offset="1" stopColor="white" stopOpacity=".1"/></linearGradient><radialGradient id="entry-network-clear"><stop offset=".15" stopColor="black"/><stop offset=".7" stopColor="white" stopOpacity=".75"/><stop offset="1" stopColor="white"/></radialGradient><mask id="entry-network-mask"><rect width="1600" height="1000" fill="url(#entry-network-fade)"/><ellipse cx="800" cy="460" rx="440" ry="480" fill="url(#entry-network-clear)"/></mask></defs>
+  <g mask="url(#entry-network-mask)" stroke="currentColor" strokeWidth=".8">
+   <g opacity=".11"><path d="M-160 380 500 0M-160 520 740 0M-160 660 980 0M-160 800 1220 0M-160 940 1460 0M-160 1080 1700 0M80 1080 1700 140M320 1080 1700 280M560 1080 1700 420M800 1080 1700 560M1040 1080 1700 700"/><path d="M-100 100 1600 1080M-100 240 1360 1080M-100 380 1120 1080M-100 520 880 1080M-100 660 640 1080M-100 800 400 1080M140 100 1700 1000M380 100 1700 860M620 100 1700 720M860 100 1700 580M1100 100 1700 440"/></g>
+   <g opacity=".22"><path d="m-30 630 240-138 190 110 730-421 360 208 160-92" strokeDasharray="3 8"/><path d="m10 220 300 173-140 81 230 133M1110 800l170-98 290 167"/><path d="m1140 540 200-115 200 115-200 115Z"/><path d="m60 750 180-104 180 104-180 104Z"/></g>
+   <g opacity=".3" strokeLinecap="round" strokeLinejoin="round"><path d="m235 487 25-108 25 108m-43-28h36m-32-20h28m-24-20h20m-17-20h14m-25 60 35-20m-35 0 27-20m-23 0 19-20m-18 60 43 28m-43 0 35-28M260 379v-22"/><path d="M242 359a26 26 0 0 0 0 37m36-37a26 26 0 0 1 0 37M230 347a43 43 0 0 0 0 61m60-61a43 43 0 0 1 0 61"/><path d="m1270 690 32-136 32 136m-54-34h44m-38-27h32m-26-27h20m-16-24h12m-24 78 42-27m-36 0 26-27m-26 54 54 34m-54 0 44-34M1302 554v-26"/><path d="M1282 534a29 29 0 0 0 0 42m40-42a29 29 0 0 1 0 42M1268 520a49 49 0 0 0 0 70m68-70a49 49 0 0 1 0 70"/></g>
+   <g opacity=".3" fill="currentColor" stroke="none"><circle cx="210" cy="492" r="3"/><circle cx="400" cy="602" r="3"/><circle cx="1130" cy="181" r="3"/><circle cx="1490" cy="389" r="3"/><circle cx="1280" cy="702" r="3"/></g>
+  </g>
+ </svg></div>;
+}
