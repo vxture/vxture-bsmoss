@@ -1,4 +1,4 @@
-import {readFile} from "node:fs/promises";
+import {readDemoArtifact} from './demo-artifact';
 import {createHash} from "node:crypto";
 import {gunzipSync} from "node:zlib";
 import {previewRoot,previewAccess,PREVIEW_COOKIE,validPreviewSession} from "./preview";
@@ -21,7 +21,7 @@ export async function publishedPageRead<T extends {snapshots: SnapshotDescriptor
  }
  const key=pageModelKey(kind,input);
  let pending=cached.get(key) as Promise<T>|undefined;
- if(!pending){pending=readFile(previewRoot()+"/demo-history/pages/"+key+".json.gz").then(bytes=>JSON.parse(gunzipSync(bytes).toString("utf8")) as T);cached.set(key,pending);pending.catch(()=>cached.delete(key));if(cached.size>64)cached.delete(cached.keys().next().value!);}
+ if(!pending){pending=readDemoArtifact(previewRoot()+"/demo-history/pages/"+key+".json.gz",previewRoot()+"/demo-history").then(bytes=>JSON.parse(gunzipSync(bytes).toString("utf8")) as T);cached.set(key,pending);pending.catch(()=>cached.delete(key));if(cached.size>64)cached.delete(cached.keys().next().value!);}
  try {
   const model=await pending;
   const access=previewAccess("reference-only");
@@ -36,6 +36,6 @@ export async function pageReadModel<T>(kind:string,result:Result,compute:()=>T):
  if(!full)return compute();
  const key=pageModelKey(kind,result.input);
  let pending=cached.get(key) as Promise<T>|undefined;
- if(!pending){pending=(async()=>{try{return JSON.parse(gunzipSync(await readFile(previewRoot()+"/demo-history/pages/"+key+".json.gz")).toString("utf8")) as T;}catch(error){if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;return compute();}})();cached.set(key,pending);pending.catch(()=>cached.delete(key));if(cached.size>64)cached.delete(cached.keys().next().value!);}
+ if(!pending){pending=(async()=>{try{return JSON.parse(gunzipSync(await readDemoArtifact(previewRoot()+"/demo-history/pages/"+key+".json.gz",previewRoot()+"/demo-history")).toString("utf8")) as T;}catch(error){if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;return compute();}})();cached.set(key,pending);pending.catch(()=>cached.delete(key));if(cached.size>64)cached.delete(cached.keys().next().value!);}
  return pending;
 }

@@ -121,7 +121,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-      - run: pnpm test:db
+      - run: pnpm test:db && pnpm test:demo-db
         env:
           TEST_DATABASE_ADMIN_URL: postgresql://postgres@127.0.0.1:5432/postgres
     services:

@@ -5,7 +5,7 @@ generator client {
 }
 datasource db {
   provider = "postgresql"
-  schemas = ["bsmoss_resource", "bsmoss_integration", "bsmoss_catalog", "bsmoss_metering", "bsmoss_views", "vx_provision", "local_authz", "local_usage", "bsmoss_analysis"]
+  schemas = ["bsmoss_resource", "bsmoss_integration", "bsmoss_catalog", "bsmoss_metering", "bsmoss_views", "vx_provision", "local_authz", "local_usage", "bsmoss_analysis", "bsmoss_demo"]
 }
 
 model Station {
@@ -1027,4 +1027,47 @@ model SourceIntakeTaskEvent {
   @@id([workspace_id,task_id,revision])
   @@map("source_intake_task_event")
   @@schema("bsmoss_integration")
+}
+
+model DemoDataset {
+  id String @id
+  sourceDigest String @map("source_digest")
+  manifest Json
+  metadata Json
+  status String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  @@map("dataset")
+  @@schema("bsmoss_demo")
+}
+
+model DemoDailyFact {
+  datasetId String @map("dataset_id")
+  relation Int
+  day Int
+  quantity BigInt
+  @@id([datasetId,relation,day])
+  @@map("daily_fact")
+  @@schema("bsmoss_demo")
+}
+
+model DemoPeriodRollup {
+  datasetId String @map("dataset_id")
+  periodId String @map("period_id")
+  city String
+  county String
+  operator String
+  payload Json
+  @@id([datasetId,periodId,city,county,operator])
+  @@map("period_rollup")
+  @@schema("bsmoss_demo")
+}
+
+model DemoArtifact {
+  datasetId String @map("dataset_id")
+  path String
+  digest String
+  content String
+  @@id([datasetId,path])
+  @@map("artifact")
+  @@schema("bsmoss_demo")
 }
