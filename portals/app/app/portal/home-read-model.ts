@@ -2,7 +2,7 @@ import { parseMapQuery } from "../domains/map-demo/service";
 import generated from "./generated-home.json";
 
 export interface HomeSummary {
- quality?: {policy:string;month:string;score:number|null;coverage:number;evaluated:number;total:number};
+ quality?: {policy:string;month:string;score:number|null;coverage:number;delta:number|null;comparisonCount:number;evaluated:number;total:number};
  date: string; hour: number; occupiedSites: number; healthTotal: number; attentionSites: number;
  usage: { physicalSites: number; sharedSites: number };
  report: { energyWh: number; previousEnergyWh: number; days: number; previousDays: number; window: { start: string } };
