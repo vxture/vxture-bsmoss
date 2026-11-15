@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
  if (!authenticatedDemoEnabled()) return NextResponse.next();
  const path = request.nextUrl.pathname;
  if (/^\/(?:auth(?:\/|$)|entry$|api\/(?:auth\/oidc\/callback$|entry-status$|health$|ready$|webhooks\/vxture$)|_next\/|favicon\.ico$)/.test(path)) return NextResponse.next();
- if (/^\/(?:fonts|map-assets|brand|images)\//.test(path)) return NextResponse.next();
+ if (/^\/(?:fonts|map-assets|assets\/brand|brand|images)\//.test(path)) return NextResponse.next();
  const cfg = getOidcConfig(), sid = request.cookies.get(cfg.cookieName)?.value;
  const user = cfg.enabled && sid ? await getAuthUser(cfg, sid).catch(() => null) : null;
  if (user?.accountStatus !== "active") {

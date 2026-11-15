@@ -38,6 +38,11 @@ await test("published demo sends anonymous pages to the public sign-in entry", {
     }
     assert.equal((await fetch(url + "/api/product-preview/map", {redirect:"manual"})).status, 401);
     assert.equal((await fetch(url + "/entry", {redirect:"manual"})).status, 200);
+    for (const theme of ["light", "dark"]) {
+      const mark = await fetch(url + "/assets/brand/guanlan-mark-" + theme + "-24-v2.svg", {redirect:"manual"});
+      assert.equal(mark.status, 200);
+      assert.match(mark.headers.get("content-type"), /^image\/svg\+xml/);
+    }
   }, {BSMOSS_DATA_MODE:"demo", NEXT_PUBLIC_APP_URL:origin});
 });
 const request={category:"business_service",city:"all",operator:"all",preferences:[]};
